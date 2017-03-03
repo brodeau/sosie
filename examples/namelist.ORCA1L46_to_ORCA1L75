@@ -1,0 +1,85 @@
+!! ------------------- 
+!! Namelist for SOSIE 
+!! ------------------- 
+!! 
+&ninput
+ivect     = 0
+lregin    = F
+cf_in     = '/proj/bolinc/users/x_laubr/ORCA1.L46/ORCA1.L46-CP46-S/ORCA1.L46-CP46_1m_19990101_19991231_grid_T.nc4'
+cv_in     = 'thetao'
+cv_t_in   = 'time_counter' 
+jt1       = 0
+jt2       = 0
+jplev     = 0   ! info: 3D interpolation !!!
+cf_x_in   = '/proj/bolinc/users/x_laubr/ORCA1.L46/ORCA1.L46-CP46-S/ORCA1.L46-CP46_1m_19990101_19991231_grid_T.nc4'
+cv_lon_in = 'nav_lon'
+cv_lat_in = 'nav_lat'
+cf_lsm_in = ''
+cv_lsm_in = ''
+ldrown    = F ! info: irrelevent, but still make sure that source and target continents (bathy are the same!!!)
+ewper     = 0
+vmax      =  1.E6
+vmin      = -1.E6
+/
+!!
+!!
+&n3d
+cf_z_in  = '/proj/bolinc/users/x_laubr/ORCA1.L46/ORCA1.L46-CP46-S/ORCA1.L46-CP46_1m_19990101_19991231_grid_T.nc4'
+cv_z_in  = 'deptht'
+cf_z_out = '/proj/bolinc/users/x_laubr/ORCA1.L75/mesh_mask_ORCA1.L75_20150929.nc'
+cv_z_out = 'gdept_1d'
+cv_z_out_name = 'deptht'
+/
+!!
+!! ...
+!!
+!!
+!! ******************************* 
+!! Netcdf output characteristics : 
+!! ******************************* 
+!! 
+!! This mostly deals with how the output file to be created is going to look like!
+!!
+!! cmethod  : the 2D interpolation method to be used
+!!
+!!            * use 'akima' if your input domain is regular (non-distorted grid)
+!!
+!!            * use 'bilin' or 'bicub' otherwise (bilinear or bicubic 2D interpolation)
+!!              WARNING: 'bicub' is still Beta!
+!!
+!!            * use 'no_xy' to only perform vertical interpolation, i.e. interpolate a
+!!              a 3D field given on ni*nj and nk_in levels to the same ni*nj 2D domain
+!!              but on nk_out levels!
+!!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
+!!
+!! *** Into the netcdf file to be created : *** 
+!! cv_l_out : name for longitude on the output file [char] 
+!! cv_p_out : name for latitude on the output file [char] 
+!! cv_t_out : name for time on the output file [char] 
+!! cv_out   : name for treated variable on the output file [char] 
+!! cu_out   : treated variable units [char] 
+!! cu_t     : time unit [char]
+!! cln_out  : treated variable long name [char] 
+!! cd_out   : directory to create output file to [char]
+!! 
+!! *** Name of the output file : *** 
+!! csource  : short string to describe origin of the file [char] 
+!! ctarget  : short string to describe the target grid [char] 
+!! cextra   : short extra indication about the file [char] 
+!! lpcknc4  : pack data (netcdf4 with deflate level set to 9!)
+!!
+&nnetcdf
+cmethod  = 'no_xy'
+cv_l_out = 'nav_lon'
+cv_p_out = 'nav_lat'
+cv_t_out = 'time_counter'
+cv_out   = 'thetao'
+cu_out   = 'deg. C'
+cu_t     = 'unknown'
+cln_out  = 'Temperature'
+cd_out   = '.'
+csource  = 'ORCA1.L46'
+ctarget  = 'ORCA1.L75'
+cextra   = 'only_vert_interp'
+lpcknc4  = .true.
+/

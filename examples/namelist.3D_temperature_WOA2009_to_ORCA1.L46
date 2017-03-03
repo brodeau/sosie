@@ -1,0 +1,101 @@
+!! ------------------- 
+!! Namelist for SOSIE 
+!! ------------------- 
+!! 
+!! 
+!! *********************** 
+!! Input characteristics : 
+!! *********************** 
+!! 
+&ninput
+ivect     = 0
+lregin    = T
+cf_in     = 'temperature_monthly_LB_WOA2009.nc'
+cv_in     = 't_an'
+cv_t_in   = 'time'
+jt1       = 0
+jt2       = 0
+jplev     = 0
+cf_x_in   = 'temperature_monthly_LB_WOA2009.nc'
+cv_lon_in = 'lon'
+cv_lat_in = 'lat'
+cf_lsm_in = 'missing_value'
+cv_lsm_in = ''
+ldrown    = T
+ewper     = 0
+vmax      =  1.E6
+vmin      = -1.E6
+/
+!!
+!!
+&n3d
+cf_z_in  = 'temperature_monthly_LB_WOA2009.nc'
+cv_z_in  = 'depth'
+cf_z_out = '/home/x_laubr/Public/Uwe/mesh_mask_ORCA1.L46_201101.nc'
+cv_z_out = 'nav_lev'
+/
+!! 
+!!
+!!
+!!
+!! ***************************** 
+!! Output Grid characteristics : 
+!! ***************************** 
+!!
+&noutput
+lregout    = F
+cf_x_out   = '/home/x_laubr/Public/Uwe/mesh_mask_ORCA1.L46_201101.nc'
+cv_lon_out = 'nav_lon'
+cv_lat_out = 'nav_lat'
+cf_lsm_out = '/home/x_laubr/Public/Uwe/mesh_mask_ORCA1.L46_201101.nc'
+cv_lsm_out = 'tmask'
+lmout      = F
+rmaskvalue = -9999.
+lct        = F
+t0         = 0.
+t_stp      = 0.
+/
+!! 
+!! 
+!! 
+!! 
+!! ******************************* 
+!! Netcdf output characteristics : 
+!! ******************************* 
+!! 
+!! This mostly deals with how the output file to be created is going to look like!
+!!
+!! cmethod  : the 2D interpolation method to be used
+!!            use 'akima' if your input domain is regular (non-distorded grid)
+!!            use 'bilin' otherwise, which is bilinear 2D interpolation
+!!
+!! *** Into the netcdf file to be created : *** 
+!! cv_l_out : name for longitude on the output file [char] 
+!! cv_p_out : name for latitude on the output file [char] 
+!! cv_t_out : name for time on the output file [char] 
+!! cv_out   : name for treated variable on the output file [char] 
+!! cu_out   : treated variable units [char] 
+!! cu_t     : time unit [char]
+!! cln_out  : treated variable long name [char] 
+!! cd_out   : directory to create output file to [char]
+!! 
+!! *** Name of the output file : *** 
+!! csource  : short string to describe origin of the file [char] 
+!! ctarget  : short string to describe the target grid [char] 
+!! cextra   : short extra indication about the file [char] 
+!! 
+&nnetcdf
+cmethod  = 'akima'
+cv_l_out = 'nav_lon'
+cv_p_out = 'nav_lat'
+cv_t_out = 'time_counter'
+cv_out   = 'votemper'
+cu_out   = 'deg.C'
+cu_t     = 'monthly'
+cln_out  = 'Temperature, WOA2009 (Levitus) monthly'
+cd_out   = '.'
+csource  = '1degx1deg'
+ctarget  = 'ORCA1.L46'
+cextra   = 'WOA2009_monthly'
+/ 
+!!
