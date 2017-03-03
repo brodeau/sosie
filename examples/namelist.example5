@@ -1,0 +1,62 @@
+!! ------------------- 
+!! Namelist for SOSIE 
+!! ------------------- 
+!!
+!! EXAMPLE 5:                 
+!! #########    
+!!   
+!! Interpolation of a few time records of air temperature at 2m of ECMWF    
+!! high-resOperational Analysis on a stereographic projection of the Arctic
+!!
+
+&ninput
+ivect     = 0    ! this is not a vector interpolation
+lregin    = T    ! input grid is regular (lon and lat are "1D")
+cf_in     = 'data/T2M_ECMWF-OA_20141201_3h_2560x480_North.nc4'
+cv_in     = 'T2M'
+cv_t_in   = 'time'
+jt1       = 0    ! we want to interpolate each time record
+jt2       = 0    !           //
+jplev     = 1
+cf_x_in   = 'data/T2M_ECMWF-OA_20141201_3h_2560x480_North.nc4'
+cv_lon_in = 'lon'
+cv_lat_in = 'lat'
+cf_lsm_in = 'data/T2M_ECMWF-OA_20141201_3h_2560x480_North.nc4'
+cv_lsm_in = 'lsm'
+ldrown    = T      ! we want to propagate sea values onto continents
+ewper     = 0      ! input field does have a east-west periodicity with 0 overlapping point
+vmax      =  1.E6
+vmin      = -1.E6
+/
+
+
+&noutput
+lregout    = F     ! Target grid is not regular !!!
+cf_x_out   = 'data/Polar_Stereographic_Land-Ocean-Coastline-Ice_Masks_448x304_LB.nc'
+cv_lon_out = 'longitude'
+cv_lat_out = 'latitude'
+cf_lsm_out = 'data/Polar_Stereographic_Land-Ocean-Coastline-Ice_Masks_448x304_LB.nc'
+cv_lsm_out = 'mask'
+lmout      = T      ! We want to mask continents!
+rmaskvalue = -9999.
+lct        = F      ! we don't use time from input file
+t0         = 0
+t_stp      = 3
+ewper_out  = 0
+/
+
+&nnetcdf
+cmethod  = 'akima'  ! The best choice :D
+cv_l_out = 'longitude'
+cv_p_out = 'latitude'
+cv_t_out = 'time'
+cv_out   = 'T2M'
+cu_out   = 'K'
+cu_t     = 'hour'
+cln_out  = '2m air temperature, 20141201, ECMWF op. an.'
+cd_out   = '.'
+csource  = '2560x480'
+ctarget  = 'polar-stereo'
+cextra   = 'Arctic'
+lpcknc4  = .true.
+/ 

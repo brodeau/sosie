@@ -1,0 +1,357 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+  <head>
+    <center>
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+      <title>SOSIE is Only a Surface Interpolation Environment</title>
+      <style type="text/css">
+      </style>
+    </center>
+  </head>
+
+
+  <!--<body lang="en-US" dir="ltr" style="background: transparent; width: 1100px; border:1px; solid #D8D8D8 ;"> -->
+  <body dir="ltr" lang="en-US"  bgcolor="white" style="margin:auto; width: 1100px; border:1px solid #D8D8D8 ;">
+
+    <center>
+
+
+
+      <div align="center" style="margin: 10px 20px 0px 20px; width: 420px;">
+        <img src="sosie_files/sosie_path.svg" name="sosie_path.svg" width="420" height="420" border="0">
+      </div>
+
+
+      <div align="justify" style="margin: 10px 30px 0px 30px; font-family: Verdana; font-size: 13px; width: 1024px;">
+        <font face="BentonSans Regular, Helvetica, Arial,sans-serif" size="6" style="font-size: 24pt">
+          About SOSIE
+        </font>
+        <br><br>
+
+        <font face="Trebuchet MS, Arial, sans-serif" size="6" style="font-size: 14pt">
+        <!-- <font face="Courier, sans-serif" size="6" style="font-size: 14pt"> -->
+ 
+          SOSIE is a tool that allows fast and high-quality 2D and 3D
+          interpolation of geophysical fields from a gridded domain to
+          another. "Sosie" is the french word for "double" (like in
+          look-alike). SOSIE is developed and distributed under the GNU General
+          Public License (GPL). <br>SOSIE was originally intended to interpolate
+          geophysical fields onto the ORCA family of tri-polar grids used by the
+          NEMO ocean general circulation model (ORCA2, ORCA1, ORCA05,
+          ORCA025). It now supports a wide range of source/target grid
+          configuration for scalar fields interpolation but vector rotation in
+          distorted target grid regions is only supported for the ORCA grids so
+          far. <br><br>The main interpolation algorithm of SOSIE is based on the
+          method of <b>Akima (1970)</b>: "<u>A New Method of Interpolation and
+          Smooth Surface Fitting Based On Local Procedures</u>, <i>J.of Applied
+          Comput. Math</i>., 17, 589-602."  In SOSIE, this method has been coded
+          from scratch in plain <i>Fortran-90</i>. The algorithm is made highly
+          efficient by skipping solving a 16x16 linear system for each treated
+          point of the target grid. Instead, a particularly efficient way to
+          calculate the general solution of the 16x16 system was found
+          (J.M. Brankart, personal communication).
+          <br><br>Compared to more widely used interpolation methods such as
+          bilinear or bicubic splines, the <i>Akima</i> method allows, at an
+          extremely low numerical cost, continuous and smooth interpolated
+          fields without errors related to overshoots (as for polynomial
+          functions, see 1D illustrations below). <br>SOSIE can perform 3D
+          interpolation. This is fake 3D interpolation though: each level is
+          independently interpolated on the target horizontal domain and
+          vertical interpolation (using Akima 1D algorithm) is then
+          performed. SOSIE uses Netcdf as IO file format. <br><br>
+          <b>Authors and main developers:</b> Laurent Brodeau (brodeau (at)
+          gmail), Maxime Ballarotta, Jean-Michel Brankart, Raphael Dussin,
+          Jean-Marc Molines, Saeed Falahat and Pierre Mathiot.
+
+          <br><br>
+
+          Official SOSIE project page on <a href="https://sourceforge.net/projects/sosie/">SourceForge.net<a>
+
+        </font>
+      </div>
+
+
+
+      <br>
+      <div align="justify" style="margin: 50px 30px 0px 30px; font-family: Verdana; font-size: 14px; width: 1024px;">
+        <font face="BentonSans Regular, Helvetica, Arial, sans-serif" size="6" style="font-size: 24pt">
+          Limitation of the Akima method
+        </font>
+        <br><br>
+        <font face="Trebuchet MS, Arial, sans-serif" size="6" style="font-size: 14pt">
+
+          The <i>Akima</i> algorithm can only be used for interpolating fields
+          mapped on non-distorted horizontal grids, i.e. on so-called lat-lon
+          regular domains in which latitude and longitude arrays are 1D and
+          depend only on <i>x</i> and <i>y</i>, respectively. A bilinear
+          interpolation alternative is included in SOSIE and can be used for
+          distorted input domains. However, there is no limitation regarding
+          the type of the target grid: both regular and distorted target grids
+          are supported by the <i>Akima</i> method.
+
+        </font>
+      </div>
+
+
+
+
+      <br>
+      <div align="justify" style="margin: 50px 30px 0px 30px; font-family: Verdana; font-size: 14px; width: 1024px;">
+        <font face="BentonSans Regular, Helvetica, Arial, sans-serif" size="6" style="font-size: 24pt">
+          Illustration 1D
+        </font>
+        <br><br>
+        <center>
+          <img src="sosie_files/comp_event_1d.png" name="event_1d" align="bottom" width="604" border="0">
+          <img src="sosie_files/comp_step_1d.png" name="step_1d" align="bottom" width="604" border="0">
+          <div align="justify" style="margin: 10px 0px 0px 0px; font-family: Verdana; font-size: 14px; width: 604px;">
+            <b>Fig. 1-2:</b> Comparison between the <i>Akima</i> method coded in
+            SOSIE and the widely-used cubic spline method (from Matlab), for two
+            different "discontinuous" patterns of input (x,y) points.
+          </div>
+        </center>
+      </div>
+
+
+
+
+
+      <br>
+      <div align="justify" style="margin: 50px 30px 0px 30px; font-family: Verdana; font-size: 14px; width: 1024px;">
+        <font face="BentonSans Regular, Helvetica, Arial, sans-serif" size="6" style="font-size: 24pt">
+          Illustration 2D
+        </font>
+        <br><br>
+        <font face="Trebuchet MS, Arial, sans-serif" size="6" style="font-size: 14pt">
+          In this first example, the mean long term sea surface temperature of
+          Reynolds (2002) is interpolated from a spherical input lat-lon grid
+          (360x180) to the tri-polar ORCA1 (distorted) grid. This example is
+          provided as a template configuration (example #1) in the SOSIE package,
+          see the "A few examples" section.
+        </font>
+
+        <br><br>
+        <center>
+          <img src="sosie_files/reynolds_avant.png" name="reynolds_avant" align="bottom" width="900" border="0">
+          <div align="justify" style="margin: 10px 0px 0px 0px; font-family: Verdana; font-size: 14px; width: 900px;">
+            <b>Fig. 3:</b> March mean SST (Reynolds, 2002), original regular lat-lon grid (360x180).
+          </div>
+          <br><br>
+          <img src="sosie_files/reynolds_apres.png" name="reynolds_apres" align="bottom" width="726" border="0">
+          <div align="justify" style="margin: 10px 0px 0px 0px; font-family: Verdana; font-size: 14px; width: 726px;">
+            <b>Fig. 4:</b> March mean SST (Reynolds, 2002), interpolated on the
+            tri-polar ORCA1 grid using the Akima method
+          </div>
+        </center>
+
+        <br><br>
+        <font face="Trebuchet MS, Arial, sans-serif" size="6" style="font-size: 14pt">
+          In the following example, a random SST snapshot from a random
+          NEMO-ORCA1 simulation is interpolated with the SOSIE bi-linear
+          algorithm from the tri-polar ORCA1 (distorted) grid to a spherical
+          output lat-lon grid auto-generated by SOSIE (1x1 degree). This
+          example is provided as a template configuration (example #3) in the
+          SOSIE package, see the "A few examples" section. This example also
+          illustrates the action of the DROWN algorithm, used to extrapolate
+          sea values over continents (see Fig. 6)
+        </font>
+
+        <center>
+          <img src="sosie_files/fig_irregular.png" name="fig_irregular" width="900" border="0">
+          <div align="justify" style="margin: 10px 0px 0px 0px; font-family: Verdana; font-size: 14px; width: 900px;">
+            <b>Fig. 5:</b> Random NEMO-ORCA1 SST snapshot, on its original ORCA1
+            grid. Note that not all iso-longitudes and -latitudes are
+            represented for clarity.
+          </div>
+          <br>
+          <img src="sosie_files/fig_regular_1024.png" name="fig_regular_1024" width="900" border="0">
+          <div align="justify" style="margin: 10px 0px 0px 0px; font-family: Verdana; font-size: 14px; width: 900px;">
+            <b>Fig. 6:</b> Random NEMO-ORCA1 SST snapshot, interpolated on a regular 1x1 degree
+            lat-lon grid with the bilinear method
+          </div>
+        </center>
+        
+      </div>
+
+
+
+      <br>
+      <div align="justify" style="margin: 50px 30px 0px 30px; font-family: Verdana; font-size: 14px; width: 1024px;">
+        <font face="BentonSans Regular, Helvetica, Arial, sans-serif" size="6" style="font-size: 24pt">
+          Obtaining SOSIE
+        </font>
+        <br><br>
+        <font face="Trebuchet MS, Arial, sans-serif" size="6" style="font-size: 14pt">
+          Up to date development version of SOSIE can be installed via Subversion using the following command:
+        <pre><code style="font-size: 18pt">
+  svn co svn://svn.code.sf.net/p/sosie/code/trunk sosie
+        </code></pre>
+        Last stable release of SOSIE is version 2.6.4:
+        <pre><code style="font-size: 18pt">
+  svn co svn://svn.code.sf.net/p/sosie/code/tags/sosie-2.6.4
+        </code></pre>
+        
+        You can browse the svn depository or download a tarball containing the
+        last svn version of the code on the following page:
+        <font face="Courier 10 Pitch"><a href="http://sosie.svn.sourceforge.net/viewvc/sosie/">http://sosie.svn.sourceforge.net/viewvc/sosie/</a></font>
+        </font>
+      </div>
+
+
+
+
+
+
+
+
+
+
+      <br>
+      <div align="justify" style="margin: 50px 30px 0px 30px; font-family: Verdana; font-size: 14px; width: 1024px;">
+        <font face="BentonSans Regular, Helvetica, Arial, sans-serif" size="6" style="font-size: 24pt">
+          Using SOSIE
+        </font>
+        <br><br>
+        <font face="Trebuchet MS, Arial, sans-serif" size="6" style="font-size: 14pt">
+          Once you have read the README file and compiled the executable, you
+          simply need to configure everything into a Fortran <i>namelist</i>. A
+          well-documented template namelist is provided (template.namelist).
+        </font>
+      </div>
+          
+      <br>
+      <div align="justify" style="margin: 50px 30px 0px 30px; font-family: Verdana; font-size: 14px; width: 1024px;">
+        <font face="BentonSans Regular, Helvetica, Arial, sans-serif" size="6" style="font-size: 24pt">
+          A few examples
+        </font>
+        <br><br>
+        <font face="Trebuchet MS, Arial, sans-serif" size="6" style="font-size: 14pt">
+          Into the "examples" sub-directory you will find a collection of
+          namelists and Netcdf files to test SOSIE for different kinds of
+          setups. For each example you will find a commented and working
+          namelist (namelist.exampleX) detailing the relevant namelist
+          tuning. <br>We encourage you to use a software
+          like <a href="http://meteora.ucsd.edu/%7Epierce/ncview_home_page.html">ncview</a>
+          to visualize files to be interpolated and interpolated files. <br>The
+          common approach to test a given example (# X):
+        <pre><code style="font-size: 14pt">
+        >> cd examples/
+        >> tar zxvf data.tar.gz
+        >> sosie.x -f namelist.exampleX
+        </pre></code> 
+
+        <br>
+        <b>&#8226; Example #1: basic 2D scalar field interpolation </b><br>
+        Interpolation
+        of <a href="http://www.cdc.noaa.gov/data/gridded/data.noaa.oisst.v2.html">Reynolds
+        (2002) Long Term Mean SST</a> onto the ORCA1 grid (illustrated on
+        Fig. 3-4).<br>
+        Do the interpolation:
+        <pre><code style="font-size: 14pt">
+      >> sosie.x -f namelist.example1
+        </pre></code> 
+        Check the newly created <b>SST_360x180-ORCA1_REYNOLDS_LTM.nc</b>
+      
+
+        <br><br><br>
+        <b>&#8226; Example #2: 3D scalar field interpolation </b><br>
+        3D interpolation
+        of <a href="http://www.cdc.noaa.gov/data/gridded/data.nodc.woa94.html">Levitus
+          (1998) temperature climatology </a>onto the ORCA1 grid (only march).
+        <pre><code style="font-size: 14pt">
+      >> sosie.x -f namelist.example2
+        </pre></code>
+        Check the newly created <b>temp_360x180-ORCA1_march.nc</b>
+
+        <br><br><br>
+        <b>&#8226; Example #3: Interpolation from an irregular (ORCA1) to a
+              regular lat-lon 1x1 deg. grid </b><br>
+        2D interpolation of a SST snapshot from a random NEMO-ORCA1 simulation
+        onto lat-lon 1x1 deg.  grid using the <b>bilinear algorithm</b>
+        (illustrated on Fig. 5-6).
+        <pre><code style="font-size: 14pt">
+      >> sosie.x -f namelist.example3
+        </pre></code>
+        Check the newly created <b>sst_ORCA1-1x1_test.nc</b>
+
+        <br><br><br>
+        <b>&#8226; Example #4: Interpolation and correction of a 2D vector field
+          from a regular lat-lon 1x1 deg. grid to an irregular grid (ORCA1)</b><br>
+        As the ORCA family of grids gets distorted in the northern hemisphere it
+        is necessary to correct (i.e. rotate) both components of the vector. In
+        this example the input vector field is the wind at 10 from a few
+        6-hourly snapshots of the ERA-INTERIM re-analysis.<br>
+        <br>
+        Do the "raw" interpolation for the zonal component of the
+        wind:
+        <pre><code style="font-size: 14pt">
+      >> sosie.x -f namelist.example4_x
+        </pre></code>
+        Do the "raw" interpolation for the meridional component of the
+        wind:
+        <pre><code style="font-size: 14pt">
+      >> sosie.x -f namelist.example4_y
+        </pre></code>
+        Now that <b>uraw_1x1-deg-ORCA1_vct.nc</b> and
+        <b>vraw_1x1-deg-ORCA1_vct.nc</b> are created, time to
+        correct:
+        <pre><code style="font-size: 14pt">
+ >> corr_vect.x -x u10 -y v10 -f namelist.example4_x -m data/mesh_mask_ORCA1_light.nc
+        </pre></code>
+        Check the newly created <b>u10_1x1-deg-ORCA1_vct.nc</b>
+        and <b>u10_1x1-deg-ORCA1_vct.nc</b>
+
+
+        <br><br><br>
+        <b>&#8226; Example #5: 2D regular lat-lon to polar stereographic </b><br>
+        Interpolation of high-resolution surface 2-meter air temperature
+        from ECMWF onto a polar stereographic projection of
+        the Arctic.<br>  Do the interpolation:
+        <pre><code style="font-size: 14pt">
+      >> sosie.x -f namelist.example5
+        </pre></code> 
+        Check the newly created <b>T2M_2560x480-polar-stereo_Arctic.nc</b>
+
+
+        <br><br><br>
+        <b>&#8226; Example #6: 3D interpolation from ORCA2 to ORCA1 tri-polar grids</b><br>
+        Interpolation of a random 3D+time monthly salinity field on the ORCA2
+        grid to the ORCA1 grid using the bilinear method. <br> Do the
+        interpolation:
+        <pre><code style="font-size: 14pt">
+      >> sosie.x -f namelist.example6
+        </pre></code> 
+        Check the newly created <b>so_ORCA2-ORCA1_test.nc</b>
+
+
+
+        </font>
+      
+      </div>
+      
+
+
+      <br><br><br><br><br>
+
+      <font color="#c8bbbe">Last edited by Laurent Brodeau, 2016/05/20</font>
+
+      <!-- Start of StatCounter Code -->
+      <script>
+        var sc_project=5443998;
+        var sc_invisible=1;
+        var sc_partition=58;
+        var sc_click_stat=1;
+        var sc_security="1dd00a81";        
+      </script>
+      <script src="http://www.statcounter.com/counter/counter.js"></script>
+      <noscript>
+        <p style="margin-top: 0.21in; margin-bottom: 0.21in"><a href="http://www.statcounter.com/myspace/" target="_blank"><font color="#000080"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAMAAAAoyzS7AAAADFBMVEX////8A/sAAAD///9gBn0RAAAAAnRSTlP/AOW3MEoAAAAKSURBVHicY2AEAAADAAJL9d3qAAAAAElFTkSuQmCC" name="Image8" align="bottom" width="1" height="1" border="1"></font></a></p>
+        <p style="margin-bottom: 0in"></p>
+      </noscript>
+      <!-- End of StatCounter Code --><br>
+
+
+
+</center>
+</body>
+</html>

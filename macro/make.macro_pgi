@@ -1,0 +1,22 @@
+# Makefile for SOSIE with Portland Group compiler on Linux with AMD64 cpu
+# =======================================================================
+
+# Fortran compiler:
+FC = pgf90
+
+# Root directory for Netcdf:
+NETCDF_DIR = /afs/pdc.kth.se/home/b/brodeau/Public/opt/netcdf_pgi
+# netcf libraries are in: <NETCDF_DIR>/lib/
+# netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+
+# Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
+L_NCDF = -lnetcdf
+
+# Fortran compilation flags:
+# -- Production
+FF = -g -O3 -tp amd64 -module mod/
+# -- Debugging
+#FF = -g -O0 -Mbounds -module mod/
+
+# Directory to install binaries:
+INSTALL_DIR = $(HOME)/Public/opt
