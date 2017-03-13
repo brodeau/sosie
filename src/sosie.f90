@@ -55,7 +55,7 @@ PROGRAM SOSIE
   REAL(4) :: rfct_miss=1.
 
   
-  !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  !lolo: problem with Gfortan 4.8...
+  !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
   WRITE(6,*)''
   WRITE(6,*)'=========================================================='
@@ -128,7 +128,12 @@ PROGRAM SOSIE
         !! In case scale_factor or add_offset :
         IF ((rsf /= 1.).or.(rao /= 0.)) data_in = rsf*data_in + rao
 
+        IF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
+           !! Replacing NaN with 0. to avoid some fuck-up later...
+           WHERE(mask_in(:,:,1)==0) data_in = 0.
+        END IF
         
+
         CALL INTERP_2D()
         
         !! => data_out for current time step is ready to be written in netcdf file
@@ -155,6 +160,11 @@ PROGRAM SOSIE
         !! In case scale_factor or add_offset :
         IF ((rsf /= 1.).or.(rao /= 0.)) data3d_in = rsf*data3d_in + rao
         
+        IF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
+           !! Replacing NaN with 0. to avoid some fuck-up later...
+           WHERE(mask_in==0) data3d_in = 0.
+        END IF
+
         CALL INTERP_3D()
 
         

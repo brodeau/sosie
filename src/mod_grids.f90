@@ -73,8 +73,8 @@ CONTAINS
       CALL know_dim_out()
 
       !! Allocate output arrays with output dimensions :
-      ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out) )      
-      
+      ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out) )
+
       IF ( lregout ) THEN
          ALLOCATE ( lon_out(ni_out, 1) , lat_out(nj_out, 1), lon_out_b(ni_out, 1) )
       ELSE
@@ -90,25 +90,24 @@ CONTAINS
       jj_ex_top = 0 ; jj_ex_btm = 0
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
-         
+
          !! The very few things we have to do if no 2D horizontal interpolation needed:
          max_lat_out  = max_lat_in
          nlat_inc_out = nlat_inc_in
-         
+
          CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
          WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
-         
-         !lolo
+
          lon_out   = lon_in
          lon_out_b = lon_in
-         lat_out   = lat_in 
+         lat_out   = lat_in
 
       ELSE
-         
+
          !! Normal case => 2D horizontal interpolation will be performed !
-         
+
          CALL get_trg_conf()
-         
+
          max_lat_out = maxval(lat_out) ;   min_lat_out = minval(lat_out) ;
          PRINT*,'' ; WRITE(6,*) 'Latitude max on input grid =', max_lat_in
          WRITE(6,*) 'Latitude max on output grid =', max_lat_out ; PRINT*,''
@@ -188,6 +187,7 @@ CONTAINS
       USE mod_manip
 
       !! Local :
+      INTEGER :: ji, jj, jk
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
       !! Getting grid on source domain:
@@ -219,26 +219,61 @@ CONTAINS
          IF ( trim(cf_lsm_in) == 'missing_value' ) THEN
 
             WRITE(6,*) 'Opening land-sea mask from missing_value on input data!'
-
             CALL WHO_IS_MV(cf_in, cv_in, ca_missval, rmv)
-
             ALLOCATE ( z3d_tmp(ni_in,nj_in,nk_in) )
-
             !! Read data field (at time 1 if time exists) :
             IF ( ltime  ) jt0 = 1
-
             IF ( l_int_3d ) THEN
                CALL GETVAR_3D(if0, iv0, cf_in, cv_in, Ntr,      jt0, z3d_tmp)
             ELSE
                IF ( l3d ) jz0 = jplev
                CALL GETVAR_2D(if0, iv0, cf_in, cv_in, Ntr, jz0, jt0, z3d_tmp(:,:,1))
             END IF
-
             mask_in = 1
             WHERE ( z3d_tmp == rmv ) mask_in = 0
-
             DEALLOCATE ( z3d_tmp )
 
+         ELSEIF ( TRIM(cf_lsm_in) == 'val+' ) THEN
+            !! Values larger than vmax are considered mask!
+            WRITE(6,*) ' Land-sea mask is defined from values larger than', vmax
+            ALLOCATE ( z3d_tmp(ni_in,nj_in,nk_in) )
+            !! Read data field (at time 1 if time exists) :
+            IF ( ltime  ) jt0 = 1
+            IF ( l_int_3d ) THEN
+               CALL GETVAR_3D(if0, iv0, cf_in, cv_in, Ntr,      jt0, z3d_tmp)
+            ELSE
+               IF ( l3d ) jz0 = jplev
+               CALL GETVAR_2D(if0, iv0, cf_in, cv_in, Ntr, jz0, jt0, z3d_tmp(:,:,1))
+            END IF
+            mask_in = 1
+            WHERE ( z3d_tmp >= vmax ) mask_in = 0
+            DEALLOCATE ( z3d_tmp )
+
+            
+         ELSEIF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
+            !! NaN values are considered mask!
+            WRITE(6,*) ' Land-sea mask is defined from values larger than', vmax
+            ALLOCATE ( z3d_tmp(ni_in,nj_in,nk_in) )
+            !! Read data field (at time 1 if time exists) :
+            IF ( ltime  ) jt0 = 1
+            IF ( l_int_3d ) THEN
+               CALL GETVAR_3D(if0, iv0, cf_in, cv_in, Ntr,      jt0, z3d_tmp)
+            ELSE
+               IF ( l3d ) jz0 = jplev
+               CALL GETVAR_2D(if0, iv0, cf_in, cv_in, Ntr, jz0, jt0, z3d_tmp(:,:,1))
+            END IF
+            mask_in = 1
+            DO jk = 1, nk_in
+               DO jj =  1, nj_in
+                  DO ji =  1, ni_in
+                     IF ( ISNAN(z3d_tmp(ji,jj,jk)) ) mask_in(ji,jj,jk) = 0
+                  END DO
+               END DO
+            END DO
+            !lolo debug: CALL PRTMASK(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
+            DEALLOCATE ( z3d_tmp )
+            
+            
          ELSE
 
             !! We are reading source land-sea mask from a file:
