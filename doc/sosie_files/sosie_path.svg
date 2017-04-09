@@ -13,8 +13,8 @@
    height="540"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.4 r9939"
-   sodipodi:docname="sosie.svg">
+   inkscape:version="0.92+devel unknown"
+   sodipodi:docname="sosie_path.svg">
   <defs
      id="defs4">
     <inkscape:perspective
@@ -32,9 +32,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.9899495"
-     inkscape:cx="145.27814"
-     inkscape:cy="228.08658"
+     inkscape:zoom="0.7"
+     inkscape:cx="-83.525276"
+     inkscape:cy="304.06256"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -42,11 +42,12 @@
      fit-margin-left="20"
      fit-margin-bottom="20"
      fit-margin-right="20"
-     inkscape:window-width="1868"
-     inkscape:window-height="1133"
-     inkscape:window-x="48"
-     inkscape:window-y="42"
-     inkscape:window-maximized="1" />
+     inkscape:window-width="1920"
+     inkscape:window-height="1123"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:document-rotation="0" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -65,76 +66,82 @@
      id="layer1"
      transform="translate(-72.981976,71.52972)">
     <g
-       sodipodi:type="inkscape:box3d"
-       style="fill:#ffffff;fill-opacity:1;stroke:none"
-       id="g2991"
-       inkscape:perspectiveID="#perspective2989"
-       inkscape:corner0="3.0473404 : 1.0425798 : 0 : 1"
-       inkscape:corner7="0.4275503 : 0.5353383 : 0.25 : 1">
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path3003"
-         style="fill:#e9e9ff;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="11"
-         d="m 232.70052,343.81354 200.39901,-317.144672 0,304.293832 -200.39901,131.63785 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2993"
-         style="fill:#353564;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="6"
-         d="m 195.21043,331.26952 0,126.12436 37.49009,5.20667 0,-118.78701 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2995"
-         style="fill:#4d4d9f;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="5"
-         d="M 195.21043,331.26952 361.90385,-64.435515 433.09953,26.668868 232.70052,343.81354 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path3001"
-         style="fill:#afafde;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="13"
-         d="M 195.21043,457.39388 361.90385,293.14783 433.09953,330.9627 232.70052,462.60055 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2999"
-         style="fill:#d7d7ff;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="14"
-         d="m 361.90385,-64.435515 0,357.583345 71.19568,37.81487 0,-304.293832 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2997"
-         style="fill:#8686bf;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="3"
-         d="m 195.21043,331.26952 166.69342,-395.705035 0,357.583345 -166.69342,164.24605 z" />
-    </g>
-    <g
-       style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:BentonSans Regular;-inkscape-font-specification:BentonSans Regular"
-       id="text2985">
-      <path
-         d="m 172.68717,332.57835 c 21.31198,0 37.008,-11.37602 37.008,-29.088 0,-17.27999 -10.94402,-24.62401 -33.12,-31.68 -22.46398,-7.2 -29.52,-11.23201 -29.52,-23.184 0,-9.79199 8.64001,-17.424 22.896,-17.424 13.39198,0 22.752,5.47201 28.08,19.296 l 8.64,-4.032 c -5.04,-14.25599 -16.56002,-24.48 -36.576,-24.48 -19.43998,0 -33.12,12.09601 -33.12,27.36 0,17.56798 11.66402,23.76 34.56,30.96 22.60798,7.19999 27.936,12.81601 27.936,23.904 0,11.95199 -10.36802,19.296 -26.352,19.296 -14.97599,0 -25.77601,-7.63202 -30.528,-22.464 l -9.072,3.312 c 5.03999,17.27998 19.15202,28.224 39.168,28.224"
-         style="font-size:144px;font-family:BentonSans Book;-inkscape-font-specification:BentonSans Book"
-         id="path2994" />
-      <path
-         d="m 270.55992,332.57835 c 26.06397,0 44.928,-21.88804 44.928,-55.296 0,-33.40797 -18.86403,-55.296 -44.928,-55.296 -26.06398,0 -44.928,21.88803 -44.928,55.296 0,33.40796 18.86402,55.296 44.928,55.296 m 0,-9.216 c -20.15998,0 -34.704,-17.13603 -34.704,-46.08 0,-28.94397 14.54402,-45.936 34.704,-45.936 20.15998,0 34.704,16.99203 34.704,45.936 0,28.94397 -14.54402,46.08 -34.704,46.08"
-         style="font-size:144px;font-family:BentonSans Book;-inkscape-font-specification:BentonSans Book"
-         id="path2996" />
-      <path
-         d="m 370.12467,332.57835 c 21.31198,0 37.008,-11.37602 37.008,-29.088 0,-17.27999 -10.94402,-24.62401 -33.12,-31.68 -22.46398,-7.2 -29.52,-11.23201 -29.52,-23.184 0,-9.79199 8.64001,-17.424 22.896,-17.424 13.39198,0 22.752,5.47201 28.08,19.296 l 8.64,-4.032 c -5.04,-14.25599 -16.56002,-24.48 -36.576,-24.48 -19.43998,0 -33.12,12.09601 -33.12,27.36 0,17.56798 11.66402,23.76 34.56,30.96 22.60798,7.19999 27.936,12.81601 27.936,23.904 0,11.95199 -10.36802,19.296 -26.352,19.296 -14.97599,0 -25.77601,-7.63202 -30.528,-22.464 l -9.072,3.312 c 5.03999,17.27998 19.15202,28.224 39.168,28.224"
-         style="font-size:144px;font-family:BentonSans Book;-inkscape-font-specification:BentonSans Book"
-         id="path2998" />
-      <path
-         d="m 431.09967,330.56235 10.224,0 0,-106.56 -10.224,0 0,106.56"
-         style="font-size:144px;font-family:BentonSans Book;-inkscape-font-specification:BentonSans Book"
-         id="path3000" />
-      <path
-         d="m 470.15967,330.56235 66.672,0 0,-9.36 -56.448,0 0,-42.336 39.888,0 0,-9.216 -39.888,0 0,-36.144 53.424,0 0,-9.504 -63.648,0 0,106.56"
-         style="font-size:144px;font-family:BentonSans Book;-inkscape-font-specification:BentonSans Book"
-         id="path3002" />
-      <path
-         d="m 556.48992,330.56235 12.384,0 0,-13.536 -12.384,0 0,13.536"
-         style="font-size:144px;font-family:BentonSans Book;-inkscape-font-specification:BentonSans Book"
-         id="path3004" />
+       id="g841">
+      <g
+         inkscape:corner7="0.4275503 : 0.5353383 : 0.25 : 1"
+         inkscape:corner0="3.0473404 : 1.0425798 : 0 : 1"
+         inkscape:perspectiveID="#perspective2989"
+         id="g2991"
+         style="fill:#ffffff;fill-opacity:1;stroke:none"
+         sodipodi:type="inkscape:box3d">
+        <path
+           d="m 232.70052,343.81354 200.39901,-317.144672 0,304.293832 -200.39901,131.63785 z"
+           inkscape:box3dsidetype="11"
+           style="fill:#e9e9ff;fill-rule:evenodd;stroke:none"
+           id="path3003"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="m 195.21043,331.26952 0,126.12436 37.49009,5.20667 0,-118.78701 z"
+           inkscape:box3dsidetype="6"
+           style="fill:#353564;fill-rule:evenodd;stroke:none"
+           id="path2993"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="M 195.21043,331.26952 361.90385,-64.435515 433.09953,26.668868 232.70052,343.81354 z"
+           inkscape:box3dsidetype="5"
+           style="fill:#4d4d9f;fill-rule:evenodd;stroke:none"
+           id="path2995"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="M 195.21043,457.39388 361.90385,293.14783 433.09953,330.9627 232.70052,462.60055 z"
+           inkscape:box3dsidetype="13"
+           style="fill:#afafde;fill-rule:evenodd;stroke:none"
+           id="path3001"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="m 361.90385,-64.435515 0,357.583345 71.19568,37.81487 0,-304.293832 z"
+           inkscape:box3dsidetype="14"
+           style="fill:#d7d7ff;fill-rule:evenodd;stroke:none"
+           id="path2999"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="m 195.21043,331.26952 166.69342,-395.705035 0,357.583345 -166.69342,164.24605 z"
+           inkscape:box3dsidetype="3"
+           style="fill:#8686bf;fill-rule:evenodd;stroke:none"
+           id="path2997"
+           sodipodi:type="inkscape:box3dside" />
+      </g>
+      <g
+         aria-label="SOSIE"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0%;font-family:'BentonSans Regular';-inkscape-font-specification:'BentonSans Regular';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         id="text2985">
+        <path
+           d="m 172.68717,332.57835 c 21.312,0 37.008,-11.376 37.008,-29.088 0,-17.28 -10.944,-24.624 -33.12,-31.68 -22.464,-7.2 -29.52,-11.232 -29.52,-23.184 0,-9.792 8.64,-17.424 22.896,-17.424 13.392,0 22.752,5.472 28.08,19.296 l 8.64,-4.032 c -5.04,-14.256 -16.56,-24.48 -36.576,-24.48 -19.44,0 -33.12,12.096 -33.12,27.36 0,17.568 11.664,23.76 34.56,30.96 22.608,7.2 27.936,12.816 27.936,23.904 0,11.952 -10.368,19.296 -26.352,19.296 -14.976,0 -25.776,-7.632 -30.528,-22.464 l -9.072,3.312 c 5.04,17.28 19.152,28.224 39.168,28.224 z"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:144px;line-height:1.25;font-family:'BentonSans Book';-inkscape-font-specification:'BentonSans Book'"
+           id="path904" />
+        <path
+           d="m 270.55992,332.57835 c 26.064,0 44.928,-21.888 44.928,-55.296 0,-33.408 -18.864,-55.296 -44.928,-55.296 -26.064,0 -44.928,21.888 -44.928,55.296 0,33.408 18.864,55.296 44.928,55.296 z m 0,-9.216 c -20.16,0 -34.704,-17.136 -34.704,-46.08 0,-28.944 14.544,-45.936 34.704,-45.936 20.16,0 34.704,16.992 34.704,45.936 0,28.944 -14.544,46.08 -34.704,46.08 z"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:144px;line-height:1.25;font-family:'BentonSans Book';-inkscape-font-specification:'BentonSans Book'"
+           id="path906" />
+        <path
+           d="m 370.12467,332.57835 c 21.312,0 37.008,-11.376 37.008,-29.088 0,-17.28 -10.944,-24.624 -33.12,-31.68 -22.464,-7.2 -29.52,-11.232 -29.52,-23.184 0,-9.792 8.64,-17.424 22.896,-17.424 13.392,0 22.752,5.472 28.08,19.296 l 8.64,-4.032 c -5.04,-14.256 -16.56,-24.48 -36.576,-24.48 -19.44,0 -33.12,12.096 -33.12,27.36 0,17.568 11.664,23.76 34.56,30.96 22.608,7.2 27.936,12.816 27.936,23.904 0,11.952 -10.368,19.296 -26.352,19.296 -14.976,0 -25.776,-7.632 -30.528,-22.464 l -9.072,3.312 c 5.04,17.28 19.152,28.224 39.168,28.224 z"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:144px;line-height:1.25;font-family:'BentonSans Book';-inkscape-font-specification:'BentonSans Book'"
+           id="path908" />
+        <path
+           d="m 431.09967,330.56235 h 10.224 v -106.56 h -10.224 z"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:144px;line-height:1.25;font-family:'BentonSans Book';-inkscape-font-specification:'BentonSans Book'"
+           id="path910" />
+        <path
+           d="m 470.15967,330.56235 h 66.672 v -9.36 h -56.448 v -42.336 h 39.888 v -9.216 h -39.888 v -36.144 h 53.424 v -9.504 h -63.648 z"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:144px;line-height:1.25;font-family:'BentonSans Book';-inkscape-font-specification:'BentonSans Book'"
+           id="path912" />
+      </g>
+      <circle
+         r="20"
+         cy="277.20767"
+         cx="576.8186"
+         id="path862"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'BentonSans Regular';-inkscape-font-specification:'BentonSans Regular';letter-spacing:0px;word-spacing:0px;vector-effect:none;fill:#000000;fill-opacity:1;stroke:none;stroke-width:519.67254639" />
     </g>
   </g>
 </svg>

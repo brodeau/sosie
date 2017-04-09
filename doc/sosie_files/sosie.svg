@@ -13,8 +13,8 @@
    height="540"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.4 r9939"
-   sodipodi:docname="framling.svg">
+   inkscape:version="0.92+devel unknown"
+   sodipodi:docname="sosie.svg">
   <defs
      id="defs4">
     <inkscape:perspective
@@ -32,9 +32,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.9899495"
-     inkscape:cx="145.27814"
-     inkscape:cy="228.08658"
+     inkscape:zoom="0.7"
+     inkscape:cx="-83.525276"
+     inkscape:cy="304.06256"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -43,10 +43,11 @@
      fit-margin-bottom="20"
      fit-margin-right="20"
      inkscape:window-width="1920"
-     inkscape:window-height="1055"
-     inkscape:window-x="-4"
+     inkscape:window-height="1123"
+     inkscape:window-x="0"
      inkscape:window-y="0"
-     inkscape:window-maximized="1" />
+     inkscape:window-maximized="1"
+     inkscape:document-rotation="0" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -55,7 +56,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -65,60 +66,68 @@
      id="layer1"
      transform="translate(-72.981976,71.52972)">
     <g
-       sodipodi:type="inkscape:box3d"
-       style="fill:#ffffff;fill-opacity:1;stroke:none"
-       id="g2991"
-       inkscape:perspectiveID="#perspective2989"
-       inkscape:corner0="3.0473404 : 1.0425798 : 0 : 1"
-       inkscape:corner7="0.4275503 : 0.5353383 : 0.25 : 1">
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path3003"
-         style="fill:#e9e9ff;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="11"
-         d="m 232.70052,343.81354 200.39901,-317.144672 0,304.293832 -200.39901,131.63785 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2993"
-         style="fill:#353564;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="6"
-         d="m 195.21043,331.26952 0,126.12436 37.49009,5.20667 0,-118.78701 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2995"
-         style="fill:#4d4d9f;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="5"
-         d="M 195.21043,331.26952 361.90385,-64.435515 433.09953,26.668868 232.70052,343.81354 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path3001"
-         style="fill:#afafde;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="13"
-         d="M 195.21043,457.39388 361.90385,293.14783 433.09953,330.9627 232.70052,462.60055 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2999"
-         style="fill:#d7d7ff;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="14"
-         d="m 361.90385,-64.435515 0,357.583345 71.19568,37.81487 0,-304.293832 z" />
-      <path
-         sodipodi:type="inkscape:box3dside"
-         id="path2997"
-         style="fill:#8686bf;fill-rule:evenodd;stroke:none"
-         inkscape:box3dsidetype="3"
-         d="m 195.21043,331.26952 166.69342,-395.705035 0,357.583345 -166.69342,164.24605 z" />
-    </g>
-    <text
-       xml:space="preserve"
-       style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:BentonSans Regular;-inkscape-font-specification:BentonSans Regular"
-       x="125.16717"
-       y="330.56235"
-       id="text2985"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan2987"
-         x="125.16717"
+       id="g841">
+      <g
+         inkscape:corner7="0.4275503 : 0.5353383 : 0.25 : 1"
+         inkscape:corner0="3.0473404 : 1.0425798 : 0 : 1"
+         inkscape:perspectiveID="#perspective2989"
+         id="g2991"
+         style="fill:#ffffff;fill-opacity:1;stroke:none"
+         sodipodi:type="inkscape:box3d">
+        <path
+           d="m 232.70052,343.81354 200.39901,-317.144672 0,304.293832 -200.39901,131.63785 z"
+           inkscape:box3dsidetype="11"
+           style="fill:#e9e9ff;fill-rule:evenodd;stroke:none"
+           id="path3003"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="m 195.21043,331.26952 0,126.12436 37.49009,5.20667 0,-118.78701 z"
+           inkscape:box3dsidetype="6"
+           style="fill:#353564;fill-rule:evenodd;stroke:none"
+           id="path2993"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="M 195.21043,331.26952 361.90385,-64.435515 433.09953,26.668868 232.70052,343.81354 z"
+           inkscape:box3dsidetype="5"
+           style="fill:#4d4d9f;fill-rule:evenodd;stroke:none"
+           id="path2995"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="M 195.21043,457.39388 361.90385,293.14783 433.09953,330.9627 232.70052,462.60055 z"
+           inkscape:box3dsidetype="13"
+           style="fill:#afafde;fill-rule:evenodd;stroke:none"
+           id="path3001"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="m 361.90385,-64.435515 0,357.583345 71.19568,37.81487 0,-304.293832 z"
+           inkscape:box3dsidetype="14"
+           style="fill:#d7d7ff;fill-rule:evenodd;stroke:none"
+           id="path2999"
+           sodipodi:type="inkscape:box3dside" />
+        <path
+           d="m 195.21043,331.26952 166.69342,-395.705035 0,357.583345 -166.69342,164.24605 z"
+           inkscape:box3dsidetype="3"
+           style="fill:#8686bf;fill-rule:evenodd;stroke:none"
+           id="path2997"
+           sodipodi:type="inkscape:box3dside" />
+      </g>
+      <text
+         id="text2985"
          y="330.56235"
-         style="font-size:144px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:BentonSans Book;-inkscape-font-specification:BentonSans Book">SOSIE.</tspan></text>
+         x="125.16717"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0%;font-family:'BentonSans Regular';-inkscape-font-specification:'BentonSans Regular';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:144px;line-height:1.25;font-family:'BentonSans Book';-inkscape-font-specification:'BentonSans Book'"
+           y="330.56235"
+           x="125.16717"
+           id="tspan2987"
+           sodipodi:role="line">SOSIE</tspan></text>
+      <circle
+         r="20"
+         cy="277.20767"
+         cx="576.8186"
+         id="path862"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'BentonSans Regular';-inkscape-font-specification:'BentonSans Regular';letter-spacing:0px;word-spacing:0px;vector-effect:none;fill:#000000;fill-opacity:1;stroke:none;stroke-width:519.67254639" />
+    </g>
   </g>
 </svg>
