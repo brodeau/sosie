@@ -170,8 +170,8 @@ PROGRAM mask_drown_field
      
 
 
-  READ(cv_how_far, '(i)') i_how_far
-  IF ( l_drwn_f ) WRITE (*, '("How far (points) from sea to extrapolate into land ",i)')  i_how_far
+  READ(cv_how_far, '(i3)') i_how_far
+  IF ( l_drwn_f ) WRITE (*, '("How far (points) from sea to extrapolate into land ",i3)')  i_how_far
 
   
   READ(cv_ewp, '(i2)') iewper
