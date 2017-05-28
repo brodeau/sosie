@@ -12,7 +12,6 @@ MODULE io_ezcdf
 
    PRIVATE
 
-
    !! List of public routines
    !! =======================
    PUBLIC :: dims,      &
@@ -21,6 +20,7 @@ MODULE io_ezcdf
       &    getvar_2d,        &
       &    getvar_2d_r8,     & ! Mostly for 2D coordinates
       &    getvar_3d,        &
+      &    GETVAR_ATTRIBUTES,& !LOLO
       &    getmask_2d,       &
       &    getmask_3d,       &
       &    pt_series,        &
@@ -34,6 +34,12 @@ MODULE io_ezcdf
       &    phovmoller,       &
       &    who_is_mv
    !!===========================
+
+   INTEGER, PARAMETER, PUBLIC :: nbatt_max=20
+
+   !! Must be defined somewhere else official: !!!
+   CHARACTER(len=11), DIMENSION(6), PARAMETER, PUBLIC :: &
+      & vtypes_def = (/ 'NF90_BYTE  ', 'NF90_CHAR  ', 'NF90_SHORT ', 'NF90_INT   ', 'NF90_FLOAT ', 'NF90_DOUBLE' /)
 
    CHARACTER(len=80) :: cv_misc
 
@@ -183,6 +189,80 @@ CONTAINS
 
 
 
+   
+   !LOLO:
+   SUBROUTINE GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att, vnames, vtypes, values_char, values_numr)
+
+      !!-----------------------------------------------------------------------
+      !! This routine extract a variable 1D from a netcdf file
+      !!
+      !! INPUT :
+      !! -------
+      !!          * cf_in      : name of the input file             (character l=100)
+      !!          * cv_in      : name of the variable               (character l=20)
+      !!
+      !! OUTPUT :
+      !! --------
+      !!          * X         : 1D array contening the variable   (double)
+      !!
+      !!------------------------------------------------------------------------
+      INTEGER                             :: id_f, id_v
+      CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
+
+      INTEGER,                                  INTENT(out) :: Nb_att
+      CHARACTER(len=128), DIMENSION(nbatt_max), INTENT(out) :: vnames
+      CHARACTER(len=11),  DIMENSION(nbatt_max), INTENT(out) :: vtypes      
+      CHARACTER(len=256), DIMENSION(nbatt_max), INTENT(out) :: values_char
+      REAL,               DIMENSION(nbatt_max), INTENT(out) :: values_numr
+      
+      !Local:
+      CHARACTER(len=256) :: cname, cvalue
+      REAL :: rvalue
+      INTEGER :: ierr, jatt, itype
+      
+      crtn = 'GETVAR_ATTRIBUTES'
+
+      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
+      CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
+
+      vnames(:) = '0'
+      DO jatt = 1, nbatt_max
+         ierr = NF90_INQ_ATTNAME(id_f, id_v, jatt, cname)
+         IF ( ierr == 0 ) THEN
+            !PRINT *, 'ierr, # jatt, cname! =>', ierr, jatt, TRIM(cname)
+            vnames(jatt) = cname            
+            CALL sherr( NF90_INQUIRE_ATTRIBUTE(id_f, id_v, TRIM(cname), xtype=itype),  crtn,cf_in,cv_in)
+            vtypes(jatt) = vtypes_def(itype)
+            !! Getting value of attribute, depending on type!
+            cvalue = '0' ; rvalue = 0.
+            IF ( itype == 2 ) THEN
+               CALL sherr( NF90_GET_ATT(id_f, id_v, cname, cvalue),  crtn,cf_in,cv_in)
+            ELSE
+               CALL sherr( NF90_GET_ATT(id_f, id_v, cname, rvalue),  crtn,cf_in,cv_in)
+            END IF
+            values_char(jatt) = TRIM(cvalue)
+            values_numr(jatt) = rvalue
+         ELSE
+            EXIT
+         END IF
+      END DO
+
+      Nb_att = jatt-1
+
+      PRINT *, ''
+      PRINT *, ' * Attributes names (types) for variable "',TRIM(cv_in),'" are:'
+      DO jatt = 1, Nb_att
+         PRINT *, '   **** ', TRIM(vnames(jatt)),' (',TRIM(vtypes(jatt)),') => "',TRIM(values_char(jatt)),'" / ', values_numr(jatt)
+      END DO
+      
+      CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
+      PRINT *, ''
+      
+   END SUBROUTINE GETVAR_ATTRIBUTES
+   !LOLO.
+
+
+   
 
 
 
