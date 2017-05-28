@@ -53,6 +53,9 @@ CONTAINS
             END DO
          ELSE        ! we use time from input file
             CALL GETVAR_1D(cf_in, cv_t_in, vt0) ;  vt(:) = vt0(j_start:j_stop)
+            !LOLO:
+            !CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_t_names, vatt_t_types, vatt_t_vchar, vatt_t_vnumr)
+            !LOLO.
          END IF
       END IF
 

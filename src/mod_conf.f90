@@ -1,5 +1,7 @@
 MODULE MOD_CONF
 
+   USE io_ezcdf, ONLY: nbatt_max
+   
    IMPLICIT NONE
 
    CHARACTER(len=16), PARAMETER :: csosie_version = 'svn_trunk' !: SOSIE version
@@ -125,6 +127,19 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: numnam = 13
 
+
+   !! Attribute info for some variables LOLO: move to io_ezcdf instead????
+   !! ---------------------------------
+   !! Time vector:
+   INTEGER :: nb_att_t
+   CHARACTER(len=128), DIMENSION(nbatt_max) :: vatt_t_names
+   CHARACTER(len=11),  DIMENSION(nbatt_max) :: vatt_t_types
+   CHARACTER(len=256), DIMENSION(nbatt_max) :: vatt_t_vchar
+   REAL,               DIMENSION(nbatt_max) :: vatt_t_vnumr
+   
+
+   
+   
    !! Data arrays
    !! -----------
 

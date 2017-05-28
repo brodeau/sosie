@@ -178,8 +178,8 @@ cv_lsm_out = 'tmask'
 lmout      = T
 rmaskvalue = -9999.
 lct        = F
-t0         = 0.
-t_stp      = 0.
+t0         = 1.
+t_stp      = 1.
 ewper_out  = 2
 /
 !! 
