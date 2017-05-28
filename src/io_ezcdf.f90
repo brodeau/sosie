@@ -41,12 +41,7 @@ MODULE io_ezcdf
 
    REAL(8), DIMENSION(3,2) :: vextrema
 
-   INTEGER :: &
-      &    nd,    &
-      &    id_f, id_v,           &   !: ID for a variable
-      &    id_x, id_y, id_z, id_t,     &
-      &    id_lo, id_la, &
-      &    id_dpt, id_tim
+   INTEGER :: nd
 
    CHARACTER(len=400)    :: crtn, cu
 
@@ -94,7 +89,7 @@ CONTAINS
       !!          * lt      : number of records (-1 if none)      (integer)
       !!
       !!------------------------------------------------------------------------
-
+      INTEGER                         :: id_f, id_v
       CHARACTER(len=*),   INTENT(in)  :: cf_in, cv_in
       INTEGER,            INTENT(out) :: lx, ly, lz, lt
 
@@ -209,7 +204,7 @@ CONTAINS
       !!          * X         : 1D array contening the variable   (double)
       !!
       !!------------------------------------------------------------------------
-
+      INTEGER                             :: id_f, id_v
       CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
       REAL(8), DIMENSION (:), INTENT(out) ::  X
 
@@ -578,7 +573,7 @@ CONTAINS
       !!          * IX        :  2D array contening mask       (integer)
       !!
       !!------------------------------------------------------------------------
-
+      INTEGER                              :: id_f, id_v 
       CHARACTER(len=*),        INTENT(in)  :: cf_in, cv_in
       INTEGER, OPTIONAL,       INTENT(in)  :: jlev
       INTEGER(2), DIMENSION(:,:), INTENT(out) :: IX
@@ -680,7 +675,7 @@ CONTAINS
       !!  Author :            Laurent Brodeau
       !!  --------
       !!------------------------------------------------------------------------
-
+      INTEGER                                :: id_f, id_v 
       CHARACTER(len=*),          INTENT(in)  :: cf_in, cv_in
       INTEGER(2), DIMENSION(:,:,:), INTENT(out) :: IX
 
@@ -873,20 +868,23 @@ CONTAINS
       !!
       !!--------------------------------------------------------------------------
       !!
-      INTEGER,                    INTENT(inout) :: idx_f, idx_v
-      INTEGER,                    INTENT(in)    :: lt, lct
-      REAL(8), DIMENSION(:,:),    INTENT(in)    :: xlat, xlon
-      REAL(4), DIMENSION(:,:),    INTENT(in)    :: x2d
-      REAL(8), DIMENSION(lt),     INTENT(in)    :: vtime
-      CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in, cunit, cln
-      REAL(4),                    INTENT(in)    :: vflag
-      CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cun_t
-      LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
-      CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
+     INTEGER                                   :: id_x, id_y, id_z, id_t
+     INTEGER                                   :: id_lo, id_la
+     INTEGER                                   :: id_dpt, id_tim
+     INTEGER,                    INTENT(inout) :: idx_f, idx_v
+     INTEGER,                    INTENT(in)    :: lt, lct
+     REAL(8), DIMENSION(:,:),    INTENT(in)    :: xlat, xlon
+     REAL(4), DIMENSION(:,:),    INTENT(in)    :: x2d
+     REAL(8), DIMENSION(lt),     INTENT(in)    :: vtime
+     CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in, cunit, cln
+     REAL(4),                    INTENT(in)    :: vflag
+     CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cun_t
+     LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
+     CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       
-      INTEGER          :: lx, ly
-      LOGICAL          :: lp = .FALSE.
-      REAL(4)          :: rmin, rmax
+     INTEGER          :: lx, ly
+     LOGICAL          :: lp = .FALSE.
+     REAL(4)          :: rmin, rmax
 
       crtn = 'P2D_T'
 
@@ -1024,7 +1022,8 @@ CONTAINS
       !!
       !!--------------------------------------------------------------------------
 
-      INTEGER,                    INTENT(inout) :: idx_f, idx_v
+     INTEGER,                    INTENT(inout) :: idx_f, idx_v
+     INTEGER                                   :: id_dpt  
       INTEGER,                    INTENT(in)    :: lt, lct
       REAL(4), DIMENSION(:,:,:),  INTENT(in)    :: x3d
       REAL(8), DIMENSION(:,:),    INTENT(in)    :: xlat, xlon
@@ -1035,7 +1034,8 @@ CONTAINS
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cun_t, cun_z
       LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
-
+      INTEGER          :: id_z
+      INTEGER          :: id_x, id_y, id_t, id_lo, id_la, id_tim 
       INTEGER          :: lx, ly, lz
       LOGICAL          :: lp = .FALSE.
       REAL(4)          :: dr, rmin, rmax
@@ -1185,6 +1185,7 @@ CONTAINS
       !!
       !!----------------------------------------------------------------------------
       !!
+      INTEGER                       :: id_f, id_v 
       CHARACTER(len=*), INTENT(in)  :: cf_in, cv_in
       !!
       LOGICAL,            INTENT(out) :: lmv
@@ -1246,6 +1247,7 @@ CONTAINS
       !!
       !!----------------------------------------------------------------------------
       !!
+      INTEGER                       :: id_f, id_v
       CHARACTER(len=*), INTENT(in)  :: cf_in, cv_in
       CHARACTER(len=*) , INTENT(out) :: cunit
       CHARACTER(len=*), INTENT(out) :: clnm
@@ -1301,6 +1303,8 @@ CONTAINS
       !!------------------------------------------------------------------------------
       !!
       !!
+      INTEGER                                :: id_f, id_v      
+      INTEGER                                :: id_x, id_y, id_lo, id_la 
       REAL(4),    DIMENSION(:,:), INTENT(in) :: xmsk
       CHARACTER(len=*),           INTENT(in) :: cf_in, cv_in
       !!
@@ -1370,7 +1374,7 @@ CONTAINS
 
 
    SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, mproblem)
-
+      INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
       CHARACTER(len=*),          INTENT(in) :: cf_out
       REAL(8), DIMENSION(:,:),   INTENT(in) :: xlon, xlat
       INTEGER, DIMENSION(:,:,:), INTENT(in) :: imtrcs
@@ -1444,7 +1448,7 @@ CONTAINS
 
 
    SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet)
-
+      INTEGER                                :: id_f, id_v
       CHARACTER(len=*),          INTENT(in)  :: cf_in
       INTEGER, DIMENSION(:,:,:), INTENT(out) :: imtrcs
       REAL(8), DIMENSION(:,:,:), INTENT(out) :: ralfbet
@@ -1493,7 +1497,8 @@ CONTAINS
       !!        cuY  = unit Y coordinate                          [character]
       !!
       !!------------------------------------------------------------------------------
-
+      INTEGER                                :: id_f, id_v
+      INTEGER                                :: id_x, id_y, id_lo, id_la
       REAL(8),    DIMENSION(:)  , INTENT(in) :: vx, vy
       REAL(4),    DIMENSION(:,:), INTENT(in) :: x2d
       CHARACTER(len=*),           INTENT(in) :: cf_in, cv_in, cv_x, cv_y, cunit, cln
@@ -1571,6 +1576,7 @@ CONTAINS
       !!
       !!------------------------------------------------------------------------
       !!
+      INTEGER                      :: id_f, id_v
       CHARACTER(len=*), INTENT(in) :: cf_in, cv_in
       REAL(4),         INTENT(out) :: rsf, rao
       !!
