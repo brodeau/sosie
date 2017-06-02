@@ -1,6 +1,6 @@
 MODULE MOD_CONF
 
-   USE io_ezcdf, ONLY: nbatt_max
+   USE io_ezcdf, ONLY: nbatt_max, attrbt
    
    IMPLICIT NONE
 
@@ -132,10 +132,11 @@ MODULE MOD_CONF
    !! ---------------------------------
    !! Time vector:
    INTEGER :: nb_att_t
-   CHARACTER(len=128), DIMENSION(nbatt_max) :: vatt_t_names
-   CHARACTER(len=11),  DIMENSION(nbatt_max) :: vatt_t_types
-   CHARACTER(len=256), DIMENSION(nbatt_max) :: vatt_t_vchar
-   REAL,               DIMENSION(nbatt_max) :: vatt_t_vnumr
+   TYPE(attrbt), DIMENSION(nbatt_max) :: vatt_info_t
+   !CHARACTER(len=128), DIMENSION(nbatt_max) :: vatt_t_names
+   !CHARACTER(len=11),  DIMENSION(nbatt_max) :: vatt_t_types
+   !CHARACTER(len=256), DIMENSION(nbatt_max) :: vatt_t_vchar
+   !REAL,               DIMENSION(nbatt_max) :: vatt_t_vnumr
    
 
    

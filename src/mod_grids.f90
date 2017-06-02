@@ -29,7 +29,7 @@ CONTAINS
 
       USE io_ezcdf  !: => only to get time array !LB???
 
-      INTEGER :: jt
+      INTEGER :: jt, jatt
 
       !! Determine input dimensions from input file :
       CALL know_dim_in()
@@ -54,7 +54,12 @@ CONTAINS
          ELSE        ! we use time from input file
             CALL GETVAR_1D(cf_in, cv_t_in, vt0) ;  vt(:) = vt0(j_start:j_stop)
             !LOLO:
-            !CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_t_names, vatt_t_types, vatt_t_vchar, vatt_t_vnumr)
+            !CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t)
+            !PRINT *, ' *** Time variable attributes:'
+            !DO jatt = 1, nb_att_t
+            !   PRINT *,' ', TRIM(vatt_info_t(jatt)%name), ' => (',TRIM(vatt_info_t(jatt)%type),') => ',TRIM(vatt_info_t(jatt)%val_char), vatt_info_t(jatt)%val_num
+            !END DO
+            !PRINT *, ''
             !LOLO.
          END IF
       END IF

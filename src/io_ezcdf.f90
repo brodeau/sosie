@@ -6,9 +6,17 @@ MODULE io_ezcdf
    !!
    !! Author: Laurent Brodeau, 2010
    !!
-
-
+   
    IMPLICIT NONE
+   
+   TYPE, PUBLIC :: attrbt
+      CHARACTER(LEN=128) :: name
+      CHARACTER(LEN=11)  :: type
+      CHARACTER(LEN=128) :: val_char
+      REAL               :: val_num
+   END TYPE attrbt
+
+
 
    PRIVATE
 
@@ -189,9 +197,9 @@ CONTAINS
 
 
 
-   
+
    !LOLO:
-   SUBROUTINE GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att, vnames, vtypes, values_char, values_numr)
+   SUBROUTINE GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att, v_att_list)
 
       !!-----------------------------------------------------------------------
       !! This routine extract a variable 1D from a netcdf file
@@ -206,42 +214,41 @@ CONTAINS
       !!          * X         : 1D array contening the variable   (double)
       !!
       !!------------------------------------------------------------------------
-      INTEGER                             :: id_f, id_v
-      CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
+      CHARACTER(len=*),                   INTENT(in)  :: cf_in, cv_in      
+      INTEGER,                            INTENT(out) :: Nb_att
+      TYPE(attrbt), DIMENSION(nbatt_max), INTENT(out) :: v_att_list
 
-      INTEGER,                                  INTENT(out) :: Nb_att
-      CHARACTER(len=128), DIMENSION(nbatt_max), INTENT(out) :: vnames
-      CHARACTER(len=11),  DIMENSION(nbatt_max), INTENT(out) :: vtypes      
-      CHARACTER(len=256), DIMENSION(nbatt_max), INTENT(out) :: values_char
-      REAL,               DIMENSION(nbatt_max), INTENT(out) :: values_numr
-      
       !Local:
+      INTEGER :: id_f, id_v      
       CHARACTER(len=256) :: cname, cvalue
       REAL :: rvalue
       INTEGER :: ierr, jatt, itype
-      
+
       crtn = 'GETVAR_ATTRIBUTES'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
       CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
 
-      vnames(:) = '0'
+      v_att_list(:)%val_char = 'null'
+      v_att_list(:)%val_num  = -99.
+
       DO jatt = 1, nbatt_max
          ierr = NF90_INQ_ATTNAME(id_f, id_v, jatt, cname)
          IF ( ierr == 0 ) THEN
-            !PRINT *, 'ierr, # jatt, cname! =>', ierr, jatt, TRIM(cname)
-            vnames(jatt) = cname            
+            v_att_list(jatt)%name = cname
+
             CALL sherr( NF90_INQUIRE_ATTRIBUTE(id_f, id_v, TRIM(cname), xtype=itype),  crtn,cf_in,cv_in)
-            vtypes(jatt) = vtypes_def(itype)
+            v_att_list(jatt)%type = vtypes_def(itype)
+
             !! Getting value of attribute, depending on type!
             cvalue = '0' ; rvalue = 0.
             IF ( itype == 2 ) THEN
                CALL sherr( NF90_GET_ATT(id_f, id_v, cname, cvalue),  crtn,cf_in,cv_in)
+               v_att_list(jatt)%val_char = TRIM(cvalue)
             ELSE
                CALL sherr( NF90_GET_ATT(id_f, id_v, cname, rvalue),  crtn,cf_in,cv_in)
-            END IF
-            values_char(jatt) = TRIM(cvalue)
-            values_numr(jatt) = rvalue
+               v_att_list(jatt)%val_num  = rvalue
+            END IF                        
          ELSE
             EXIT
          END IF
@@ -249,20 +256,20 @@ CONTAINS
 
       Nb_att = jatt-1
 
-      PRINT *, ''
-      PRINT *, ' * Attributes names (types) for variable "',TRIM(cv_in),'" are:'
-      DO jatt = 1, Nb_att
-         PRINT *, '   **** ', TRIM(vnames(jatt)),' (',TRIM(vtypes(jatt)),') => "',TRIM(values_char(jatt)),'" / ', values_numr(jatt)
-      END DO
-      
+      !PRINT *, ''
+      !PRINT *, ' * Attributes names (types) for variable "',TRIM(cv_in),'" are:'
+      !DO jatt = 1, Nb_att
+      !   PRINT *, '   **** ', TRIM(vnames(jatt)),' (',TRIM(vtypes(jatt)),') => "',TRIM(values_char(jatt)),'" / ', values_numr(jatt)
+      !END DO
+
       CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
       PRINT *, ''
-      
+
    END SUBROUTINE GETVAR_ATTRIBUTES
    !LOLO.
 
 
-   
+
 
 
 
@@ -653,7 +660,7 @@ CONTAINS
       !!          * IX        :  2D array contening mask       (integer)
       !!
       !!------------------------------------------------------------------------
-      INTEGER                              :: id_f, id_v 
+      INTEGER                              :: id_f, id_v
       CHARACTER(len=*),        INTENT(in)  :: cf_in, cv_in
       INTEGER, OPTIONAL,       INTENT(in)  :: jlev
       INTEGER(2), DIMENSION(:,:), INTENT(out) :: IX
@@ -755,7 +762,7 @@ CONTAINS
       !!  Author :            Laurent Brodeau
       !!  --------
       !!------------------------------------------------------------------------
-      INTEGER                                :: id_f, id_v 
+      INTEGER                                :: id_f, id_v
       CHARACTER(len=*),          INTENT(in)  :: cf_in, cv_in
       INTEGER(2), DIMENSION(:,:,:), INTENT(out) :: IX
 
@@ -944,27 +951,27 @@ CONTAINS
       !!
       !!        cun_t = unit for time                 |OPTIONAL|  [character]
       !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
-      !!        cextrainfo = extra information to go in "Info" of header of netcdf 
+      !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!
       !!--------------------------------------------------------------------------
       !!
-     INTEGER                                   :: id_x, id_y, id_z, id_t
-     INTEGER                                   :: id_lo, id_la
-     INTEGER                                   :: id_dpt, id_tim
-     INTEGER,                    INTENT(inout) :: idx_f, idx_v
-     INTEGER,                    INTENT(in)    :: lt, lct
-     REAL(8), DIMENSION(:,:),    INTENT(in)    :: xlat, xlon
-     REAL(4), DIMENSION(:,:),    INTENT(in)    :: x2d
-     REAL(8), DIMENSION(lt),     INTENT(in)    :: vtime
-     CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in, cunit, cln
-     REAL(4),                    INTENT(in)    :: vflag
-     CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cun_t
-     LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
-     CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
-      
-     INTEGER          :: lx, ly
-     LOGICAL          :: lp = .FALSE.
-     REAL(4)          :: rmin, rmax
+      INTEGER                                   :: id_x, id_y, id_z, id_t
+      INTEGER                                   :: id_lo, id_la
+      INTEGER                                   :: id_dpt, id_tim
+      INTEGER,                    INTENT(inout) :: idx_f, idx_v
+      INTEGER,                    INTENT(in)    :: lt, lct
+      REAL(8), DIMENSION(:,:),    INTENT(in)    :: xlat, xlon
+      REAL(4), DIMENSION(:,:),    INTENT(in)    :: x2d
+      REAL(8), DIMENSION(lt),     INTENT(in)    :: vtime
+      CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in, cunit, cln
+      REAL(4),                    INTENT(in)    :: vflag
+      CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cun_t
+      LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
+      CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
+
+      INTEGER          :: lx, ly
+      LOGICAL          :: lp = .FALSE.
+      REAL(4)          :: rmin, rmax
 
       crtn = 'P2D_T'
 
@@ -1098,12 +1105,12 @@ CONTAINS
       !!        cun_t = unit for time                 |OPTIONAL|  [character]
       !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
       !!        cun_z = unit for depth                |OPTIONAL|  [character]
-      !!        cextrainfo = extra information to go in "Info" of header of netcdf 
+      !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!
       !!--------------------------------------------------------------------------
 
-     INTEGER,                    INTENT(inout) :: idx_f, idx_v
-     INTEGER                                   :: id_dpt  
+      INTEGER,                    INTENT(inout) :: idx_f, idx_v
+      INTEGER                                   :: id_dpt
       INTEGER,                    INTENT(in)    :: lt, lct
       REAL(4), DIMENSION(:,:,:),  INTENT(in)    :: x3d
       REAL(8), DIMENSION(:,:),    INTENT(in)    :: xlat, xlon
@@ -1115,7 +1122,7 @@ CONTAINS
       LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       INTEGER          :: id_z
-      INTEGER          :: id_x, id_y, id_t, id_lo, id_la, id_tim 
+      INTEGER          :: id_x, id_y, id_t, id_lo, id_la, id_tim
       INTEGER          :: lx, ly, lz
       LOGICAL          :: lp = .FALSE.
       REAL(4)          :: dr, rmin, rmax
@@ -1265,7 +1272,7 @@ CONTAINS
       !!
       !!----------------------------------------------------------------------------
       !!
-      INTEGER                       :: id_f, id_v 
+      INTEGER                       :: id_f, id_v
       CHARACTER(len=*), INTENT(in)  :: cf_in, cv_in
       !!
       LOGICAL,            INTENT(out) :: lmv
@@ -1383,8 +1390,8 @@ CONTAINS
       !!------------------------------------------------------------------------------
       !!
       !!
-      INTEGER                                :: id_f, id_v      
-      INTEGER                                :: id_x, id_y, id_lo, id_la 
+      INTEGER                                :: id_f, id_v
+      INTEGER                                :: id_x, id_y, id_lo, id_la
       REAL(4),    DIMENSION(:,:), INTENT(in) :: xmsk
       CHARACTER(len=*),           INTENT(in) :: cf_in, cv_in
       !!
