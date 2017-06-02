@@ -1,0 +1,20 @@
+# Makefile for SOSIE with Intel at HLRN (login nodes)
+# ===================================================
+#
+# Modules:
+# --------
+# 
+# - PrgEnv-intel
+# - cray-netcdf/4.4.1
+#
+
+# Fortran compiler:
+FC = ftn -static
+
+# Linking argument: usually -lnetcdf or -lnetcdff (or both):
+L_NCDF = -lnetcdf -lnetcdff
+
+FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
+
+# Directory to install binaries:
+INSTALL_DIR = ./bin
