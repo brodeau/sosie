@@ -32,7 +32,6 @@ OBJ = obj/io_ezcdf.o \
       obj/mod_drown.o \
       obj/mod_akima_2d.o \
       obj/mod_bilin_2d.o \
-      obj/mod_bicub_2d.o \
       obj/mod_akima_1d.o \
       obj/mod_interp.o
 
@@ -88,7 +87,7 @@ obj/mod_init.o: src/mod_init.f90 obj/mod_conf.o
 
 
 
-obj/mod_grids.o: src/mod_grids.f90
+obj/mod_grids.o: src/mod_grids.f90 obj/mod_conf.o obj/io_ezcdf.o obj/mod_manip.o
 	$(FC) $(FF) -c src/mod_grids.f90 -o obj/mod_grids.o
 
 obj/mod_interp.o: src/mod_interp.f90
@@ -105,9 +104,6 @@ obj/mod_akima_2d.o: src/mod_akima_2d.f90
 
 obj/mod_bilin_2d.o: src/mod_bilin_2d.f90 obj/io_ezcdf.o
 	$(FC) $(FF) -c src/mod_bilin_2d.f90 -o obj/mod_bilin_2d.o
-
-obj/mod_bicub_2d.o: src/mod_bicub_2d.f90 obj/io_ezcdf.o
-	$(FC) $(FF) -c src/mod_bicub_2d.f90 -o obj/mod_bicub_2d.o
 
 obj/mod_akima_1d.o: src/mod_akima_1d.f90
 	$(FC) $(FF) -c src/mod_akima_1d.f90 -o obj/mod_akima_1d.o

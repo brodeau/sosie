@@ -12,7 +12,7 @@ PROGRAM SOSIE
   !!    --------
   !!    * Reads a geophysical field on a given source grid in a netcdf file
   !!
-  !!    * Remaps it on a given target grid using either the Akima method or the bilinear or bicubic
+  !!    * Remaps it on a given target grid using either the Akima method or the bilinear
   !!      methods in case the source grid is distorded (horizontally)
   !!    
   !!    * Writes the remaped field in a netcf file
@@ -24,7 +24,6 @@ PROGRAM SOSIE
   !!          - Akima (1970) method: "A New Method of Interpolation and Smooth Surface Fitting Based       
   !!                               on local Procedures, J.of Applied Comput. Math., 17, 589-602." 
   !!          - Standard bilinear
-  !!          - Bicubic 
   !!      * Verical interpolation (for 3D fields)
   !!
   !!
@@ -143,7 +142,8 @@ PROGRAM SOSIE
              &     lon_out_b, lat_out, vt, data_out,    &
              &     cf_out, cv_l_out, cv_p_out, cv_t_out,    &
              &     cv_out, cu_out, cln_out, rfct_miss*REAL(rmaskvalue,4), &
-             &     cun_t=cu_t, lpack=lpcknc4, cextrainfo=cextinf)
+             &     attr_time=vatt_info_t, attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, &
+             &     lpack=lpcknc4, cextrainfo=cextinf)
         
 
      ELSE 
@@ -175,7 +175,8 @@ PROGRAM SOSIE
              &     lon_out_b, lat_out, depth_out, vt, data3d_out,                &
              &     cf_out, cv_l_out, cv_p_out, cv_z_out_name, cv_t_out, &
              &     cv_out, cu_out, cln_out, rfct_miss*REAL(rmaskvalue,4), &
-             &     cun_t=cu_t, lpack=lpcknc4, cextrainfo=cextinf)
+             &     attr_time=vatt_info_t, attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, &
+             &     lpack=lpcknc4, cextrainfo=cextinf)
 
         
      END IF ! .not. l_int_3d

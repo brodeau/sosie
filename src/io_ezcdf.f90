@@ -6,16 +6,23 @@ MODULE io_ezcdf
    !!
    !! Author: Laurent Brodeau, 2010
    !!
-   
-   IMPLICIT NONE
-   
-   TYPE, PUBLIC :: attrbt
-      CHARACTER(LEN=128) :: name
-      CHARACTER(LEN=11)  :: type
-      CHARACTER(LEN=128) :: val_char
-      REAL               :: val_num
-   END TYPE attrbt
 
+   IMPLICIT NONE
+
+   INTEGER, PARAMETER, PUBLIC :: nbatt_max=20
+
+   TYPE, PUBLIC :: var_attr
+      CHARACTER(LEN=128) :: cname
+      INTEGER            :: itype
+      !CHARACTER(LEN=11)  :: ctype
+      INTEGER            :: ilength
+      CHARACTER(LEN=128) :: val_char
+      REAL, DIMENSION(9) :: val_num   ! assuming that numeric attributes are never a vector larger than 9...
+   END TYPE var_attr
+
+   !! Must be defined somewhere else official: !!!
+   !CHARACTER(len=11), DIMENSION(6), PARAMETER, PUBLIC :: &
+   !   & vtypes_def = (/ 'NF90_BYTE  ', 'NF90_CHAR  ', 'NF90_SHORT ', 'NF90_INT   ', 'NF90_FLOAT ', 'NF90_DOUBLE' /)
 
 
    PRIVATE
@@ -43,11 +50,6 @@ MODULE io_ezcdf
       &    who_is_mv
    !!===========================
 
-   INTEGER, PARAMETER, PUBLIC :: nbatt_max=20
-
-   !! Must be defined somewhere else official: !!!
-   CHARACTER(len=11), DIMENSION(6), PARAMETER, PUBLIC :: &
-      & vtypes_def = (/ 'NF90_BYTE  ', 'NF90_CHAR  ', 'NF90_SHORT ', 'NF90_INT   ', 'NF90_FLOAT ', 'NF90_DOUBLE' /)
 
    CHARACTER(len=80) :: cv_misc
 
@@ -62,7 +64,7 @@ MODULE io_ezcdf
    CHARACTER(len=8), PARAMETER :: cdum = 'dummy'
 
    CHARACTER(LEN=400), PARAMETER   ::     &
-      &    cabout = 'Created by SOSIE interpolation environement (http://sosie.sourceforge.net/) / Laurent Brodeau, 2015'
+      &    cabout = 'Created by SOSIE interpolation environement => https://github.com/brodeau/sosie/'
 
    INTEGER :: ji, jj, jk
 
@@ -198,11 +200,9 @@ CONTAINS
 
 
 
-   !LOLO:
    SUBROUTINE GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att, v_att_list)
-
       !!-----------------------------------------------------------------------
-      !! This routine extract a variable 1D from a netcdf file
+      !! This routine gets all the attributes from a given variable (cv_in) from a given file (cf_in)
       !!
       !! INPUT :
       !! -------
@@ -211,67 +211,53 @@ CONTAINS
       !!
       !! OUTPUT :
       !! --------
-      !!          * X         : 1D array contening the variable   (double)
+      !!          *
       !!
       !!------------------------------------------------------------------------
-      CHARACTER(len=*),                   INTENT(in)  :: cf_in, cv_in      
+      CHARACTER(len=*),                   INTENT(in)  :: cf_in, cv_in
       INTEGER,                            INTENT(out) :: Nb_att
-      TYPE(attrbt), DIMENSION(nbatt_max), INTENT(out) :: v_att_list
-
+      TYPE(var_attr), DIMENSION(nbatt_max), INTENT(out) :: v_att_list
+      !!
       !Local:
-      INTEGER :: id_f, id_v      
+      INTEGER :: id_f, id_v
       CHARACTER(len=256) :: cname, cvalue
-      REAL :: rvalue
-      INTEGER :: ierr, jatt, itype
-
+      REAL, DIMENSION(:), ALLOCATABLE :: rvalue ! will store attribute with numeric values
+      INTEGER :: ierr, jatt, iwhat, ilg
+      !!
       crtn = 'GETVAR_ATTRIBUTES'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
       CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
 
+      v_att_list(:)%cname    = 'null'
       v_att_list(:)%val_char = 'null'
-      v_att_list(:)%val_num  = -99.
 
       DO jatt = 1, nbatt_max
          ierr = NF90_INQ_ATTNAME(id_f, id_v, jatt, cname)
          IF ( ierr == 0 ) THEN
-            v_att_list(jatt)%name = cname
+            v_att_list(jatt)%cname = cname
 
-            CALL sherr( NF90_INQUIRE_ATTRIBUTE(id_f, id_v, TRIM(cname), xtype=itype),  crtn,cf_in,cv_in)
-            v_att_list(jatt)%type = vtypes_def(itype)
-
+            CALL sherr( NF90_INQUIRE_ATTRIBUTE(id_f, id_v, TRIM(cname), xtype=iwhat, len=ilg),  crtn,cf_in,cv_in)
+            v_att_list(jatt)%itype   = iwhat
+            !v_att_list(jatt)%ctype   = vtypes_def(iwhat)
+            v_att_list(jatt)%ilength = ilg
             !! Getting value of attribute, depending on type!
-            cvalue = '0' ; rvalue = 0.
-            IF ( itype == 2 ) THEN
+            IF ( iwhat == 2 ) THEN
                CALL sherr( NF90_GET_ATT(id_f, id_v, cname, cvalue),  crtn,cf_in,cv_in)
                v_att_list(jatt)%val_char = TRIM(cvalue)
             ELSE
+               ALLOCATE ( rvalue(ilg) )
                CALL sherr( NF90_GET_ATT(id_f, id_v, cname, rvalue),  crtn,cf_in,cv_in)
-               v_att_list(jatt)%val_num  = rvalue
-            END IF                        
+               v_att_list(jatt)%val_num(1:ilg) = rvalue(:)
+               DEALLOCATE ( rvalue )
+            END IF
          ELSE
             EXIT
          END IF
       END DO
-
       Nb_att = jatt-1
-
-      !PRINT *, ''
-      !PRINT *, ' * Attributes names (types) for variable "',TRIM(cv_in),'" are:'
-      !DO jatt = 1, Nb_att
-      !   PRINT *, '   **** ', TRIM(vnames(jatt)),' (',TRIM(vtypes(jatt)),') => "',TRIM(values_char(jatt)),'" / ', values_numr(jatt)
-      !END DO
-
-      CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
-      PRINT *, ''
-
+      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_ATTRIBUTES
-   !LOLO.
-
-
-
-
-
 
 
 
@@ -821,7 +807,7 @@ CONTAINS
 
 
    SUBROUTINE PT_SERIES(vtime, vseries, cf_in, cv_t, cv_in, cunit, cln, vflag, &
-      &               cun_t, lpack)
+      &                 lpack)
 
       !! INPUT :
       !! -------
@@ -834,7 +820,6 @@ CONTAINS
       !!        cln = long-name for treated variable              [character]
       !!        vflag = flag value or "0."                        [real]
       !!
-      !!        cun_t = unit for time                 |OPTIONAL|  [character]
       !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
       !!
       !!--------------------------------------------------------------------------
@@ -843,7 +828,6 @@ CONTAINS
       REAL(4), DIMENSION(:),      INTENT(in)  :: vseries
       CHARACTER(len=*),           INTENT(in)  :: cf_in, cv_t, cv_in, cunit, cln
       REAL(4),                    INTENT(in)  :: vflag
-      CHARACTER(len=*), OPTIONAL, INTENT(in)  :: cun_t
       LOGICAL,          OPTIONAL, INTENT(in)  :: lpack
       !!
       INTEGER          :: idf, idv, idtd, idt, nbt, jt
@@ -871,9 +855,6 @@ CONTAINS
          rmin = minval(vseries) ; rmax = maxval(vseries)
       END IF
 
-      cu = 'unknown'
-      IF ( present(cun_t) ) cu = trim(cun_t)
-
 
       vextrema(3,:) = (/minval(vtime),maxval(vtime)/)
 
@@ -889,7 +870,6 @@ CONTAINS
       !! Time
       CALL sherr( NF90_DEF_DIM(idf, trim(cv_t), NF90_UNLIMITED, idtd),      crtn,cf_in,cv_in)
       CALL sherr( NF90_DEF_VAR(idf, trim(cv_t), NF90_DOUBLE,    idtd, idt), crtn,cf_in,cv_in)
-      CALL sherr( NF90_PUT_ATT(idf, idt, 'units',    trim(cun_t)),              crtn,cf_in,cv_in)
       CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),          crtn,cf_in,cv_in)
       CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),          crtn,cf_in,cv_in)
 
@@ -922,13 +902,10 @@ CONTAINS
 
 
 
-
-
-
-
    SUBROUTINE P2D_T(idx_f, idx_v, lt, lct, xlon, xlat, vtime, x2d, cf_in, &
-      &           cv_lo, cv_la, cv_t, cv_in, cunit, cln, vflag, cun_t,  &
-      &           lpack, cextrainfo)
+      &             cv_lo, cv_la, cv_t, cv_in, cunit, cln, vflag, &
+      &             attr_time, attr_lon, attr_lat, &
+      &             lpack, cextrainfo)
       !!
       !! INPUT :
       !! -------
@@ -949,7 +926,6 @@ CONTAINS
       !!        cln = long-name for treated variable              [character]
       !!        vflag = flag value or "0."                        [real]
       !!
-      !!        cun_t = unit for time                 |OPTIONAL|  [character]
       !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!
@@ -965,7 +941,8 @@ CONTAINS
       REAL(8), DIMENSION(lt),     INTENT(in)    :: vtime
       CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in, cunit, cln
       REAL(4),                    INTENT(in)    :: vflag
-      CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cun_t
+      !! Optional:
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_time, attr_lon, attr_lat
       LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
 
@@ -998,9 +975,6 @@ CONTAINS
             rmin = minval(x2d) ; rmax = maxval(x2d)
          END IF
 
-         cu = 'unknown'
-         IF ( present(cun_t) ) cu = trim(cun_t)
-
       END IF ! lct == 1
 
       IF ( lct == 1 ) THEN
@@ -1019,8 +993,9 @@ CONTAINS
             CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idx_f), crtn,cf_in,cv_in)
          END IF
          !!
-         CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, cu, vextrema, &
-            &          id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in)
+         CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
+            &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
+            &            attr_time=attr_time, attr_lon=attr_lon, attr_lat=attr_lat)
          !!
          !! Variable
          IF ( lp ) THEN
@@ -1032,11 +1007,8 @@ CONTAINS
          END IF
 
          !!  VARIABLE ATTRIBUTES
-         !! Long name
          CALL sherr( NF90_PUT_ATT(idx_f, idx_v, 'long_name', trim(cln)),  crtn,cf_in,cv_in)
-         !! Units
          CALL sherr( NF90_PUT_ATT(idx_f, idx_v, 'units', trim(cunit) ),   crtn,cf_in,cv_in)
-         !!
          IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',vflag),  crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'valid_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
 
@@ -1078,8 +1050,9 @@ CONTAINS
 
 
    SUBROUTINE P3D_T(idx_f, idx_v, lt, lct, xlon, xlat, vdpth, vtime, x3d, cf_in, &
-      &           cv_lo, cv_la, cv_dpth, cv_t, cv_in, cunit, cln, vflag, &
-      &           cun_t, lpack, cun_z, cextrainfo)
+      &             cv_lo, cv_la, cv_dpth, cv_t, cv_in, cunit, cln, vflag, &
+      &             attr_time, attr_lon, attr_lat, &
+      &             lpack, cextrainfo)
 
       !! INPUT :
       !! -------
@@ -1102,9 +1075,7 @@ CONTAINS
       !!        cln = long-name for treated variable              [character]
       !!        vflag = flag value or "0."                        [real]
       !!
-      !!        cun_t = unit for time                 |OPTIONAL|  [character]
       !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
-      !!        cun_z = unit for depth                |OPTIONAL|  [character]
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!
       !!--------------------------------------------------------------------------
@@ -1118,7 +1089,8 @@ CONTAINS
       REAL(8), DIMENSION(lt),     INTENT(in)    :: vtime
       CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_dpth, cv_t, cv_in, cunit, cln
       REAL(4),                    INTENT(in)    :: vflag
-      CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cun_t, cun_z
+      !! Optional:
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_time, attr_lon, attr_lat
       LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       INTEGER          :: id_z
@@ -1158,9 +1130,6 @@ CONTAINS
 
          dr = (rmax - rmin)/10.0 ; rmin = rmin - dr ; rmax = rmax + dr
 
-         cu = 'unknown'
-         IF ( present(cun_t) ) cu = cun_t
-         !!
       END IF ! lct == 1
 
       IF ( lct == 1 ) THEN
@@ -1178,8 +1147,9 @@ CONTAINS
             CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idx_f),  crtn,cf_in,cv_in)
          END IF
          !!
-         CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, cu, vextrema, &
-            &          id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in)
+         CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
+            &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
+            &            attr_time=attr_time, attr_lon=attr_lon, attr_lat=attr_lat)
 
          IF ( (trim(cv_dpth) == 'lev').OR.(trim(cv_dpth) == 'depth') ) THEN
             CALL sherr( NF90_DEF_DIM(idx_f, trim(cv_dpth), lz, id_z),  crtn,cf_in,cv_in)
@@ -1188,9 +1158,9 @@ CONTAINS
          END IF
 
          CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_dpth), NF90_DOUBLE, id_z,id_dpt),  crtn,cf_in,cv_in)
-         cu = 'unknown'
-         IF ( present(cun_z) ) cu = cun_z
-         CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'units',     trim(cu)),       crtn,cf_in,cv_in)
+
+         ! lolo:
+         !CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'units',     TRIM(cu)),       crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_min', minval(vdpth)),  crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_max', maxval(vdpth)),  crtn,cf_in,cv_in)
 
@@ -1204,8 +1174,8 @@ CONTAINS
          END IF
 
          !!  VARIABLE ATTRIBUTES
-         CALL sherr( NF90_PUT_ATT(idx_f, idx_v, 'long_name', trim(cln)),  crtn,cf_in,cv_in)
-         CALL sherr( NF90_PUT_ATT(idx_f, idx_v, 'units', trim(cunit) ),   crtn,cf_in,cv_in)
+         CALL sherr( NF90_PUT_ATT(idx_f, idx_v, 'long_name', trim(cln)   ),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_PUT_ATT(idx_f, idx_v, 'units',     trim(cunit) ),  crtn,cf_in,cv_in)
 
          IF ( vflag /= 0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',vflag),  crtn,cf_in,cv_in)
 
@@ -1427,11 +1397,13 @@ CONTAINS
       !!
       !!
       IF ( lzcoord ) THEN
-         CALL prepare_nc(id_f, cdt, lx, ly, cv_lo, cv_la, '', '', vextrema, id_x, id_y, i01, id_lo, id_la, i02, &
-            &          crtn,cf_in,cv_in)
+         CALL prepare_nc(id_f, cdt, lx, ly, cv_lo, cv_la, '',  vextrema, &
+            &            id_x, id_y, i01, id_lo, id_la, i02, &
+            &            crtn,cf_in,cv_in)
       ELSE
-         CALL prepare_nc(id_f, cdt, lx, ly, '', '', '', '',       vextrema, id_x, id_y, i01, id_lo, id_la, i02, &
-            &          crtn,cf_in,cv_in)
+         CALL prepare_nc(id_f, cdt, lx, ly, '', '', '',        vextrema, &
+            &            id_x, id_y, i01, id_lo, id_la, i02, &
+            &            crtn,cf_in,cv_in)
       END IF
       !!
       CALL sherr( NF90_DEF_VAR(id_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v),       crtn,cf_in,cv_in)
@@ -1514,7 +1486,7 @@ CONTAINS
          CALL sherr( NF90_PUT_ATT(id_f, id_v2,'_FillValue',vflag),       crtn,cf_out,cdum)
       END IF
 
-      CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear/bicubic interpolation with SOSIE.'), &
+      CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear interpolation with SOSIE.'), &
          &      crtn,cf_out,cdum)
       CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'About', trim(cabout)),  crtn,cf_out,cdum)
 
@@ -1611,8 +1583,8 @@ CONTAINS
       !!           CREATE NETCDF OUTPUT FILE :
       CALL sherr( NF90_CREATE(CF_IN, NF90_CLOBBER, id_f),  crtn,cf_in,cv_in)
 
-      CALL prepare_nc(id_f, '1d', lx, ly, cv_x, cv_y, '', '', vextrema, id_x, id_y, i01, id_lo, id_la, i02, &
-         &          crtn,cf_in,cv_in, cu_X=trim(cuXin), cu_Y=trim(cuYin))
+      CALL prepare_nc(id_f, '1d', lx, ly, cv_x, cv_y, '', vextrema, &
+         &            id_x, id_y, i01, id_lo, id_la, i02, crtn,cf_in,cv_in)
 
       CALL sherr( NF90_DEF_VAR(id_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v),       crtn,cf_in,cv_in)
 
@@ -1813,26 +1785,26 @@ CONTAINS
 
 
 
-   SUBROUTINE prepare_nc(id_file, cdt0, nx, ny, cv_lon, cv_lat, cv_time, cu_t, vxtrm, &
-      &                id_ji, id_jj, id_jt, id_lon, id_lat, id_time, cri,cfi,cvi, cu_X, cu_Y)
+   SUBROUTINE prepare_nc(id_file, cdt0, nx, ny, cv_lon, cv_lat, cv_time, vxtrm,     &
+      &                  id_ji, id_jj, id_jt, id_lon, id_lat, id_time, cri,cfi,cvi, &
+      &                  attr_time, attr_lon, attr_lat)
 
       INTEGER,                 INTENT(in)  :: id_file, nx, ny
       CHARACTER(len=2),        INTENT(in)  :: cdt0
-      CHARACTER(len=*),        INTENT(in)  :: cv_lon, cv_lat, cv_time, cu_t, cri,cfi,cvi
+      CHARACTER(len=*),        INTENT(in)  :: cv_lon, cv_lat, cv_time, cri,cfi,cvi
       REAL(8), DIMENSION(3,2), INTENT(in)  :: vxtrm
       INTEGER,                 INTENT(out) :: id_ji, id_jj, id_jt, id_lon, id_lat, id_time
 
-      CHARACTER(len=*),        INTENT(in), OPTIONAL :: cu_X, cu_Y
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_time, attr_lon, attr_lat
 
-      CHARACTER(len=64) :: cu_X0, cu_Y0
+      INTEGER :: jat, il
+      LOGICAL :: lcopy_att_time = .FALSE., &
+         &       lcopy_att_lon  = .FALSE., &
+         &       lcopy_att_lat  = .FALSE.
 
-      cu_X0 = 'degrees_east'
-      cu_Y0 = 'degrees_north'
-      IF ( present(cu_X) ) cu_X0 = trim(cu_X)
-      IF ( present(cu_Y) ) cu_Y0 = trim(cu_Y)
-
-
-
+      IF ( PRESENT(attr_time) ) lcopy_att_time = .TRUE.
+      IF ( PRESENT(attr_lon) ) lcopy_att_lon = .TRUE.
+      IF ( PRESENT(attr_lat) ) lcopy_att_lat = .TRUE.
 
       !!    HORIZONTAL
       IF ( (trim(cv_lon) /= '').AND.(trim(cv_lat) /= '') ) THEN
@@ -1850,11 +1822,15 @@ CONTAINS
             CALL sherr( NF90_DEF_VAR(id_file, trim(cv_lat), NF90_DOUBLE, id_jj, id_lat), cri,cfi,cvi)
          END IF
          !!
-         CALL sherr( NF90_PUT_ATT(id_file, id_lon,  'units', trim(cu_X0)), cri,cfi,cvi)
+         IF ( lcopy_att_lon ) THEN
+            CALL SET_ATTRIBUTES_TO_VAR(id_file, id_lon, attr_lon,  cri,cfi,cvi)
+         END IF
          CALL sherr( NF90_PUT_ATT(id_file, id_lon, 'valid_min', vxtrm(1,1)), cri,cfi,cvi)
          CALL sherr( NF90_PUT_ATT(id_file, id_lon, 'valid_max', vxtrm(1,2)), cri,cfi,cvi)
          !!
-         CALL sherr( NF90_PUT_ATT(id_file, id_lat, 'units', trim(cu_Y0)), cri,cfi,cvi)
+         IF ( lcopy_att_lat ) THEN
+            CALL SET_ATTRIBUTES_TO_VAR(id_file, id_lat, attr_lat,  cri,cfi,cvi)
+         END IF
          CALL sherr( NF90_PUT_ATT(id_file, id_lat, 'valid_min', vxtrm(2,1)), cri,cfi,cvi)
          CALL sherr( NF90_PUT_ATT(id_file, id_lat, 'valid_max', vxtrm(2,2)), cri,cfi,cvi)
          !!
@@ -1864,15 +1840,53 @@ CONTAINS
       END IF
       !!
       !!  TIME
-      IF ( trim(cv_time) /= '' ) THEN
-         CALL sherr( NF90_DEF_DIM(id_file, trim(cv_time), NF90_UNLIMITED, id_jt), cri,cfi,cvi)
-         CALL sherr( NF90_DEF_VAR(id_file, trim(cv_time), NF90_DOUBLE, id_jt, id_time), cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_time, 'units',    trim(cu_t)), cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_max',vxtrm(3,2)), cri,cfi,cvi)
+      IF ( TRIM(cv_time) /= '' ) THEN
+         CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_time), NF90_UNLIMITED, id_jt), cri,cfi,cvi)
+         CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time), cri,cfi,cvi)
+         IF ( lcopy_att_time ) THEN
+            CALL SET_ATTRIBUTES_TO_VAR(id_file, id_time, attr_time,  cri,cfi,cvi)
+         ELSE
+            CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)
+            CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_max',vxtrm(3,2)), cri,cfi,cvi)
+         END IF
       END IF
       !!
    END SUBROUTINE prepare_nc
+
+
+   SUBROUTINE SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, vattr,  cri,cfi,cvi)
+      !!
+      INTEGER,                              INTENT(in) :: idx_f, idx_v
+      TYPE(var_attr), DIMENSION(nbatt_max), INTENT(in) :: vattr
+      CHARACTER(len=*),                     INTENT(in) :: cri,cfi,cvi
+      !!
+      INTEGER :: jat, il
+      CHARACTER(len=128) :: cat
+      !!
+      DO jat = 1, nbatt_max
+         cat = vattr(jat)%cname
+         IF ( TRIM(cat) == 'null' ) EXIT
+         IF ( (TRIM(cat) /= 'grid_type').AND.(TRIM(cat) /= '_FillValue') ) THEN
+            !Debug:
+            !PRINT *, ' * lulu: ', TRIM(cat)
+            !PRINT *, ' * lulu: itype =', vattr(jat)%itype
+            !IF ( vattr(jat)%itype > 2 ) THEN
+            !   il = vattr(jat)%ilength
+            !   PRINT *, ' * lulu: ilength =', il
+            !   PRINT *, ' * lulu: val_num =', vattr(jat)%val_num(:il)
+            !END IF
+            !Debug.
+            IF ( vattr(jat)%itype == 2 ) THEN
+               CALL sherr( NF90_PUT_ATT(idx_f, idx_v, TRIM(cat), TRIM(vattr(jat)%val_char)), cri,cfi,cvi)
+            ELSE
+               il = vattr(jat)%ilength
+               CALL sherr( NF90_PUT_ATT(idx_f, idx_v, TRIM(cat), vattr(jat)%val_num(:il)), cri,cfi,cvi)
+            END IF
+            !PRINT *, ''
+         END IF
+      END DO
+      !!
+   END SUBROUTINE SET_ATTRIBUTES_TO_VAR
 
 
 

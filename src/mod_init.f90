@@ -297,7 +297,7 @@ CONTAINS
          IF ( (cmethod == 'akima').and.(.NOT. lregin) ) THEN
             PRINT *, 'The Akima method only supports regular input grids!'
             PRINT *, '--> If the grid of the source domain is irregular, '
-            PRINT *, '    please change "cmethod" from akima to "bilin" or "bicub" into the namelist!'
+            PRINT *, '    please change "cmethod" from akima to "bilin" into the namelist!'
             STOP
          END IF
 

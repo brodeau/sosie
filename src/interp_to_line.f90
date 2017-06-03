@@ -4,7 +4,6 @@ PROGRAM INTERP_TO_LINE
   USE mod_drown
   USE mod_akima_2d
   USE mod_bilin_2d
-  USE mod_bicub_2d
   !!
   !!========================================================================
   !! Purpose :  
@@ -23,8 +22,7 @@ PROGRAM INTERP_TO_LINE
   !!
   LOGICAL, PARAMETER :: &
        &   l_akima = .FALSE., &
-       &   l_bilin = .TRUE.,  &
-       &   l_bicub = .FALSE.
+       &   l_bilin = .TRUE.
 
   !!
   REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
@@ -333,9 +331,6 @@ PROGRAM INTERP_TO_LINE
         IF ( l_bilin) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
              &                        Xtar, Ytar, Ztar4, trim(csection))
         !!
-        IF ( l_bicub) CALL BICUB_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
-             &                        Xtar, Ytar, Ztar4, trim(csection))
-        !!
         xcmask(:,jk) = Ztar4(1,:)
         !!
      END DO
@@ -352,9 +347,6 @@ PROGRAM INTERP_TO_LINE
                 &                           Xtar,    Ytar,    Ztar4)
            !!
            IF ( l_bilin ) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
-                &                           Xtar,    Ytar,    Ztar4, trim(csection))
-           !!
-           IF ( l_bicub ) CALL BICUB_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
                 &                           Xtar,    Ytar,    Ztar4, trim(csection))
            !!
            xcoupe(:,jk,jt) = Ztar4(1,:)

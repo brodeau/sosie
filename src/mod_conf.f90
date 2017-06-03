@@ -1,6 +1,6 @@
 MODULE MOD_CONF
 
-   USE io_ezcdf, ONLY: nbatt_max, attrbt
+   USE io_ezcdf, ONLY: nbatt_max, var_attr
    
    IMPLICIT NONE
 
@@ -131,14 +131,8 @@ MODULE MOD_CONF
    !! Attribute info for some variables LOLO: move to io_ezcdf instead????
    !! ---------------------------------
    !! Time vector:
-   INTEGER :: nb_att_t
-   TYPE(attrbt), DIMENSION(nbatt_max) :: vatt_info_t
-   !CHARACTER(len=128), DIMENSION(nbatt_max) :: vatt_t_names
-   !CHARACTER(len=11),  DIMENSION(nbatt_max) :: vatt_t_types
-   !CHARACTER(len=256), DIMENSION(nbatt_max) :: vatt_t_vchar
-   !REAL,               DIMENSION(nbatt_max) :: vatt_t_vnumr
-   
-
+   INTEGER                              :: nb_att_t, nb_att_lon, nb_att_lat
+   TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, vatt_info_lon, vatt_info_lat
    
    
    !! Data arrays
