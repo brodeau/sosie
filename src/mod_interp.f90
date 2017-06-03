@@ -5,7 +5,6 @@ MODULE MOD_INTERP
    USE mod_drown      !* extrapolation over masked surfaces
    USE mod_akima_2d   !* Akima method algorithm
    USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
-   USE mod_bicub_2d   !* Bi-cubic method
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
 
    !USE io_ezcdf ; !LOLOdebug
@@ -51,9 +50,6 @@ CONTAINS
 
       CASE('bilin')
          CALL bilin_2d(ewper, lon_in, lat_in, data_in, lon_out, lat_out, data_out, cpat)
-
-      CASE('bicub')
-         CALL bicub_2d(ewper, lon_in, lat_in, data_in, lon_out, lat_out, data_out, cpat)
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
@@ -133,10 +129,6 @@ CONTAINS
 
          CASE('bilin')
             CALL bilin_2d(ewper, lon_in,  lat_in,  data3d_in(:,:,jk), &
-               &              lon_out, lat_out, data3d_tmp(:,:,jk), cpat)
-
-         CASE('bicub')
-            CALL bicub_2d(ewper, lon_in,  lat_in,  data3d_in(:,:,jk), &
                &              lon_out, lat_out, data3d_tmp(:,:,jk), cpat)
 
          CASE('no_xy')

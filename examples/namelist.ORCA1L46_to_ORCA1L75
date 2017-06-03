@@ -44,8 +44,7 @@ cv_z_out_name = 'deptht'
 !!
 !!            * use 'akima' if your input domain is regular (non-distorted grid)
 !!
-!!            * use 'bilin' or 'bicub' otherwise (bilinear or bicubic 2D interpolation)
-!!              WARNING: 'bicub' is still Beta!
+!!            * use 'bilin' otherwise (bilinear 2D interpolation)
 !!
 !!            * use 'no_xy' to only perform vertical interpolation, i.e. interpolate a
 !!              a 3D field given on ni*nj and nk_in levels to the same ni*nj 2D domain

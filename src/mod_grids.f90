@@ -29,7 +29,7 @@ CONTAINS
 
       USE io_ezcdf  !: => only to get time array !LB???
 
-      INTEGER :: jt, jatt
+      INTEGER :: jt, jatt, il
 
       !! Determine input dimensions from input file :
       CALL know_dim_in()
@@ -53,14 +53,20 @@ CONTAINS
             END DO
          ELSE        ! we use time from input file
             CALL GETVAR_1D(cf_in, cv_t_in, vt0) ;  vt(:) = vt0(j_start:j_stop)
-            !LOLO:
-            !CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t)
+            CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t) ; !lolo
+            !Debug:
             !PRINT *, ' *** Time variable attributes:'
             !DO jatt = 1, nb_att_t
-            !   PRINT *,' ', TRIM(vatt_info_t(jatt)%name), ' => (',TRIM(vatt_info_t(jatt)%type),') => ',TRIM(vatt_info_t(jatt)%val_char), vatt_info_t(jatt)%val_num
+            !   PRINT *,'    * "'//TRIM(vatt_info_t(jatt)%cname)//'"'
+            !   il = vatt_info_t(jatt)%ilength
+            !   IF ( vatt_info_t(jatt)%itype == 2 ) THEN
+            !      PRINT *,'        => value = ', TRIM(vatt_info_t(jatt)%val_char)
+            !   ELSE
+            !      PRINT *,'        => value = ', vatt_info_t(jatt)%val_num(:il)
+            !   END IF
             !END DO
             !PRINT *, ''
-            !LOLO.
+            !Debug.
          END IF
       END IF
 
@@ -257,7 +263,7 @@ CONTAINS
             WHERE ( z3d_tmp >= vmax ) mask_in = 0
             DEALLOCATE ( z3d_tmp )
 
-            
+
          ELSEIF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
             !! NaN values are considered mask!
             WRITE(6,*) ' Land-sea mask is defined from values larger than', vmax
@@ -280,8 +286,8 @@ CONTAINS
             END DO
             !lolo debug: CALL PRTMASK(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
             DEALLOCATE ( z3d_tmp )
-            
-            
+
+
          ELSE
 
             !! We are reading source land-sea mask from a file:
@@ -332,7 +338,7 @@ CONTAINS
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
 
-      IF ( (lregout).AND.(trim(cf_x_out) == 'spheric') ) THEN
+      IF ( (lregout).AND.(TRIM(cf_x_out) == 'spheric') ) THEN
 
          !! Building target grid:
          READ(cv_lon_out,'(f5.2)') dx ; READ(cv_lat_out,'(f5.2)') dy
@@ -359,6 +365,25 @@ CONTAINS
          END IF
       END IF
 
+      !! Netcdf attributes for longitude and latitude:
+      IF ( TRIM(cf_x_out) == 'spheric' ) THEN
+         nb_att_lon = 1
+         vatt_info_lon(:)%cname = 'null'
+         vatt_info_lon(1)%cname = 'units'
+         vatt_info_lon(1)%itype = 2 ! char
+         vatt_info_lon(1)%val_char = 'degrees_east'
+         vatt_info_lon(1)%ilength = LEN('degrees_east')
+         nb_att_lat = 1
+         vatt_info_lat(:)%cname = 'null'
+         vatt_info_lat(1)%cname = 'units'
+         vatt_info_lat(1)%itype = 2 ! char
+         vatt_info_lat(1)%val_char = 'degrees_west'
+         vatt_info_lat(1)%ilength = LEN('degrees_west')
+      ELSE
+         !! Geting them from target file:
+         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lon_out, nb_att_lon, vatt_info_lon) ; !lolo
+         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lat_out, nb_att_lat, vatt_info_lat) ; !lolo
+      END IF
 
       lon_out_b = lon_out
       WHERE ( lon_out < 0. ) lon_out = lon_out + 360.

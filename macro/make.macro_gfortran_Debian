@@ -14,9 +14,9 @@ L_NCDF = -lnetcdff
 
 # Fortran compilation flags:
 # -- Production
-FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
+#FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
 # -- Debugging
-# FF = -O0 -ffree-line-length-200 -J./mod -I./mod -w -fbounds-check
+ FF = -O0 -ffree-line-length-200 -J./mod -I./mod -w -fbounds-check
 
 # Directory to install binaries:
 INSTALL_DIR = /usr/local
