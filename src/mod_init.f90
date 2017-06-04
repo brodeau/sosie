@@ -19,9 +19,8 @@ MODULE MOD_INIT
    NAMELIST /noutput/ lregout, cf_x_out, cv_lon_out, cv_lat_out, cf_lsm_out,   &
       &             cv_lsm_out, lmout, rmaskvalue, lct, t0, t_stp, ewper_out
 
-   NAMELIST /nnetcdf/ cmethod, cv_l_out, cv_p_out, cv_t_out,    &
-      &             cv_out, cu_out, cu_t, cln_out, cd_out,  &
-      &             csource, ctarget, cextra, lpcknc4
+   NAMELIST /nnetcdf/ cmethod, cv_t_out, cv_out, cu_out, cln_out, cd_out,  &
+      &               csource, ctarget, cextra, lpcknc4
 
    PRIVATE usage
 

@@ -2,7 +2,7 @@
 !! Namelist for SOSIE 
 !! ------------------- 
 !! 
-!! 
+!!
 !! *********************** 
 !! Input characteristics : 
 !! *********************** 
@@ -208,12 +208,9 @@ ewper_out  = 2
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
 !! *** Into the netcdf file to be created : *** 
-!! cv_l_out : name for longitude on the output file [char] 
-!! cv_p_out : name for latitude on the output file [char] 
 !! cv_t_out : name for time on the output file [char] 
 !! cv_out   : name for treated variable on the output file [char] 
 !! cu_out   : treated variable units [char] 
-!! cu_t     : time unit [char]
 !! cln_out  : treated variable long name [char] 
 !! cd_out   : directory to create output file to [char]
 !! 
@@ -225,12 +222,9 @@ ewper_out  = 2
 !! 
 &nnetcdf
 cmethod  = 'akima'
-cv_l_out = 'nav_lon'
-cv_p_out = 'nav_lat'
 cv_t_out = 'time_counter'
 cv_out   = 'temp'
 cu_out   = 'deg. C'
-cu_t     = 'unknown'
 cln_out  = 'Temperature'
 cd_out   = '.'
 csource  = 'ERA40'

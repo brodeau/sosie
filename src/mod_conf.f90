@@ -104,14 +104,11 @@ MODULE MOD_CONF
    !! -----------------------
    CHARACTER(LEN=5)  ::  cmethod
    CHARACTER(LEN=80) ::  &
-      &    cv_l_out = '',   &
-      &    cv_p_out = '',   &
       &    cv_t_out = '',   &
       &    cv_out = '',     &
       &    cu_out
    !!
    CHARACTER(LEN=400) :: cln_out
-   CHARACTER(LEN=400) :: cu_t='unknown'
 
    INTEGER           :: &
       &     ivect,    &
@@ -131,8 +128,8 @@ MODULE MOD_CONF
    !! Attribute info for some variables LOLO: move to io_ezcdf instead????
    !! ---------------------------------
    !! Time vector:
-   INTEGER                              :: nb_att_t, nb_att_lon, nb_att_lat
-   TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, vatt_info_lon, vatt_info_lat
+   INTEGER                              :: nb_att_t, nb_att_lon, nb_att_lat, nb_att_F
+   TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, vatt_info_lon, vatt_info_lat, vatt_info_F
    
    
    !! Data arrays

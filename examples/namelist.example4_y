@@ -6,7 +6,6 @@
 !! #########  with rotation
 !! 
 !!
-!!
 !! *********************** 
 !! Input characteristics : 
 !! *********************** 
@@ -61,17 +60,14 @@ ewper_out  = 2
 !! 
 &nnetcdf
 cmethod  = 'akima'
-cv_l_out = 'nav_lon'
-cv_p_out = 'nav_lat'
 cv_t_out = 'time_counter'
 cv_out   = 'v10'
 cu_out   = 'm/s'
-cu_t     = '6h snapshot'
 cln_out  = 'ERA-INTERIM 10m wind, 4 first 6-hourly snapshots of year 2000'
 cd_out   = '.'
 csource  = '1x1-deg'
 ctarget  = 'ORCA1'
 cextra   = 'vct'
 lpcknc4  = .true.
-/ 
+/
 !!
