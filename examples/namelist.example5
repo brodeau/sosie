@@ -47,16 +47,14 @@ ewper_out  = 0
 
 &nnetcdf
 cmethod  = 'akima'  ! The best choice :D
-cv_l_out = 'longitude'
-cv_p_out = 'latitude'
 cv_t_out = 'time'
 cv_out   = 'T2M'
 cu_out   = 'K'
-cu_t     = 'hour'
 cln_out  = '2m air temperature, 20141201, ECMWF op. an.'
 cd_out   = '.'
 csource  = '2560x480'
 ctarget  = 'polar-stereo'
 cextra   = 'Arctic'
 lpcknc4  = .true.
-/ 
+/
+!!

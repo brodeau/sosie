@@ -2,7 +2,7 @@
 !! Namelist for SOSIE 
 !! ------------------- 
 !! 
-!! 
+!!
 !! *********************** 
 !! Input characteristics : 
 !! *********************** 
@@ -29,28 +29,32 @@
 !!              and interpolate the nt time steps of the current field
 !! 
 !! jplev : level to treat if your file is 3D (spatial), has no influence if 
-!!         your file is 2D !
-!!         jplev > 0 = level to treat (ex : jplev = 1 will interpolate only 
-!!                     surface field corresponding to the 1st level )
+!!         your file is 2D in space !
+!!       ------------------------------------------------------------------
+!!        jplev > 0 = level to treat (ex : jplev = 1 will interpolate only 
+!!                    surface field corresponding to the 1st level )
 !!       ------------------------------------------------------------------
 !!        jplev = 0 : perform 3D interpolation (if input file is 3D) !!! |
 !!       ------------------------------------------------------------------
-!!       ------------------------------------------------------------------
-!!        jplev = -1 : overides good sence and force sosie to understand that
+!!        jplev = -1 : overrides good sense and forces sosie to understand that
 !!                     your field to interpolate is 2D with a time record
 !!                     (usually the case if the time record dimension in your
-!!                      input file is not declared as UNLIMITED => bad! :(
-!!       ------------------------------------------------------------------
+!!                      input file is not declared as UNLIMITED => bad! )
+!!                     => so SOSIE doesn't mistake this time record with a depth!
+!!       -------------------------------------------------------------------
 !!
 !! cf_x_in   : file containing the input grid (usually = cf_in) [char] 
 !! cv_lon_in : name of longitude in the input grid file [char] 
 !! cv_lat_in : name of latitude in the input grid file [char] 
 !! 
 !! cf_lsm_in : file containing the input land-sea mask [char]
-!!             or specify 'missing_value' if a 'missing_value' netcdf
-!!             attribute defines the mask on the input data field
-!!             (not needed if "ldrown = .FALSE." --> '')
-
+!!             (only relevant if ldrown==.true.)
+!!             Alternatively:
+!!             * specify " cf_lsm_in = 'missing_value' " if a 'missing_value' netcdf
+!!               attribute defines the mask on the input data field
+!!             * specify " cf_lsm_in = 'nan' " if mask is defined with NaN values
+!!               (not needed if "ldrown = .FALSE." --> '')
+!!
 !! cv_lsm_in : name of land-sea mask variable [char]
 !!             (not needed if "ldrown = .FALSE." 
 !!              or if cf_lsm_in = 'missing_value'--> '')
@@ -193,16 +197,20 @@ ewper_out  = 2
 !! This mostly deals with how the output file to be created is going to look like!
 !!
 !! cmethod  : the 2D interpolation method to be used
-!!            use 'akima' if your input domain is regular (non-distorted grid)
-!!            use 'bilin' otherwise, which is bilinear 2D interpolation
+!!
+!!            * use 'akima' if your input domain is regular (non-distorted grid)
+!!
+!!            * use 'bilin' otherwise (bilinear 2D interpolation)
+!!
+!!            * use 'no_xy' to only perform vertical interpolation, i.e. interpolate a
+!!              a 3D field given on ni*nj and nk_in levels to the same ni*nj 2D domain
+!!              but on nk_out levels!
+!!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
 !! *** Into the netcdf file to be created : *** 
-!! cv_l_out : name for longitude on the output file [char] 
-!! cv_p_out : name for latitude on the output file [char] 
 !! cv_t_out : name for time on the output file [char] 
 !! cv_out   : name for treated variable on the output file [char] 
 !! cu_out   : treated variable units [char] 
-!! cu_t     : time unit [char]
 !! cln_out  : treated variable long name [char] 
 !! cd_out   : directory to create output file to [char]
 !! 
@@ -214,12 +222,9 @@ ewper_out  = 2
 !! 
 &nnetcdf
 cmethod  = 'bilin'
-cv_l_out = 'nav_lon'
-cv_p_out = 'nav_lat'
 cv_t_out = 'time_counter'
 cv_out   = 'so'
 cu_out   = 'PSU'
-cu_t     = 'seconds since 0000-01-01 00:00:00'
 cln_out  = 'Salinity'
 cd_out   = '.'
 csource  = 'ORCA2'

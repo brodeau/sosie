@@ -2,7 +2,7 @@
 !! Namelist for SOSIE 
 !! ------------------- 
 !! 
-!! 
+!!
 !! *********************** 
 !! Input characteristics : 
 !! *********************** 
@@ -36,7 +36,7 @@
 !!       ------------------------------------------------------------------
 !!        jplev = 0 : perform 3D interpolation (if input file is 3D) !!! |
 !!       ------------------------------------------------------------------
-!!        jplev = -1 : overides good sence and forces sosie to understand that
+!!        jplev = -1 : overrides good sense and forces sosie to understand that
 !!                     your field to interpolate is 2D with a time record
 !!                     (usually the case if the time record dimension in your
 !!                      input file is not declared as UNLIMITED => bad! )
@@ -48,10 +48,13 @@
 !! cv_lat_in : name of latitude in the input grid file [char] 
 !! 
 !! cf_lsm_in : file containing the input land-sea mask [char]
-!!             or specify 'missing_value' if a 'missing_value' netcdf
-!!             attribute defines the mask on the input data field
-!!             (not needed if "ldrown = .FALSE." --> '')
-
+!!             (only relevant if ldrown==.true.)
+!!             Alternatively:
+!!             * specify " cf_lsm_in = 'missing_value' " if a 'missing_value' netcdf
+!!               attribute defines the mask on the input data field
+!!             * specify " cf_lsm_in = 'nan' " if mask is defined with NaN values
+!!               (not needed if "ldrown = .FALSE." --> '')
+!!
 !! cv_lsm_in : name of land-sea mask variable [char]
 !!             (not needed if "ldrown = .FALSE." 
 !!              or if cf_lsm_in = 'missing_value'--> '')
@@ -205,12 +208,9 @@ ewper_out  = 2
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
 !! *** Into the netcdf file to be created : *** 
-!! cv_l_out : name for longitude on the output file [char] 
-!! cv_p_out : name for latitude on the output file [char] 
 !! cv_t_out : name for time on the output file [char] 
 !! cv_out   : name for treated variable on the output file [char] 
 !! cu_out   : treated variable units [char] 
-!! cu_t     : time unit [char]
 !! cln_out  : treated variable long name [char] 
 !! cd_out   : directory to create output file to [char]
 !! 
@@ -222,17 +222,14 @@ ewper_out  = 2
 !! 
 &nnetcdf
 cmethod  = 'akima'
-cv_l_out = 'nav_lon'
-cv_p_out = 'nav_lat'
 cv_t_out = 'time_counter'
 cv_out   = 'temp'
 cu_out   = 'deg. C'
-cu_t     = 'month'
 cln_out  = 'Mean march 3D temperature, Levitus (1998)'
 cd_out   = '.'
 csource  = '360x180'
 ctarget  = 'ORCA1'
 cextra   = 'march'
 lpcknc4  = .true.
-/ 
+/
 !!

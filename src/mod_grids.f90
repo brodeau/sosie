@@ -342,6 +342,7 @@ CONTAINS
 
          !! Building target grid:
          READ(cv_lon_out,'(f5.2)') dx ; READ(cv_lat_out,'(f5.2)') dy
+         cv_lon_out = 'lon'           ; cv_lat_out = 'lat'
          WRITE(6,*) '  * dx, dy =', dx, dy
          WRITE(6,*) '  * ni_out, nj_out =', ni_out, nj_out ;  PRINT*,''
          DO ji = 1, ni_out
