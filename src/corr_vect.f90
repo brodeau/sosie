@@ -500,22 +500,22 @@ PROGRAM CORR_VECT
          IF ( i3d == 1 ) THEN
             
             CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
-               &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U, cu_out,       &
-               &    cln_out, rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,       &
+               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
 
             CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
-               &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V, cu_out,       &
-               &    cln_out, rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,       &
+               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
          ELSE
 
             !! Writing file for corrected U and V :
             CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1),     &
-               &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U, cu_out,       &
-               &    cln_out, rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
+               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
 
             CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, V_c(:,:,1), &
-               &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V, cu_out,   &
-               &    cln_out, rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
+               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
 
          END IF
 
@@ -775,22 +775,22 @@ PROGRAM CORR_VECT
          IF ( l_3d_inv ) THEN
 
             CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
-               &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U, cu_out,       &
-               &    cln_out, zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U,       &
+               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
             CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
-               &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V, cu_out,       &
-               &    cln_out, zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V,       &
+               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
          ELSE
 
             CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, U_c(:,:,1),     &
-               &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U, cu_out,       &
-               &    cln_out, zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U,       &
+               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
             CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, V_c(:,:,1), &
-               &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V, cu_out,   &
-               &    cln_out, zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V,   &
+               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
          END IF
 
