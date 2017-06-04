@@ -344,10 +344,10 @@ PROGRAM mask_drown_field
      
      IF ( l3d ) THEN
         CALL P3D_T(ifo, ivo, nt, jt, xlon, xlat, vdpth, vtime, data, &
-             &     cf_out, cv_lon, cv_lat, cv_z, cv_t, cv_in, cu, clnm, rmv)
+             &     cf_out, cv_lon, cv_lat, cv_z, cv_t, cv_in, rmv)
      ELSE
         CALL P2D_T(ifo, ivo, nt, jt, xlon, xlat,        vtime, data(:,:,1), &
-             &     cf_out, cv_lon, cv_lat,       cv_t, cv_in, cu, clnm, rmv)
+             &     cf_out, cv_lon, cv_lat,       cv_t, cv_in, rmv)
      END IF
      
      
