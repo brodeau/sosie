@@ -10,17 +10,17 @@ MODULE MOD_INIT
    !! Declaration of namelist :
    !! -------------------------
 
-   NAMELIST /ninput/  ivect, lregin, cf_in, cv_in, cv_t_in, jt1, jt2, &
-      &             jplev, cf_x_in, cv_lon_in, cv_lat_in, cf_lsm_in, cv_lsm_in, &
-      &             ldrown, ewper, vmax, vmin, cf_coor_in
+   NAMELIST /ninput/   ivect, lregin, cf_in, cv_in, cv_t_in, jt1, jt2, &
+      &                jplev, cf_x_in, cv_lon_in, cv_lat_in, cf_lsm_in, cv_lsm_in, &
+      &                ldrown, ewper, vmax, vmin, cf_coor_in
 
-   NAMELIST /n3d/     cf_z_in, cv_z_in, cf_z_out, cv_z_out, cv_z_out_name
+   NAMELIST /n3d/      cf_z_in, cv_z_in, cf_z_out, cv_z_out, cv_z_out_name
 
-   NAMELIST /noutput/ lregout, cf_x_out, cv_lon_out, cv_lat_out, cf_lsm_out,   &
-      &             cv_lsm_out, lmout, rmaskvalue, lct, t0, t_stp, ewper_out
+   NAMELIST /nhtarget/ lregout, cf_x_out, cv_lon_out, cv_lat_out, cf_lsm_out,   &
+      &                cv_lsm_out, lmout, rmaskvalue, lct, t0, t_stp, ewper_out
 
-   NAMELIST /nnetcdf/ cmethod, cv_t_out, cv_out, cu_out, cln_out, cd_out,  &
-      &               csource, ctarget, cextra, lpcknc4
+   NAMELIST /noutput/  cmethod, cv_t_out, cv_out, cu_out, cln_out, cd_out,  &
+      &                csource, ctarget, cextra, lpcknc4
 
    PRIVATE usage
 
@@ -110,22 +110,22 @@ CONTAINS
             PRINT *, '*** Target depth vector in output file will be renamed to: ', TRIM(cv_z_out_name)
          END IF
       END IF
-      
+
       !! Reading netcdf section:
       REWIND( numnam )
-      READ( numnam, nnetcdf )
-      
+      READ( numnam, noutput )
+
 
       IF ( TRIM(cmethod) /= 'no_xy' ) THEN
          !!
          !! Reading output section:
          REWIND( numnam )
-         READ(numnam, noutput)
+         READ(numnam, nhtarget)
          !!
       ELSE
          !!
          WRITE(6,*) ''
-         WRITE(6,*) ' *** Ignoring the "&noutput" namelist block because no horizontal interpolation'
+         WRITE(6,*) ' *** Ignoring the "&nhtarget" namelist block because no horizontal interpolation'
          WRITE(6,*) ' *** is going to be performed. Only vertical interpolation!'
          WRITE(6,*) ' ***         => from info from &n3d namelist block'
          WRITE(6,*) ''
@@ -311,7 +311,7 @@ CONTAINS
 
 
    SUBROUTINE REMINDER()
-      
+
       IF ( (TRIM(cmethod) == 'no_xy') .AND. .NOT.(l_int_3d) ) THEN
          WRITE(6,*) ''
          WRITE(6,*) ' ERROR: it makes no sense to use "no_xy" as the interpolation method'

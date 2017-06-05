@@ -74,7 +74,7 @@ CONTAINS
       ninc_max = 200   ! will stop before when all land points have been treated!!!
       IF ( present(nb_inc) ) ninc_max = nb_inc
 
-      nsmooth_max = 2
+      nsmooth_max = 4
       IF ( present(nb_smooth) ) nsmooth_max = nb_smooth
 
 
