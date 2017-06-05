@@ -211,7 +211,8 @@ ewper_out  = 2
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
 !! *** Into the netcdf file to be created : ***
-!! cv_t_out : name of time record vector in the output file               [char]
+!! cv_t_out : name of time record vector in the output file [char]
+!!            => set to cv_t_out='' if no time dimension
 !! cv_out   : name for treated variable in the output file                [char]
 !! cu_out   : if not = '': then change the unit of treated variable units [char]
 !! cln_out  : if not = '': then change the long name treated variable     [char]

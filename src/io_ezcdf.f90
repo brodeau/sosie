@@ -982,6 +982,7 @@ CONTAINS
       LOGICAL          :: lp = .FALSE.
       REAL(4)          :: rmin, rmax
       LOGICAL :: lcopy_att_F = .FALSE.
+      INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
       crtn = 'P2D_T'
 
@@ -1032,14 +1033,22 @@ CONTAINS
             &            attr_time=attr_time, attr_lon=attr_lon, attr_lat=attr_lat)
          !!
          !! Variable
+         IF ( TRIM(cv_t) /= '' ) THEN
+            ALLOCATE (vidim(3))
+            vidim = (/id_x,id_y,id_t/)
+         ELSE
+            ALLOCATE (vidim(2))
+            vidim = (/id_x,id_y/)
+         END IF
          IF ( lp ) THEN
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT,(/id_x,id_y,id_t/), idx_v, deflate_level=9), &
+            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
                &      crtn,cf_in,cv_in )
          ELSE
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT,(/id_x,id_y,id_t/), idx_v                 ), &
+            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, vidim, idx_v                 ), &
                &      crtn,cf_in,cv_in )
          END IF
-
+         DEALLOCATE ( vidim )
+         
          !!  VARIABLE ATTRIBUTES lolo
          IF ( lcopy_att_F ) CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes (given in namelist):
@@ -1066,7 +1075,7 @@ CONTAINS
          CALL sherr( NF90_PUT_VAR(idx_f, id_la, xlat),  crtn,cf_in,cv_in)
          !!
          !!       Write time variable :
-         CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
+         IF ( TRIM(cv_t) /= '' ) CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
          !!
       END IF
 
@@ -1129,6 +1138,7 @@ CONTAINS
       LOGICAL          :: lp = .FALSE.
       REAL(4)          :: dr, rmin, rmax
       LOGICAL :: lcopy_att_F = .FALSE.
+      INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
       crtn = 'P3D_T'
 
@@ -1198,13 +1208,21 @@ CONTAINS
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_max', maxval(vdpth)),  crtn,cf_in,cv_in)
 
          !! Variable
+         IF ( TRIM(cv_t) /= '' ) THEN
+            ALLOCATE (vidim(4))
+            vidim = (/id_x,id_y,id_z,id_t/)
+         ELSE
+            ALLOCATE (vidim(3))
+            vidim = (/id_x,id_y,id_z/)
+         END IF
          IF ( lp ) THEN
-            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y,id_z,id_t/), idx_v, deflate_level=9), &
+            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
                &       crtn,cf_in,cv_in)
          ELSE
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y,id_z,id_t/), idx_v),  &
+            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v),  &
                &       crtn,cf_in,cv_in)
          END IF
+         DEALLOCATE ( vidim )
 
          !!  VARIABLE ATTRIBUTES
          IF ( lcopy_att_F )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
@@ -1234,7 +1252,7 @@ CONTAINS
          CALL sherr( NF90_PUT_VAR(idx_f, id_dpt, vdpth),  crtn,cf_in,cv_in)
          !!
          !!       Write time variable :
-         CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
+         IF ( TRIM(cv_t) /= '' ) CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
          !!
       END IF
 
@@ -1834,6 +1852,8 @@ CONTAINS
       IF ( PRESENT(attr_lon) ) lcopy_att_lon = .TRUE.
       IF ( PRESENT(attr_lat) ) lcopy_att_lat = .TRUE.
 
+      PRINT *, 'lolo1'
+      
       !!    HORIZONTAL
       IF ( (trim(cv_lon) /= '').AND.(trim(cv_lat) /= '') ) THEN
          !!

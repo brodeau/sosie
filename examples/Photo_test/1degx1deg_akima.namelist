@@ -31,16 +31,17 @@ rmaskvalue = -9999.
 lct        = F
 t0         = 0.
 t_stp      = 0.
-ewper_out  = 0
+ewper_out  = -1
 /
-!! 
+!!
 &noutput
 cmethod  = 'akima'
-cv_t_out = 'time'
+cv_t_out = ''
 cv_out   = 'RED'
 cu_out   = 'tamere'
 cln_out  = 'boo'
 cd_out   = '.'
+!!
 csource  = '1600x900'
 ctarget  = '1degx1deg'
 cextra   = 'akima'

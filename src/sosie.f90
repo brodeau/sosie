@@ -87,19 +87,15 @@ PROGRAM SOSIE
       PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
    END IF
 
-
-
    IF ( .NOT. lmout) rfct_miss = 0.
-
-
+   
    cextinf =                'Horizontal grid read in '//TRIM(cf_x_out)
    IF (l_int_3d) cextinf = TRIM(cextinf)//' / Vertical grid read in '//TRIM(cf_z_out)
    cextinf = TRIM(cextinf)//' / Source field read in '//TRIM(cf_in)
    cextinf = TRIM(cextinf)//' / Interpolation method: '//TRIM(cmethod)
 
-
-
-   !! Netcdf Atributes of the interpolated field:
+   
+   !! Netcdf Atributes of the interpolated field as in input file:
    CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  nb_att_F, vatt_info_F) ; !getting all attributes for treated field !lolo
    !! Overwritting some attributes given in the namelist if /= '':
    IF ( TRIM(cu_out)  /= '' ) CALL FORCE_ATTR('units',      cu_out, vatt_info_F)
@@ -107,6 +103,7 @@ PROGRAM SOSIE
 
 
 
+   
    
 
 
