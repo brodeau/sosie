@@ -1852,8 +1852,6 @@ CONTAINS
       IF ( PRESENT(attr_lon) ) lcopy_att_lon = .TRUE.
       IF ( PRESENT(attr_lat) ) lcopy_att_lat = .TRUE.
 
-      PRINT *, 'lolo1'
-      
       !!    HORIZONTAL
       IF ( (trim(cv_lon) /= '').AND.(trim(cv_lat) /= '') ) THEN
          !!
