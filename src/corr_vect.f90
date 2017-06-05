@@ -394,7 +394,10 @@ PROGRAM CORR_VECT
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_v, 1, 1, 1, xlon_v)
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_v, 1, 1, 1, xlat_v)
 
+      !! lulu
 
+
+      
       !!  Getting cos and sin of the grid distorsion angle:
       !! --------------------------------------------------
       CALL angle_dist(xlon_t, xlat_t, xlon_u, xlat_u, XCOST8, XSINT8)
