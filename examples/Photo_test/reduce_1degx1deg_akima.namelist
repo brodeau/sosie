@@ -1,0 +1,50 @@
+!!
+&ninput
+ivect     = 0
+lregin    = T
+cf_in     = './Tree_bw_1600.nc'
+cv_in     = 'red'
+cv_t_in   = '' 
+jt1       = 0
+jt2       = 0
+jplev     = 1
+cf_x_in   = './Tree_bw_1600.nc'
+cv_lon_in = 'lon0'
+cv_lat_in = 'lat0'
+cf_lsm_in = 'missing_value'
+cv_lsm_in = ''
+ldrown    = F
+ewper     = 0
+vmax      =  1.E6
+vmin      = -1.E6
+/
+!!
+&nhtarget
+lregout    = T
+cf_x_out   = 'spheric'
+cv_lon_out = '1.0'
+cv_lat_out = '1.0'
+cf_lsm_out = ''
+cv_lsm_out = ''
+lmout      = F
+rmaskvalue = -9999.
+lct        = F
+t0         = 0.
+t_stp      = 0.
+ewper_out  = -1
+/
+!!
+&noutput
+cmethod  = 'akima'
+cv_t_out = ''
+cv_out   = 'RED'
+cu_out   = 'tamere'
+cln_out  = 'boo'
+cd_out   = '.'
+!!
+csource  = '1600x900'
+ctarget  = '1degx1deg'
+cextra   = 'akima'
+lpcknc4  = .true.
+/
+!!
