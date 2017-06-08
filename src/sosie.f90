@@ -151,7 +151,7 @@ PROGRAM SOSIE
             &      lon_out_b, lat_out, vt, data_out,    &
             &      cf_out, cv_lon_out, cv_lat_out, cv_t_out,    &
             &      cv_out, rfct_miss*REAL(rmaskvalue,4), &
-            &      attr_time=vatt_info_t, attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_F=vatt_info_F, &
+            &      attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &      lpack=lpcknc4, cextrainfo=cextinf)
 
 
@@ -184,7 +184,8 @@ PROGRAM SOSIE
             &       lon_out_b, lat_out, depth_out, vt, data3d_out,                &
             &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
             &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
-            &       attr_time=vatt_info_t, attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_F=vatt_info_F, &
+            &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
+            &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &       lpack=lpcknc4, cextrainfo=cextinf)
 
 

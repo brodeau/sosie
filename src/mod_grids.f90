@@ -53,20 +53,7 @@ CONTAINS
             END DO
          ELSE        ! we use time from input file
             CALL GETVAR_1D(cf_in, cv_t_in, vt0) ;  vt(:) = vt0(j_start:j_stop)
-            CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t) ; !lolo
-            !Debug:
-            !PRINT *, ' *** Time variable attributes:'
-            !DO jatt = 1, nb_att_t
-            !   PRINT *,'    * "'//TRIM(vatt_info_t(jatt)%cname)//'"'
-            !   il = vatt_info_t(jatt)%ilength
-            !   IF ( vatt_info_t(jatt)%itype == 2 ) THEN
-            !      PRINT *,'        => value = ', TRIM(vatt_info_t(jatt)%val_char)
-            !   ELSE
-            !      PRINT *,'        => value = ', vatt_info_t(jatt)%val_num(:il)
-            !   END IF
-            !END DO
-            !PRINT *, ''
-            !Debug.
+            CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t)
          END IF
       END IF
 
@@ -81,6 +68,8 @@ CONTAINS
 
 
    SUBROUTINE TRG_DOMAIN()
+
+      USE io_ezcdf, ONLY: getvar_attributes
 
       IF ( TRIM(cmethod) == 'no_xy' ) lregout = lregin
 
@@ -111,6 +100,7 @@ CONTAINS
 
          CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
          WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
 
          lon_out   = lon_in
          lon_out_b = lon_in
@@ -382,8 +372,8 @@ CONTAINS
          vatt_info_lat(1)%ilength = LEN('degrees_west')
       ELSE
          !! Geting them from target file:
-         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lon_out, nb_att_lon, vatt_info_lon) ; !lolo
-         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lat_out, nb_att_lat, vatt_info_lat) ; !lolo
+         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lon_out, nb_att_lon, vatt_info_lon)
+         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lat_out, nb_att_lat, vatt_info_lat)
       END IF
 
       lon_out_b = lon_out
@@ -395,6 +385,7 @@ CONTAINS
          END IF
          CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
          WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
       END IF
 
 
