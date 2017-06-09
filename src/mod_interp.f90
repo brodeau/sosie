@@ -106,8 +106,7 @@ CONTAINS
             IF ( lmout ) THEN
                CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk),  nb_inc=100, nb_smooth=0)
             ELSE            
-               !lolo: CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk))
-               CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk), nb_inc=10)
+               CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk))
             END IF
             !LOLOdebug:
             !WRITE(cfdbg,'("data_in_drowned_lev",i2.2,".nc")') jk
