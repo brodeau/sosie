@@ -1055,11 +1055,8 @@ CONTAINS
          IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',           vflag),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
-            &                                TRIM(cv_t)//" "//TRIM(cv_lo)//" "//TRIM(cv_la)),  crtn,cf_in,cv_in)
-
-         !! Coordinates
-         CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', TRIM(cv_lo)//" "//TRIM(cv_la) ), crtn,cf_in,cv_in)
-
+            &                                TRIM(cv_t)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
+         
          !! Global attributes
          IF ( PRESENT(cextrainfo) ) &
             CALL sherr( NF90_PUT_ATT(idx_f, NF90_GLOBAL, 'Info', TRIM(cextrainfo)),  crtn,cf_in,cv_in)
@@ -1231,7 +1228,7 @@ CONTAINS
          IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',           vflag),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
-            &                                TRIM(cv_t)//" "//TRIM(cv_lo)//" "//TRIM(cv_la)),  crtn,cf_in,cv_in)
+            &                                TRIM(cv_t)//" "//TRIM(cv_dpth)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
 
          !! Global attributes
          IF ( PRESENT(cextrainfo) ) &
