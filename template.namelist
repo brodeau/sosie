@@ -78,6 +78,8 @@
 !!         => this is usefull to avoid sub-sampling when your target
 !!            grid is much coarser than your source grid
 !!            (i.e. when interpolating from high-res to low-res)
+!!         => start with a multiple of 10, typically 20, and adjust depending
+!!            on the result
 !!               
 !!--------------------------------------------------------------------------
 !!
