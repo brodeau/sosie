@@ -402,7 +402,8 @@ CONTAINS
       END DO
 
       !! Time to smooth what's been drowned:
-      CALL SMOOTH(k_ew, X,  nb_smooth=nsmooth_max, lsm=mask)
+      mtmp = 1 - mask ! 1 over continents, 0 over seas!
+      CALL SMOOTH(k_ew, X,  nb_smooth=nsmooth_max, mask_apply=mtmp)
 
       !CALL PRTMASK(X, 'drowned_final.nc', 'lsm') ;     !     STOP 'lolo'
 
@@ -415,7 +416,7 @@ CONTAINS
    
 
 
-   SUBROUTINE SMOOTH(k_ew, X,  nb_smooth, lsm)
+   SUBROUTINE SMOOTH(k_ew, X,  nb_smooth, mask_apply)
       
       !!#############################################################################
       !!
@@ -428,9 +429,11 @@ CONTAINS
       !!  X    :  treated array                             (2D array)
       !!
       !! Optional:
-      !!  * nb_smooth : number of times the smoother is applied on masked region (mask=0)
+      !!  * nb_smooth  : number of times the smoother is applied on masked region (mask=0)
       !!                => default: nb_smooth = 2
-      !!  * lsm       : land-sea mask array
+      !!  * mask_apply : mask array that define where the smoothing must be applied
+      !!                 => where 1: smoothing applied
+      !!                 => where 0: original field values are preserved
       !!
       !!#############################################################################
 
@@ -438,13 +441,13 @@ CONTAINS
       INTEGER,                    INTENT(in)           :: k_ew
       REAL(4),    DIMENSION(:,:), INTENT(inout)        :: X     
       INTEGER,    OPTIONAL,                 INTENT(in) :: nb_smooth
-      INTEGER(2), OPTIONAL, DIMENSION(:,:), INTENT(in) :: lsm
+      INTEGER(2), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_apply
 
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: xorig, xtmp
 
       INTEGER, DIMENSION(2) :: ivi, vim_per, vip_per
 
-      LOGICAL :: l_mind_land
+      LOGICAL :: l_mask
       
       INTEGER :: &
          &      nsmooth_max,          &
@@ -455,15 +458,15 @@ CONTAINS
       nsmooth_max = 2
       IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
-      l_mind_land = .FALSE.
-      IF ( PRESENT(lsm) ) l_mind_land = .TRUE.
+      l_mask = .FALSE.
+      IF ( PRESENT(mask_apply) ) l_mask = .TRUE.
       
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
 
       ALLOCATE ( xtmp(ni,nj) )
-      IF ( l_mind_land ) ALLOCATE (  xorig(ni,nj) )
+      IF ( l_mask ) ALLOCATE (  xorig(ni,nj) )
 
       ivi = (/ 1 , ni /)
       
@@ -472,7 +475,7 @@ CONTAINS
          vip_per = (/    2    , 1+k_ew /)
       END IF
 
-      IF ( l_mind_land ) xorig(:,:) = X(:,:)  
+      IF ( l_mask ) xorig(:,:) = X(:,:)  
       
       DO js = 1, nsmooth_max
          
@@ -496,16 +499,13 @@ CONTAINS
             END DO
          END IF
 
+         !! Smoothing is applied only where mask_apply==1, values of X remain unchanged elsewhere:
+         IF ( l_mask ) X(:,2:nj-1) = mask_apply(:,2:nj-1)*X(:,2:nj-1) - (mask_apply(:,2:nj-1) - 1)*xorig(:,2:nj-1)
          
-         ! Important to put original sea-values back on sea-domain at each
-         ! iteration so they constrain correct values on coastal values on the
-         ! continent during iteration.
-         IF ( l_mind_land ) X(:,2:nj-1) = lsm(:,2:nj-1)*xorig(:,2:nj-1) - (lsm(:,2:nj-1) - 1)*X(:,2:nj-1)
-
       END DO
       
       DEALLOCATE ( xtmp )
-      IF ( l_mind_land ) DEALLOCATE (  xorig )
+      IF ( l_mask ) DEALLOCATE (  xorig )
       
    END SUBROUTINE SMOOTH
    
