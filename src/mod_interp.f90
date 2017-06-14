@@ -45,6 +45,9 @@ CONTAINS
       !! Call interpolation procedure :
       !! ------------------------------
 
+      !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
+      !! => CALL SMOOTH
+      
       SELECT CASE(cmethod)
 
       CASE('akima')
@@ -122,6 +125,8 @@ CONTAINS
             PRINT *, '-------------------'
          END IF
 
+         !! First, may apply a smoothing on "data3d_in(:,:,jk)" in case target grid is much coarser than the source grid!
+         !! => CALL SMOOTH
 
          SELECT CASE(cmethod)
 
