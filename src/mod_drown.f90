@@ -34,7 +34,7 @@ CONTAINS
       !!                     (will normally stop before 400 iterations, when all land points have been treated!!!)
       !!
       !!  * nb_smooth : number of times the smoother is applied on masked region (mask=0)
-      !!                => default: nb_smooth = 2
+      !!                => default: nb_smooth = 5
       !!
       !!
       !!                       Author : Laurent BRODEAU, 2014
@@ -70,7 +70,7 @@ CONTAINS
       ninc_max = 200   ! will stop before when all land points have been treated!!!
       IF ( present(nb_inc) ) ninc_max = nb_inc
 
-      nsmooth_max = 2
+      nsmooth_max = 5
       IF ( present(nb_smooth) ) nsmooth_max = nb_smooth
 
 
@@ -420,7 +420,7 @@ CONTAINS
       
       !!#############################################################################
       !!
-      !!  PURPOSE : 
+      !!  PURPOSE : Smooth a fied with a nearest-points box-car typ of smoothing
       !!
       !!  k_ew :  east-west periodicity on the input file/grid
       !!          k_ew = -1  --> no periodicity
@@ -430,10 +430,10 @@ CONTAINS
       !!
       !! Optional:
       !!  * nb_smooth  : number of times the smoother is applied on masked region (mask=0)
-      !!                => default: nb_smooth = 2
-      !!  * mask_apply : mask array that define where the smoothing must be applied
-      !!                 => where 1: smoothing applied
-      !!                 => where 0: original field values are preserved
+      !!                => default: nb_smooth = 5
+      !!  * mask_apply : mask array that defines where the smoothing should be applied
+      !!                 => where mask_apply==1: smoothing applies
+      !!                 => where mask_apply==0: original values of X will be preserved
       !!
       !!#############################################################################
 
@@ -455,7 +455,7 @@ CONTAINS
          &      ji, jj, jci,   &
          &      jim, jip, js
       
-      nsmooth_max = 2
+      nsmooth_max = 5
       IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
       l_mask = .FALSE.
