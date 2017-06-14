@@ -2,13 +2,13 @@
 &ninput
 ivect     = 0
 lregin    = T
-cf_in     = './Tree_bw_400.nc'
-cv_in     = 'red'
+cf_in     = './Tree_true-bw_400.nc'
+cv_in     = 'bw'
 cv_t_in   = '' 
 jt1       = 0
 jt2       = 0
 jplev     = 1
-cf_x_in   = './Tree_bw_400.nc'
+cf_x_in   = './Tree_true-bw_400.nc'
 cv_lon_in = 'lon0'
 cv_lat_in = 'lat0'
 cf_lsm_in = 'missing_value'
@@ -37,7 +37,7 @@ ewper_out  = -1
 &noutput
 cmethod  = 'bilin'
 cv_t_out = ''
-cv_out   = 'RED'
+cv_out   = 'bw'
 cu_out   = 'tamere'
 cln_out  = 'boo'
 cd_out   = '.'
