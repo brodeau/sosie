@@ -218,9 +218,12 @@ CONTAINS
 
 
       !! Getting land-sea mask on source domain
-      IF ( ldrown ) THEN
 
-         IF ( trim(cf_lsm_in) == 'missing_value' ) THEN
+      mask_in(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
+      
+      IF ( ldrown ) THEN
+         
+         IF ( TRIM(cf_lsm_in) == 'missing_value' ) THEN
 
             WRITE(6,*) 'Opening land-sea mask from missing_value on input data!'
             CALL WHO_IS_MV(cf_in, cv_in, ca_missval, rmv)
@@ -312,12 +315,16 @@ CONTAINS
                CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
             END IF
          END IF
+         
       END IF ! IF ( ldrown )
 
       !! Need to modify the mask if lon or lat have been modified :
       IF ( nlat_inc_in == -1 ) CALL FLIP_UD_3D(mask_in)
       IF ( nlon_inc_in == -1 ) CALL LONG_REORG_3D(i_chg_lon, mask_in)
 
+
+
+      
    END SUBROUTINE get_src_conf
 
 

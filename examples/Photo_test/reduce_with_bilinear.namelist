@@ -17,6 +17,7 @@ ldrown    = F
 ewper     = 0
 vmax      =  1.E6
 vmin      = -1.E6
+ismooth   = 0
 /
 !!
 &nhtarget

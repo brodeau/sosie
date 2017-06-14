@@ -17,7 +17,7 @@ ldrown    = F
 ewper     = 0
 vmax      =  1.E6
 vmin      = -1.E6
-ismooth   = 0
+ismooth   = 20
 /
 !!
 &nhtarget
@@ -45,7 +45,7 @@ cd_out   = '.'
 !!
 csource  = '1600x900'
 ctarget  = '1degx1deg'
-cextra   = 'akima'
+cextra   = 'smooth+akima'
 lpcknc4  = .true.
 /
 !!

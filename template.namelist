@@ -70,6 +70,15 @@
 !!
 !! vmax : upper bound not to exceed for treated variable [real]
 !! vmin : lower bound not to exceed for treated variable [real]
+!!
+!! ismooth : if ismooth > 0 the field to be interpolated will be smoothed
+!!           prior to interpolation. By applying ismooth times a type of
+!!           closest neighboors boxcar smoothing algorithm
+!!           (check "SMOOTH" of mod_drown.f90)
+!!         => this is usefull to avoid sub-sampling when your target
+!!            grid is much coarser than your source grid
+!!            (i.e. when interpolating from high-res to low-res)
+!!               
 !!--------------------------------------------------------------------------
 !!
 &ninput
@@ -90,6 +99,7 @@ ldrown    = T
 ewper     = 0
 vmax      =  1.E6
 vmin      = -1.E6
+ismooth   = 0
 /
 !!
 !!

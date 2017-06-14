@@ -61,7 +61,7 @@ MODULE MOD_CONF
    !! Integers
    !! --------
    INTEGER  :: &
-      &    jt1, jt2
+      &    jt1=0, jt2=0, ismooth=0
 
    !! Name of files or directories:
    !! -----------------------------
@@ -69,7 +69,6 @@ MODULE MOD_CONF
       &    cf_in = '',      &
       &    cf_x_in = '',    &
       &    cf_z_in = '',    &
-      &    cf_coor_in = '', &
       &    cf_z_out = '',   &
       &    cf_lsm_in = '',  &
       &    cf_x_out = '',   &
