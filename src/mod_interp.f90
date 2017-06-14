@@ -41,12 +41,16 @@ CONTAINS
          PRINT *, 'DROWN NOT CALLED!!!'
          PRINT *, '-------------------'
       END IF
-
+      
+      IF ( ismooth > 0 ) THEN
+         !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
+         PRINT *, ' Smoothing '//TRIM(cv_in)//'!', ismooth, ' times'
+         CALL SMOOTH(ewper, data_in,  nb_smooth=ismooth, mask_apply=mask_in(:,:,1))
+      END IF
+      
+      
       !! Call interpolation procedure :
       !! ------------------------------
-
-      !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
-      !! => CALL SMOOTH
       
       SELECT CASE(cmethod)
 
@@ -125,9 +129,17 @@ CONTAINS
             PRINT *, '-------------------'
          END IF
 
-         !! First, may apply a smoothing on "data3d_in(:,:,jk)" in case target grid is much coarser than the source grid!
-         !! => CALL SMOOTH
+         IF ( ismooth > 0 ) THEN
+            IF ( TRIM(cmethod) == 'no_xy' ) THEN
+               PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
+               STOP
+            END IF
+            !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
+            IF ( jk == 1 ) PRINT *, ' Smoothing '//TRIM(cv_in)//'!', ismooth, ' times'
+            CALL SMOOTH(ewper, data3d_in(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_in(:,:,jk))
+         END IF
 
+         
          SELECT CASE(cmethod)
 
          CASE('akima')

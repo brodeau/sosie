@@ -93,6 +93,7 @@ ldrown    = T            ! we want to propagate sea values onto the land-sea mas
 ewper     = 0          ! input field does have east-west periodicity with 0 overlapping point
 vmax      =  1.E6
 vmin      = -1.E6
+ismooth   = 0
 /
 !!
 !!

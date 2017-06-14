@@ -12,7 +12,7 @@ MODULE MOD_INIT
 
    NAMELIST /ninput/   ivect, lregin, cf_in, cv_in, cv_t_in, jt1, jt2, &
       &                jplev, cf_x_in, cv_lon_in, cv_lat_in, cf_lsm_in, cv_lsm_in, &
-      &                ldrown, ewper, vmax, vmin, cf_coor_in
+      &                ldrown, ewper, vmax, vmin, ismooth
 
    NAMELIST /n3d/      cf_z_in, cv_z_in, cf_z_out, cv_z_out, cv_z_out_name
 
@@ -256,7 +256,11 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'East west periodicity of target grid: ', ewper_out
          WRITE(6,*)''
-
+         IF ( ismooth > 0 ) THEN
+            WRITE(6,*)'We are going to smooth field '//TRIM(cv_in)//' prior to interpolation!'
+            WRITE(6,*)'     => # smoothing itterations:', ismooth
+            WRITE(6,*)''
+         END IF
 
          IF (jplev == 0) THEN
             WRITE(6,*)''
