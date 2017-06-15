@@ -2,11 +2,10 @@
 ![SOSIE Logo](https://brodeau.github.io/sosie/sosie_files/sosie_300.svg)
 
 
-# Quick SOSIE manual
+# Getting started with SOSIE
 
 (Also check the online SOSIE doc for more info on the interpolation method:
 https://brodeau.github.io/sosie/)
-
 
 You need a FORTRAN-90 compiler and the netcdf library (with f90 support) installed.
 
@@ -43,7 +42,7 @@ Compiling the executables:
 
 
 
-Getting started with SOSIE, a few working examples:
+A few working examples / test cases:
 --
 
 Into the "examples" directory you will find namelist and data to test sosie on
