@@ -9,7 +9,7 @@ PROGRAM CORR_VECT
    !!            interpolated on an irregular grid
    !! ---------  Only for ORCA family of grids!!!!
    !!
-   !! Author :   Laurent Brodeau, brodeau@gmail.com
+   !! Author :   Laurent Brodeau
    !! --------
    !!
    !!========================================================================

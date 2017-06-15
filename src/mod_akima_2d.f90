@@ -24,7 +24,7 @@ MODULE MOD_AKIMA_2D
    !!
    !!            Last update: Laurent Brodeau, June 2014
    !!
-   !!            Contact: brodeau@gmail.com
+   !!            Contact: https://github.com/brodeau/sosie
    !!
    !!-----------------------------------------------------------------
 

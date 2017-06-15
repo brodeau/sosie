@@ -33,6 +33,8 @@ PROGRAM SOSIE
    !!     Laurent Brodeau, 2014
    !!     Jean-Michel Brankart, Jean-Marc Molines, Pierre Mathiot
    !!
+   !!            Contact: https://github.com/brodeau/sosie
+   !!
    !!--------------------------------------------------------------------------
 
 
