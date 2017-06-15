@@ -61,13 +61,15 @@
 !!             * specify " cf_lsm_in = 'val-' if you want land regions to be defined
 !!               where field 'cv_in' is smaller or equal to the numeric value read into 'cv_lsm_in'
 !!               Ex: you want all points where your field is <= 0 to become land mask,
-!!                   then specify: cf_lsm_in = 'val-' and cv_lsm_in = '0.0'
+!!                   then specify: cf_lsm_in = 'val-' and cv_lsm_in = '0.00001'
 !!
 !! cv_lsm_in : (only relevant if ldrown==.true.)
 !!             name of land-sea mask variable [char]
-!!              or if cf_lsm_in = 'missing_value'--> '')
+!!             or if cf_lsm_in = 'missing_value'--> '')
 !!             by default ocean is flagged with value 1
 !!             and continents are flagged with value 0
+!!             Alternatively:
+!!             a string of numeric value when cf_lsm_in is 'value', 'val-', or 'val+'
 !!
 !! ldrown : whether we call DROWN land filling procedure             [logical]
 !!          => will propagate/extrapolate sea values (defined where lsm==1)
