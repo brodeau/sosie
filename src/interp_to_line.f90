@@ -10,7 +10,7 @@ PROGRAM INTERP_TO_LINE
   !!            
   !! ---------  
   !!
-  !! Author :   Laurent Brodeau, brodeau@gmail.com
+  !! Author :   Laurent Brodeau
   !! -------- 
   !!
   !!========================================================================
