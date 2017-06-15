@@ -192,6 +192,7 @@ CONTAINS
 
       !! Local :
       INTEGER :: ji, jj, jk
+      REAL    :: rval_thrshld
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
       !! Getting grid on source domain:
@@ -240,9 +241,11 @@ CONTAINS
             WHERE ( z3d_tmp == rmv ) mask_in = 0
             DEALLOCATE ( z3d_tmp )
 
-         ELSEIF ( TRIM(cf_lsm_in) == 'val+' ) THEN
-            !! Values larger than vmax are considered mask!
-            WRITE(6,*) ' Land-sea mask is defined from values larger than', vmax
+         ELSEIF ( (TRIM(cf_lsm_in) == 'val+').OR.(TRIM(cf_lsm_in) == 'val-').OR.(TRIM(cf_lsm_in) == 'value') ) THEN
+            READ(cv_lsm_in,*) rval_thrshld
+            IF (TRIM(cf_lsm_in) == 'val+')  WRITE(6,*) ' Land-sea mask is defined from values >=', rval_thrshld
+            IF (TRIM(cf_lsm_in) == 'val-')  WRITE(6,*) ' Land-sea mask is defined from values <=', rval_thrshld
+            IF (TRIM(cf_lsm_in) == 'value') WRITE(6,*) ' Land-sea mask is defined from values ==', rval_thrshld
             ALLOCATE ( z3d_tmp(ni_in,nj_in,nk_in) )
             !! Read data field (at time 1 if time exists) :
             IF ( ltime  ) jt0 = 1
@@ -253,10 +256,17 @@ CONTAINS
                CALL GETVAR_2D(if0, iv0, cf_in, cv_in, Ntr, jz0, jt0, z3d_tmp(:,:,1))
             END IF
             mask_in = 1
-            WHERE ( z3d_tmp >= vmax ) mask_in = 0
+            IF (TRIM(cf_lsm_in) == 'val+') THEN
+               WHERE ( z3d_tmp >= rval_thrshld ) mask_in = 0
+            END IF
+            IF (TRIM(cf_lsm_in) == 'val-') THEN
+               WHERE ( z3d_tmp <= rval_thrshld ) mask_in = 0
+            END IF
+            IF (TRIM(cf_lsm_in) == 'value') THEN
+               WHERE ( z3d_tmp == rval_thrshld ) mask_in = 0
+            END IF
             DEALLOCATE ( z3d_tmp )
-
-
+            
          ELSEIF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
             !! NaN values are considered mask!
             WRITE(6,*) ' Land-sea mask is defined from values larger than', vmax
@@ -279,7 +289,6 @@ CONTAINS
             END DO
             !lolo debug: CALL PRTMASK(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
             DEALLOCATE ( z3d_tmp )
-
 
          ELSE
 

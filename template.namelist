@@ -48,21 +48,32 @@
 !! cv_lon_in : name of longitude in the input grid file [char]
 !! cv_lat_in : name of latitude in the input grid file [char]
 !!
-!! cf_lsm_in : file containing the input land-sea mask [char]
-!!             (only relevant if ldrown==.true.)
+!! cf_lsm_in : (only relevant if ldrown==.true.)
+!!             file containing the input land-sea mask [char]
 !!             Alternatively:
 !!             * specify " cf_lsm_in = 'missing_value' " if a 'missing_value' netcdf
 !!               attribute defines the mask on the input data field
 !!             * specify " cf_lsm_in = 'nan' " if mask is defined with NaN values
-!!               (not needed if "ldrown = .FALSE." --> '')
+!!             * specify " cf_lsm_in = 'value' if you want land regions to be defined
+!!               where field 'cv_in' is strictly equal to the numeric value read into 'cv_lsm_in'
+!!             * specify " cf_lsm_in = 'val+' if you want land regions to be defined
+!!               where field 'cv_in' is larger or equal to the numeric value read into 'cv_lsm_in'
+!!             * specify " cf_lsm_in = 'val-' if you want land regions to be defined
+!!               where field 'cv_in' is smaller or equal to the numeric value read into 'cv_lsm_in'
+!!               Ex: you want all points where your field is <= 0 to become land mask,
+!!                   then specify: cf_lsm_in = 'val-' and cv_lsm_in = '0.0'
 !!
-!! cv_lsm_in : name of land-sea mask variable [char]
-!!             (not needed if "ldrown = .FALSE."
+!! cv_lsm_in : (only relevant if ldrown==.true.)
+!!             name of land-sea mask variable [char]
 !!              or if cf_lsm_in = 'missing_value'--> '')
 !!             by default ocean is flagged with value 1
 !!             and continents are flagged with value 0
 !!
-!! ldrown : whether we call DROWN land filling procedure [logical]
+!! ldrown : whether we call DROWN land filling procedure             [logical]
+!!          => will propagate/extrapolate sea values (defined where lsm==1)
+!!          of field cv_in ONTO continents (defined WHERE lsm==0) to avoid
+!!          interpolation problems, such as continental values that contaminate
+!!          sea values during interpolation
 !!
 !! ewper : east-west periodicity on the input file/grid [integer]
 !!         = -1 --> no periodicity
