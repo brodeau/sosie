@@ -1,0 +1,22 @@
+# Makefile for SOSIE with gfortan (version >= 4.4) on Linux Debian-based distros...
+# =================================================================================
+
+# Fortran compiler:
+FC = gfortran
+
+# Root directory for Netcdf:
+NETCDF_DIR = /shared/earth/software/netCDF-Fortran/4.2-foss-2015a
+# netcf libraries are in: <NETCDF_DIR>/lib/
+# netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+
+# Linking argument: usually "-lnetcdf", "-lnetcdff" or "-lnetcdf -lnetcdff" :
+L_NCDF = -lnetcdff
+
+# Fortran compilation flags:
+# -- Production
+#FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
+# -- Debugging
+FF = -O2 -ffree-line-length-200 -J./mod -I./mod -w -fbounds-check
+
+# Directory to install binaries:
+INSTALL_DIR = /usr/local
