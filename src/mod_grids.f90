@@ -347,15 +347,15 @@ CONTAINS
       IF ( (lregout).AND.(TRIM(cf_x_out) == 'spheric') ) THEN
 
          !! Building target grid:
-         READ(cv_lon_out,'(f5.2)') dx ; READ(cv_lat_out,'(f5.2)') dy
+         READ(cv_lon_out,*) dx ; READ(cv_lat_out,*) dy
          cv_lon_out = 'lon'           ; cv_lat_out = 'lat'
          WRITE(6,*) '  * dx, dy =', dx, dy
          WRITE(6,*) '  * ni_out, nj_out =', ni_out, nj_out ;  PRINT*,''
          DO ji = 1, ni_out
-            lon_out(ji,1) = dx/2.0 + dx*(ji - 1)
+            lon_out(ji,1) = dx/2.0 + dx*REAL(ji - 1 , 8)
          END DO
          DO jj = 1, nj_out
-            lat_out(jj,1) = -90 + dy/2.0 + dy*(jj - 1)
+            lat_out(jj,1) = -90 + dy/2.0 + dy*REAL(jj - 1 , 8)
          END DO
 
          WRITE(6,*) ''; WRITE(6,*) 'Target Longitude array (deg.E):'; PRINT *, lon_out; WRITE(6,*) ''
@@ -837,7 +837,7 @@ CONTAINS
          IF (lregout) THEN
             IF ( TRIM(cf_x_out) == 'spheric') THEN
                WRITE(6,*) ''; WRITE(6,*) 'Building regular spherical output grid!'
-               READ(cv_lon_out,'(f5.2)') dx ; READ(cv_lat_out,'(f5.2)') dy
+               READ(cv_lon_out,*) dx ; READ(cv_lat_out,*) dy
                ni_out = INT(360./dx) ; nj_out = INT(180./dy)
                GOTO 100
             ELSE
