@@ -71,7 +71,14 @@ CONTAINS
 
       USE io_ezcdf, ONLY: getvar_attributes
 
-      IF ( TRIM(cmethod) == 'no_xy' ) lregout = lregin
+      IF ( TRIM(cmethod) == 'no_xy' ) THEN
+         lregout = lregin
+         !! Geting them from source file:
+         cv_lon_out = cv_lon_in
+         cv_lat_out = cv_lat_in
+         CALL GETVAR_ATTRIBUTES(cf_x_in, cv_lon_in, nb_att_lon, vatt_info_lon)
+         CALL GETVAR_ATTRIBUTES(cf_x_in, cv_lat_in, nb_att_lat, vatt_info_lat)
+      END IF
 
       CALL know_dim_out()
 
@@ -221,9 +228,9 @@ CONTAINS
       !! Getting land-sea mask on source domain
 
       mask_in(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
-      
+
       IF ( ldrown ) THEN
-         
+
          IF ( TRIM(cf_lsm_in) == 'missing_value' ) THEN
 
             WRITE(6,*) 'Opening land-sea mask from missing_value on input data!'
@@ -266,7 +273,7 @@ CONTAINS
                WHERE ( z3d_tmp == rval_thrshld ) mask_in = 0
             END IF
             DEALLOCATE ( z3d_tmp )
-            
+
          ELSEIF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
             !! NaN values are considered mask!
             WRITE(6,*) ' Land-sea mask is defined from values larger than', vmax
@@ -324,7 +331,7 @@ CONTAINS
                CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
             END IF
          END IF
-         
+
       END IF ! IF ( ldrown )
 
       !! Need to modify the mask if lon or lat have been modified :
@@ -333,7 +340,7 @@ CONTAINS
 
 
 
-      
+
    END SUBROUTINE get_src_conf
 
 
