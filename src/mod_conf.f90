@@ -94,8 +94,8 @@ MODULE MOD_CONF
       &    cv_z_out_name = '',   &
       &    cv_lsm_in = '',  &
       &    cv_in = '',      &
-      &    cv_lon_out = '', &
-      &    cv_lat_out = '', &
+      &    cv_lon_out = 'lon', &
+      &    cv_lat_out = 'lat', &
       &    cv_lsm_out = '', &
       &    ca_missval
 
