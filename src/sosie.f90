@@ -33,6 +33,8 @@ PROGRAM SOSIE
    !!     Laurent Brodeau, 2014
    !!     Jean-Michel Brankart, Jean-Marc Molines, Pierre Mathiot
    !!
+   !!            Contact: https://github.com/brodeau/sosie
+   !!
    !!--------------------------------------------------------------------------
 
 
@@ -87,19 +89,15 @@ PROGRAM SOSIE
       PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
    END IF
 
-
-
    IF ( .NOT. lmout) rfct_miss = 0.
-
-
+   
    cextinf =                'Horizontal grid read in '//TRIM(cf_x_out)
    IF (l_int_3d) cextinf = TRIM(cextinf)//' / Vertical grid read in '//TRIM(cf_z_out)
    cextinf = TRIM(cextinf)//' / Source field read in '//TRIM(cf_in)
    cextinf = TRIM(cextinf)//' / Interpolation method: '//TRIM(cmethod)
 
-
-
-   !! Netcdf Atributes of the interpolated field:
+   
+   !! Netcdf Atributes of the interpolated field as in input file:
    CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  nb_att_F, vatt_info_F) ; !getting all attributes for treated field !lolo
    !! Overwritting some attributes given in the namelist if /= '':
    IF ( TRIM(cu_out)  /= '' ) CALL FORCE_ATTR('units',      cu_out, vatt_info_F)
@@ -107,6 +105,7 @@ PROGRAM SOSIE
 
 
 
+   
    
 
 
@@ -154,7 +153,7 @@ PROGRAM SOSIE
             &      lon_out_b, lat_out, vt, data_out,    &
             &      cf_out, cv_lon_out, cv_lat_out, cv_t_out,    &
             &      cv_out, rfct_miss*REAL(rmaskvalue,4), &
-            &      attr_time=vatt_info_t, attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_F=vatt_info_F, &
+            &      attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &      lpack=lpcknc4, cextrainfo=cextinf)
 
 
@@ -179,18 +178,25 @@ PROGRAM SOSIE
 
          CALL INTERP_3D()
 
-
+         !PRINT *, 'cf_out => ', TRIM(cf_out)
+         !PRINT *, 'cv_lon_out => ', TRIM(cv_lon_out)
+         !PRINT *, 'cv_lat_out => ', TRIM(cv_lat_out)
+         !PRINT *, 'cv_z_out_name => ', TRIM(cv_z_out_name)
+         !PRINT *, 'cv_t_out => ', TRIM(cv_t_out)
+         !PRINT *, 'cv_out => ', TRIM(cv_out)
+         !PRINT *, 'vatt_info_lon => ', vatt_info_lon
+         
          !! Print current record into netcdf file
          !!  => data3d_out for current time step is ready to be written in netcdf file
-
+         
          CALL P3D_T(idf_o, idv_o, Ntr, jt, &
             &       lon_out_b, lat_out, depth_out, vt, data3d_out,                &
             &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
             &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
-            &       attr_time=vatt_info_t, attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_F=vatt_info_F, &
+            &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
+            &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &       lpack=lpcknc4, cextrainfo=cextinf)
-
-
+         
       END IF ! .not. l_int_3d
 
    END DO  ! end of time loop

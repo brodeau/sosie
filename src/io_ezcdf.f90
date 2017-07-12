@@ -35,8 +35,8 @@ MODULE io_ezcdf
       &    getvar_2d,        &
       &    getvar_2d_r8,     & ! Mostly for 2D coordinates
       &    getvar_3d,        &
-      &    GETVAR_ATTRIBUTES,& !LOLO
-      &    FORCE_ATTR,       & !LOLO
+      &    getvar_attributes,&
+      &    force_attr,       &
       &    getmask_2d,       &
       &    getmask_3d,       &
       &    pt_series,        &
@@ -938,7 +938,7 @@ CONTAINS
 
    SUBROUTINE P2D_T(idx_f, idx_v, lt, lct, xlon, xlat, vtime, x2d, cf_in, &
       &             cv_lo, cv_la, cv_t, cv_in, vflag, &
-      &             attr_time, attr_lon, attr_lat, attr_F, &
+      &             attr_lon, attr_lat, attr_time, attr_F, &
       &             lpack, cextrainfo)
       !!
       !! INPUT :
@@ -974,7 +974,7 @@ CONTAINS
       CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in
       REAL(4),                    INTENT(in)    :: vflag
       !! Optional:
-      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_time, attr_lon, attr_lat, attr_F
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_time, attr_F
       LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
 
@@ -982,6 +982,7 @@ CONTAINS
       LOGICAL          :: lp = .FALSE.
       REAL(4)          :: rmin, rmax
       LOGICAL :: lcopy_att_F = .FALSE.
+      INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
       crtn = 'P2D_T'
 
@@ -1029,28 +1030,33 @@ CONTAINS
          !!
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_time=attr_time, attr_lon=attr_lon, attr_lat=attr_lat)
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_time=attr_time)
          !!
          !! Variable
+         IF ( TRIM(cv_t) /= '' ) THEN
+            ALLOCATE (vidim(3))
+            vidim = (/id_x,id_y,id_t/)
+         ELSE
+            ALLOCATE (vidim(2))
+            vidim = (/id_x,id_y/)
+         END IF
          IF ( lp ) THEN
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT,(/id_x,id_y,id_t/), idx_v, deflate_level=9), &
+            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
                &      crtn,cf_in,cv_in )
          ELSE
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT,(/id_x,id_y,id_t/), idx_v                 ), &
+            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, vidim, idx_v                 ), &
                &      crtn,cf_in,cv_in )
          END IF
-
+         DEALLOCATE ( vidim )
+         
          !!  VARIABLE ATTRIBUTES lolo
          IF ( lcopy_att_F ) CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes (given in namelist):
          IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',           vflag),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
-            &                                TRIM(cv_t)//" "//TRIM(cv_lo)//" "//TRIM(cv_la)),  crtn,cf_in,cv_in)
-
-         !! Coordinates
-         CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', TRIM(cv_lo)//" "//TRIM(cv_la) ), crtn,cf_in,cv_in)
-
+            &                                TRIM(cv_t)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
+         
          !! Global attributes
          IF ( PRESENT(cextrainfo) ) &
             CALL sherr( NF90_PUT_ATT(idx_f, NF90_GLOBAL, 'Info', TRIM(cextrainfo)),  crtn,cf_in,cv_in)
@@ -1066,7 +1072,7 @@ CONTAINS
          CALL sherr( NF90_PUT_VAR(idx_f, id_la, xlat),  crtn,cf_in,cv_in)
          !!
          !!       Write time variable :
-         CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
+         IF ( TRIM(cv_t) /= '' ) CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
          !!
       END IF
 
@@ -1083,7 +1089,7 @@ CONTAINS
 
    SUBROUTINE P3D_T(idx_f, idx_v, lt, lct, xlon, xlat, vdpth, vtime, x3d, cf_in, &
       &             cv_lo, cv_la, cv_dpth, cv_t, cv_in, vflag, &
-      &             attr_time, attr_lon, attr_lat, attr_F, &
+      &             attr_lon, attr_lat, attr_z, attr_time, attr_F, &
       &             lpack, cextrainfo)
 
       !! INPUT :
@@ -1120,7 +1126,8 @@ CONTAINS
       CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_dpth, cv_t, cv_in
       REAL(4),                    INTENT(in)    :: vflag
       !! Optional:
-      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_time, attr_lon, attr_lat, attr_F
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_z, &
+         &                                                          attr_time, attr_F
       LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       INTEGER          :: id_z
@@ -1128,10 +1135,13 @@ CONTAINS
       INTEGER          :: lx, ly, lz
       LOGICAL          :: lp = .FALSE.
       REAL(4)          :: dr, rmin, rmax
-      LOGICAL :: lcopy_att_F = .FALSE.
+      LOGICAL :: lcopy_att_F = .FALSE., &
+         &       lcopy_att_z = .FALSE.
+      INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
       crtn = 'P3D_T'
 
+      IF ( PRESENT(attr_z) ) lcopy_att_z = .TRUE.
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
       !! About dimensions of xlon, xlat, vdpth and x3d:
@@ -1182,29 +1192,35 @@ CONTAINS
          !!
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_time=attr_time, attr_lon=attr_lon, attr_lat=attr_lat)
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_time=attr_time)
 
-         IF ( (trim(cv_dpth) == 'lev').OR.(trim(cv_dpth) == 'depth') ) THEN
-            CALL sherr( NF90_DEF_DIM(idx_f, trim(cv_dpth), lz, id_z),  crtn,cf_in,cv_in)
+         !! Depth vector:
+         IF ( (TRIM(cv_dpth) == 'lev').OR.(TRIM(cv_dpth) == 'depth') ) THEN
+            CALL sherr( NF90_DEF_DIM(idx_f, TRIM(cv_dpth), lz, id_z),  crtn,cf_in,cv_in)
          ELSE
             CALL sherr( NF90_DEF_DIM(idx_f, 'z', lz, id_z),  crtn,cf_in,cv_in)
          END IF
-
-         CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_dpth), NF90_DOUBLE, id_z,id_dpt),  crtn,cf_in,cv_in)
-
-         ! lolo:
-         !CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'units',     TRIM(cu)),       crtn,cf_in,cv_in)
-         CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_min', minval(vdpth)),  crtn,cf_in,cv_in)
-         CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_max', maxval(vdpth)),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z,id_dpt),  crtn,cf_in,cv_in)
+         IF ( lcopy_att_z )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_dpt, attr_z, crtn,cf_in,cv_in)
+         CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_min', MINVAL(vdpth)),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_max', MAXVAL(vdpth)),  crtn,cf_in,cv_in)
 
          !! Variable
+         IF ( TRIM(cv_t) /= '' ) THEN
+            ALLOCATE (vidim(4))
+            vidim = (/id_x,id_y,id_z,id_t/)
+         ELSE
+            ALLOCATE (vidim(3))
+            vidim = (/id_x,id_y,id_z/)
+         END IF
          IF ( lp ) THEN
-            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y,id_z,id_t/), idx_v, deflate_level=9), &
+            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
                &       crtn,cf_in,cv_in)
          ELSE
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y,id_z,id_t/), idx_v),  &
+            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v),  &
                &       crtn,cf_in,cv_in)
          END IF
+         DEALLOCATE ( vidim )
 
          !!  VARIABLE ATTRIBUTES
          IF ( lcopy_att_F )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
@@ -1212,7 +1228,7 @@ CONTAINS
          IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',           vflag),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
-            &                                TRIM(cv_t)//" "//TRIM(cv_lo)//" "//TRIM(cv_la)),  crtn,cf_in,cv_in)
+            &                                TRIM(cv_t)//" "//TRIM(cv_dpth)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
 
          !! Global attributes
          IF ( PRESENT(cextrainfo) ) &
@@ -1234,7 +1250,7 @@ CONTAINS
          CALL sherr( NF90_PUT_VAR(idx_f, id_dpt, vdpth),  crtn,cf_in,cv_in)
          !!
          !!       Write time variable :
-         CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
+         IF ( TRIM(cv_t) /= '' ) CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
          !!
       END IF
 
@@ -1815,7 +1831,7 @@ CONTAINS
 
    SUBROUTINE prepare_nc(id_file, cdt0, nx, ny, cv_lon, cv_lat, cv_time, vxtrm,     &
       &                  id_ji, id_jj, id_jt, id_lon, id_lat, id_time, cri,cfi,cvi, &
-      &                  attr_time, attr_lon, attr_lat)
+      &                  attr_lon, attr_lat, attr_time)
 
       INTEGER,                 INTENT(in)  :: id_file, nx, ny
       CHARACTER(len=2),        INTENT(in)  :: cdt0
@@ -1823,19 +1839,20 @@ CONTAINS
       REAL(8), DIMENSION(3,2), INTENT(in)  :: vxtrm
       INTEGER,                 INTENT(out) :: id_ji, id_jj, id_jt, id_lon, id_lat, id_time
 
-      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_time, attr_lon, attr_lat
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_time
 
       INTEGER :: jat, il
-      LOGICAL :: lcopy_att_time = .FALSE., &
+      LOGICAL ::  &
          &       lcopy_att_lon  = .FALSE., &
-         &       lcopy_att_lat  = .FALSE.
-
-      IF ( PRESENT(attr_time) ) lcopy_att_time = .TRUE.
-      IF ( PRESENT(attr_lon) ) lcopy_att_lon = .TRUE.
-      IF ( PRESENT(attr_lat) ) lcopy_att_lat = .TRUE.
-
+         &       lcopy_att_lat  = .FALSE., &
+         &       lcopy_att_time = .FALSE.
+      
+      IF ( PRESENT(attr_lon) ) lcopy_att_lon  = .TRUE.
+      IF ( PRESENT(attr_lat) ) lcopy_att_lat  = .TRUE.
+      IF ( PRESENT(attr_time)) lcopy_att_time = .TRUE.
+      
       !!    HORIZONTAL
-      IF ( (trim(cv_lon) /= '').AND.(trim(cv_lat) /= '') ) THEN
+      IF ( (TRIM(cv_lon) /= '').AND.(TRIM(cv_lat) /= '') ) THEN
          !!
          IF ( cdt0 == '2d' ) THEN
             CALL sherr( NF90_DEF_DIM(id_file, 'x', nx, id_ji), cri,cfi,cvi)

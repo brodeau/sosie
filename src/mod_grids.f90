@@ -53,20 +53,7 @@ CONTAINS
             END DO
          ELSE        ! we use time from input file
             CALL GETVAR_1D(cf_in, cv_t_in, vt0) ;  vt(:) = vt0(j_start:j_stop)
-            CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t) ; !lolo
-            !Debug:
-            !PRINT *, ' *** Time variable attributes:'
-            !DO jatt = 1, nb_att_t
-            !   PRINT *,'    * "'//TRIM(vatt_info_t(jatt)%cname)//'"'
-            !   il = vatt_info_t(jatt)%ilength
-            !   IF ( vatt_info_t(jatt)%itype == 2 ) THEN
-            !      PRINT *,'        => value = ', TRIM(vatt_info_t(jatt)%val_char)
-            !   ELSE
-            !      PRINT *,'        => value = ', vatt_info_t(jatt)%val_num(:il)
-            !   END IF
-            !END DO
-            !PRINT *, ''
-            !Debug.
+            CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t)
          END IF
       END IF
 
@@ -82,7 +69,16 @@ CONTAINS
 
    SUBROUTINE TRG_DOMAIN()
 
-      IF ( TRIM(cmethod) == 'no_xy' ) lregout = lregin
+      USE io_ezcdf, ONLY: getvar_attributes
+
+      IF ( TRIM(cmethod) == 'no_xy' ) THEN
+         lregout = lregin
+         !! Geting them from source file:
+         cv_lon_out = cv_lon_in
+         cv_lat_out = cv_lat_in
+         CALL GETVAR_ATTRIBUTES(cf_x_in, cv_lon_in, nb_att_lon, vatt_info_lon)
+         CALL GETVAR_ATTRIBUTES(cf_x_in, cv_lat_in, nb_att_lat, vatt_info_lat)
+      END IF
 
       CALL know_dim_out()
 
@@ -111,6 +107,7 @@ CONTAINS
 
          CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
          WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
 
          lon_out   = lon_in
          lon_out_b = lon_in
@@ -202,6 +199,7 @@ CONTAINS
 
       !! Local :
       INTEGER :: ji, jj, jk
+      REAL    :: rval_thrshld
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
       !! Getting grid on source domain:
@@ -228,9 +226,12 @@ CONTAINS
 
 
       !! Getting land-sea mask on source domain
+
+      mask_in(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
+
       IF ( ldrown ) THEN
 
-         IF ( trim(cf_lsm_in) == 'missing_value' ) THEN
+         IF ( TRIM(cf_lsm_in) == 'missing_value' ) THEN
 
             WRITE(6,*) 'Opening land-sea mask from missing_value on input data!'
             CALL WHO_IS_MV(cf_in, cv_in, ca_missval, rmv)
@@ -247,9 +248,11 @@ CONTAINS
             WHERE ( z3d_tmp == rmv ) mask_in = 0
             DEALLOCATE ( z3d_tmp )
 
-         ELSEIF ( TRIM(cf_lsm_in) == 'val+' ) THEN
-            !! Values larger than vmax are considered mask!
-            WRITE(6,*) ' Land-sea mask is defined from values larger than', vmax
+         ELSEIF ( (TRIM(cf_lsm_in) == 'val+').OR.(TRIM(cf_lsm_in) == 'val-').OR.(TRIM(cf_lsm_in) == 'value') ) THEN
+            READ(cv_lsm_in,*) rval_thrshld
+            IF (TRIM(cf_lsm_in) == 'val+')  WRITE(6,*) ' Land-sea mask is defined from values >=', rval_thrshld
+            IF (TRIM(cf_lsm_in) == 'val-')  WRITE(6,*) ' Land-sea mask is defined from values <=', rval_thrshld
+            IF (TRIM(cf_lsm_in) == 'value') WRITE(6,*) ' Land-sea mask is defined from values ==', rval_thrshld
             ALLOCATE ( z3d_tmp(ni_in,nj_in,nk_in) )
             !! Read data field (at time 1 if time exists) :
             IF ( ltime  ) jt0 = 1
@@ -260,9 +263,16 @@ CONTAINS
                CALL GETVAR_2D(if0, iv0, cf_in, cv_in, Ntr, jz0, jt0, z3d_tmp(:,:,1))
             END IF
             mask_in = 1
-            WHERE ( z3d_tmp >= vmax ) mask_in = 0
+            IF (TRIM(cf_lsm_in) == 'val+') THEN
+               WHERE ( z3d_tmp >= rval_thrshld ) mask_in = 0
+            END IF
+            IF (TRIM(cf_lsm_in) == 'val-') THEN
+               WHERE ( z3d_tmp <= rval_thrshld ) mask_in = 0
+            END IF
+            IF (TRIM(cf_lsm_in) == 'value') THEN
+               WHERE ( z3d_tmp == rval_thrshld ) mask_in = 0
+            END IF
             DEALLOCATE ( z3d_tmp )
-
 
          ELSEIF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
             !! NaN values are considered mask!
@@ -286,7 +296,6 @@ CONTAINS
             END DO
             !lolo debug: CALL PRTMASK(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
             DEALLOCATE ( z3d_tmp )
-
 
          ELSE
 
@@ -322,11 +331,15 @@ CONTAINS
                CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
             END IF
          END IF
+
       END IF ! IF ( ldrown )
 
       !! Need to modify the mask if lon or lat have been modified :
       IF ( nlat_inc_in == -1 ) CALL FLIP_UD_3D(mask_in)
       IF ( nlon_inc_in == -1 ) CALL LONG_REORG_3D(i_chg_lon, mask_in)
+
+
+
 
    END SUBROUTINE get_src_conf
 
@@ -341,15 +354,15 @@ CONTAINS
       IF ( (lregout).AND.(TRIM(cf_x_out) == 'spheric') ) THEN
 
          !! Building target grid:
-         READ(cv_lon_out,'(f5.2)') dx ; READ(cv_lat_out,'(f5.2)') dy
+         READ(cv_lon_out,*) dx ; READ(cv_lat_out,*) dy
          cv_lon_out = 'lon'           ; cv_lat_out = 'lat'
          WRITE(6,*) '  * dx, dy =', dx, dy
          WRITE(6,*) '  * ni_out, nj_out =', ni_out, nj_out ;  PRINT*,''
          DO ji = 1, ni_out
-            lon_out(ji,1) = dx/2.0 + dx*(ji - 1)
+            lon_out(ji,1) = dx/2.0 + dx*REAL(ji - 1 , 8)
          END DO
          DO jj = 1, nj_out
-            lat_out(jj,1) = -90 + dy/2.0 + dy*(jj - 1)
+            lat_out(jj,1) = -90 + dy/2.0 + dy*REAL(jj - 1 , 8)
          END DO
 
          WRITE(6,*) ''; WRITE(6,*) 'Target Longitude array (deg.E):'; PRINT *, lon_out; WRITE(6,*) ''
@@ -382,8 +395,8 @@ CONTAINS
          vatt_info_lat(1)%ilength = LEN('degrees_west')
       ELSE
          !! Geting them from target file:
-         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lon_out, nb_att_lon, vatt_info_lon) ; !lolo
-         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lat_out, nb_att_lat, vatt_info_lat) ; !lolo
+         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lon_out, nb_att_lon, vatt_info_lon)
+         CALL GETVAR_ATTRIBUTES(cf_x_out, cv_lat_out, nb_att_lat, vatt_info_lat)
       END IF
 
       lon_out_b = lon_out
@@ -395,6 +408,7 @@ CONTAINS
          END IF
          CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
          WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
       END IF
 
 
@@ -830,7 +844,7 @@ CONTAINS
          IF (lregout) THEN
             IF ( TRIM(cf_x_out) == 'spheric') THEN
                WRITE(6,*) ''; WRITE(6,*) 'Building regular spherical output grid!'
-               READ(cv_lon_out,'(f5.2)') dx ; READ(cv_lat_out,'(f5.2)') dy
+               READ(cv_lon_out,*) dx ; READ(cv_lat_out,*) dy
                ni_out = INT(360./dx) ; nj_out = INT(180./dy)
                GOTO 100
             ELSE

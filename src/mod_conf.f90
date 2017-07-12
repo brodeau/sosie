@@ -61,7 +61,7 @@ MODULE MOD_CONF
    !! Integers
    !! --------
    INTEGER  :: &
-      &    jt1, jt2
+      &    jt1=0, jt2=0, ismooth=0
 
    !! Name of files or directories:
    !! -----------------------------
@@ -69,7 +69,6 @@ MODULE MOD_CONF
       &    cf_in = '',      &
       &    cf_x_in = '',    &
       &    cf_z_in = '',    &
-      &    cf_coor_in = '', &
       &    cf_z_out = '',   &
       &    cf_lsm_in = '',  &
       &    cf_x_out = '',   &
@@ -95,8 +94,8 @@ MODULE MOD_CONF
       &    cv_z_out_name = '',   &
       &    cv_lsm_in = '',  &
       &    cv_in = '',      &
-      &    cv_lon_out = '', &
-      &    cv_lat_out = '', &
+      &    cv_lon_out = 'lon', &
+      &    cv_lat_out = 'lat', &
       &    cv_lsm_out = '', &
       &    ca_missval
 
@@ -128,8 +127,9 @@ MODULE MOD_CONF
    !! Attribute info for some variables LOLO: move to io_ezcdf instead????
    !! ---------------------------------
    !! Time vector:
-   INTEGER                              :: nb_att_t, nb_att_lon, nb_att_lat, nb_att_F
-   TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, vatt_info_lon, vatt_info_lat, vatt_info_F
+   INTEGER                              :: nb_att_t, nb_att_lon, nb_att_lat, nb_att_z, nb_att_F
+   TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, vatt_info_lon, vatt_info_lat, &
+      &                                    vatt_info_z, vatt_info_F
    
    
    !! Data arrays

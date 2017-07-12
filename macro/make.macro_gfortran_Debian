@@ -16,7 +16,7 @@ L_NCDF = -lnetcdff
 # -- Production
 #FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
 # -- Debugging
- FF = -O0 -ffree-line-length-200 -J./mod -I./mod -w -fbounds-check
+FF = -O2 -ffree-line-length-200 -J./mod -I./mod -w -fbounds-check
 
 # Directory to install binaries:
 INSTALL_DIR = /usr/local

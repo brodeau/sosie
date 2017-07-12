@@ -2,7 +2,7 @@ MODULE MOD_MANIP
 
    !! Misc. manipulations and operations on 2D arrays...
 
-   !! Author: L. Brodeau (brodeau@gmail.com)
+   !! Author: L. Brodeau
 
    IMPLICIT NONE
 
