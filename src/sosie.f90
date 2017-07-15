@@ -188,7 +188,7 @@ PROGRAM SOSIE
          
          !! Print current record into netcdf file
          !!  => data3d_out for current time step is ready to be written in netcdf file
-         
+
          CALL P3D_T(idf_o, idv_o, Ntr, jt, &
             &       lon_out_b, lat_out, depth_out, vt, data3d_out,                &
             &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
