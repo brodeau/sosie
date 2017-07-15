@@ -660,7 +660,7 @@ CONTAINS
          zpi = ACOS(-1._8)
          zconv = zpi/180.  ! for degree to radian conversion
          ! Earth radius
-         zr = (6378.137+6356.7523)/2.0 ! km
+         zr = (6378.137 + 6356.7523)/2.0 ! km
       ENDIF
 
       !! Compute these term only if they differ from previous call
