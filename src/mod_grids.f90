@@ -26,10 +26,10 @@ CONTAINS
 
 
    SUBROUTINE SRC_DOMAIN()
-
+      
       USE io_ezcdf  !: => only to get time array !LB???
-
-      INTEGER :: jt, jatt, il
+      
+      INTEGER :: jt
 
       !! Determine input dimensions from input file :
       CALL know_dim_in()
