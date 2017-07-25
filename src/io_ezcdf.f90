@@ -963,9 +963,6 @@ CONTAINS
       !!
       !!--------------------------------------------------------------------------
       !!
-      INTEGER                                   :: id_x, id_y, id_z, id_t
-      INTEGER                                   :: id_lo, id_la
-      INTEGER                                   :: id_dpt, id_tim
       INTEGER,                    INTENT(inout) :: idx_f, idx_v
       INTEGER,                    INTENT(in)    :: lt, lct
       REAL(8), DIMENSION(:,:),    INTENT(in)    :: xlat, xlon
@@ -978,10 +975,13 @@ CONTAINS
       LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
 
-      INTEGER          :: lx, ly
-      LOGICAL          :: lp = .FALSE.
-      REAL(4)          :: rmin, rmax
-      LOGICAL :: lcopy_att_F = .FALSE.
+      INTEGER  :: id_x, id_y, id_t
+      INTEGER  :: id_lo, id_la
+      INTEGER  :: id_tim      
+      INTEGER  :: lx, ly
+      LOGICAL  :: lp = .FALSE.
+      REAL(4)  :: rmin, rmax
+      LOGICAL  :: lcopy_att_F = .FALSE.
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
       crtn = 'P2D_T'
@@ -1551,20 +1551,19 @@ CONTAINS
 
 
    SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet)
-      INTEGER                                :: id_f, id_v
       CHARACTER(len=*),          INTENT(in)  :: cf_in
       INTEGER, DIMENSION(:,:,:), INTENT(out) :: imtrcs
       REAL(8), DIMENSION(:,:,:), INTENT(out) :: ralfbet
 
+      INTEGER :: id_f
       INTEGER :: id_v1, id_v2
-
+      
       crtn = 'RD_MAPPING_AB'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cdum)
 
       CALL sherr( NF90_INQ_VARID(id_f, 'metrics',   id_v1),  crtn,cf_in,cdum)
       CALL sherr( NF90_INQ_VARID(id_f, 'alphabeta', id_v2),  crtn,cf_in,cdum)
-
 
       CALL sherr( NF90_GET_VAR(id_f, id_v1, imtrcs),  crtn,cf_in,cdum)
       CALL sherr( NF90_GET_VAR(id_f, id_v2, ralfbet), crtn,cf_in,cdum)
@@ -1841,7 +1840,6 @@ CONTAINS
 
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_time
 
-      INTEGER :: jat, il
       LOGICAL ::  &
          &       lcopy_att_lon  = .FALSE., &
          &       lcopy_att_lat  = .FALSE., &

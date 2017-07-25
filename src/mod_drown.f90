@@ -58,7 +58,7 @@ CONTAINS
          &      ni, nj,        &
          &      jinc,          &
          &      ji, jj, jci,   &
-         &      jim, jip, js
+         &      jim, jip
 
       REAL(4), PARAMETER :: rr = 0.707
 
@@ -452,7 +452,7 @@ CONTAINS
       INTEGER :: &
          &      nsmooth_max,          &
          &      ni, nj,        &
-         &      ji, jj, jci,   &
+         &      ji, jci,   &
          &      jim, jip, js
       
       nsmooth_max = 5
