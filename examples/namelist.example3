@@ -200,7 +200,7 @@ cln_out  = 'Sea Surface Temperature'
 cd_out   = '.'
 !!
 csource  = 'ORCA1'
-ctarget  = '1x1'
+ctarget  = '360x180'
 cextra   = 'test_bilin'
 lpcknc4  = .true.
 /
