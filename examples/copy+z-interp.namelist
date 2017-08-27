@@ -29,7 +29,7 @@ vmin      = -1.E6
 &n3d
 cf_z_in  = 'data/T_levitus_march.nc'
 cv_z_in  = 'level'
-cf_z_out = 'data/mesh_mask_ORCA1_light.nc'
+cf_z_out = 'data/mesh_mask_ORCA1L46_light.nc'
 cv_z_out = 'nav_lev'
 cv_z_out_name = 'depth'
 /
