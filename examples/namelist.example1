@@ -159,10 +159,10 @@ ismooth   = 0
 !!
 &nhtarget
 lregout    = F
-cf_x_out   = 'data/mesh_mask_ORCA1_light.nc'
+cf_x_out   = 'data/mesh_mask_ORCA1L46_light.nc'
 cv_lon_out = 'nav_lon'
 cv_lat_out = 'nav_lat'
-cf_lsm_out = 'data/mesh_mask_ORCA1_light.nc'
+cf_lsm_out = 'data/mesh_mask_ORCA1L46_light.nc'
 cv_lsm_out = 'tmask'
 lmout      = T
 rmaskvalue = -999.
