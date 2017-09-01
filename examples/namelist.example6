@@ -81,10 +81,10 @@ cv_t_in   = 'time_counter'
 jt1       = 0
 jt2       = 0
 jplev     = 0  ! we want 3D interpolation
-cf_x_in   = 'data/mesh_mask_ORCA2L31_light.nc'
+cf_x_in   = 'data/mesh_mask_ORCA2_light.nc'
 cv_lon_in = 'glamt'
 cv_lat_in = 'gphit'
-cf_lsm_in = 'data/mesh_mask_ORCA2L31_light.nc'
+cf_lsm_in = 'data/mesh_mask_ORCA2_light.nc'
 cv_lsm_in = 'tmask'
 ldrown    = T
 ewper     = 2
@@ -118,7 +118,7 @@ vmin      = -1.E3
 &n3d
 cf_z_in  = 'data/so_ORCA2_grid_T.nc'
 cv_z_in  = 'deptht'
-cf_z_out = 'data/mesh_mask_ORCA1L46_light.nc'
+cf_z_out = 'data/mesh_mask_ORCA1_light.nc'
 cv_z_out = 'nav_lev'
 cv_z_out_name = 'deptht'
 /
@@ -176,10 +176,10 @@ cv_z_out_name = 'deptht'
 !!
 &nhtarget
 lregout    = F
-cf_x_out   = 'data/mesh_mask_ORCA1L46_light.nc'
+cf_x_out   = 'data/mesh_mask_ORCA1_light.nc'
 cv_lon_out = 'glamt'
 cv_lat_out = 'gphit'
-cf_lsm_out = 'data/mesh_mask_ORCA1L46_light.nc'
+cf_lsm_out = 'data/mesh_mask_ORCA1_light.nc'
 cv_lsm_out = 'tmask'
 lmout      = T
 rmaskvalue = -9999.
