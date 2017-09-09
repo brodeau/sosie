@@ -300,7 +300,7 @@ CONTAINS
 
       USE io_ezcdf
 
-      IMPLICIT none
+      IMPLICIT NONE
 
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_in, lat_in
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_out, lat_out
