@@ -33,7 +33,7 @@ CONTAINS
          !! Extrapolate sea values over land :
          IF ( lmout ) THEN
             CALL DROWN(ewper, data_in, mask_in(:,:,1),  nb_inc=100, nb_smooth=0)
-         ELSE            
+         ELSE
             CALL DROWN(ewper, data_in, mask_in(:,:,1))
          END IF
       ELSE
@@ -41,17 +41,17 @@ CONTAINS
          PRINT *, 'DROWN NOT CALLED!!!'
          PRINT *, '-------------------'
       END IF
-      
+
       IF ( ismooth > 0 ) THEN
          !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
          PRINT *, ' Smoothing '//TRIM(cv_in)//'!', ismooth, ' times'
          CALL SMOOTH(ewper, data_in,  nb_smooth=ismooth, mask_apply=mask_in(:,:,1))
       END IF
-      
-      
+
+
       !! Call interpolation procedure :
       !! ------------------------------
-      
+
       SELECT CASE(cmethod)
 
       CASE('akima')
@@ -77,6 +77,16 @@ CONTAINS
       WHERE ( data_out > vmax )  data_out = rmaskvalue
       WHERE ( data_out < vmin )  data_out = rmaskvalue
 
+      !!LOLO!
+      !! If overshoot of latitudes between target and source domain (target has higher values than source):
+      !! => apply a drown because the relevant areas were masked (even if lmout==false)!
+      IF (jj_ex_btm > 0) THEN
+         PRINT *, 'LOLOLOLOLOLOLO!'
+         CALL DROWN(ewper_out, data_out, mask_out(:,:,1),  nb_inc=100, nb_smooth=5)
+      END IF
+      !LOLO.
+      
+      
       !!   Masking result
       IF ( lmout ) THEN
          WHERE (mask_out(:,:,1) == 0)  data_out = rmaskvalue
@@ -112,7 +122,7 @@ CONTAINS
             !WRITE(6,*) '*** Extrapolating source data over continents with DROWN on level jk =', jk
             IF ( lmout ) THEN
                CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk),  nb_inc=100, nb_smooth=0)
-            ELSE            
+            ELSE
                CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk))
             END IF
             !LOLOdebug:
@@ -139,7 +149,7 @@ CONTAINS
             CALL SMOOTH(ewper, data3d_in(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_in(:,:,jk))
          END IF
 
-         
+
          SELECT CASE(cmethod)
 
          CASE('akima')
@@ -235,6 +245,8 @@ CONTAINS
 
    SUBROUTINE extrp_hl(X2d)
 
+      !! Extrapolating data at top/north bottom/south with persistence!
+
       REAL(4), DIMENSION(ni_out, nj_out), INTENT(inout) :: X2d
 
       INTEGER :: jj
@@ -248,6 +260,7 @@ CONTAINS
       IF (jj_ex_btm > 0) THEN
          DO jj=(nlat_inc_out + 1)/2+(1 - nlat_inc_out)/2*nj_out,jj_ex_btm,nlat_inc_out
             X2d(:,jj) = X2d(:,jj_ex_btm+nlat_inc_out)
+            !PRINT *, ' LOLOx: jj_out=', jj, 'values of jj_out=',jj_ex_btm+nlat_inc_out
          END DO
       END IF
 

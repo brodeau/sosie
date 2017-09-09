@@ -26,9 +26,9 @@ CONTAINS
 
 
    SUBROUTINE SRC_DOMAIN()
-      
+
       USE io_ezcdf  !: => only to get time array !LB???
-      
+
       INTEGER :: jt
 
       !! Determine input dimensions from input file :
@@ -69,7 +69,8 @@ CONTAINS
 
    SUBROUTINE TRG_DOMAIN()
 
-      USE io_ezcdf, ONLY: getvar_attributes
+      !lolo: remettre: USE io_ezcdf, ONLY: getvar_attributes
+      USE io_ezcdf
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
          lregout = lregin
@@ -85,6 +86,8 @@ CONTAINS
       !! Allocate output arrays with output dimensions :
       ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out) )
 
+      IF ( .NOT. lmout ) mask_out(:,:,:) = 1 ; !lolo
+      
       IF ( lregout ) THEN
          ALLOCATE ( lon_out(ni_out, 1) , lat_out(nj_out, 1), lon_out_b(ni_out, 1) )
       ELSE
@@ -120,8 +123,13 @@ CONTAINS
          CALL get_trg_conf()
 
          max_lat_out = maxval(lat_out) ;   min_lat_out = minval(lat_out) ;
-         PRINT*,'' ; WRITE(6,*) 'Latitude max on input grid =', max_lat_in
-         WRITE(6,*) 'Latitude max on output grid =', max_lat_out ; PRINT*,''
+         PRINT*,''
+         WRITE(6,*) 'Latitude max on  input grid =', max_lat_in
+         WRITE(6,*) 'Latitude max on output grid =', max_lat_out
+         PRINT*,''
+         WRITE(6,*) 'Latitude min on  input grid =', min_lat_in
+         WRITE(6,*) 'Latitude min on output grid =', min_lat_out
+         PRINT*,''
 
          !! Is output latitude increasing with j : 1 = yes | -1 = no
          nlat_inc_out = 1
@@ -149,15 +157,26 @@ CONTAINS
             END IF
          END IF
 
-         WRITE(6,*) 'nj_out    =', nj_out    ; WRITE(6,*) 'jj_ex_top =', jj_ex_top
-         WRITE(6,*) 'jj_ex_btm =', jj_ex_btm ; PRINT*,''
-
          IF (jj_ex_top > 0) jj_ex_top = jj_ex_top - nlat_inc_out
          IF (jj_ex_btm > 0) jj_ex_btm = jj_ex_btm + nlat_inc_out
+         !IF (jj_ex_btm > 0) jj_ex_btm = jj_ex_btm + 3*nlat_inc_out !lolo Works but 3 points is too much!!!
+
+         WRITE(6,*) 'jj_ex_top =', jj_ex_top, lat_out(jj_ex_top,1)
+         WRITE(6,*) 'jj_ex_btm =', jj_ex_btm, lat_out(jj_ex_btm,1)
+         PRINT*,''
 
       END IF
 
+      !! LOLO: masking target mask
+      IF (jj_ex_btm > 0) THEN
+         DO jj=(nlat_inc_out + 1)/2+(1 - nlat_inc_out)/2*nj_out,jj_ex_btm,nlat_inc_out
+            mask_out(:,jj,:) = 0
+            PRINT *, 'loloz: jj_out =', jj
+         END DO
+         CALL PRTMASK(REAL(mask_out(:,:,1),4), 'mask_out.nc', 'lsm') ; !lolo rm!!!
+      END IF
 
+      
    END SUBROUTINE TRG_DOMAIN
 
 
@@ -416,7 +435,7 @@ CONTAINS
       !!  Getting target mask (mandatory doing 3D interpolation!)
       IF ( lmout .OR. l_int_3d ) THEN
 
-         IF ( (l3d).and.(jplev > 1) ) THEN
+         IF ( (l3d).AND.(jplev > 1) ) THEN
             WRITE(6,*) ''
             WRITE(6,*) '****************************************************************'
             WRITE(6,*) 'We do not know output mask yet, since it is at a given depth!'
@@ -429,7 +448,7 @@ CONTAINS
 
          ELSE
 
-            IF ( trim(cf_lsm_out) == 'missing_value' ) THEN
+            IF ( TRIM(cf_lsm_out) == 'missing_value' ) THEN
 
                WRITE(6,*) 'Opening target land-sea mask from missing_value!'
                CALL WHO_IS_MV(cf_x_out, cv_lsm_out, ca_missval, rmv)

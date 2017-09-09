@@ -28,8 +28,6 @@ MODULE MOD_BILIN_2D
 
    LOGICAL, PARAMETER :: ldebug  = .FALSE.
 
-   !LOGICAL  :: lfirst_dist = .TRUE.
-   
    REAL(8), PARAMETER :: rflg = -9999., &
       &                repsilon = 1.E-9
 
@@ -49,22 +47,22 @@ CONTAINS
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             X10   : 2D input longitude array (ni*nj) or (ni*1)
-      !!             Y10   : 2D input latitude  array (ni*nj) or (nj*1)
-      !!             Z1    : input field on input grid
+      !!             X10   : 2D source longitude array (ni*nj) or (ni*1)
+      !!             Y10   : 2D source latitude  array (ni*nj) or (nj*1)
+      !!             Z1    : source field on source grid
       !!
-      !!             X20   : 2D output longitude array (ni*nj) or (ni*1)
-      !!             Y20   : 2D output latitude  array (ni*nj) or (nj*1)
+      !!             X20   : 2D target longitude array (ni*nj) or (ni*1)
+      !!             Y20   : 2D target latitude  array (ni*nj) or (nj*1)
       !!
       !!             cnpat : name of current configuration pattern
       !!                      -> to recognise the mapping/weight file
       !!
       !! OUTPUT :
-      !!             Z2    : input field on output grid
+      !!             Z2    : field extrapolated from source to target grid
       !!
       !!================================================================
 
-      USE io_ezcdf
+      USE io_ezcdf ; !lolo?
 
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
@@ -74,12 +72,15 @@ CONTAINS
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       CHARACTER(len=*),      INTENT(in)  :: cnpat
 
-      REAL(8) :: alpha, beta
 
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
+
+      INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
+
+      REAL(8) :: alpha, beta
       LOGICAL :: lefw
-      INTEGER :: cpt, ji, jj, ni1, nj1, n_ext_per
+      INTEGER :: cpt, ji, jj, ni1, nj1
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
          &    X1, Y1, X2, Y2,   &
@@ -91,7 +92,8 @@ CONTAINS
 
 
       ctype = TEST_XYZ(X10,Y10,Z1)
-      nx1 = size(Z1,1) ; ny1 = size(Z1,2)
+      nx1 = SIZE(Z1,1)
+      ny1 = SIZE(Z1,2)
       ALLOCATE ( X1(nx1,ny1) , Y1(nx1,ny1) )
 
 
@@ -129,12 +131,15 @@ CONTAINS
       WRITE(cf_wght,'("sosie_mapping_",a,".nc")') trim(cnpat)
 
 
+      !! Extending the source 2D domain with a frame of 2 points:
+      !!    We extend initial 2D array with a frame, adding n_extd points in each
+      !!    dimension This is really needed specially for preserving good east-west
+      !!    perdiodicity...
+      
+      ni1 = nx1 + n_extd  ;   nj1 = ny1 + n_extd
 
-      !! For cleaner results adding the extra band at 4 boundaries :
-      n_ext_per=4 ;  ni1 = nx1 + n_ext_per ;  nj1 = ny1 + n_ext_per
       ALLOCATE ( Z_in(ni1,nj1), lon_in(ni1,nj1), lat_in(ni1,nj1), lat_in_o(ni1,nj1) )
-      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), &
-         &                           lon_in,   lat_in,    Z_in     )
+      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_in, lat_in, Z_in)
 
       DEALLOCATE (X1, Y1)
 
@@ -146,7 +151,7 @@ CONTAINS
          PRINT*,'';PRINT*,'********************************************************'
          INQUIRE(FILE=cf_wght, EXIST=lefw )
          IF ( lefw ) THEN
-            PRINT *, 'Mapping file ', trim(cf_wght), ' was found!'
+            PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
             PRINT *, 'Still! Insure that this is really the one you need!!!'
             PRINT *, 'No need to build it, skipping routine MAPPING !'
          ELSE
