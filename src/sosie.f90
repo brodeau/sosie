@@ -113,11 +113,12 @@ PROGRAM SOSIE
    !!                  M A I N   T I M E   L O O P
    !!                -------------------------------
 
+   l_first_call_interp_routine = .TRUE.
+   
    jct = 0 ;  jcz = 0
    IF ( ltime ) jct = 1
    IF (  l3d  ) jcz = 1
-
-
+   
    DO jt = 1, Ntr
 
       jte = j_start + jt - 1     ! actual time record to extract
@@ -145,7 +146,7 @@ PROGRAM SOSIE
 
 
          CALL INTERP_2D()
-
+         
          !! => data_out for current time step is ready to be written in netcdf file
 
          !! Print current record into netcdf file

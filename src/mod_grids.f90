@@ -62,6 +62,12 @@ CONTAINS
       max_lon_in = maxval(lon_in);   max_lat_in = maxval(lat_in)
       min_lon_in = minval(lon_in);   min_lat_in = minval(lat_in)
 
+      PRINT *, ''
+      is_orca_in = IS_ORCA_NORTH_FOLD( lat_in )
+      IF ( is_orca_in == 4 ) PRINT *, ' Input grid is an ORCA grid with north-pole T-point folding!'
+      IF ( is_orca_in == 6 ) PRINT *, ' Input grid is an ORCA grid with north-pole F-point folding!'
+      PRINT *, ''
+
    END SUBROUTINE SRC_DOMAIN
 
 
@@ -87,7 +93,7 @@ CONTAINS
       ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out) )
 
       IF ( .NOT. lmout ) mask_out(:,:,:) = 1 ; !lolo
-      
+
       IF ( lregout ) THEN
          ALLOCATE ( lon_out(ni_out, 1) , lat_out(nj_out, 1), lon_out_b(ni_out, 1) )
       ELSE
@@ -157,13 +163,16 @@ CONTAINS
             END IF
          END IF
 
-         IF (jj_ex_top > 0) jj_ex_top = jj_ex_top - nlat_inc_out
-         IF (jj_ex_btm > 0) jj_ex_btm = jj_ex_btm + nlat_inc_out
-         !IF (jj_ex_btm > 0) jj_ex_btm = jj_ex_btm + 3*nlat_inc_out !lolo Works but 3 points is too much!!!
+         IF (jj_ex_top > 0) THEN
+            jj_ex_top = jj_ex_top - nlat_inc_out
+            WRITE(6,*) 'jj_ex_top =', jj_ex_top, lat_out(jj_ex_top,1)
+         END IF
 
-         WRITE(6,*) 'jj_ex_top =', jj_ex_top, lat_out(jj_ex_top,1)
-         WRITE(6,*) 'jj_ex_btm =', jj_ex_btm, lat_out(jj_ex_btm,1)
-         PRINT*,''
+         IF (jj_ex_btm > 0) THEN
+            jj_ex_btm = jj_ex_btm + nlat_inc_out
+            WRITE(6,*) 'jj_ex_btm =', jj_ex_btm, lat_out(jj_ex_btm,1)
+            !IF (jj_ex_btm > 0) jj_ex_btm = jj_ex_btm + 3*nlat_inc_out !lolo Works but 3 points is too much!!!
+         END IF
 
       END IF
 
@@ -171,12 +180,17 @@ CONTAINS
       IF (jj_ex_btm > 0) THEN
          DO jj=(nlat_inc_out + 1)/2+(1 - nlat_inc_out)/2*nj_out,jj_ex_btm,nlat_inc_out
             mask_out(:,jj,:) = 0
-            PRINT *, 'loloz: jj_out =', jj
+            !PRINT *, 'loloz: jj_out =', jj
          END DO
          CALL PRTMASK(REAL(mask_out(:,:,1),4), 'mask_out.nc', 'lsm') ; !lolo rm!!!
       END IF
 
-      
+      PRINT *, ''
+      is_orca_out = IS_ORCA_NORTH_FOLD( lon_out )
+      IF ( is_orca_out == 4 ) PRINT *, ' Target grid is an ORCA grid with north-pole T-point folding!'
+      IF ( is_orca_out == 6 ) PRINT *, ' Target grid is an ORCA grid with north-pole F-point folding!'
+      PRINT *, ''
+
    END SUBROUTINE TRG_DOMAIN
 
 
@@ -1006,8 +1020,39 @@ CONTAINS
       END IF
       !!
    END SUBROUTINE FIX_LATD_1D
-   !!
-   !!
-   !!
+
+
+
+   FUNCTION IS_ORCA_NORTH_FOLD( Xlat )
+
+      !!----------------------------------------------------------
+      !! Tell if there is a a 2/point band overlaping folding att the north pole
+      !! typical of the ORCA grid
+      !!
+      !!  0 => not an orca grid (or unknown one)
+      !!  4 => North fold T-point pivot (ex: ORCA2)
+      !!  6 => North fold F-point pivot (ex: ORCA1)
+      !!----------------------------------------------------------
+
+      IMPLICIT NONE
+      ! Argument
+      REAL(8), DIMENSION(:,:), INTENT(in) :: Xlat
+      INTEGER                             :: is_orca_north_fold
+      INTEGER :: nx, ny, jj
+
+      IS_ORCA_NORTH_FOLD = 0
+
+      nx = SIZE(Xlat,1)
+      ny = SIZE(Xlat,2)
+
+      IF ( ny > 3 ) THEN ! (case if called with a 1D array, ignoring...)
+         IF ( SUM(Xlat(2:nx/2,ny) - Xlat(nx:nx-nx/2-2:-1  ,ny-2)) == 0. )    IS_ORCA_NORTH_FOLD = 4
+         IF ( SUM(Xlat(2:nx/2,ny) - Xlat(nx-1:nx-nx/2+1:-1,ny-1)) == 0. )    IS_ORCA_NORTH_FOLD = 6
+      END IF
+
+   END FUNCTION IS_ORCA_NORTH_FOLD
+
+
+
+
 END MODULE MOD_GRIDS
-!!

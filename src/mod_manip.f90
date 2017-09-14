@@ -4,14 +4,18 @@ MODULE MOD_MANIP
 
    !! Author: L. Brodeau
 
+   
    IMPLICIT NONE
 
    PRIVATE
 
-   PUBLIC :: fill_extra_bands, extra_2_east, extra_2_west, test_xyz, partial_deriv, &
+   PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, test_xyz, partial_deriv, &
       &      flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
-      &      distance, find_nearest_point_idiot, find_nearest_point_reg
+      &      distance, find_nearest_point
 
+   REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
+
+   !LOGICAL, PARAMETER :: ldebug = .TRUE.
    LOGICAL, PARAMETER :: ldebug = .FALSE.
 
    LOGICAL  :: lfirst_dist = .TRUE.
@@ -42,6 +46,8 @@ CONTAINS
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
 
+      USE mod_conf, ONLY: is_orca_in
+      
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
@@ -75,7 +81,6 @@ CONTAINS
 
 
 
-
       !!   C r e a t i n g   e x t e n d e d   a r r a y s  :
       !!   --------------------------------------------------
 
@@ -94,9 +99,9 @@ CONTAINS
       !! X array :
       !! ---------
 
-      IF (k_ew /= -1) THEN   ! we can use east-west periodicity of input file to
+      IF (k_ew > -1) THEN   ! we can use east-west periodicity of input file to
          !!                   ! fill extra bands :
-         XP4( 1     , 3:nyp4-2) = XX(nx - 1 - k_ew , :) - 360.
+         XP4( 1     , 3:nyp4-2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
          XP4( 2     , 3:nyp4-2) = XX(nx - k_ew     , :) - 360.
          XP4(nxp4   , 3:nyp4-2) = XX( 2 + k_ew     , :) + 360.
          XP4(nxp4-1 , 3:nyp4-2) = XX( 1 + k_ew     , :) + 360.
@@ -119,22 +124,52 @@ CONTAINS
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
       !! Top side :
-      XP4(:,nyp4-1) = XP4(:,nyp4-3) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
-      XP4(:,nyp4)   = XP4(:,nyp4-2) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+      SELECT CASE( is_orca_in )
+         !
+      CASE (4)
+         XP4(2:nxp4/2             ,nyp4-1) = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
+         XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = XP4(2:nxp4/2             ,nyp4-5)
+         XP4(2:nxp4/2             ,nyp4)   = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
+         XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = XP4(2:nxp4/2             ,nyp4-6)
+      CASE (6)
+         XP4(2:nxp4/2               ,nyp4-1) = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
+         XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = XP4(2:nxp4/2               ,nyp4-4)
+         XP4(2:nxp4/2               ,nyp4)   = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
+         XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = XP4(2:nxp4/2               ,nyp4-5)
+      CASE DEFAULT
+         XP4(:,nyp4-1) = XP4(:,nyp4-3) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+         XP4(:,nyp4)   = XP4(:,nyp4-2) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
 
+      END SELECT
 
 
       !! Y array :
       !! ---------
 
       !! Top side :
-      YP4(3:nxp4-2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
-      YP4(3:nxp4-2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
+      SELECT CASE( is_orca_in )
+
+      CASE (4)
+         YP4(2:nxp4/2             ,nyp4-1) = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
+         YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = YP4(2:nxp4/2             ,nyp4-5)
+         YP4(2:nxp4/2             ,nyp4)   = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
+         YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = YP4(2:nxp4/2             ,nyp4-6)
+      CASE (6)
+         YP4(2:nxp4/2               ,nyp4-1) = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
+         YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = YP4(2:nxp4/2               ,nyp4-4)
+         YP4(2:nxp4/2               ,nyp4)   = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
+         YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = YP4(2:nxp4/2               ,nyp4-5)
+      CASE DEFAULT
+         YP4(3:nxp4-2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
+         YP4(3:nxp4-2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
+      END SELECT
+
+
       !! Bottom side :
       YP4(3:nxp4-2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
       YP4(3:nxp4-2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
 
-      IF (k_ew /= -1) THEN
+      IF (k_ew > -1) THEN
 
          YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
          YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
@@ -155,7 +190,7 @@ CONTAINS
       !! Data array :
       !! ------------
 
-      IF (k_ew /= -1) THEN
+      IF (k_ew > -1) THEN
 
          FP4( 1     , 3:nyp4-2) = XF(nx - 1 - k_ew , :)
          FP4( 2     , 3:nyp4-2) = XF(nx - k_ew     , :)
@@ -183,12 +218,29 @@ CONTAINS
       END IF
 
       !! Top side :
-      DO ji = 1, nxp4
-         CALL extra_2_east(YP4(ji,nyp4-4),YP4(ji,nyp4-3),YP4(ji,nyp4-2),       &
-            &              YP4(ji,nyp4-1),YP4(ji,nyp4),                        &
-            &              FP4(ji,nyp4-4),FP4(ji,nyp4-3),FP4(ji,nyp4-2), &
-            &              FP4(ji,nyp4-1),FP4(ji,nyp4) )
-      END DO
+      SELECT CASE( is_orca_in )
+
+      CASE (4)
+         PRINT *, 'ORCA2 type of extrapolation at northern boundary!'
+         FP4(2:nxp4/2             ,nyp4-1) = FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
+         FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = FP4(2:nxp4/2             ,nyp4-5)
+         FP4(2:nxp4/2             ,nyp4)   = FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
+         FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = FP4(2:nxp4/2             ,nyp4-6)
+      CASE (6)
+         PRINT *, 'ORCA1 type of extrapolation at northern boundary!'
+         FP4(2:nxp4/2               ,nyp4-1) = FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
+         FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = FP4(2:nxp4/2               ,nyp4-4)
+         FP4(2:nxp4/2               ,nyp4)   = FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
+         FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = FP4(2:nxp4/2               ,nyp4-5)
+
+      CASE DEFAULT
+         DO ji = 1, nxp4
+            CALL extra_2_east(YP4(ji,nyp4-4),YP4(ji,nyp4-3),YP4(ji,nyp4-2),       &
+               &              YP4(ji,nyp4-1),YP4(ji,nyp4),                        &
+               &              FP4(ji,nyp4-4),FP4(ji,nyp4-3),FP4(ji,nyp4-2), &
+               &              FP4(ji,nyp4-1),FP4(ji,nyp4) )
+         END DO
+      END SELECT
 
       !! Bottom side :
       DO ji = 1, nxp4
@@ -199,6 +251,176 @@ CONTAINS
       END DO
 
    END SUBROUTINE FILL_EXTRA_BANDS
+
+
+
+
+
+   SUBROUTINE FILL_EXTRA_NORTH_SOUTH(XX, YY, XF, XP4, YP4, FP4)
+
+      !!============================================================================
+      !! Extending input arrays with an extraband of two points at northern and
+      !! southern boundaries.
+      !!
+      !! The extension is done thanks to Akima's exptrapolation method or continuity
+      !!  / ORCA knowledge...
+      !!
+      !!============================================================================
+
+      USE mod_conf, ONLY: is_orca_in
+      
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
+      REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
+
+      !! Local
+      INTEGER :: nx, ny, nxp4, nyp4
+      INTEGER :: ji
+
+      IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
+         & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
+         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : size of input coor. and data do not match!!!'; STOP
+      END IF
+
+      IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
+         & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
+         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : size of output coor. and data do not match!!!'; STOP
+      END IF
+
+      nx = SIZE(XX,1)
+      ny = SIZE(XX,2)
+
+      nxp4 = SIZE(XP4,1)
+      nyp4 = SIZE(XP4,2)
+
+      IF ( nxp4 /= nx ) THEN
+         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : target x dim is not ni!!!'; STOP
+      END IF
+      IF ( nyp4 /= ny + 4 ) THEN
+         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : target y dim is not nj+4!!!'; STOP
+      END IF
+
+
+      !!   C r e a t i n g   e x t e n d e d   a r r a y s  :
+      !!   --------------------------------------------------
+
+      !! Initializing :
+      XP4 = 0.
+      YP4 = 0.
+      FP4 = 0.
+
+      !! Filling center of domain:
+      XP4(:, 3:nyp4-2) = XX(:,:)
+      YP4(:, 3:nyp4-2) = YY(:,:)
+      FP4(:, 3:nyp4-2) = XF(:,:)
+
+
+
+      !! X array :
+      !! ---------
+
+      !! Bottom side :
+      XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
+      XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
+
+      !! Top side :
+      SELECT CASE( is_orca_in )
+         !
+      CASE (4)
+         XP4(2:nx/2             ,nyp4-1) = XP4(nx:nx-nx/2-2:-1,nyp4-5)
+         XP4(nx:nx-nx/2-2:-1,nyp4-1) = XP4(2:nx/2             ,nyp4-5)
+         XP4(2:nx/2             ,nyp4)   = XP4(nx:nx-nx/2-2:-1,nyp4-6)
+         XP4(nx:nx-nx/2-2:-1,nyp4)   = XP4(2:nx/2             ,nyp4-6)
+      CASE (6)
+         XP4(2:nx/2               ,nyp4-1) = XP4(nx-1:nx-nx/2+1:-1,nyp4-4)
+         XP4(nx-1:nx-nx/2+1:-1,nyp4-1) = XP4(2:nx/2               ,nyp4-4)
+         XP4(2:nx/2               ,nyp4)   = XP4(nx-1:nx-nx/2+1:-1,nyp4-5)
+         XP4(nx-1:nx-nx/2+1:-1,nyp4)   = XP4(2:nx/2               ,nyp4-5)
+      CASE DEFAULT
+         XP4(:,nyp4-1) = XP4(:,nyp4-3) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+         XP4(:,nyp4)   = XP4(:,nyp4-2) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+
+      END SELECT
+
+
+      !! Y array :
+      !! ---------
+
+      !! Top side :
+      SELECT CASE( is_orca_in )
+
+      CASE (4)
+         YP4(2:nx/2             ,nyp4-1) = YP4(nx:nx-nx/2-2:-1,nyp4-5)
+         YP4(nx:nx-nx/2-2:-1,nyp4-1) = YP4(2:nx/2             ,nyp4-5)
+         YP4(2:nx/2             ,nyp4)   = YP4(nx:nx-nx/2-2:-1,nyp4-6)
+         YP4(nx:nx-nx/2-2:-1,nyp4)   = YP4(2:nx/2             ,nyp4-6)
+      CASE (6)
+         YP4(2:nx/2               ,nyp4-1) = YP4(nx-1:nx-nx/2+1:-1,nyp4-4)
+         YP4(nx-1:nx-nx/2+1:-1,nyp4-1) = YP4(2:nx/2               ,nyp4-4)
+         YP4(2:nx/2               ,nyp4)   = YP4(nx-1:nx-nx/2+1:-1,nyp4-5)
+         YP4(nx-1:nx-nx/2+1:-1,nyp4)   = YP4(2:nx/2               ,nyp4-5)
+      CASE DEFAULT
+         YP4(:, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
+         YP4(:, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
+      END SELECT
+
+
+      !! Bottom side :
+      YP4(:, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
+      YP4(:, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
+
+
+
+      !! Data array :
+      !! ------------
+
+      !! Top side :
+      SELECT CASE( is_orca_in )
+
+      CASE (4)
+         PRINT *, 'ORCA2 type of extrapolation at northern boundary!'
+         FP4(2:nx/2             ,nyp4-1) = FP4(nx:nx-nx/2-2:-1,nyp4-5)
+         FP4(nx:nx-nx/2-2:-1,nyp4-1) = FP4(2:nx/2             ,nyp4-5)
+         FP4(2:nx/2             ,nyp4)   = FP4(nx:nx-nx/2-2:-1,nyp4-6)
+         FP4(nx:nx-nx/2-2:-1,nyp4)   = FP4(2:nx/2             ,nyp4-6)
+      CASE (6)
+         PRINT *, 'ORCA1 type of extrapolation at northern boundary!'
+         FP4(2:nx/2               ,nyp4-1) = FP4(nx-1:nx-nx/2+1:-1,nyp4-4)
+         FP4(nx-1:nx-nx/2+1:-1,nyp4-1) = FP4(2:nx/2               ,nyp4-4)
+         FP4(2:nx/2               ,nyp4)   = FP4(nx-1:nx-nx/2+1:-1,nyp4-5)
+         FP4(nx-1:nx-nx/2+1:-1,nyp4)   = FP4(2:nx/2               ,nyp4-5)
+      CASE DEFAULT
+         DO ji = 1, nx
+            CALL extra_2_east(YP4(ji,nyp4-4),YP4(ji,nyp4-3),YP4(ji,nyp4-2),       &
+               &              YP4(ji,nyp4-1),YP4(ji,nyp4),                        &
+               &              FP4(ji,nyp4-4),FP4(ji,nyp4-3),FP4(ji,nyp4-2), &
+               &              FP4(ji,nyp4-1),FP4(ji,nyp4) )
+         END DO
+      END SELECT
+
+      !! Bottom side :
+      DO ji = 1, nx
+         CALL extra_2_west(YP4(ji,5),YP4(ji,4),YP4(ji,3),       &
+            &              YP4(ji,2),YP4(ji,1),                 &
+            &              FP4(ji,5),FP4(ji,4),FP4(ji,3), &
+            &              FP4(ji,2),FP4(ji,1) )
+      END DO
+
+   END SUBROUTINE FILL_EXTRA_NORTH_SOUTH
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -356,13 +578,12 @@ CONTAINS
       !! i+1 => 4:nx+4 / i => 3:nx+2 / i-1 => 2:nx+2
       !! j+1 => 4:ny+4 / j => 3:ny+2 / j-1 => 2:ny+2
 
-      
+
       dFdX(:,:) = 0.5*( ZF(4:nx+4,3:ny+2) - ZF(2:nx+2,3:ny+2) ) !/ ( ZX(4:nx+4,3:ny+2) - ZX(2:nx+2,3:ny+2) )
       dFdY(:,:) = 0.5*( ZF(3:nx+2,4:ny+4) - ZF(3:nx+2,2:ny+2) ) !/ ( ZY(3:nx+2,4:ny+4) - ZY(3:nx+2,2:ny+2) )
 
       !!lolo: Here the denominator is probably wrong:
       d2FdXdY(:,:) = 0.25*( ZF(4:nx+4,4:ny+4) - ZF(4:nx+4,2:ny+2)   -   ZF(2:nx+2,4:ny+4) + ZF(2:nx+2,2:ny+2) ) !&
-      !&       / ( ( ZX(4:nx+4,3:ny+2) - ZX(2:nx+2,3:ny+2) ) * ( ZY(3:nx+2,4:ny+4) - ZY(3:nx+2,2:ny+2) ) )
 
       DEALLOCATE ( ZX, ZY, ZF )
 
@@ -466,164 +687,389 @@ CONTAINS
    END SUBROUTINE LONG_REORG_3D
 
 
-   SUBROUTINE FIND_NEAREST_POINT_IDIOT(rlon, rlat, Xlon, Xlat, iloc, jloc)
 
-      !!----------------------------------------------------------------------------
-      !!            ***  SUBROUTINE FIND_NEAREST_POINT_IDIOT  ***
+
+
+
+   SUBROUTINE FIND_NEAREST_POINT(Xout, Yout, Xin, Yin, JIpos, JJpos)
       !!
-      !!                Laurent Brodeau, october, 2008
+      !!---------------------------------------------------------------
+      !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
-      !!              Very lame and unefficient but works on all grids!
-      !!----------------------------------------------------------------------------
+      !!                Laurent Brodeau, July, 2017
+      !!
+      !!---------------------------------------------------------------
+
+      USE io_ezcdf
 
       IMPLICIT NONE
 
-      REAL(8),INTENT(in)                :: rlon, rlat  !: lon and lat of target point to locate
-      REAL(8),DIMENSION(:,:),INTENT(in) :: Xlat, Xlon  !: model grid layout
-      INTEGER,INTENT (out)              :: iloc, jloc  !: nearest point location
+      INTEGER, PARAMETER :: &
+         &                   Nlat_split = 30, &  ! number of latitude bands to split the search work
+         &                   nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
 
-      INTEGER :: nx, ny, ji, jj
-      REAL(8) :: zdist, min_dist
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
+      INTEGER, DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
 
-      !! This is extended arrays we have
-      INTEGER, PARAMETER :: next = 2    ! on each side !LB
+      INTEGER :: &
+         &    nx_in, ny_in, nx_out, ny_out, &
+         &    jlat, ji_out, jj_out, ji_in, jj_in, &
+         &    jmin_in, jmax_in, imin_in, imax_in, niter, &
+         &    j_strt_out, j_stop_out
 
+      REAL(8) :: emax, frac_emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old, zdist
 
-      nx = size(Xlat,1)
-      ny = size(Xlat,2)
+      REAL(8) :: y_max_out, y_min_out, dy, y_max_in, y_min_in
+      REAL(8), DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
 
-      iloc = -9 ; jloc = -9
-      min_dist = 20000.
-
-      DO jj = 1+next, ny-next
-         DO ji = 1+next, nx-next
-
-            zdist = distance(rlon, Xlon(ji,jj), rlat, Xlat(ji,jj))
-
-            IF ( zdist < min_dist ) THEN
-               min_dist = zdist
-               iloc = ji
-               jloc = jj
-            END IF
-
-         END DO
-      END DO
-
-
-      !! Bug for regular spherical coordinate a la ECMWF: PROBLEM !!!
-      IF ( (ABS(Xlon(iloc,jloc) - rlon) > 175.).and.(ABS(Xlon(iloc,jloc) - rlon) < 185.) ) THEN
-         CALL locate_point(rlon, rlat, Xlon, Xlat, iloc, jloc)
-      END IF
-
-
-      IF ( ( iloc == -9 ).OR.( iloc == -9 ) ) THEN
-         PRINT *, 'ERROR in FIND_NEAREST_POINT_IDIOT of mod_bilin_2d.f90 !'
-         PRINT *, 'Point rlon, rlat', rlon, rlat
-         PRINT *, 'not found on the source grid!'
-         STOP
-      END IF
-
-   END SUBROUTINE FIND_NEAREST_POINT_IDIOT
-
-
-
-
-   SUBROUTINE FIND_NEAREST_POINT_REG(rlon, rlat, Xlon, Xlat, iloc, jloc)
-
-      !!----------------------------------------------------------------------------
-      !!            ***  SUBROUTINE FIND_NEAREST_POINT_REG  ***
-      !!
-      !!                Laurent Brodeau, october, 2008
-      !!
-      !!             Case when source domain (Xlon,Xlat) is actually regular !
-      !!
-      !!              Very lame and unefficient but works on all grids!
-      !!----------------------------------------------------------------------------
-
-      IMPLICIT NONE
-
-      REAL(8),INTENT(in)                :: rlon, rlat  !: lon and lat of target point to locate
-      REAL(8),DIMENSION(:,:),INTENT(in) :: Xlat, Xlon  !: model grid layout
-      INTEGER,INTENT (out)              :: iloc, jloc  !: nearest point location
-
-      INTEGER :: nx, ny, ji, jj, ip, jp, i_rig, i_lef, j_bot, j_top
-      INTEGER, PARAMETER :: iframe = 4
-      REAL(8) :: zdist, min_dist
+      INTEGER, DIMENSION(2) :: jmax_loc, jmin_loc
+      INTEGER, DIMENSION(1) :: ip, jp
+      
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xdist, &
+         &                                    e1, e2    !: grid layout and metrics
       REAL(8),DIMENSION(:), ALLOCATABLE :: vlat, vlon
-
-      !! This is extended arrays we have
-      INTEGER, PARAMETER :: next = 2    ! on each side !LB
+      LOGICAL :: l_is_reg_in, lagain
 
 
-      nx = size(Xlat,1)
-      ny = size(Xlat,2)
+      nx_in  = SIZE(Xin,1)
+      ny_in  = SIZE(Xin,2)
+      nx_out = SIZE(Xout,1)
+      ny_out = SIZE(Xout,2)
 
-      ALLOCATE ( vlon(nx) , vlat(ny) )
+      PRINT *, ' Source domain size: ', nx_in, ny_in
+      PRINT *, ' Target domain size: ', nx_out, ny_out
 
-      vlon(:) = Xlon(:,3+next)   ! 3+next => make sure we're inside the domain
-      vlat(:) = Xlat(3+next,:)   ! 3+next => make sure we're inside the domain
-
-
-      !! Finding the rectangular region where to search:
-      !! (rectangular region of roughly iframexiframe points...
-      
-      DO ji = next, nx-next
-         IF ( (vlon(ji) <= rlon).AND.(vlon(ji+1) > rlon) ) THEN
-            ip = ji
-            EXIT
-         END IF
-      END DO
-      
-      IF ( vlat(3+next) > vlat(3+next+1) ) THEN
-         PRINT *, 'ERROR: FIND_NEAREST_POINT_REG => lat seems to increase...' ; STOP
-      END IF
-      DO jj = next, ny-next
-         IF ( (vlat(jj) <= rlat).AND.(vlat(jj+1) > rlat) ) THEN
-            jp = jj
-            EXIT
-         END IF
-      END DO
-
-      i_lef = MAX(ip-(iframe-1) ,  1+next)
-      i_rig = MIN(ip+iframe , nx-next)
-      
-      j_bot = MAX(jp-(iframe-1) ,  1+next)
-      j_top = MIN(jp+iframe , ny-next)
-      
-      !PRINT *, ''
-      !PRINT *, 'i_lef, ip, i_rig =>', i_lef, ip, i_rig
-      !PRINT *, 'rlon, vlon(i_lef), vlon(i_rig) =>', rlon, vlon(i_lef), vlon(i_rig)
-      !PRINT *, 'j_bot, jp, j_top =>', j_bot, jp, j_top
-      !PRINT *, 'vlat(j_bot), rlat, vlat(j_top) =>', REAL(vlat(j_bot),4), REAL(rlat,4), REAL(vlat(j_top),4)
-
-      iloc = -9
-      jloc = -9
-      min_dist = 20000.
-
-      DO jj = j_bot, j_top
-         DO ji = i_lef, i_rig
-
-            zdist = distance(rlon, Xlon(ji,jj), rlat, Xlat(ji,jj))
-            
-            IF ( zdist < min_dist ) THEN
-               min_dist = zdist
-               iloc = ji
-               jloc = jj
-            END IF
-            
-         END DO
-      END DO
-      
-      IF ( ( iloc == -9 ).OR.( iloc == -9 ) ) THEN
-         PRINT *, 'ERROR in FIND_NEAREST_POINT_REG of mod_bilin_2d.f90 !'
-         PRINT *, 'Point rlon, rlat', rlon, rlat
-         PRINT *, 'not found on the source grid!'
+      IF ( (SIZE(Yin,1) /= nx_in) .OR. (SIZE(Yin,2) /= ny_in) ) THEN
+         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Yin dont agree in shape with Xin'
          STOP
       END IF
+      IF ( (SIZE(Yout,1) /= nx_out) .OR. (SIZE(Yout,2) /= ny_out) ) THEN
+         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Yout dont agree in shape with Xout'
+         STOP
+      END IF
+      IF ( (SIZE(JIpos,1) /= nx_out) .OR. (SIZE(JIpos,2) /= ny_out) ) THEN
+         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JIpos dont agree in shape with Xout'
+         STOP
+      END IF
+      IF ( (SIZE(JJpos,1) /= nx_out) .OR. (SIZE(JJpos,2) /= ny_out) ) THEN
+         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JJpos dont agree in shape with Xout'
+         STOP
+      END IF
+
+
+      !! Checking if source domain is regular or not.  => will allow later to
+      !!  decide the level of complexity of the algorithm that find nearest
+      !!  points...
+      l_is_reg_in = .TRUE.
+      !!  a/ checking on longitude array:
+      DO jj_in = 2, ny_in
+         IF ( SUM( ABS(Xin(:,jj_in) - Xin(:,1)) ) > 1.E-12 ) THEN
+            l_is_reg_in = .FALSE.
+            EXIT
+         END IF
+      END DO
+      !!  b/ now on latitude array:
+      IF ( l_is_reg_in ) THEN
+         DO ji_in = 1, nx_in
+            IF ( SUM( ABS(Yin(ji_in,:) - Yin(1,:)) ) > 1.E-12 ) THEN
+               l_is_reg_in = .FALSE.
+               EXIT
+            END IF
+         END DO
+      END IF
+
+      PRINT *, ' *** FIND_NEAREST_POINT => Is source grid regular ??? =>', l_is_reg_in
+
       
-      DEALLOCATE ( vlon , vlat )
+      ALLOCATE ( Xdist(nx_in,ny_in) )
+
+
+      IF (ldebug) THEN
+         Xdist(:,:) = DISTANCE_2D(2._8, Xin(:,:), 45._8, Yin(:,:))
+         CALL PRTMASK(REAL(Xdist,4), 'distance_2_45.nc', 'dist')
+      END IF
+
+
+      !! *** Will ignore regions of the target domain that are not covered by source domain:
+
+      !! Min and Max latitude of source domain:
+      y_min_in = MINVAL(Yin)
+      y_max_in = MAXVAL(Yin)
+
+      y_min_out = MINVAL(Yout)
+      y_max_out = MAXVAL(Yout)
+
+      jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in)) ; j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
+      jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in)) ; j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
+
+      IF (ldebug) THEN
+         PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
+         PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
+         PRINT *, ' j_strt_out / nj_out =>', j_strt_out, '/', ny_out
+         PRINT *, ' j_stop_out / nj_out =>', j_stop_out, '/', ny_out
+      END IF
+
+
+      !! Backround value to spot non-treated regions
+      JIpos(:,:) = INT(rflg)
+      JJpos(:,:) = INT(rflg)
+
       
-   END SUBROUTINE FIND_NEAREST_POINT_REG
+      !! ---------------------------------------------------------------------------------------
+      IF ( l_is_reg_in ) THEN
+
+         PRINT *, '                        => going for simple algorithm !'
+         
+         ALLOCATE ( vlon(nx_in) , vlat(ny_in) )
+
+         vlon(:) = Xin(:,3)   ! 3 => make sure we're inside the domain
+         vlat(:) = Yin(3,:)   ! 3 => make sure we're inside the domain
+
+         IF ( vlat(3) > vlat(3+1) ) THEN
+            PRINT *, 'ERROR: FIND_NEAREST_POINT => lat seems to increase...' ; STOP
+         END IF
+
+         DO jj_out = j_strt_out, j_stop_out
+            DO ji_out = 1, nx_out
+
+               rlon = Xout(ji_out,jj_out)
+               rlat = Yout(ji_out,jj_out)
+
+               ! Nearest point (in terms of index):
+               ip =  MINLOC(ABS(vlon(:)-rlon))
+               jp =  MINLOC(ABS(vlat(:)-rlat))
+
+               !! Define the box to scan for shortest distance:
+               imin_in = MAX(ip(1)-nframe_scan ,  1)
+               imax_in = MIN(ip(1)+nframe_scan , nx_in)
+               jmin_in = MAX(jp(1)-nframe_scan ,  1)
+               jmax_in = MIN(jp(1)+nframe_scan , ny_in)
+
+               ! Nearest point (in terms of distance):
+               Xdist = 1.E12
+               Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
+               jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
+               ji_in = jmin_loc(1) + imin_in - 1
+               jj_in = jmin_loc(2) + jmin_in - 1
+               JIpos(ji_out,jj_out) = ji_in
+               JJpos(ji_out,jj_out) = jj_in
+               IF ((ji_in==0).OR.(jj_in==0)) THEN
+                  PRINT *, ''
+                  PRINT *, 'The nearest point was not found!'
+                  PRINT *, ' !!! ji_in or jj_in = 0 !!!'
+                  PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
+                  PRINT *, ' Nearest point found on source grid:', &
+                     &  REAL(Xin(ji_in,jj_in) , 4), &
+                     &  REAL(Yin(ji_in,jj_in) , 4)
+                  STOP
+               END IF
+
+               IF ( ( JIpos(ji_out,jj_out) == INT(rflg) ).OR.( JJpos(ji_out,jj_out) == INT(rflg) ) ) THEN
+                  PRINT *, 'ERROR in FIND_NEAREST_POINT of mod_bilin_2d.f90 !'
+                  PRINT *, 'Point rlon, rlat', rlon, rlat
+                  PRINT *, 'not found on the source grid!'
+                  STOP
+               END IF
+
+            END DO
+         END DO
+
+         DEALLOCATE ( vlon , vlat )
+
+
+         !! ---------------------------------------------------------------------------------------         
+      ELSE
+
+         !! IRREGULAR CASE !!
+         PRINT *, '                        => going for advanced algorithm !'
+         
+         ALLOCATE ( e1(nx_in,ny_in), e2(nx_in,ny_in) )
+         !! We need metric of input grid
+         e1(:,:) = 40000. ;  e2(:,:) = 40000.
+         DO jj_in=1, ny_in
+            DO ji_in=1, nx_in-1
+               e1(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in+1,jj_in),Yin(ji_in,jj_in),Yin(ji_in+1,jj_in))*1000. !(m)
+            END DO
+         END DO
+         DO jj_in=1, ny_in-1
+            DO ji_in=1, nx_in
+               e2(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in,jj_in+1),Yin(ji_in,jj_in),Yin(ji_in,jj_in+1))*1000. !(m)
+            END DO
+         END DO
+         e1(nx_in,:) = e1(nx_in-1,:)
+         e2(:,ny_in) = e2(:,ny_in-1)
+         IF (ldebug) THEN
+            CALL PRTMASK(REAL(e1,4), 'e1.nc', 'e1')
+            CALL PRTMASK(REAL(e2,4), 'e2.nc', 'e2')
+         END IF
+
+
+         !! Min and Max latitude to use for binning :
+         y_max_out = MIN( y_max_out , y_max_in )
+         y_min_out = MAX( y_min_out , y_min_in )
+         y_max_out = MIN( REAL(INT(y_max_out+1),8) ,  90.)
+         y_min_out = MAX( REAL(INT(y_min_out-1),8) , -90.)
+         !! Multiple of 5:
+         y_max_out = MIN( NINT(y_max_out/5.)*5.    ,  90.)
+         y_min_out = MAX( NINT(y_min_out/5.)*5.    , -90.)
+
+         ALLOCATE ( VLAT_SPLIT_BOUNDS(Nlat_split+1), IJ_VLAT_IN(Nlat_split,2) )
+
+         dy = (y_max_out - y_min_out)/Nlat_split
+         DO jlat=1,Nlat_split+1
+            VLAT_SPLIT_BOUNDS(jlat) = y_min_out + REAL(jlat-1)*dy
+         END DO
+
+         IF ( ldebug ) THEN
+            PRINT *, ''
+            PRINT *, ' *** Binning between y_min_out, y_max_out => ', REAL(y_min_out,4), REAL(y_max_out,4)
+            PRINT *, '     => VLAT_SPLIT_BOUNDS ='
+            PRINT *, VLAT_SPLIT_BOUNDS
+            PRINT *, ''
+         END IF
+
+         DO jlat=1,Nlat_split
+            rlat_low = VLAT_SPLIT_BOUNDS(jlat)
+            rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
+            jmax_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh))
+            jmin_loc = MINLOC(Yin, mask=(Yin>=rlat_low))
+            !!
+            !! To be sure to include everything, adding 2 extra points below and above:
+            IJ_VLAT_IN(jlat,1) = MAX(jmin_loc(2) - 2,   1  )
+            IJ_VLAT_IN(jlat,2) = MIN(jmax_loc(2) + 2, ny_in)
+            !!
+            IF ( ldebug ) THEN
+               PRINT *, ' Latitude bin #', jlat
+               PRINT *, '     => lat_low, lat_high:', REAL(rlat_low,4), REAL(rlat_hgh,4)
+               PRINT *, '     => JJ min and max on input domain =>', IJ_VLAT_IN(jlat,1), IJ_VLAT_IN(jlat,2)
+               PRINT *, ''
+            END IF
+            !!
+         END DO
+
+
+         rlat_old = rflg
+
+         DO jj_out = j_strt_out, j_stop_out
+            DO ji_out = 1, nx_out
+
+               rlon = Xout(ji_out,jj_out)
+               rlat = Yout(ji_out,jj_out)
+
+               !! Need to find which jlat of our latitude bins rlat is located in!
+               IF ( rlat /= rlat_old ) THEN
+                  PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
+                  DO jlat=1,Nlat_split
+                     IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
+                     IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
+                  END DO
+                  !!
+               END IF
+
+               lagain    = .TRUE.
+               niter     = 0
+               frac_emax = 0.5
+
+               DO WHILE ( lagain )
+                  !
+                  !! Using band + niter surrounding:
+                  jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
+                  jmax_in = IJ_VLAT_IN(MIN(jlat+niter,Nlat_split), 2)
+                  !!
+                  IF ( ldebug ) THEN
+                     PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
+                     PRINT *, '     => bin #', jlat
+                     PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
+                  END IF
+
+                  Xdist = 1.E12
+                  Xdist(1:nx_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(1:nx_in,jmin_in:jmax_in), rlat, Yin(1:nx_in,jmin_in:jmax_in))
+
+                  !CALL PRTMASK(REAL(Xdist,4), 'distance_last.nc', 'dist')
+
+                  !! Nearest point is where distance is smallest:
+                  jmin_loc = MINLOC(Xdist(1:nx_in,jmin_in:jmax_in))
+                  ji_in = jmin_loc(1)
+                  jj_in = jmin_loc(2) + jmin_in - 1
+                  JIpos(ji_out,jj_out) = ji_in
+                  JJpos(ji_out,jj_out) = jj_in
+
+                  IF ((ji_in==0).OR.(jj_in==0)) THEN
+                     PRINT *, ''
+                     PRINT *, 'The nearest point was not found!'
+                     PRINT *, ' !!! ji_in or jj_in = 0 !!!'
+                     PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
+                     PRINT *, ' Nearest point found on source grid:', &
+                        &  REAL(Xin(ji_in,jj_in) , 4), &
+                        &  REAL(Yin(ji_in,jj_in) , 4)
+                     STOP
+                  END IF
+
+
+                  zdist = Xdist(ji_in,jj_in) ! minimum distance found
+                  emax = MAX(e1(ji_in,jj_in),e2(ji_in,jj_in))/1000.*SQRT(2.)
+
+                  IF (zdist <= frac_emax*emax) THEN
+
+                     lagain = .FALSE.
+
+                  ELSE
+                     IF (ldebug) THEN
+                        PRINT *, ''
+                        PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
+                        PRINT *, ' Nearest point found on source grid:', &
+                           &  REAL(Xin(ji_in,jj_in) , 4), &
+                           &  REAL(Yin(ji_in,jj_in) , 4)
+                        PRINT *, ''
+                        PRINT *, 'The nearest point was not found! zdist / frac_emax*emax ', zdist, frac_emax*emax
+                        PRINT *, 'Xin(1:6,1) =>', Xin(1:6,1) ; PRINT *, ''
+                        PRINT *, 'Xin(nx_in-6:nx_in,1) =>', Xin(nx_in-6:nx_in,1) ; PRINT *, ''
+                        PRINT *, ' jmin_in, jmax_in =>', jmin_in, jmax_in
+                     END IF
+
+                     IF (niter > Nlat_split/3) THEN
+                        !! => increasing max. distance
+                        niter = 1
+                        !lolo:frac_emax = 1.5*frac_emax
+                        frac_emax = 1.25*frac_emax    !lolo
+                        !lolo:IF ( frac_emax > 2. ) THEN
+                        IF ( frac_emax > 10. ) THEN
+                           PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
+                           PRINT *, '     => did not find nearest point for target coordinates:', &
+                              &              REAL(rlon,4), REAL(rlat,4)
+                           PRINT *, '     => last tested frac_emax was:', frac_emax
+                           PRINT *, ''
+                           lagain = .FALSE.
+                           !! JIpos(ji_out,jj_out) & JJpos(ji_out,jj_out) should normally contain INT(rflg)
+                           !! due to initialization with this value earlier...
+                        ELSE
+                           IF (ldebug) PRINT *, '   => testing new emax mutiple =>', frac_emax
+                        END IF
+                     END IF
+                     niter = niter + 1
+                  END IF
+
+               END DO
+               rlat_old = rlat
+            END DO
+         END DO
+
+         DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1, e2 )
+
+      END IF
+
+
+      IF ( ldebug ) THEN
+         CALL PRTMASK(REAL(JIpos,4), 'JIpos.nc', 'ji')
+         CALL PRTMASK(REAL(JJpos,4), 'JJpos.nc', 'jj')
+      END IF
+      
+      DEALLOCATE ( Xdist )
+
+   END SUBROUTINE FIND_NEAREST_POINT
+
 
 
    FUNCTION DISTANCE(plona, plonb, plata, platb)
@@ -692,96 +1138,75 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT_SMART(pplon, pplat, plam, pphi, kpiloc, kpjloc, ldbord)
 
-      !!----------------------------------------------------------------------------
-      !!            ***  SUBROUTINE NEAREST  ***
+   FUNCTION DISTANCE_2D(plona, Xlonb, plata, Xlatb)
+
+      !!----------------------------------------------------------
+      !!           ***  FUNCTION  DIST  ***
       !!
-      !!   ** Purpose:  Computes the positions of the nearest i,j in the grid
-      !!                from the given longitudes and latitudes
+      !!  ** Purpose : Compute the distance (km) between
+      !!               point A (lona, lata) and each point of domain
+      !!               B (lonb,latb)
       !!
-      !!   ** Method :  Starts on the middle of the grid, search in a 20x20 box, and move
-      !!     the box in the direction where the distance between the box and the
-      !!     point is minimum
-      !!     Iterates ...
-      !!     Stops when the point is outside the grid.
-      !!     This algorithm does not work on the Mediteranean grid !
+      !!  ** Method : Compute the distance along the orthodromy
       !!
-      !!   * history:
-      !!        Anne de Miranda et Pierre-Antoine Darbon Jul. 2000 (CLIPPER)
-      !!        Jean-Marc Molines : In NEMO form
-      !!----------------------------------------------------------------------------
+      !! * history : J.M. Molines in CHART, f90, may 2007
+      !!----------------------------------------------------------
 
       IMPLICIT NONE
+      ! Argument
+      REAL(8),                 INTENT(in) :: plona, plata
+      REAL(8), DIMENSION(:,:), INTENT(in) :: Xlonb, Xlatb
 
-      !* arguments
-      REAL(8), INTENT(in)       ::  pplon, pplat   !: lon and lat of target point
-      INTEGER, INTENT (inout)    ::  kpiloc, kpjloc  !: nearest point location
-      REAL(8), DIMENSION(:,:),INTENT(in) ::  pphi,plam  !: model grid layout
-      LOGICAL                   :: ldbord         !: reach boundary flag
+      REAL(8), DIMENSION(SIZE(Xlonb,1),SIZE(Xlonb,2)) :: distance_2d
 
-      ! * local variables
-      INTEGER :: nx, ny, ji,jj,i0,j0,i1,j1
-      INTEGER :: itbl
-      REAL(8) ::  zdist,zdistmin,zdistmin0
-      LOGICAL ::  lbordcell
+      ! Local variables
+      INTEGER :: nx, ny, ji, jj
 
-      !lulu
-      nx = size(pphi,1)
-      ny = size(pphi,2)
+      REAL(8) ::  zlatar, zlatbr, zlonar, zlonbr
+      REAL(8) ::  zpds
+      REAL(8) :: zux, zuy, zuz
+      REAL(8) :: zr, zpi, zconv, zvx, zvy, zvz
 
+      nx = SIZE(Xlonb,1)
+      ny = SIZE(Xlonb,2)
 
+      !! Initialise some values at first call
+      ! constants
+      zpi = ACOS(-1._8)
+      zconv = zpi/180.  ! for degree to radian conversion
+      ! Earth radius
+      zr = (6378.137 + 6356.7523)/2.0 ! km
 
-      ! Initial values
-      kpiloc = nx/2 ; kpjloc = ny/2    ! seek from the middle of domain
-      itbl = 10                          ! block size for search
-      zdistmin=1000000000. ; zdistmin0=1000000000.
-      i0=kpiloc ;  j0=kpjloc
-      lbordcell=.TRUE.;   ldbord=.FALSE.
+      !! Compute these term only if they differ from previous call
+      zlatar=plata*zconv
+      zlonar=plona*zconv
+      zux=COS(zlonar)*COS(zlatar)
+      zuy=SIN(zlonar)*COS(zlatar)
+      zuz=SIN(zlatar)
 
-      ! loop until found or boundary reach
-      DO  WHILE ( lbordcell .AND. .NOT. ldbord)
-         i0=kpiloc-itbl ;  i1=kpiloc+itbl
-         j0=kpjloc-itbl ;  j1=kpjloc+itbl
+      distance_2d(:,:) = 0.
 
-         ! search only the inner domain
-         IF (i0 <= 1) i0=2
-         IF (i1 > nx-1) i1=nx-1
-         IF (j0 <= 1) j0=2
-         IF( j1 > ny-1) j1=ny-1
+      DO jj=1,ny
+         DO ji=1,nx
 
-         ! within a block itbl+1 x itbl+1:
-         DO jj=j0,j1
-            DO ji=i0,i1
-               ! compute true distance (orthodromy) between target point and grid point
-               zdist=distance(pplon,plam(ji,jj),pplat,pphi(ji,jj) )
-               zdistmin=MIN(zdistmin,zdist)
-               ! update kpiloc, kpjloc if distance decreases
-               IF (zdistmin /= zdistmin0 ) THEN
-                  kpiloc=ji
-                  kpjloc=jj
-               ENDIF
-               zdistmin0=zdistmin
-            END DO
+            zlatbr=Xlatb(ji,jj)*zconv
+            zlonbr=Xlonb(ji,jj)*zconv
+            zvx=COS(zlonbr)*COS(zlatbr)
+            zvy=SIN(zlonbr)*COS(zlatbr)
+            zvz=SIN(zlatbr)
+
+            zpds = zux*zvx + zuy*zvy + zuz*zvz
+
+            IF ( zpds < 1.) distance_2d(ji,jj) = zr*ACOS(zpds)
+
          END DO
-         lbordcell=.FALSE.
-         ! if kpiloc, kpjloc belong to block boundary proceed to next block, centered on kpiloc, kpjloc
-         IF (kpiloc == i0 .OR. kpiloc == i1) lbordcell=.TRUE.
-         IF (kpjloc == j0 .OR. kpjloc == j1) lbordcell=.TRUE.
-         ! boundary reach ---> not found
-         IF (kpiloc == 2  .OR. kpiloc ==nx-1) ldbord=.TRUE.
-         IF (kpjloc == 2  .OR. kpjloc ==ny-1) ldbord=.TRUE.
       END DO
-      !!
-      !!
-      !    PRINT *, ''; PRINT *, ''
-      !    PRINT *, 'End of NEAREST!'
-      !!
-      !    PRINT *, 'iloc, jloc', kpiloc, kpjloc
-      !
-      !
-      !!
-   END SUBROUTINE  FIND_NEAREST_POINT_SMART
+
+   END FUNCTION DISTANCE_2D
+
+
+
 
 
 
