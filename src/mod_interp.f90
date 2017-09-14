@@ -77,15 +77,13 @@ CONTAINS
       WHERE ( data_out > vmax )  data_out = rmaskvalue
       WHERE ( data_out < vmin )  data_out = rmaskvalue
 
-      !!LOLO!
+      !lolo:
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF (jj_ex_btm > 0) THEN
-         PRINT *, 'LOLOLOLOLOLOLO!'
          CALL DROWN(ewper_out, data_out, mask_out(:,:,1),  nb_inc=100, nb_smooth=5)
       END IF
-      !LOLO.
-      
+      !lolo.
       
       !!   Masking result
       IF ( lmout ) THEN

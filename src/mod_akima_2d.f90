@@ -28,7 +28,7 @@ MODULE MOD_AKIMA_2D
    !!
    !!-----------------------------------------------------------------
 
-
+   USE mod_conf
    USE mod_manip, ONLY: FILL_EXTRA_BANDS, TEST_XYZ
 
 
@@ -36,7 +36,6 @@ MODULE MOD_AKIMA_2D
 
 
    LOGICAL, PUBLIC, SAVE :: &
-      &    l_first_call_akima   = .TRUE. , &  !: wether it is the first time or not that AKIMA_2D is called
       &    l_always_first_call  = .FALSE.
 
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: ixy_pos !: table storing source/target grids mapping
@@ -66,7 +65,7 @@ CONTAINS
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
       !!             X10   : 2D source longitude array (ni*nj) or (ni*1) (must be regular!)
       !!             Y10   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
-      !!             Z1    : input field on source grid
+      !!             Z1    : source field on source grid
       !!
       !!             X20   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
       !!             Y20   : 2D target latitude  array (ni*nj) or (nj*1) (can be irregular)
@@ -74,15 +73,13 @@ CONTAINS
       !! OUTPUT :
       !!             Z2    : input field on target grid
       !!
-      !! input (optional)  : icall : if icall=1, will always force 'l_first_call_akima' to .TRUE.
+      !! input (optional)  : icall : if icall=1, will always force 'l_first_call_interp_routine' to .TRUE.
       !!
-      !!==============================================================================================
+      !!================================================================
 
 
       !! Input/Output arguments
-      !! ======================
-
-      INTEGER,  INTENT(in)                 :: k_ew_per
+      INTEGER,                 INTENT(in)  :: k_ew_per
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X10, Y10
       REAL(4), DIMENSION(:,:), INTENT(in)  :: Z1
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
@@ -90,10 +87,7 @@ CONTAINS
       INTEGER,       OPTIONAL, INTENT(in)  :: icall
 
 
-
       !! Local variables
-      !! ===============
-
       INTEGER :: nx1, ny1, nx2, ny2, ji, jj
 
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
@@ -108,7 +102,7 @@ CONTAINS
 
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
 
-      REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
          &    X1, Y1, X2, Y2,   &
          &    Z_in , lon_in , lat_in
 
@@ -123,7 +117,7 @@ CONTAINS
 
       IF ( present(icall) ) THEN
          IF ( icall == 1 ) THEN
-            l_first_call_akima = .TRUE.
+            l_first_call_interp_routine = .TRUE.
             l_always_first_call  = .TRUE.
          END IF
       END IF
@@ -156,9 +150,13 @@ CONTAINS
       ELSE
          X2 = X20 ; Y2 = Y20
       END IF
-      
 
-      IF ( l_first_call_akima ) ALLOCATE ( ixy_pos(nx2, ny2, 2) )
+
+      !!                       S T A R T
+
+
+
+      IF ( l_first_call_interp_routine ) ALLOCATE ( ixy_pos(nx2, ny2, 2) )
       
       
       !! Extending the source 2D domain with a frame of 2 points:
@@ -210,7 +208,7 @@ CONTAINS
                !! location of treated point
                !! Let's find the 4 points of source grid that surrounds (px2,py2)
                !! Only if this is  the first time step (storing into ixy_pos) :
-               IF ( l_first_call_akima ) THEN
+               IF ( l_first_call_interp_routine ) THEN
 
                   ji1 = 1 ; jj1 = 1
 
@@ -268,7 +266,7 @@ CONTAINS
                   ji1 = ixy_pos(ji2,jj2,1)
                   jj1 = ixy_pos(ji2,jj2,2)
 
-               END IF  !* IF ( l_first_call_akima )
+               END IF  !* IF ( l_first_call_interp_routine )
 
 
 
@@ -291,11 +289,11 @@ CONTAINS
       !! Deallocation :
       DEALLOCATE ( Z_in , lon_in , lat_in, poly, X2, Y2 )
 
-      l_first_call_akima = .FALSE.
+      l_first_call_interp_routine = .FALSE.
 
       IF ( l_always_first_call ) THEN
          DEALLOCATE ( ixy_pos )
-         l_first_call_akima = .TRUE.
+         l_first_call_interp_routine = .TRUE.
       END IF
 
    END SUBROUTINE AKIMA_2D

@@ -7,7 +7,11 @@ MODULE MOD_CONF
    CHARACTER(len=16), PARAMETER :: csosie_version = 'svn_trunk' !: SOSIE version
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
+   
+   LOGICAL, SAVE :: l_first_call_interp_routine
 
+   INTEGER, SAVE :: is_orca_in, is_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
+   
    LOGICAL, DIMENSION(2) :: l_2d_grid_yet_regular = (/ .FALSE. , .FALSE. /) !: in case input (i=1) and/or output (i=2) domains are
    !!                                      defined with 2D longitude and latitude arrays but their grid is actually regular...
 
