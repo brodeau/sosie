@@ -2,7 +2,7 @@
 &ninput
 ivect     = 0
 lregin    = F
-cf_in     = '/proj/bolinc/users/x_laubr/ORCA12-T1279/CHR0/nemo/002/CHR0_1d_19900201_19900228_grid_T.nc4'
+cf_in     = 'data/sosstsst_ORCA12_daily.nc4'
 cv_in     = 'sosstsst'
 cv_t_in   = 'time_counter'
 jt1       = 0
