@@ -4,7 +4,7 @@ MODULE MOD_MANIP
 
    !! Author: L. Brodeau
 
-   
+
    IMPLICIT NONE
 
    PRIVATE
@@ -47,7 +47,7 @@ CONTAINS
       !!============================================================================
 
       USE mod_conf, ONLY: is_orca_in
-      
+
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
@@ -268,7 +268,7 @@ CONTAINS
       !!============================================================================
 
       USE mod_conf, ONLY: is_orca_in
-      
+
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
 
@@ -724,9 +724,10 @@ CONTAINS
       REAL(8), DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
 
+      INTEGER :: jlat_inc = 1 ; ! 1 if lat increases with j, -1 if decreases with j
       INTEGER, DIMENSION(2) :: jmax_loc, jmin_loc
       INTEGER, DIMENSION(1) :: ip, jp
-      
+
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xdist, &
          &                                    e1, e2    !: grid layout and metrics
       REAL(8),DIMENSION(:), ALLOCATABLE :: vlat, vlon
@@ -782,7 +783,7 @@ CONTAINS
 
       PRINT *, ' *** FIND_NEAREST_POINT => Is source grid regular ??? =>', l_is_reg_in
 
-      
+
       ALLOCATE ( Xdist(nx_in,ny_in) )
 
 
@@ -804,6 +805,8 @@ CONTAINS
       jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in)) ; j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
       jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in)) ; j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
 
+      IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
+
       IF (ldebug) THEN
          PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
          PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
@@ -816,22 +819,23 @@ CONTAINS
       JIpos(:,:) = INT(rflg)
       JJpos(:,:) = INT(rflg)
 
-      
+
       !! ---------------------------------------------------------------------------------------
       IF ( l_is_reg_in ) THEN
 
          PRINT *, '                        => going for simple algorithm !'
-         
+
          ALLOCATE ( vlon(nx_in) , vlat(ny_in) )
 
          vlon(:) = Xin(:,3)   ! 3 => make sure we're inside the domain
          vlat(:) = Yin(3,:)   ! 3 => make sure we're inside the domain
 
-         IF ( vlat(3) > vlat(3+1) ) THEN
-            PRINT *, 'ERROR: FIND_NEAREST_POINT => lat seems to increase...' ; STOP
-         END IF
+         !IF ( vlat(3) > vlat(3+1) ) THEN
+         !   PRINT *, 'ERROR: FIND_NEAREST_POINT => lat seems to increase...' ; STOP
+         !END IF
 
-         DO jj_out = j_strt_out, j_stop_out
+         DO jj_out = j_strt_out, j_stop_out, jlat_inc
+
             DO ji_out = 1, nx_out
 
                rlon = Xout(ji_out,jj_out)
@@ -879,12 +883,12 @@ CONTAINS
          DEALLOCATE ( vlon , vlat )
 
 
-         !! ---------------------------------------------------------------------------------------         
+         !! ---------------------------------------------------------------------------------------
       ELSE
 
          !! IRREGULAR CASE !!
          PRINT *, '                        => going for advanced algorithm !'
-         
+
          ALLOCATE ( e1(nx_in,ny_in), e2(nx_in,ny_in) )
          !! We need metric of input grid
          e1(:,:) = 40000. ;  e2(:,:) = 40000.
@@ -905,7 +909,6 @@ CONTAINS
             CALL PRTMASK(REAL(e2,4), 'e2.nc', 'e2')
          END IF
 
-
          !! Min and Max latitude to use for binning :
          y_max_out = MIN( y_max_out , y_max_in )
          y_min_out = MAX( y_min_out , y_min_in )
@@ -921,7 +924,7 @@ CONTAINS
          DO jlat=1,Nlat_split+1
             VLAT_SPLIT_BOUNDS(jlat) = y_min_out + REAL(jlat-1)*dy
          END DO
-
+         !
          IF ( ldebug ) THEN
             PRINT *, ''
             PRINT *, ' *** Binning between y_min_out, y_max_out => ', REAL(y_min_out,4), REAL(y_max_out,4)
@@ -949,10 +952,9 @@ CONTAINS
             !!
          END DO
 
-
          rlat_old = rflg
 
-         DO jj_out = j_strt_out, j_stop_out
+         DO jj_out = j_strt_out, j_stop_out, jlat_inc
             DO ji_out = 1, nx_out
 
                rlon = Xout(ji_out,jj_out)
@@ -1065,7 +1067,7 @@ CONTAINS
          CALL PRTMASK(REAL(JIpos,4), 'JIpos.nc', 'ji')
          CALL PRTMASK(REAL(JJpos,4), 'JJpos.nc', 'jj')
       END IF
-      
+
       DEALLOCATE ( Xdist )
 
    END SUBROUTINE FIND_NEAREST_POINT
