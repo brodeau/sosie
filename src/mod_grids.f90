@@ -137,7 +137,7 @@ CONTAINS
          WRITE(6,*) 'Latitude min on output grid =', min_lat_out
          PRINT*,''
 
-         !! Is output latitude increasing with j : 1 = yes | -1 = no
+         !! Is target latitude increasing with j : 1 = yes | -1 = no
          nlat_inc_out = 1
 
          IF ( lregout ) THEN
@@ -180,9 +180,8 @@ CONTAINS
       IF (jj_ex_btm > 0) THEN
          DO jj=(nlat_inc_out + 1)/2+(1 - nlat_inc_out)/2*nj_out,jj_ex_btm,nlat_inc_out
             mask_out(:,jj,:) = 0
-            !PRINT *, 'loloz: jj_out =', jj
          END DO
-         CALL PRTMASK(REAL(mask_out(:,:,1),4), 'mask_out.nc', 'lsm') ; !lolo rm!!!
+         !debug: CALL PRTMASK(REAL(mask_out(:,:,1),4), 'mask_out.nc', 'lsm')
       END IF
 
       PRINT *, ''
@@ -327,7 +326,7 @@ CONTAINS
                   END DO
                END DO
             END DO
-            !lolo debug: CALL PRTMASK(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
+            !debug: CALL PRTMASK(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
             DEALLOCATE ( z3d_tmp )
 
          ELSE
