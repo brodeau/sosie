@@ -46,7 +46,7 @@ CONTAINS
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
 
-      USE mod_conf, ONLY: is_orca_in
+      USE mod_conf, ONLY: is_orca_in, is_orca_out
 
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
@@ -701,7 +701,8 @@ CONTAINS
       !!---------------------------------------------------------------
 
       USE io_ezcdf
-
+      USE mod_conf, ONLY: is_orca_out
+      
       IMPLICIT NONE
 
       INTEGER, PARAMETER :: &
@@ -731,7 +732,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xdist, &
          &                                    e1, e2    !: grid layout and metrics
       REAL(8),DIMENSION(:), ALLOCATABLE :: vlat, vlon
-      LOGICAL :: l_is_reg_in, lagain
+      LOGICAL :: l_is_reg_in, l_is_reg_out, lagain
 
 
       nx_in  = SIZE(Xin,1)
@@ -783,6 +784,33 @@ CONTAINS
 
       PRINT *, ' *** FIND_NEAREST_POINT => Is source grid regular ??? =>', l_is_reg_in
 
+      
+      !! Checking if target domain is regular or not.  => will allow later to
+      !!  decide the level of complexity of the algorithm that find nearest
+      !!  points...
+      l_is_reg_out = .TRUE.
+      !!  a/ checking on longitude array:
+      DO jj_out = 2, ny_out
+         IF ( SUM( ABS(Xout(:,jj_out) - Xout(:,1)) ) > 1.E-12 ) THEN
+            l_is_reg_out = .FALSE.
+            EXIT
+         END IF
+      END DO
+      !!  b/ now on latitude array:
+      IF ( l_is_reg_out ) THEN
+         DO ji_out = 1, nx_out
+            IF ( SUM( ABS(Yout(ji_out,:) - Yout(1,:)) ) > 1.E-12 ) THEN
+               l_is_reg_out = .FALSE.
+               EXIT
+            END IF
+         END DO
+      END IF
+
+      PRINT *, ' *** FIND_NEAREST_POINT => Is target grid regular ??? =>', l_is_reg_out
+
+
+
+      
 
       ALLOCATE ( Xdist(nx_in,ny_in) )
 
@@ -792,29 +820,36 @@ CONTAINS
          CALL PRTMASK(REAL(Xdist,4), 'distance_2_45.nc', 'dist')
       END IF
 
+      j_strt_out = 1
+      j_stop_out = ny_out
 
-      !! *** Will ignore regions of the target domain that are not covered by source domain:
+      IF ( l_is_reg_out .OR. (is_orca_out > 0) ) THEN
+         !! -> because we need to avoid all the following if target grid is for
+         !! example a polar sterographic projection... (example 5)
+         !!
+         !! *** Will ignore regions of the TARGET domain that
+         !! are not covered by source domain:
+         
+         !! Min and Max latitude of source domain:
+         y_min_in = MINVAL(Yin)
+         y_max_in = MAXVAL(Yin)
+         
+         y_min_out = MINVAL(Yout)
+         y_max_out = MAXVAL(Yout)
+         
+         jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in)) ; j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
+         jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in)) ; j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
 
-      !! Min and Max latitude of source domain:
-      y_min_in = MINVAL(Yin)
-      y_max_in = MAXVAL(Yin)
+         IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
 
-      y_min_out = MINVAL(Yout)
-      y_max_out = MAXVAL(Yout)
+         IF (ldebug) THEN
+            PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
+            PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
+         END IF
 
-      jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in)) ; j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
-      jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in)) ; j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
-
-      IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
-
-      IF (ldebug) THEN
-         PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
-         PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
-         PRINT *, ' j_strt_out / nj_out =>', j_strt_out, '/', ny_out
-         PRINT *, ' j_stop_out / nj_out =>', j_stop_out, '/', ny_out
-      END IF
-
-
+         !PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
+      END IF ! IF ( l_is_reg_out )
+      
       !! Backround value to spot non-treated regions
       JIpos(:,:) = INT(rflg)
       JJpos(:,:) = INT(rflg)
@@ -836,6 +871,8 @@ CONTAINS
 
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
 
+            IF ( MOD(jj_out,10)==0 ) PRINT *, ' *** Treated j-point of target domain =', jj_out !REAL(rlat,4)
+            
             DO ji_out = 1, nx_out
 
                rlon = Xout(ji_out,jj_out)
