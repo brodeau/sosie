@@ -7,8 +7,8 @@ MODULE MOD_GRIDS
    PRIVATE
 
    PUBLIC :: SRC_DOMAIN, &
-      &    TRG_DOMAIN, &
-      &    TERMINATE
+      &      TRG_DOMAIN, &
+      &      TERMINATE
 
    INTEGER :: &
       &     ji, jj, jt0, jz0, &
@@ -1050,6 +1050,7 @@ CONTAINS
       END IF
 
    END FUNCTION IS_ORCA_NORTH_FOLD
+
 
 
 

@@ -181,18 +181,18 @@ CONTAINS
          !!
          WRITE(6,*)''
          IF ( lregin ) THEN
-            WRITE(6,*)'Source grid is regular'
+            WRITE(6,*)'Source grid is declared as regular'
          ELSE
-            WRITE(6,*)'Source grid is irregular'
+            WRITE(6,*)'Source grid is declared as irregular'
          END IF
          WRITE(6,*)''
          !!
          !!
          WRITE(6,*)''
          IF ( lregout ) THEN
-            WRITE(6,*)'Target grid is regular'
+            WRITE(6,*)'Target grid is declared as regular'
          ELSE
-            WRITE(6,*)'Target grid is irregular'
+            WRITE(6,*)'Target grid is declared as irregular'
          END IF
          WRITE(6,*)''
          !!
