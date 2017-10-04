@@ -700,9 +700,9 @@ CONTAINS
       !!
       !!---------------------------------------------------------------
 
-      USE io_ezcdf
-      USE mod_conf, ONLY: is_orca_out
-      
+      !debug: USE io_ezcdf
+      USE mod_conf,  ONLY: is_orca_out
+
       IMPLICIT NONE
 
       INTEGER, PARAMETER :: &
@@ -760,57 +760,18 @@ CONTAINS
          STOP
       END IF
 
-
       !! Checking if source domain is regular or not.  => will allow later to
       !!  decide the level of complexity of the algorithm that find nearest
       !!  points...
-      l_is_reg_in = .TRUE.
-      !!  a/ checking on longitude array:
-      DO jj_in = 2, ny_in
-         IF ( SUM( ABS(Xin(:,jj_in) - Xin(:,1)) ) > 1.E-12 ) THEN
-            l_is_reg_in = .FALSE.
-            EXIT
-         END IF
-      END DO
-      !!  b/ now on latitude array:
-      IF ( l_is_reg_in ) THEN
-         DO ji_in = 1, nx_in
-            IF ( SUM( ABS(Yin(ji_in,:) - Yin(1,:)) ) > 1.E-12 ) THEN
-               l_is_reg_in = .FALSE.
-               EXIT
-            END IF
-         END DO
-      END IF
-
+      l_is_reg_in = L_IS_GRID_REGULAR( Xin , Yin )
       PRINT *, ' *** FIND_NEAREST_POINT => Is source grid regular ??? =>', l_is_reg_in
 
-      
       !! Checking if target domain is regular or not.  => will allow later to
       !!  decide the level of complexity of the algorithm that find nearest
       !!  points...
-      l_is_reg_out = .TRUE.
-      !!  a/ checking on longitude array:
-      DO jj_out = 2, ny_out
-         IF ( SUM( ABS(Xout(:,jj_out) - Xout(:,1)) ) > 1.E-12 ) THEN
-            l_is_reg_out = .FALSE.
-            EXIT
-         END IF
-      END DO
-      !!  b/ now on latitude array:
-      IF ( l_is_reg_out ) THEN
-         DO ji_out = 1, nx_out
-            IF ( SUM( ABS(Yout(ji_out,:) - Yout(1,:)) ) > 1.E-12 ) THEN
-               l_is_reg_out = .FALSE.
-               EXIT
-            END IF
-         END DO
-      END IF
-
+      l_is_reg_out = L_IS_GRID_REGULAR( Xout , Yout )
       PRINT *, ' *** FIND_NEAREST_POINT => Is target grid regular ??? =>', l_is_reg_out
 
-
-
-      
 
       ALLOCATE ( Xdist(nx_in,ny_in) )
 
@@ -829,14 +790,14 @@ CONTAINS
          !!
          !! *** Will ignore regions of the TARGET domain that
          !! are not covered by source domain:
-         
+
          !! Min and Max latitude of source domain:
          y_min_in = MINVAL(Yin)
          y_max_in = MAXVAL(Yin)
-         
+
          y_min_out = MINVAL(Yout)
          y_max_out = MAXVAL(Yout)
-         
+
          jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in)) ; j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
          jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in)) ; j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
 
@@ -849,7 +810,7 @@ CONTAINS
 
          !PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
       END IF ! IF ( l_is_reg_out )
-      
+
       !! Backround value to spot non-treated regions
       JIpos(:,:) = INT(rflg)
       JJpos(:,:) = INT(rflg)
@@ -872,7 +833,7 @@ CONTAINS
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
 
             IF ( MOD(jj_out,10)==0 ) PRINT *, ' *** Treated j-point of target domain =', jj_out !REAL(rlat,4)
-            
+
             DO ji_out = 1, nx_out
 
                rlon = Xout(ji_out,jj_out)
@@ -1301,5 +1262,45 @@ CONTAINS
 
    END SUBROUTINE locate_point
 
+
+   FUNCTION L_IS_GRID_REGULAR( Xlon, Xlat )
+
+      !!----------------------------------------------------------
+      !! Tell if a grid (1 longitude 2D array and 1 latitude 2D array) is regular
+      !!----------------------------------------------------------
+
+      IMPLICIT NONE
+      ! Argument
+      REAL(8), DIMENSION(:,:), INTENT(in) :: Xlon, Xlat
+      LOGICAL                             :: l_is_grid_regular
+      INTEGER :: nx, ny, ji, jj
+
+      nx = SIZE(Xlon,1)
+      ny = SIZE(Xlon,2)
+      IF ( (SIZE(Xlat,1) /= nx) .OR. (SIZE(Xlat,2) /= ny) ) THEN
+         PRINT *, ' ERROR (L_IS_GRID_REGULAR of mod_grids.f90): Xlat does not agree in shape with Xlon!'
+         STOP
+      END IF
+
+      l_is_grid_regular = .TRUE.
+
+      !!  a/ checking on longitude array: (LOLO: use epsilon(Xlon) instead 1.E-12?)
+      DO jj = 2, ny
+         IF ( SUM( ABS(Xlon(:,jj) - Xlon(:,1)) ) > 1.E-12 ) THEN
+            l_is_grid_regular = .FALSE.
+            EXIT
+         END IF
+      END DO
+      !!  b/ now on latitude array:
+      IF ( l_is_grid_regular ) THEN
+         DO ji = 1, nx
+            IF ( SUM( ABS(Xlat(ji,:) - Xlat(1,:)) ) > 1.E-12 ) THEN
+               l_is_grid_regular = .FALSE.
+               EXIT
+            END IF
+         END DO
+      END IF
+
+   END FUNCTION L_IS_GRID_REGULAR
 
 END MODULE MOD_MANIP
