@@ -3,6 +3,7 @@ PROGRAM CORR_VECT
    USE mod_conf
    USE mod_init
    USE io_ezcdf
+   USE mod_grids,  ONLY: IS_ORCA_NORTH_FOLD
 
    !!========================================================================
    !! Purpose :  correct vector components 'uraw' and 'vraw' directly
@@ -34,6 +35,7 @@ PROGRAM CORR_VECT
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
    CHARACTER(len=3)    :: cdum
+   CHARACTER(len=1)    :: cgrid_out='0'
    CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
    CHARACTER(len=800)  :: cr, cf_mm
 
@@ -53,6 +55,7 @@ PROGRAM CORR_VECT
 
    INTEGER      :: &
       &    jarg, i3d, nbc, &
+      &    iorca=0,      &
       &    nlext=3, &
       &    i0, j0, &
       &    ni, nj, nk, nk1, nk2, &
@@ -64,15 +67,15 @@ PROGRAM CORR_VECT
       &    id_f1, id_v1, &
       &    id_f2, id_v2
 
-   INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask_u, mask_v
+   INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: XCOST, XSINT, U_r, V_r
 
 
-   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: U_c, V_c
+   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: Ut_c, Vt_c, Uu_c, Vv_c
 
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::      &
-      &    XCOST8, XSINT8, U_r8, V_r8, &
+      &    XCOST8, XSINT8, U_r8, V_r8,  Xdum, &
       &    xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v
 
    REAL(8), DIMENSION(:), ALLOCATABLE ::   vtime, vdepth
@@ -82,13 +85,14 @@ PROGRAM CORR_VECT
 
    LOGICAL :: &
       &    l_inv = .FALSE.,   &
+      &    l_anlt = .FALSE.,  & ! analytic input field (U=1, V=0) DEBUG...
       &    l_3d_inv = .FALSE., &   !: will treat 3d files in inverse mode...
       &    lexist !,  &
 
    REAL(4), PARAMETER :: zrmv = -9999.
 
-   CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
-      &            clist_opt = (/ '-I','-h','-m','-p','-x','-y','-f','-i','-t' /)
+   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
+      &            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -149,12 +153,6 @@ PROGRAM CORR_VECT
             END IF
          END IF
          !!
-         !!
-         !CASE('-p')
-         !   PRINT *, 'Gonna pack output data in netcdf file'
-         !   lpack = .TRUE.
-         !!
-         !!
       CASE('-f')
          IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
             PRINT *, 'ERROR: Missing namelist name!' ; call usage_corr_vect()
@@ -178,6 +176,18 @@ PROGRAM CORR_VECT
                call usage_corr_vect()
             ELSE
                cf_mm = trim(cr)
+            END IF
+         END IF
+         !!
+      CASE('-G')
+         IF ( jarg + 1 > iargc() ) THEN
+            PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!' ; call usage_corr_vect()
+         ELSE
+            jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+            IF ( ANY(clist_opt == TRIM(cr)) ) THEN
+               PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!'; CALL usage_corr_vect()
+            ELSE
+               cgrid_out = TRIM(cr)
             END IF
          END IF
          !!
@@ -210,7 +220,9 @@ PROGRAM CORR_VECT
                cv_time_0 = trim(cr)
             END IF
          END IF
-
+         !!
+      CASE('-1')
+         l_anlt = .TRUE.
          !!
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
@@ -222,15 +234,21 @@ PROGRAM CORR_VECT
    END DO
 
 
-   IF ( (.NOT. l_inv).AND.( trim(cufilin) /= 'none' ) ) THEN
+   IF ( (.NOT. l_inv).AND.( TRIM(cufilin) /= 'none' ) ) THEN
       PRINT *, 'ERROR: specify the "-I" switch if you want to perform inverse correction!'
       STOP
    END IF
 
-
+   IF ( (cgrid_out /= 'T').AND.(cgrid_out /= 'U') ) call usage_corr_vect()
 
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
    PRINT *, ''
+
+
+   IF ( cgrid_out == 'U' ) PRINT *, ' *** Gonna save on grid U and V.'
+   IF ( cgrid_out == 'T' ) PRINT *, ' *** Gonna save on grid T.'
+   PRINT *, ''
+
 
    IF ( l_inv ) THEN
       PRINT *, ' * Vector files to unrotate = ', trim(cufilin), ' , ', trim(cvfilin)
@@ -248,6 +266,11 @@ PROGRAM CORR_VECT
    PRINT *, ' * mesh_mask file to use = ', trim(cf_mm)
    PRINT *, ' * namelist = ', trim(cf_nml_sosie)
    PRINT *, ''
+
+
+
+
+
 
 
 
@@ -295,13 +318,13 @@ PROGRAM CORR_VECT
          &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
 
       PRINT *, '' ;   PRINT *, 'output files :'
-      PRINT *, cufilout ;   PRINT *, cvfilout ; PRINT *, '' ; PRINT *, ''
+      PRINT *, trim(cufilout) ;   PRINT *, trim(cvfilout) ; PRINT *, '' ; PRINT *, ''
 
       PRINT *, 'File containing x and y raw components of vector to be treated :'
-      PRINT *, cf_out_U
-      PRINT *, cf_out_V ; PRINT *, ''
+      PRINT *, trim(cf_out_U)
+      PRINT *, trim(cf_out_V) ; PRINT *, ''
       PRINT *, 'File containing grid :'
-      PRINT *, cf_mm ; PRINT *, ''
+      PRINT *, trim(cf_mm) ; PRINT *, ''
 
 
       !! Geting array dimension and testing...
@@ -356,37 +379,38 @@ PROGRAM CORR_VECT
 
 
       !! Allocations :
-      !! -------------
       ALLOCATE (XCOST(ni,nj) , XSINT(ni,nj) , U_r(ni,nj) , V_r(ni,nj) ,  &
-         &    mask_u(ni,nj,nk) , mask_v(ni,nj,nk) , U_c(ni,nj,nk) , V_c(ni,nj,nk),                              &
-         &    xlon_t(ni,nj)  , xlat_t(ni,nj)  , &
-         &    xlon_u(ni,nj)  , xlat_u(ni,nj) ,  xlon_v(ni,nj)  , xlat_v(ni,nj) ,  &
+         &    Ut_c(ni,nj,nk) , Vt_c(ni,nj,nk), mask_t(ni,nj,nk), &
+         &    xlon_t(ni,nj)  , xlat_t(ni,nj), Xdum(ni,nj), &
+         &    xlon_u(ni,nj)  , xlat_u(ni,nj) , xlon_v(ni,nj)  , xlat_v(ni,nj) ,  &
          &    vtime(Ntr)   )
-      !!
+      IF ( cgrid_out == 'U' ) ALLOCATE ( Uu_c(ni,nj,nk) , Vv_c(ni,nj,nk) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
       ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
 
-      XCOST = 0. ; XSINT = 0. ; U_r    = 0. ; V_r = 0. ; U_c = 0. ; V_c = 0.
+      XCOST = 0. ; XSINT = 0. ; U_r    = 0. ; V_r = 0. ; Ut_c = 0. ; Vt_c = 0.
       xlon_t  = 0. ; xlat_t  = 0. ; xlon_u  = 0. ; xlat_u  = 0. ; xlon_v  = 0. ; xlat_v  = 0.
       vtime  = 0.
-
 
 
       IF ( i3d == 1 ) THEN
          ALLOCATE ( vdepth(nk) )
          CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
-         CALL GETMASK_3D(cf_lsm_out, 'umask', mask_u(:,:,:))
-         CALL GETMASK_3D(cf_lsm_out, 'vmask', mask_v(:,:,:))
+         IF ( cgrid_out == 'U' ) THEN
+            CALL GETMASK_3D(cf_lsm_out, 'umask', mask_u(:,:,:))
+            CALL GETMASK_3D(cf_lsm_out, 'vmask', mask_v(:,:,:))
+         ELSE
+            CALL GETMASK_3D(cf_lsm_out, 'tmask', mask_t(:,:,:))
+         END IF
       ELSE
-         CALL GETMASK_2D(cf_lsm_out, 'umask', mask_u(:,:,1), jlev=1)
-         CALL GETMASK_2D(cf_lsm_out, 'vmask', mask_v(:,:,1), jlev=1)
+         IF ( cgrid_out == 'U' ) THEN
+            CALL GETMASK_2D(cf_lsm_out, 'umask', mask_u(:,:,1), jlev=1)
+            CALL GETMASK_2D(cf_lsm_out, 'vmask', mask_v(:,:,1), jlev=1)
+         ELSE
+            CALL GETMASK_2D(cf_lsm_out, 'tmask', mask_t(:,:,1), jlev=1)
+         END IF
       END IF
 
-
-
-
-
       !!  Getting longitude and latitude form grid file :
-      !! ------------------------------------------------
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_t, 1, 1, 1, xlon_t)
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_t, 1, 1, 1, xlat_t)
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_u, 1, 1, 1, xlon_u)
@@ -394,17 +418,23 @@ PROGRAM CORR_VECT
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_v, 1, 1, 1, xlon_v)
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_v, 1, 1, 1, xlat_v)
 
-      !! lulu
 
+      PRINT *, ''
 
-      
-      !!  Getting cos and sin of the grid distorsion angle:
-      !! --------------------------------------------------
+      !! Is this a known ORCA grid (just for info now, not used!):
+      iorca = IS_ORCA_NORTH_FOLD( xlat_t )
+      IF ( iorca == 4 ) PRINT *, ' Grid is an ORCA grid with north-pole T-point folding!'
+      IF ( iorca == 6 ) PRINT *, ' Grid is an ORCA grid with north-pole F-point folding!'
+      PRINT *, ''
+
+      !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
       CALL angle_dist(xlon_t, xlat_t, xlon_u, xlat_u, XCOST8, XSINT8)
+
+      !CALL PRTMASK(REAL(XCOST8,4), 'cos_angle.nc', 'cos',   xlon_t, xlat_t, cv_lon_t, cv_lat_t)
+      !CALL PRTMASK(REAL(XSINT8,4), 'sin_angle.nc', 'sin',   xlon_t, xlat_t, cv_lon_t, cv_lat_t)
 
 
       !!  Getting time from the u_raw file or the namelist :
-      !! ---------------------------------------------------
       IF ( lct ) THEN       ! time is being controlled
          DO jt = 1, Ntr
             vtime(jt) = t0 + t_stp*REAL(jt)
@@ -415,113 +445,116 @@ PROGRAM CORR_VECT
          vatt_info_t(1)%itype = 2 ! char
          vatt_info_t(1)%val_char = 'unknown'
          vatt_info_t(1)%ilength = LEN('unknown')
-
       ELSE                  ! we use time from input file
          CALL GETVAR_1D(cf_out_U, cv_t_out, vtime)
-         CALL GETVAR_ATTRIBUTES(cf_out_U, cv_t_out, nb_att_t, vatt_info_t) ; !lolo
-         
+         CALL GETVAR_ATTRIBUTES(cf_out_U, cv_t_out, nb_att_t, vatt_info_t)
       END IF
-
 
 
 
       DO jt = 1, Ntr
 
-
          PRINT *, ''; PRINT *, 'Time step =', jt ; PRINT *, ''
 
          DO jk = 1, nk
 
-            !lolo PRINT *, 'jk =', jk
+            IF ( l_anlt ) THEN
+               U_r8 = 1.
+               V_r8 = 0.
+            ELSE
+               !! Getting uncorrected U on grid T:
+               CALL  GETVAR_2D(idf_u, idv_u, cf_out_U, cv_out_U, Ntr, jk*i3d, jt, U_r, lz=nk)
 
-            !! Getting uncorrected U :
-            !! -----------------------
-            CALL  GETVAR_2D(idf_u, idv_u, cf_out_U, cv_out_U, Ntr, jk*i3d, jt, U_r, lz=nk)
+               !! Getting uncorrected V on grid T:
+               CALL  GETVAR_2D(idf_v, idv_v, cf_out_V, cv_out_V, Ntr, jk*i3d, jt, V_r, lz=nk)
 
-            !! Getting uncorrected V :
-            !! -----------------------
-            CALL  GETVAR_2D(idf_v, idv_v, cf_out_V, cv_out_V, Ntr, jk*i3d, jt, V_r, lz=nk)
-
-            U_r8 = U_r ; V_r8 = V_r
+               U_r8 = U_r ; V_r8 = V_r
+            END IF
 
             !! Correcting U :
-            !! --------------
-            U_c(:,:,jk) = REAL(XCOST8*U_r8 + XSINT8*V_r8 , 4)
-
-
-            IF ( (ni == 1442).and.(nj == 1021) ) THEN
-               !!
-               !Correction at North-Pole (avoid 2 different vectors)
-               !! ecrases :
-               U_c(381,1020,jk) = -0.5*U_c(1063,1019,jk) + 0.5*U_c(381,1019,jk)
-               U_c(382,1020,jk) = -0.5*U_c(1062,1019,jk) + 0.5*U_c(382,1019,jk)
-               U_c(383,1020,jk) = -0.5*U_c(1061,1019,jk) + 0.5*U_c(383,1019,jk)
-               U_c(384,1020,jk) = -0.5*U_c(1060,1019,jk) + 0.5*U_c(384,1019,jk)
-               !! ecrasant :
-               U_c(1063,1020,jk) = 0.5*U_c(1063,1019,jk) - 0.5*U_c(381,1019,jk)
-               U_c(1062,1020,jk) = 0.5*U_c(1062,1019,jk) - 0.5*U_c(382,1019,jk)
-               U_c(1061,1020,jk) = 0.5*U_c(1061,1019,jk) - 0.5*U_c(383,1019,jk)
-               U_c(1060,1020,jk) = 0.5*U_c(1060,1019,jk) - 0.5*U_c(384,1019,jk)
-               !!
-            END IF
-
-
+            Xdum = XCOST8*U_r8 + XSINT8*V_r8
+            Ut_c(:,:,jk) = REAL(Xdum , 4)
 
             !! Correcting V :
-            !! --------------
-            V_c(:,:,jk) = REAL(XCOST8*V_r8 - XSINT8*U_r8 , 4)
-
-            IF ( (ni == 1442).and.(nj == 1021) ) THEN
-               ! ORCA025 north-pole correction!!!
-               !!
-               !Correction at North-Pole (avoid 2 different vectors)
-               !! ecrases :
-               V_c(381,1020,jk)  = -0.5*V_c(1063,1019,jk) + 0.5*V_c(381,1019,jk)
-               V_c(382,1020,jk)  = -0.5*V_c(1062,1019,jk) + 0.5*V_c(382,1019,jk)
-               V_c(383,1020,jk)  = -0.5*V_c(1061,1019,jk) + 0.5*V_c(383,1019,jk)
-               V_c(384,1020,jk)  = -0.5*V_c(1060,1019,jk) + 0.5*V_c(384,1019,jk)
-               !! ecrasant :
-               V_c(1063,1020,jk) = 0.5*V_c(1063,1019,jk) - 0.5*V_c(381,1019,jk)
-               V_c(1062,1020,jk) = 0.5*V_c(1062,1019,jk) - 0.5*V_c(382,1019,jk)
-               V_c(1061,1020,jk) = 0.5*V_c(1061,1019,jk) - 0.5*V_c(383,1019,jk)
-               V_c(1060,1020,jk) = 0.5*V_c(1060,1019,jk) - 0.5*V_c(384,1019,jk)
-               !!
-               !!
-            END IF
-
+            Xdum = XCOST8*V_r8 - XSINT8*U_r8
+            Vt_c(:,:,jk) = REAL(Xdum , 4)
 
          END DO ! jk
 
 
+         !! Interpolating of U on U-grid and V on V-grid:
+         IF ( cgrid_out == 'U' ) THEN
+            DO jk = 1, nk
+               Uu_c(:ni-1,:,jk) = 0.5*(Ut_c(:ni-1,:,jk) + Ut_c(2:ni,:,jk))
+               Vv_c(:,:nj-1,jk) = 0.5*(Vt_c(:,:nj-1,jk) + Vt_c(:,2:nj,jk))
+               !! Fixing last upper row:
+               IF ( iorca == 6 ) THEN
+                  Vv_c(2:ni/2           ,nj,jk) = -1.*Vv_c(ni-1:ni-ni/2+1:-1,nj-1,jk) ; ! -1 because must change sign!
+                  Vv_c(ni-1:ni-ni/2+1:-1,nj,jk) = -1.*Vv_c(2:ni/2,           nj-1,jk)
+               END IF
+               IF ( iorca == 4 ) THEN
+                  Vv_c(2:ni/2,         nj,jk) = -1.*Vv_c(ni:ni-ni/2-2:-1,nj-2,jk)
+                  Vv_c(ni:ni-ni/2-2:-1,nj,jk) = -1.*Vv_c(2:ni/2,         nj-2,jk)
+               END IF
+               !! Fixing last rhs column (east-west:
+               PRINT *, ' *** using east-west periodicity of:', ewper_out
+               Uu_c(ni,:,jk) = Uu_c(ewper_out,:,jk)
+            END DO
+         END IF
+
+
          IF ( lmout ) THEN
-            WHERE ( mask_u == 0 ) U_c = rmaskvalue
-            WHERE ( mask_v == 0 ) V_c = rmaskvalue
+            IF ( cgrid_out == 'U' ) THEN
+               WHERE ( mask_u == 0 ) Uu_c = rmaskvalue
+               WHERE ( mask_v == 0 ) Vv_c = rmaskvalue
+            ELSE
+               WHERE ( mask_t == 0 ) Ut_c = rmaskvalue
+               WHERE ( mask_t == 0 ) Vt_c = rmaskvalue
+            END IF
          ELSE
             rmaskvalue = 0.
          END IF
 
-         IF ( i3d == 1 ) THEN
-            
-            CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
-               &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,       &
-               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
 
-            CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
-               &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,       &
-               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+         IF ( i3d == 1 ) THEN
+
+            !! 3D:
+            IF ( cgrid_out == 'U' ) THEN
+               CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, Uu_c(:,:,:),  &
+                  &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,      &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, Vv_c(:,:,:),  &
+                  &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,      &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+            ELSE
+               CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, Ut_c(:,:,:),  &
+                  &    cufilout, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_U,      &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, Vt_c(:,:,:),  &
+                  &    cvfilout, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_V,      &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+            END IF
+
          ELSE
 
-            !! Writing file for corrected U and V :
-            CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1),     &
-               &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
-
-            CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, V_c(:,:,1), &
-               &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
-               &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+            !! 2D:
+            IF ( cgrid_out == 'U' ) THEN
+               CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, Uu_c(:,:,1), &
+                  &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, Vv_c(:,:,1), &
+                  &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+            ELSE
+               CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t,         vtime, Ut_c(:,:,1), &
+                  &    cufilout, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_U,       &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+               CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t,         vtime, Vt_c(:,:,1), &
+                  &    cvfilout, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
+                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+            END IF
 
          END IF
-
 
       END DO ! jt
 
@@ -591,10 +624,10 @@ PROGRAM CORR_VECT
       PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ;
       !!
       PRINT *, '' ;   PRINT *, 'Input files :'
-      PRINT *, cufilin ;   PRINT *, cvfilin ; PRINT *, '' ; PRINT *, ''
+      PRINT *, trim(cufilin) ;   PRINT *, trim(cvfilin) ; PRINT *, '' ; PRINT *, ''
       !!
       PRINT *, 'File containing input grid :'
-      PRINT *, cf_mm ; PRINT *, ''
+      PRINT *, trim(cf_mm) ; PRINT *, ''
 
 
       !! Creating name for unrotated output file:
@@ -677,13 +710,13 @@ PROGRAM CORR_VECT
       !! Allocations :
       !! -------------
       ALLOCATE (XCOST(ni,nj) , XSINT(ni,nj) , U_r(ni,nj) , V_r(ni,nj) ,  &
-         &     U_c(ni,nj,nk) , V_c(ni,nj,nk),                              &
+         &     Ut_c(ni,nj,nk) , Vt_c(ni,nj,nk),                              &
          &     xlon_t(ni,nj)  , xlat_t(ni,nj)  , xlon_u(ni,nj) ,  xlat_u(ni,nj), xlon_v(ni,nj) ,  xlat_v(ni,nj) , &
          &     vtime(Ntr) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
       !!
       ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
 
-      XCOST = 0. ; XSINT = 0. ; U_r    = 0. ; V_r = 0. ; U_c = 0. ; V_c = 0.
+      XCOST = 0. ; XSINT = 0. ; U_r    = 0. ; V_r = 0. ; Ut_c = 0. ; Vt_c = 0.
       xlon_t  = 0. ; xlat_t  = 0. ; xlon_u  = 0. ; xlat_u  = 0. ; xlon_v  = 0. ; xlat_v  = 0.
       vtime  = 0.
 
@@ -724,7 +757,7 @@ PROGRAM CORR_VECT
          vatt_info_t(1)%itype = 2 ! char
          vatt_info_t(1)%val_char = 'unknown'
          vatt_info_t(1)%ilength = LEN('unknown')
-         
+
       ELSE                  ! we use time from input file
          CALL GETVAR_1D(cufilin, cv_time_0, vtime)
          CALL GETVAR_ATTRIBUTES(cufilin, cv_time_0, nb_att_t, vatt_info_t) ; !lolo
@@ -758,13 +791,13 @@ PROGRAM CORR_VECT
 
             !! Unrotating U :
             !! --------------
-            U_c(:,:,jk) = REAL(XCOST8*U_r8 - XSINT8*V_r8 , 4) ! note the '-' sign --> reverse correction
+            Ut_c(:,:,jk) = REAL(XCOST8*U_r8 - XSINT8*V_r8 , 4) ! note the '-' sign --> reverse correction
 
 
 
             !! Unrotating V :
             !! --------------
-            V_c(:,:,jk) = REAL(XCOST8*V_r8 + XSINT8*U_r8 , 4) ! note the + sign for reverse correction
+            Vt_c(:,:,jk) = REAL(XCOST8*V_r8 + XSINT8*U_r8 , 4) ! note the + sign for reverse correction
 
 
 
@@ -772,26 +805,26 @@ PROGRAM CORR_VECT
 
 
          !lulu
-         WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = zrmv
-         WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = zrmv
+         WHERE ( mask_u == 0 ) Ut_c(:,:,1:nk) = zrmv
+         WHERE ( mask_v == 0 ) Vt_c(:,:,1:nk) = zrmv
 
          IF ( l_3d_inv ) THEN
 
-            CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
+            CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, Ut_c(:,:,:),  &
                &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U,       &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
-            CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
+            CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, Vt_c(:,:,:),  &
                &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V,       &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
          ELSE
 
-            CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, U_c(:,:,1),     &
+            CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, Ut_c(:,:,1),     &
                &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U,       &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
-            CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, V_c(:,:,1), &
+            CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, Vt_c(:,:,1), &
                &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V,   &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
@@ -954,11 +987,13 @@ SUBROUTINE usage_corr_vect()
    PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
    PRINT *,''
    PRINT *,''
-   PRINT *,''
    PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
    PRINT *,''
    PRINT *,' -f  <namelist_file>  => Specify which namelist file to use'
    PRINT *, '                        No namelist needed when inverse correction'
+   PRINT *,''
+   PRINT *,' -G  <T/U>            => Specify if you want to save rotated vector'
+   PRINT *, '                        on T-grid (T) or U- and V-grid (U)'
    PRINT *,''
    PRINT *,''
    PRINT *,'  *** MANDATORY for INVERSE MODE (-I switch) :'
