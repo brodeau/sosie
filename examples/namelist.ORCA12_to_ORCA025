@@ -105,10 +105,10 @@ cv_t_in   = 'time_counter'
 jt1       = 0
 jt2       = 0
 jplev     = 1
-cf_x_in   = 'data/mesh_mask_ORCA12_light.nc4'
+cf_x_in   = './data/mesh_mask_ORCA12_light.nc4'
 cv_lon_in = 'glamt'
 cv_lat_in = 'gphit'
-cf_lsm_in = 'data/mesh_mask_ORCA12_light.nc4'
+cf_lsm_in = './data/mesh_mask_ORCA12_light.nc4'
 cv_lsm_in = 'tmask'
 ldrown    = T
 ewper     = 2
@@ -168,10 +168,10 @@ ismooth   = 0
 !!
 &nhtarget
 lregout    = F
-cf_x_out   = '/home/users/brodeau/NEMO/ORCA025.L75-I_y1050/mesh_mask_ORCA025.L75_ece3.2_2017.nc4'
+cf_x_out   = './data/mesh_mask_ORCA025_light.nc4'
 cv_lon_out = 'glamt'
 cv_lat_out = 'gphit'
-cf_lsm_out = '/home/users/brodeau/NEMO/ORCA025.L75-I_y1050/mesh_mask_ORCA025.L75_ece3.2_2017.nc4'
+cf_lsm_out = './data/mesh_mask_ORCA025_light.nc4'
 cv_lsm_out = 'tmask'
 lmout      = T
 rmaskvalue = -9999.
