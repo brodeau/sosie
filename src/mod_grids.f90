@@ -8,6 +8,7 @@ MODULE MOD_GRIDS
 
    PUBLIC :: SRC_DOMAIN, &
       &      TRG_DOMAIN, &
+      &      IS_ORCA_NORTH_FOLD, &
       &      TERMINATE
 
    INTEGER :: &
