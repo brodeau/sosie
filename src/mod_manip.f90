@@ -781,36 +781,42 @@ CONTAINS
          CALL PRTMASK(REAL(Xdist,4), 'distance_2_45.nc', 'dist')
       END IF
 
+      !! Going to scan target grid through increasing  (or decreasing) j (latitude)
+
+      !! General case:
       j_strt_out = 1
       j_stop_out = ny_out
 
+      !! Case when latitude ONLY keeps on increasing (or decreasing) as j increase
+      !!    (ie [d lat / d j] always has the same sign!)
       IF ( l_is_reg_out .OR. (is_orca_out > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
-         !! example a polar sterographic projection... (example 5)
+         !!    example a polar sterographic projection... (example 5)
          !!
          !! *** Will ignore regions of the TARGET domain that
-         !! are not covered by source domain:
+         !!     are not covered by source domain:
 
-         !! Min and Max latitude of source domain:
-         y_min_in = MINVAL(Yin)
+         y_min_in = MINVAL(Yin) ; ! Min and Max latitude of source domain
          y_max_in = MAXVAL(Yin)
 
-         y_min_out = MINVAL(Yout)
+         y_min_out = MINVAL(Yout) ; ! Min and Max latitude of target domain
          y_max_out = MAXVAL(Yout)
 
-         jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in)) ; j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
-         jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in)) ; j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
-
+         jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in))
+         jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in))
+         j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
+         j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
+         
          IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
 
          IF (ldebug) THEN
             PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
             PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
          END IF
-
          !PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
       END IF ! IF ( l_is_reg_out )
 
+      
       !! Backround value to spot non-treated regions
       JIpos(:,:) = INT(rflg)
       JJpos(:,:) = INT(rflg)

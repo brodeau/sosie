@@ -22,4 +22,4 @@ FF = -O3 -i4 -xHOST -module mod/
 #FF = -O0 -i4 -traceback -fpe0 -CB -module mod/
 
 # Directory to install binaries:
-INSTALL_DIR = $(HOME)/local
+INSTALL_DIR = /usr/local
