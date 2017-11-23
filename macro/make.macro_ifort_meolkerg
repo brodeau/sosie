@@ -5,7 +5,7 @@
 FC = ifort
 
 # Root directory for Netcdf:
-NETCDF_DIR = /opt/netcdf-4.1/
+NETCDF_DIR = /opt/netcdf-4.1
 
 # Linking argument: usually -lnetcdf or -lnetcdff (or both):
 L_NCDF =  -L /opt/hdf5-1.8.4/lib -lnetcdf -lnetcdff -lhdf5_hl -lhdf5 -lz
