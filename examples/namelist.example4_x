@@ -147,11 +147,11 @@ vmin      = -1.E6
 !!
 &nhtarget
 lregout    = F
-cf_x_out   = 'data/mesh_mask_ORCA1_v3.6_light.nc4'
-cv_lon_out = 'nav_lon'
-cv_lat_out = 'nav_lat'
-cf_lsm_out = 'data/mesh_mask_ORCA1_v3.6_light.nc4'
-cv_lsm_out = 'tmask'
+cf_x_out   = 'data/mesh_mask_ORCA1v2_light.nc4'
+cv_lon_out = 'glamu'
+cv_lat_out = 'gphiu'
+cf_lsm_out = 'data/mesh_mask_ORCA1v2_light.nc4'
+cv_lsm_out = 'umask'
 lmout      = T
 rmaskvalue = -9999.
 lct        = F      ! we use time from input file
@@ -203,7 +203,7 @@ cln_out  = 'ERA-INTERIM 10m wind, 4 first 6-hourly snapshots of year 2000'
 cd_out   = '.'
 csource  = '1x1-deg'
 ctarget  = 'ORCA1'
-cextra   = 'vct'
+cextra   = 'grid_U'
 lpcknc4  = .true.
 /
 !!
