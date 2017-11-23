@@ -34,7 +34,7 @@ PROGRAM CORR_VECT
    CHARACTER(LEN=400)  :: cextra_x, cextra_y 
    
    CHARACTER(len=3)    :: cdum
-   CHARACTER(len=1)    :: cgrid_out='0', cgrid
+   CHARACTER(len=1)    :: cgrid_out='0'
    CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
    CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
 
@@ -336,11 +336,9 @@ PROGRAM CORR_VECT
       PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ;
       
       cufilout = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
-         &   //TRIM(ctarget)//'_'//TRIM(cextra_x)//'_grid_'//TRIM(cgrid_out)//'.'//TRIM(cfext)
-      cgrid='T'
-      IF ( cgrid_out == 'U' ) cgrid='V'
+         &   //TRIM(ctarget)//'_'//TRIM(cextra_x)//'.'//TRIM(cfext)
       cvfilout = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
-         &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'_grid_'//TRIM(cgrid)//'.'//TRIM(cfext)
+         &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'.'//TRIM(cfext)
       
       PRINT *, '' ;   PRINT *, 'output files :'
       PRINT *, trim(cufilout) ;   PRINT *, trim(cvfilout) ; PRINT *, '' ; PRINT *, ''
