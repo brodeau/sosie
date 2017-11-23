@@ -4,6 +4,7 @@ PROGRAM CORR_VECT
    USE mod_init
    USE io_ezcdf
    USE mod_grids,  ONLY: IS_ORCA_NORTH_FOLD
+   USE mod_manip,  ONLY: ANGLE
 
    !!========================================================================
    !! Purpose :  correct vector components 'uraw' and 'vraw' directly
@@ -17,21 +18,14 @@ PROGRAM CORR_VECT
 
    IMPLICIT NONE
 
-   INTERFACE
-      SUBROUTINE angle_dist(xa, xb, xc, xd, xe, xf)
-         REAL(8), DIMENSION(:,:), INTENT(in)  :: xa, xc, xb, xd
-         REAL(8), DIMENSION(:,:), INTENT(out) :: xe, xf
-      END SUBROUTINE angle_dist
-   END INTERFACE
-
    !! Grid :
    CHARACTER(len=80), PARAMETER   :: &
-      &    cv_lon_t     = 'glamt',   &   ! input grid longitude name, T-points
-      &    cv_lat_t     = 'gphit',   &   ! input grid latitude name,  T-points
-      &    cv_lon_u     = 'glamu',   &   ! input grid longitude name, U-points
-      &    cv_lat_u     = 'gphiu',   &   ! input grid latitude name,  U-points
-      &    cv_lon_v     = 'glamv',   &   ! input grid longitude name, U-points
-      &    cv_lat_v     = 'gphiv',   &   ! input grid latitude name,  U-points
+      &    cv_glamt     = 'glamt',   &   ! input grid longitude name, T-points
+      &    cv_gphit     = 'gphit',   &   ! input grid latitude name,  T-points
+      &    cv_glamu     = 'glamu',   &   ! input grid longitude name, U-points
+      &    cv_gphiu     = 'gphiu',   &   ! input grid latitude name,  U-points
+      &    cv_glamv     = 'glamv',   &   ! input grid longitude name, U-points
+      &    cv_gphiv     = 'gphiv',   &   ! input grid latitude name,  U-points
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
    CHARACTER(len=3)    :: cdum
@@ -333,7 +327,7 @@ PROGRAM CORR_VECT
       CALL DIMS(cf_out_U, cv_out_U, ni1, nj1, nk1, Ntr1)
       CALL DIMS(cf_out_V, cv_out_V, ni2, nj2, nk2, Ntr2)
 
-      CALL DIMS(cf_mm, cv_lon_t, ni_g, nj_g, nk_g, Ntr)
+      CALL DIMS(cf_mm, cv_glamt, ni_g, nj_g, nk_g, Ntr)
 
       !! testing ni agreement :
       IF ( (ni1 /= ni2).or.(ni1 /= ni_g).or.(ni2 /= ni_g) ) THEN
@@ -411,12 +405,12 @@ PROGRAM CORR_VECT
       END IF
 
       !!  Getting longitude and latitude form grid file :
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_t, 1, 1, 1, xlon_t)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_t, 1, 1, 1, xlat_t)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_u, 1, 1, 1, xlon_u)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_u, 1, 1, 1, xlat_u)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_v, 1, 1, 1, xlon_v)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_v, 1, 1, 1, xlat_v)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlon_t)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xlat_t)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlon_u)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)
 
 
       PRINT *, ''
@@ -427,12 +421,13 @@ PROGRAM CORR_VECT
       IF ( iorca == 6 ) PRINT *, ' Grid is an ORCA grid with north-pole F-point folding!'
       PRINT *, ''
 
+
       !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
-      CALL angle_dist(xlon_t, xlat_t, xlon_u, xlat_u, XCOST8, XSINT8)
+      CALL ANGLE(xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, XCOST8, XSINT8)
 
-      !CALL PRTMASK(REAL(XCOST8,4), 'cos_angle.nc', 'cos',   xlon_t, xlat_t, cv_lon_t, cv_lat_t)
-      !CALL PRTMASK(REAL(XSINT8,4), 'sin_angle.nc', 'sin',   xlon_t, xlat_t, cv_lon_t, cv_lat_t)
-
+      !CALL PRTMASK(REAL(XCOST8,4), 'cos_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XSINT8,4), 'sin_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !STOP
 
       !!  Getting time from the u_raw file or the namelist :
       IF ( lct ) THEN       ! time is being controlled
@@ -459,6 +454,7 @@ PROGRAM CORR_VECT
          DO jk = 1, nk
 
             IF ( l_anlt ) THEN
+               !lolo: analytical field for debugging purposes...
                U_r8 = 1.
                V_r8 = 0.
             ELSE
@@ -482,8 +478,9 @@ PROGRAM CORR_VECT
          END DO ! jk
 
 
-         !! Interpolating of U on U-grid and V on V-grid:
+        
          IF ( cgrid_out == 'U' ) THEN
+            !! Interpolating of U on U-grid and V on V-grid:
             DO jk = 1, nk
                Uu_c(:ni-1,:,jk) = 0.5*(Ut_c(:ni-1,:,jk) + Ut_c(2:ni,:,jk))
                Vv_c(:,:nj-1,jk) = 0.5*(Vt_c(:,:nj-1,jk) + Vt_c(:,2:nj,jk))
@@ -501,8 +498,7 @@ PROGRAM CORR_VECT
                Uu_c(ni,:,jk) = Uu_c(ewper_out,:,jk)
             END DO
          END IF
-
-
+         
          IF ( lmout ) THEN
             IF ( cgrid_out == 'U' ) THEN
                WHERE ( mask_u == 0 ) Uu_c = rmaskvalue
@@ -514,7 +510,7 @@ PROGRAM CORR_VECT
          ELSE
             rmaskvalue = 0.
          END IF
-
+         
 
          IF ( i3d == 1 ) THEN
 
@@ -660,7 +656,7 @@ PROGRAM CORR_VECT
       CALL DIMS(cufilin, cv_rot_U, ni1, nj1, nk1, Ntr1)
       CALL DIMS(cvfilin, cv_rot_V, ni2, nj2, nk2, Ntr2)
 
-      CALL DIMS(cf_mm,   cv_lon_t, ni_g, nj_g, nk_g, Ntr)
+      CALL DIMS(cf_mm,   cv_glamt, ni_g, nj_g, nk_g, Ntr)
 
       !! testing ni agreement :
       IF ( (ni1 /= ni2).or.(ni1 /= ni_g).or.(ni2 /= ni_g) ) THEN
@@ -723,12 +719,12 @@ PROGRAM CORR_VECT
 
       !!  Getting longitude and latitude form grid file :
       !! ------------------------------------------------
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_t, 1, 1, 1, xlon_t)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_t, 1, 1, 1, xlat_t)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_u, 1, 1, 1, xlon_u)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_u, 1, 1, 1, xlat_u)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lon_v, 1, 1, 1, xlon_v)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_lat_v, 1, 1, 1, xlat_v)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlon_t)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xlat_t)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlon_u)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)  ; i0=0 ; j0=0
 
       IF ( l_3d_inv ) THEN
          ALLOCATE ( vdepth(nk) )
@@ -742,7 +738,7 @@ PROGRAM CORR_VECT
 
       !!  Getting cos and sin of the grid distorsion angle:
       !! --------------------------------------------------
-      CALL angle_dist(xlon_t, xlat_t, xlon_u, xlat_u, XCOST8, XSINT8)
+      CALL ANGLE(xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, XCOST8, XSINT8)
 
 
       !!  Getting time from the u_raw file or the namelist :
@@ -846,128 +842,6 @@ END PROGRAM CORR_VECT
 
 
 
-
-
-
-
-
-SUBROUTINE angle_dist(xlon_t, xlat_t, xlon_u, xlat_u, xcos_t, xsin_t)
-
-   !!========================================================================
-   !!
-   !!                     *******  ANGLE_DIST  *******
-   !!
-   !! Given the coordinates at T-points and U-points, this routine computes
-   !! sinus and cosinus of the angle of the local grid distorsion at T-points
-   !!
-   !!
-   !! INPUT :     - xlon_t = longitude array at T-points     [REAL]
-   !!             - xlat_t = latitude array at T-points      [REAL]
-   !!             - xlon_u = longitude array at U-points     [REAL]
-   !!             - xlat_t = latitude array at U-points      [REAL]
-   !!
-   !! OUTPUT :
-   !! --------    - xcos_t  = cosinus of the distortion angle [REAL]
-   !!             - xsin_t  = sininus of the distortion angle [REAL]
-   !!
-   !!
-   !! Author : Laurent Brodeau
-   !!          directly inspired from 'geo2ocean.F90' (NEMOGCM)
-   !!
-   !!========================================================================
-
-   IMPLICIT NONE
-
-   !! INPUT :
-   !! -------
-   REAL(8), DIMENSION(:,:), INTENT(in) ::    &
-      &       xlon_t, xlon_u,   &  ! latitudes  at point T and U
-      &       xlat_t, xlat_u       ! longitudes at point T and U
-
-   !! OUTPUT :
-   !! --------
-   REAL(8), DIMENSION(:,:), INTENT(out) :: xcos_t, xsin_t
-
-   !! LOCAL :
-   !! -------
-   INTEGER :: nx, ny, ji
-
-   REAL(8), DIMENSION(:), ALLOCATABLE :: &
-      &     zlon, zlat, zxnpt, znnpt, zlan, &
-      &     zphh, zxuut, zyuut, zmnput, zynpt, &
-      &     ztmp1, ztmp2
-
-   REAL(8), PARAMETER :: &
-      &       Pi  = 3.141592653,     &
-      &       rad = Pi/180.0
-
-   !! 2D domain shape:
-   nx = SIZE(xlon_t,1)
-   ny = SIZE(xlon_t,2)
-
-   ALLOCATE ( zlon(ny), zlat(ny), zxnpt(ny), znnpt(ny), zlan(ny), zphh(ny), &
-      &       zxuut(ny), zyuut(ny), zmnput(ny), zynpt(ny), ztmp1(ny), ztmp2(ny) )
-
-
-   DO ji = 1, nx
-
-      !! North pole direction & modulous (at T-point) :
-      zlon  = xlon_t(ji,:)
-      zlat  = xlat_t(ji,:)
-
-      ztmp1 = TAN(Pi/4. - rad*zlat/2.)
-      zxnpt = 0. - 2.*COS( rad*zlon )*ztmp1
-      zynpt = 0. - 2.*SIN( rad*zlon )*ztmp1
-      znnpt = zxnpt*zxnpt + zynpt*zynpt
-
-      !! "i" direction & modulous (at T-point) :
-      !! ---------------------------------------
-      !!   ( since we deal with T points we look at U point
-      !!     on a V point we would look at the F point )
-
-      zlon = xlon_u(ji,:)
-      zlat = xlat_u(ji,:)
-
-      IF ( ji == 1 ) THEN
-         zlan = xlon_u(nx-3,:)          !! periodicity of ORCA grid
-         zphh = xlat_u(nx-3,:)          !! with overlap of 2 points
-      ELSE
-         zlan = xlon_u(ji-1,:)
-         zphh = xlat_u(ji-1,:)
-      END IF
-
-      ztmp1 = TAN(Pi/4. - rad*zlat/2.)
-      ztmp2 = TAN(Pi/4. - rad*zphh/2.)
-      zxuut  = 2.*COS(rad*zlon)*ztmp1 - 2.*COS(rad*zlan)*ztmp2
-      zyuut  = 2.*SIN(rad*zlon)*ztmp1 - 2.*SIN(rad*zlan)*ztmp2
-      zmnput = SQRT(znnpt*(zxuut*zxuut + zyuut*zyuut))
-
-
-
-      !! Cosinus and sinus using scalar and vectorial products :
-      !! -------------------------------------------------------
-      !!   (caution, rotation of 90 degres)
-
-      !WHERE ( zmnput < 1.e-14 ) zmnput = 1.e-14
-      zmnput = MAX(zmnput, 1.e-14)
-      ztmp1 = 1./zmnput
-      xsin_t(ji,:) =  ( zxnpt*zxuut + zynpt*zyuut ) * ztmp1
-      xcos_t(ji,:) = -( zxnpt*zyuut - zynpt*zxuut ) * ztmp1
-
-   END DO
-
-
-   DEALLOCATE ( zlon, zlat, zxnpt, znnpt, zlan, zphh, &
-      &         zxuut, zyuut, zmnput, zynpt, ztmp1, ztmp2 )
-
-
-END SUBROUTINE angle_dist
-
-
-
-
-
-
 SUBROUTINE usage_corr_vect()
    !!
    PRINT *,''
@@ -1006,9 +880,6 @@ SUBROUTINE usage_corr_vect()
    PRINT *,''
    PRINT *,'  *** MISC options :'
    PRINT *,''
-   !PRINT *,' -p                   => Pack data (short 2-byte) in output netcdf file'
-   !PRINT *,'                         (default is float 4-byte)'
-   !PRINT *,''
    PRINT *,' -h                   => Show this message'
    PRINT *,''
    STOP
