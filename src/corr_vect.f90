@@ -4,7 +4,7 @@ PROGRAM CORR_VECT
    USE mod_init
    USE io_ezcdf
    USE mod_grids,  ONLY: IS_ORCA_NORTH_FOLD
-   USE mod_manip,  ONLY: ANGLE
+   USE mod_nemotools
 
    !!========================================================================
    !! Purpose :  correct vector components 'uraw' and 'vraw' directly
@@ -88,6 +88,8 @@ PROGRAM CORR_VECT
 
    REAL(4), PARAMETER :: zrmv = -9999.
 
+   REAL(8) :: rsgn
+   
    CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
       &            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
 
@@ -429,13 +431,13 @@ PROGRAM CORR_VECT
 
 
       !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
-      CALL ANGLE( xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+      CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
          &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
-      !CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
       !STOP
 
       !!  Getting time from the u_raw file or the namelist :
@@ -476,23 +478,32 @@ PROGRAM CORR_VECT
                V_r8 = Xdum4
             END IF
 
-
+            
+            rsgn = -1.
             IF ( cgrid_out == 'U' ) THEN
                !! U-V grid:
                !! Correcting U :
                Xdum8 = XCOSU8*U_r8 + XSINU8*V_r8  !lolo: no trcik here???
+               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'U', rsgn )              
                Uu_c(:,:,jk) = REAL(Xdum8 , 4)
+               !!
                !! Correcting V :
                Xdum8 = XCOSV8*V_r8 - XSINV8*U_r8  !lolo: no trcik here???
+               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'V', rsgn )               
                Vv_c(:,:,jk) = REAL(Xdum8 , 4)
+               !!
             ELSE
                !! T grid:
                !! Correcting U (i-component to east) :
                Xdum8 = XCOST8*U_r8 + XSINT8*V_r8
-               Ut_c(:,:,jk) = REAL(Xdum8 , 4)               
+               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'T', rsgn )               
+               Ut_c(:,:,jk) = REAL(Xdum8 , 4)
+               !!
                !! Correcting V (j-component to north):
                Xdum8 = XCOST8*V_r8 - XSINT8*U_r8
+               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'T', rsgn )               
                Vt_c(:,:,jk) = REAL(Xdum8 , 4)
+               !!
             END IF
 
          END DO ! jk
@@ -736,7 +747,7 @@ PROGRAM CORR_VECT
 
       !!  Getting cos and sin of the grid distorsion angle:
       !! --------------------------------------------------
-      CALL ANGLE( xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+      CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
          &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
 

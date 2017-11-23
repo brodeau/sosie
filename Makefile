@@ -33,7 +33,8 @@ OBJ = obj/io_ezcdf.o \
       obj/mod_akima_2d.o \
       obj/mod_bilin_2d.o \
       obj/mod_akima_1d.o \
-      obj/mod_interp.o
+      obj/mod_interp.o \
+      obj/mod_nemotools.o
 
 
 # Modules to install in $INSTALL_DIR/include :
@@ -107,6 +108,9 @@ obj/mod_bilin_2d.o: src/mod_bilin_2d.f90 obj/io_ezcdf.o
 
 obj/mod_akima_1d.o: src/mod_akima_1d.f90
 	$(FC) $(FF) -c src/mod_akima_1d.f90 -o obj/mod_akima_1d.o
+
+obj/mod_nemotools.o: src/mod_nemotools.f90
+	$(FC) $(FF) -c src/mod_nemotools.f90 -o obj/mod_nemotools.o
 
 
 
