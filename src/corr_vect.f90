@@ -30,10 +30,13 @@ PROGRAM CORR_VECT
       &    cv_gphif     = 'gphif',   &   ! input grid latitude name,  F-points
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
+
+   CHARACTER(LEN=400)  :: cextra_x, cextra_y 
+   
    CHARACTER(len=3)    :: cdum
    CHARACTER(len=1)    :: cgrid_out='0', cgrid
    CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
-   CHARACTER(len=800)  :: cr, cf_mm
+   CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
 
    CHARACTER(len=80) :: &
       &    cv_out_U    = 'uraw',   &   ! raw U name
@@ -84,14 +87,16 @@ PROGRAM CORR_VECT
       &    l_inv = .FALSE.,   &
       &    l_anlt = .FALSE.,  & ! analytic input field (U=1, V=0) DEBUG...
       &    l_3d_inv = .FALSE., &   !: will treat 3d files in inverse mode...
+      &    lmout_x, lmout_y, &
       &    lexist !,  &
-
+   
    REAL(4), PARAMETER :: zrmv = -9999.
 
    REAL(8) :: rsgn
    
-   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
-      &            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
+   CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
+      &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-t','-1' /)
+      !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -127,30 +132,30 @@ PROGRAM CORR_VECT
          l_inv = .TRUE.
          !!
          !!
-      CASE('-x')
-         IF ( jarg + 1 > iargc() ) THEN
-            PRINT *, 'ERROR: Missing zonal component name!' ; call usage_corr_vect()
-         ELSE
-            jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-            IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: Missing zonal component name!'; call usage_corr_vect()
-            ELSE
-               cv_rot_U = trim(cr)
-            END IF
-         END IF
+      !CASE('-x')
+      !   IF ( jarg + 1 > iargc() ) THEN
+      !      PRINT *, 'ERROR: Missing zonal component name!' ; call usage_corr_vect()
+      !   ELSE
+      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+      !         PRINT *, 'ERROR: Missing zonal component name!'; call usage_corr_vect()
+      !      ELSE
+      !         cv_rot_U = trim(cr)
+      !      END IF
+      !   END IF
          !!
          !!
-      CASE('-y')
-         IF ( jarg + 1 > iargc() ) THEN
-            PRINT *, 'ERROR: Missing meridional component name!' ; call usage_corr_vect()
-         ELSE
-            jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-            IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: Missing meridional component name!'; call usage_corr_vect()
-            ELSE
-               cv_rot_V = trim(cr)
-            END IF
-         END IF
+      !CASE('-y')
+      !   IF ( jarg + 1 > iargc() ) THEN
+      !      PRINT *, 'ERROR: Missing meridional component name!' ; call usage_corr_vect()
+      !   ELSE
+      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+      !         PRINT *, 'ERROR: Missing meridional component name!'; call usage_corr_vect()
+      !      ELSE
+      !         cv_rot_V = trim(cr)
+      !      END IF
+      !   END IF
          !!
       CASE('-f')
          IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
@@ -251,26 +256,23 @@ PROGRAM CORR_VECT
 
    IF ( l_inv ) THEN
       PRINT *, ' * Vector files to unrotate = ', trim(cufilin), ' , ', trim(cvfilin)
-      PRINT *, '   => associated variable names = ', trim(cv_rot_U), ' , ', trim(cv_rot_V)
+      !PRINT *, '   => associated variable names = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
       IF ( trim(cv_time_0) == 'none' ) THEN
          PRINT *, 'ERROR: you must specify the name of time variable with the "-t" switch!'; STOP
       END IF
       PRINT *, '   => time variable name = ', trim(cv_time_0)
-   ELSE
-
-      PRINT *, ' * Name for corrected vector components = ', trim(cv_rot_U), ' , ', trim(cv_rot_V)
+   !ELSE
+      !PRINT *, ' * Name for corrected vector components = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
    END IF
 
    !PRINT *, ' * Packing output : ', lpack
-   PRINT *, ' * mesh_mask file to use = ', trim(cf_mm)
-   PRINT *, ' * namelist = ', trim(cf_nml_sosie)
+   PRINT *, ' * mesh_mask file to use = ', TRIM(cf_mm)
+
+   cnmlst_x = TRIM(cf_nml_sosie)//'_x'
+   cnmlst_y = TRIM(cf_nml_sosie)//'_y'
+   
+   PRINT *, ' * namelists we expect => ', TRIM(cnmlst_x)//' and '//TRIM(cnmlst_y)
    PRINT *, ''
-
-
-
-
-
-
 
 
    INQUIRE(FILE=trim(cf_mm), EXIST=lexist )
@@ -285,15 +287,37 @@ PROGRAM CORR_VECT
 
       !! !!     N O R M A L   C O R R E C T I O N
 
-      !! We need the namelist of U or V in that case:
-      INQUIRE(FILE=trim(cf_nml_sosie), EXIST=lexist )
+      !! Namelist of X component:
+      INQUIRE(FILE=TRIM(cnmlst_x), EXIST=lexist )
       IF ( .NOT. lexist ) THEN
-         WRITE(*,'("The namelist file ",a," file was not found!")') trim(cf_nml_sosie)
+         WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_x)
          CALL usage_corr_vect()
       END IF
       PRINT *, ''
+      cf_nml_sosie = TRIM(cnmlst_x)
       CALL READ_NMLST(2)
+      lmout_x  = lmout
+      cv_rot_U = cv_out
+      cextra_x = cextra
 
+      
+      !! Namelist of Y component:
+      INQUIRE(FILE=TRIM(cnmlst_y), EXIST=lexist )
+      IF ( .NOT. lexist ) THEN
+         WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_y)
+         CALL usage_corr_vect()
+      END IF
+      PRINT *, ''
+      cf_nml_sosie = TRIM(cnmlst_y)
+      CALL READ_NMLST(2)
+      lmout_y  = lmout
+      cv_rot_V = cv_out
+      cextra_y = cextra
+
+
+      !lolo
+
+      
 
       IF ( lregout ) THEN
          PRINT *, 'Vector correction only makes sense if your target grid is distorded!'
@@ -304,19 +328,19 @@ PROGRAM CORR_VECT
       IF ( lpcknc4 ) cfext='nc4'
 
       cf_out_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
+         &   //trim(ctarget)//'_'//trim(cextra_x)//'.'//trim(cfext)
       cf_out_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
+         &   //trim(ctarget)//'_'//trim(cextra_y)//'.'//trim(cfext)
 
       PRINT *, 'The two input pre-interpolated needed files are :'
       PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ;
       
       cufilout = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
-         &   //TRIM(ctarget)//'_'//TRIM(cextra)//'_grid_'//TRIM(cgrid_out)//'.'//TRIM(cfext)
+         &   //TRIM(ctarget)//'_'//TRIM(cextra_x)//'_grid_'//TRIM(cgrid_out)//'.'//TRIM(cfext)
       cgrid='T'
       IF ( cgrid_out == 'U' ) cgrid='V'
       cvfilout = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
-         &   //TRIM(ctarget)//'_'//TRIM(cextra)//'_grid_'//TRIM(cgrid)//'.'//TRIM(cfext)
+         &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'_grid_'//TRIM(cgrid)//'.'//TRIM(cfext)
       
       PRINT *, '' ;   PRINT *, 'output files :'
       PRINT *, trim(cufilout) ;   PRINT *, trim(cvfilout) ; PRINT *, '' ; PRINT *, ''
@@ -434,10 +458,10 @@ PROGRAM CORR_VECT
       CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
          &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
-      CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
       !STOP
 
       !!  Getting time from the u_raw file or the namelist :
@@ -509,7 +533,7 @@ PROGRAM CORR_VECT
          END DO ! jk
 
          
-         IF ( lmout ) THEN
+         IF ( lmout_x .AND. lmout_y ) THEN
             IF ( cgrid_out == 'U' ) THEN
                WHERE ( mask_u == 0 ) Uu_c = rmaskvalue
                WHERE ( mask_v == 0 ) Vv_c = rmaskvalue
@@ -863,12 +887,12 @@ SUBROUTINE usage_corr_vect()
    PRINT *,''
    PRINT *,'  *** MANDATORY for both normal and inverse mode:'
    PRINT *,''
-   PRINT *,' -x  <name U>         => Specify name for x comp. in output file'
-   PRINT *,'                         (or input file if inverse mode)'
-   PRINT *,''
-   PRINT *,' -y  <name V>         => Specify name for y comp. in output file'
-   PRINT *,'                         (or input file if inverse mode)'
-   PRINT *,''
+   !PRINT *,' -x  <name U>         => Specify name for x comp. in output file'
+   !PRINT *,'                         (or input file if inverse mode)'
+   !PRINT *,''
+   !PRINT *,' -y  <name V>         => Specify name for y comp. in output file'
+   !PRINT *,'                         (or input file if inverse mode)'
+   !PRINT *,''
    PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
    PRINT *,''
    PRINT *,''
