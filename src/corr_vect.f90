@@ -501,6 +501,8 @@ PROGRAM CORR_VECT
             END IF
 
             
+            IF ( iorca > 0 ) PRINT *, '   *** goona "lbc_lnk_2d" with iorca =', iorca
+            
             rsgn = -1.
             IF ( cgrid_out == 'U' ) THEN
                !! U-V grid:
