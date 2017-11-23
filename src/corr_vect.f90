@@ -24,12 +24,14 @@ PROGRAM CORR_VECT
       &    cv_gphit     = 'gphit',   &   ! input grid latitude name,  T-points
       &    cv_glamu     = 'glamu',   &   ! input grid longitude name, U-points
       &    cv_gphiu     = 'gphiu',   &   ! input grid latitude name,  U-points
-      &    cv_glamv     = 'glamv',   &   ! input grid longitude name, U-points
-      &    cv_gphiv     = 'gphiv',   &   ! input grid latitude name,  U-points
+      &    cv_glamv     = 'glamv',   &   ! input grid longitude name, V-points
+      &    cv_gphiv     = 'gphiv',   &   ! input grid latitude name,  V-points
+      &    cv_glamf     = 'glamf',   &   ! input grid longitude name, F-points
+      &    cv_gphif     = 'gphif',   &   ! input grid latitude name,  F-points
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
    CHARACTER(len=3)    :: cdum
-   CHARACTER(len=1)    :: cgrid_out='0'
+   CHARACTER(len=1)    :: cgrid_out='0', cgrid
    CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
    CHARACTER(len=800)  :: cr, cf_mm
 
@@ -63,14 +65,15 @@ PROGRAM CORR_VECT
 
    INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: XCOST, XSINT, U_r, V_r
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: Xdum4
 
 
    REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: Ut_c, Vt_c, Uu_c, Vv_c
 
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::      &
-      &    XCOST8, XSINT8, U_r8, V_r8,  Xdum, &
-      &    xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v
+      &    XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8, &
+      &    U_r8, V_r8,  Xdum8, &
+      &    xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f
 
    REAL(8), DIMENSION(:), ALLOCATABLE ::   vtime, vdepth
 
@@ -305,12 +308,14 @@ PROGRAM CORR_VECT
 
       PRINT *, 'The two input pre-interpolated needed files are :'
       PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ;
-
-      cufilout = trim(cd_out)//'/'//trim(cv_rot_U)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
-      cvfilout = trim(cd_out)//'/'//trim(cv_rot_V)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
-
+      
+      cufilout = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
+         &   //TRIM(ctarget)//'_'//TRIM(cextra)//'_grid_'//TRIM(cgrid_out)//'.'//TRIM(cfext)
+      cgrid='T'
+      IF ( cgrid_out == 'U' ) cgrid='V'
+      cvfilout = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
+         &   //TRIM(ctarget)//'_'//TRIM(cextra)//'_grid_'//TRIM(cgrid)//'.'//TRIM(cfext)
+      
       PRINT *, '' ;   PRINT *, 'output files :'
       PRINT *, trim(cufilout) ;   PRINT *, trim(cvfilout) ; PRINT *, '' ; PRINT *, ''
 
@@ -373,17 +378,16 @@ PROGRAM CORR_VECT
 
 
       !! Allocations :
-      ALLOCATE (XCOST(ni,nj) , XSINT(ni,nj) , U_r(ni,nj) , V_r(ni,nj) ,  &
+      ALLOCATE ( Xdum4(ni,nj) ,  &
          &    Ut_c(ni,nj,nk) , Vt_c(ni,nj,nk), mask_t(ni,nj,nk), &
-         &    xlon_t(ni,nj)  , xlat_t(ni,nj), Xdum(ni,nj), &
-         &    xlon_u(ni,nj)  , xlat_u(ni,nj) , xlon_v(ni,nj)  , xlat_v(ni,nj) ,  &
+         &    xlon_t(ni,nj)  , xlat_t(ni,nj), Xdum8(ni,nj), &
+         &    xlon_u(ni,nj)  , xlat_u(ni,nj) , xlon_v(ni,nj)  , xlat_v(ni,nj) , &
+         &    xlon_f(ni,nj) , xlat_f(ni,nj), &
          &    vtime(Ntr)   )
       IF ( cgrid_out == 'U' ) ALLOCATE ( Uu_c(ni,nj,nk) , Vv_c(ni,nj,nk) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
-      ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
 
-      XCOST = 0. ; XSINT = 0. ; U_r    = 0. ; V_r = 0. ; Ut_c = 0. ; Vt_c = 0.
-      xlon_t  = 0. ; xlat_t  = 0. ; xlon_u  = 0. ; xlat_u  = 0. ; xlon_v  = 0. ; xlat_v  = 0.
-      vtime  = 0.
+      ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , XCOSU8(ni,nj) , XSINU8(ni,nj) , XCOSV8(ni,nj) , XSINV8(ni,nj) , &
+         &      XCOSF8(ni,nj) , XSINF8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
 
 
       IF ( i3d == 1 ) THEN
@@ -411,6 +415,8 @@ PROGRAM CORR_VECT
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlon_f)
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)
 
 
       PRINT *, ''
@@ -423,10 +429,13 @@ PROGRAM CORR_VECT
 
 
       !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
-      CALL ANGLE(xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, XCOST8, XSINT8)
+      CALL ANGLE( xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+         &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
-      !CALL PRTMASK(REAL(XCOST8,4), 'cos_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !CALL PRTMASK(REAL(XSINT8,4), 'sin_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
+      !CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
       !STOP
 
       !!  Getting time from the u_raw file or the namelist :
@@ -459,45 +468,35 @@ PROGRAM CORR_VECT
                V_r8 = 0.
             ELSE
                !! Getting uncorrected U on grid T:
-               CALL  GETVAR_2D(idf_u, idv_u, cf_out_U, cv_out_U, Ntr, jk*i3d, jt, U_r, lz=nk)
+               CALL  GETVAR_2D(idf_u, idv_u, cf_out_U, cv_out_U, Ntr, jk*i3d, jt, Xdum4, lz=nk)
+               U_r8 = Xdum4
 
                !! Getting uncorrected V on grid T:
-               CALL  GETVAR_2D(idf_v, idv_v, cf_out_V, cv_out_V, Ntr, jk*i3d, jt, V_r, lz=nk)
-
-               U_r8 = U_r ; V_r8 = V_r
+               CALL  GETVAR_2D(idf_v, idv_v, cf_out_V, cv_out_V, Ntr, jk*i3d, jt, Xdum4, lz=nk)
+               V_r8 = Xdum4
             END IF
 
-            !! Correcting U :
-            Xdum = XCOST8*U_r8 + XSINT8*V_r8
-            Ut_c(:,:,jk) = REAL(Xdum , 4)
 
-            !! Correcting V :
-            Xdum = XCOST8*V_r8 - XSINT8*U_r8
-            Vt_c(:,:,jk) = REAL(Xdum , 4)
+            IF ( cgrid_out == 'U' ) THEN
+               !! U-V grid:
+               !! Correcting U :
+               Xdum8 = XCOSU8*U_r8 + XSINU8*V_r8  !lolo: no trcik here???
+               Uu_c(:,:,jk) = REAL(Xdum8 , 4)
+               !! Correcting V :
+               Xdum8 = XCOSV8*V_r8 - XSINV8*U_r8  !lolo: no trcik here???
+               Vv_c(:,:,jk) = REAL(Xdum8 , 4)
+            ELSE
+               !! T grid:
+               !! Correcting U (i-component to east) :
+               Xdum8 = XCOST8*U_r8 + XSINT8*V_r8
+               Ut_c(:,:,jk) = REAL(Xdum8 , 4)               
+               !! Correcting V (j-component to north):
+               Xdum8 = XCOST8*V_r8 - XSINT8*U_r8
+               Vt_c(:,:,jk) = REAL(Xdum8 , 4)
+            END IF
 
          END DO ! jk
 
-
-        
-         IF ( cgrid_out == 'U' ) THEN
-            !! Interpolating of U on U-grid and V on V-grid:
-            DO jk = 1, nk
-               Uu_c(:ni-1,:,jk) = 0.5*(Ut_c(:ni-1,:,jk) + Ut_c(2:ni,:,jk))
-               Vv_c(:,:nj-1,jk) = 0.5*(Vt_c(:,:nj-1,jk) + Vt_c(:,2:nj,jk))
-               !! Fixing last upper row:
-               IF ( iorca == 6 ) THEN
-                  Vv_c(2:ni/2           ,nj,jk) = -1.*Vv_c(ni-1:ni-ni/2+1:-1,nj-1,jk) ; ! -1 because must change sign!
-                  Vv_c(ni-1:ni-ni/2+1:-1,nj,jk) = -1.*Vv_c(2:ni/2,           nj-1,jk)
-               END IF
-               IF ( iorca == 4 ) THEN
-                  Vv_c(2:ni/2,         nj,jk) = -1.*Vv_c(ni:ni-ni/2-2:-1,nj-2,jk)
-                  Vv_c(ni:ni-ni/2-2:-1,nj,jk) = -1.*Vv_c(2:ni/2,         nj-2,jk)
-               END IF
-               !! Fixing last rhs column (east-west:
-               PRINT *, ' *** using east-west periodicity of:', ewper_out
-               Uu_c(ni,:,jk) = Uu_c(ewper_out,:,jk)
-            END DO
-         END IF
          
          IF ( lmout ) THEN
             IF ( cgrid_out == 'U' ) THEN
@@ -510,7 +509,7 @@ PROGRAM CORR_VECT
          ELSE
             rmaskvalue = 0.
          END IF
-         
+
 
          IF ( i3d == 1 ) THEN
 
@@ -705,16 +704,13 @@ PROGRAM CORR_VECT
 
       !! Allocations :
       !! -------------
-      ALLOCATE (XCOST(ni,nj) , XSINT(ni,nj) , U_r(ni,nj) , V_r(ni,nj) ,  &
+      ALLOCATE (Xdum4(ni,nj) , &
          &     Ut_c(ni,nj,nk) , Vt_c(ni,nj,nk),                              &
-         &     xlon_t(ni,nj)  , xlat_t(ni,nj)  , xlon_u(ni,nj) ,  xlat_u(ni,nj), xlon_v(ni,nj) ,  xlat_v(ni,nj) , &
-         &     vtime(Ntr) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
+         &     xlon_t(ni,nj) , xlat_t(ni,nj) , xlon_u(ni,nj) , xlat_u(ni,nj), xlon_v(ni,nj) , xlat_v(ni,nj) , &
+         &     xlon_f(ni,nj) , xlat_f(ni,nj) , vtime(Ntr) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
       !!
-      ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
-
-      XCOST = 0. ; XSINT = 0. ; U_r    = 0. ; V_r = 0. ; Ut_c = 0. ; Vt_c = 0.
-      xlon_t  = 0. ; xlat_t  = 0. ; xlon_u  = 0. ; xlat_u  = 0. ; xlon_v  = 0. ; xlat_v  = 0.
-      vtime  = 0.
+      ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , XCOSU8(ni,nj) , XSINU8(ni,nj) , XCOSV8(ni,nj) , XSINV8(ni,nj) , &
+         &      XCOSF8(ni,nj) , XSINF8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
 
 
       !!  Getting longitude and latitude form grid file :
@@ -725,6 +721,8 @@ PROGRAM CORR_VECT
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)  ; i0=0 ; j0=0
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)  ; i0=0 ; j0=0
       CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlon_f)  ; i0=0 ; j0=0
+      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)  ; i0=0 ; j0=0
 
       IF ( l_3d_inv ) THEN
          ALLOCATE ( vdepth(nk) )
@@ -738,7 +736,9 @@ PROGRAM CORR_VECT
 
       !!  Getting cos and sin of the grid distorsion angle:
       !! --------------------------------------------------
-      CALL ANGLE(xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, XCOST8, XSINT8)
+      CALL ANGLE( xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+         &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
+
 
 
       !!  Getting time from the u_raw file or the namelist :
@@ -776,13 +776,13 @@ PROGRAM CORR_VECT
 
             !! Getting U :
             !! -----------
-            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_rot_U, Ntr, jk*i3d, jt, U_r, lz=nk)
+            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_rot_U, Ntr, jk*i3d, jt, Xdum4, lz=nk)
+            U_r8 = Xdum4
 
             !! Getting V :
             !! -----------
-            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_rot_V, Ntr, jk*i3d, jt, V_r, lz=nk)
-
-            U_r8 = U_r ; V_r8 = V_r
+            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_rot_V, Ntr, jk*i3d, jt, Xdum4, lz=nk)
+            V_r8 = Xdum4
 
 
             !! Unrotating U :
