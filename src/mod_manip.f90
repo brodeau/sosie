@@ -11,7 +11,7 @@ MODULE MOD_MANIP
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, test_xyz, partial_deriv, &
       &      flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
-      &      distance, find_nearest_point
+      &      distance, find_nearest_point, angle
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
@@ -806,7 +806,7 @@ CONTAINS
          jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in))
          j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
          j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
-         
+
          IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
 
          IF (ldebug) THEN
@@ -816,7 +816,7 @@ CONTAINS
          !PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
       END IF ! IF ( l_is_reg_out )
 
-      
+
       !! Backround value to spot non-treated regions
       JIpos(:,:) = INT(rflg)
       JJpos(:,:) = INT(rflg)
@@ -1308,5 +1308,183 @@ CONTAINS
       END IF
 
    END FUNCTION L_IS_GRID_REGULAR
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   SUBROUTINE angle(glamt, gphit, glamu, gphiu, glamv, gphiv,  gcost, gsint)
+
+      !!========================================================================
+      !!
+      !!                     *******  ANGLE  *******
+      !!
+      !! Given the coordinates at T-points and U-points, this routine computes
+      !! sinus and cosinus of the angle of the local grid distorsion at T-points
+      !!
+      !!
+      !! INPUT :     - glamt = longitude array at T-points     [REAL]
+      !!             - gphit = latitude array at T-points      [REAL]
+      !!             - glamu = longitude array at U-points     [REAL]
+      !!             - gphiu = latitude array at U-points      [REAL]
+      !!             - glamv = longitude array at V-points     [REAL]
+      !!             - gphiv = latitude array at V-points      [REAL]
+      !!
+      !! OUTPUT :
+      !! --------    - gcost  = cosinus of the distortion angle at T-points  [REAL]
+      !!             - gsint  = sininus of the distortion angle at T-points  [REAL]
+      !!
+      !!
+      !! Author : Laurent Brodeau
+      !!           => adapted 'geo2ocean.F90' (NEMOGCM)
+      !!
+      !!========================================================================
+
+      IMPLICIT NONE
+
+      !! INPUT :
+      !! -------
+      REAL(8), DIMENSION(:,:), INTENT(in) ::    &
+         &       glamt, gphit, &
+         &       glamu, gphiu, &
+         &       glamv, gphiv
+
+      !! OUTPUT :
+      !! --------
+      REAL(8), DIMENSION(:,:), INTENT(out) :: gcost, gsint
+
+      !! LOCAL :
+      !! -------
+      INTEGER :: nx, ny, ji, jj
+
+      REAL(8) :: zlam, zphi
+
+      !   REAL(8), DIMENzyuutION(:), ALLOCATABLE :: &
+      REAL(8) :: &
+         &     zxnpt, znnpt, zlan, &
+         &     zxvvt, zyvvt, znvvt, &
+         &     zphh, zynpt
+
+      REAL(8), PARAMETER :: &
+         &       rPi = 3.141592653,     &
+         &       rad = rPi/180.0
+
+      !! 2D domain shape:
+      nx = SIZE(glamt,1)
+      ny = SIZE(glamt,2)
+
+      DO jj = 1, ny
+         DO ji = 1, nx
+
+            zlam = glamt(ji,jj)     ! north pole direction & modulous (at t-point)
+            zphi = gphit(ji,jj)
+            zxnpt = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            zynpt = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            znnpt = zxnpt*zxnpt + zynpt*zynpt
+            !
+            !zlam = glamu(ji,jj)     ! north pole direction & modulous (at u-point)
+            !zphi = gphiu(ji,jj)
+            !zxnpu = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            !zynpu = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            !znnpu = zxnpu*zxnpu + zynpu*zynpu
+            !
+            !zlam = glamv(ji,jj)     ! north pole direction & modulous (at v-point)
+            !zphi = gphiv(ji,jj)
+            !zxnpv = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            !zynpv = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            !znnpv = zxnpv*zxnpv + zynpv*zynpv
+            !
+            !zlam = glamf(ji,jj)     ! north pole direction & modulous (at f-point)
+            !zphi = gphif(ji,jj)
+            !zxnpf = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            !zynpf = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            !znnpf = zxnpf*zxnpf + zynpf*zynpf
+            !
+            zlam = glamv(ji,jj  )   ! j-direction: v-point segment direction (around t-point)
+            zphi = gphiv(ji,jj  )
+            zlan = glamv(ji,jj-1)
+            zphh = gphiv(ji,jj-1)
+            zxvvt =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+               &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            zyvvt =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+               &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            znvvt = SQRT( znnpt * ( zxvvt*zxvvt + zyvvt*zyvvt )  )
+            znvvt = MAX( znvvt, 1.e-14 )
+            !
+            !zlam = glamf(ji,jj  )   ! j-direction: f-point segment direction (around u-point)
+            !zphi = gphif(ji,jj  )
+            !zlan = glamf(ji,jj-1)
+            !zphh = gphif(ji,jj-1)
+            !zxffu =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+            !   &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            !zyffu =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+            !   &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            !znffu = SQRT( znnpu * ( zxffu*zxffu + zyffu*zyffu )  )
+            !znffu = MAX( znffu, 1.e-14 )
+            !
+            !zlam = glamf(ji  ,jj)   ! i-direction: f-point segment direction (around v-point)
+            !zphi = gphif(ji  ,jj)
+            !zlan = glamf(ji-1,jj)
+            !zphh = gphif(ji-1,jj)
+            !zxffv =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+            !   &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            !zyffv =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+            !   &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            !znffv = SQRT( znnpv * ( zxffv*zxffv + zyffv*zyffv )  )
+            !znffv = MAX( znffv, 1.e-14 )
+            !
+            !zlam = glamu(ji,jj+1)   ! j-direction: u-point segment direction (around f-point)
+            !zphi = gphiu(ji,jj+1)
+            !zlan = glamu(ji,jj  )
+            !zphh = gphiu(ji,jj  )
+            !zxuuf =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+            !   &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            !zyuuf =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
+            !   &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            !znuuf = SQRT( znnpf * ( zxuuf*zxuuf + zyuuf*zyuuf )  )
+            !znuuf = MAX( znuuf, 1.e-14 )
+            !
+            !                       ! cosinus and sinus using dot and cross products
+
+            gsint(ji,jj) = ( zxnpt*zyvvt - zynpt*zxvvt ) / znvvt
+            gcost(ji,jj) = ( zxnpt*zxvvt + zynpt*zyvvt ) / znvvt
+
+         END DO
+      END DO
+
+
+      DO jj = 1, ny
+         DO ji = 1, nx
+            IF( MOD( ABS( glamv(ji,jj) - glamv(ji,jj-1) ), 360. ) < 1.e-8 ) THEN
+               gsint(ji,jj) = 0.
+               gcost(ji,jj) = 1.
+            ENDIF
+            !IF( MOD( ABS( glamf(ji,jj) - glamf(ji,jj-1) ), 360. ) < 1.e-8 ) THEN
+            !   gsinu(ji,jj) = 0.
+            !   gcosu(ji,jj) = 1.
+            !ENDIF
+            !IF(      ABS( gphif(ji,jj) - gphif(ji-1,jj) )         < 1.e-8 ) THEN
+            !   gsinv(ji,jj) = 0.
+            !   gcosv(ji,jj) = 1.
+            !ENDIF
+            !IF( MOD( ABS( glamu(ji,jj) - glamu(ji,jj+1) ), 360. ) < 1.e-8 ) THEN
+            !   gsinf(ji,jj) = 0.
+            !   gcosf(ji,jj) = 1.
+            !ENDIF
+         END DO
+      END DO
+
+   END SUBROUTINE angle
+
+
 
 END MODULE MOD_MANIP
