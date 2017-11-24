@@ -45,6 +45,8 @@ MOD_INST= mod/io_ezcdf.mod \
 
 all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x
 
+test: bin/test_stuffs.x
+
 #bin/interp_to_line.x
 
 bin/sosie.x: src/sosie.f90 $(LIB_SOSIE)
@@ -53,6 +55,9 @@ bin/sosie.x: src/sosie.f90 $(LIB_SOSIE)
 
 bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/corr_vect.f90 -o bin/corr_vect.x $(LIB)
+
+bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
+	$(FC) $(FF) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
 
 bin/interp_to_line.x: src/interp_to_line.f90 obj/mod_conf.o $(LIB_SOSIE)
 	$(FC) $(FF) obj/mod_conf.o src/interp_to_line.f90 -o bin/interp_to_line.x $(LIB)
@@ -126,7 +131,7 @@ install: all
 
 
 uninstall:
-	rm -f $(INSTALL_DIR)/bin/sosie.x $(INSTALL_DIR)/bin/corr_vect.x
+	rm -f $(INSTALL_DIR)/bin/*.x
 	rm -f $(INSTALL_DIR)/bin/interp_to_line.x $(INSTALL_DIR)/bin/proj_vect_to_line.x
 	rm -f $(INSTALL_DIR)/lib/$(LIB_SOSIE) $(INSTALL_DIR)/bin/apply_zon_corr.x
 	rm -f $(INSTALL_DIR)/include/io_ezcdf.mod
