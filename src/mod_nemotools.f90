@@ -29,6 +29,10 @@ MODULE mod_nemotools
    IMPLICIT NONE
    PRIVATE
 
+   REAL(8), PARAMETER, PUBLIC :: &
+      &       rPi0 = 3.141592653,     &
+      &       rad0 = rPi0/180.0
+
    TYPE arrayptr
       REAL , DIMENSION (:,:),  POINTER :: pt2d
    END TYPE arrayptr
@@ -184,9 +188,9 @@ CONTAINS
 
       
       ijpjm1 = ijpj-1
-
       
-      !! ORCA2 => npolj = 2
+      !! ORCA2 => npolj => 4
+      !! ORCA1 => npolj => 6
 
       SELECT CASE ( npolj )
          !
@@ -412,7 +416,7 @@ CONTAINS
       !! -------
       INTEGER :: nx, ny, ji, jj
 
-      REAL(8) :: zlam, zphi, rsgn
+      REAL(8) :: zlam, zphi
 
       !   REAL(8), DIMENzyuutION(:), ALLOCATABLE :: &
       REAL(8) :: &
@@ -421,9 +425,6 @@ CONTAINS
          &     zynpu, zynpv, zxffu, zyffu, zyffv, zxuuf, zyuuf, zxffv, &
          &     zphh, zynpt, zxnpf, zynpf
 
-      REAL(8), PARAMETER :: &
-         &       rPi = 3.141592653,     &
-         &       rad = rPi/180.0
 
       !! 2D domain shape:
       nx = SIZE(glamt,1)
@@ -434,36 +435,36 @@ CONTAINS
 
             zlam = glamt(ji,jj)     ! north pole direction & modulous (at t-point)
             zphi = gphit(ji,jj)
-            zxnpt = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
-            zynpt = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            zxnpt = 0. - 2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
+            zynpt = 0. - 2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
             znnpt = zxnpt*zxnpt + zynpt*zynpt
             !
             zlam = glamu(ji,jj)     ! north pole direction & modulous (at u-point)
             zphi = gphiu(ji,jj)
-            zxnpu = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
-            zynpu = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            zxnpu = 0. - 2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
+            zynpu = 0. - 2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
             znnpu = zxnpu*zxnpu + zynpu*zynpu
 
             zlam = glamv(ji,jj)     ! north pole direction & modulous (at v-point)
             zphi = gphiv(ji,jj)
-            zxnpv = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
-            zynpv = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            zxnpv = 0. - 2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
+            zynpv = 0. - 2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
             znnpv = zxnpv*zxnpv + zynpv*zynpv
 
             zlam = glamf(ji,jj)     ! north pole direction & modulous (at f-point)
             zphi = gphif(ji,jj)
-            zxnpf = 0. - 2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
-            zynpf = 0. - 2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )
+            zxnpf = 0. - 2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
+            zynpf = 0. - 2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )
             znnpf = zxnpf*zxnpf + zynpf*zynpf
             !
             zlam = glamv(ji,jj  )   ! j-direction: v-point segment direction (around t-point)
             zphi = gphiv(ji,jj  )
             zlan = glamv(ji,jj-1)
             zphh = gphiv(ji,jj-1)
-            zxvvt =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
-            zyvvt =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            zxvvt =  2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * COS( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
+            zyvvt =  2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * SIN( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
             znvvt = SQRT( znnpt * ( zxvvt*zxvvt + zyvvt*zyvvt )  )
             znvvt = MAX( znvvt, 1.e-14 )
 
@@ -471,10 +472,10 @@ CONTAINS
             zphi = gphif(ji,jj  )
             zlan = glamf(ji,jj-1)
             zphh = gphif(ji,jj-1)
-            zxffu =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
-            zyffu =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            zxffu =  2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * COS( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
+            zyffu =  2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * SIN( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
             znffu = SQRT( znnpu * ( zxffu*zxffu + zyffu*zyffu )  )
             znffu = MAX( znffu, 1.e-14 )
 
@@ -482,10 +483,10 @@ CONTAINS
             zphi = gphif(ji  ,jj)
             zlan = glamf(ji-1,jj)
             zphh = gphif(ji-1,jj)
-            zxffv =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
-            zyffv =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            zxffv =  2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * COS( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
+            zyffv =  2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * SIN( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
             znffv = SQRT( znnpv * ( zxffv*zxffv + zyffv*zyffv )  )
             znffv = MAX( znffv, 1.e-14 )
 
@@ -493,10 +494,10 @@ CONTAINS
             zphi = gphiu(ji,jj+1)
             zlan = glamu(ji,jj  )
             zphh = gphiu(ji,jj  )
-            zxuuf =  2. * COS( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * COS( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
-            zyuuf =  2. * SIN( rad*zlam ) * TAN( rpi/4. - rad*zphi/2. )   &
-               &  -  2. * SIN( rad*zlan ) * TAN( rpi/4. - rad*zphh/2. )
+            zxuuf =  2. * COS( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * COS( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
+            zyuuf =  2. * SIN( rad0*zlam ) * TAN( rPi0/4. - rad0*zphi/2. )   &
+               &  -  2. * SIN( rad0*zlan ) * TAN( rPi0/4. - rad0*zphh/2. )
             znuuf = SQRT( znnpf * ( zxuuf*zxuuf + zyuuf*zyuuf )  )
             znuuf = MAX( znuuf, 1.e-14 )
 
@@ -546,11 +547,10 @@ CONTAINS
          !
          PRINT *, '  *** ANGLE => LBC_LNK_2D !!!'
          !           ! lateral boundary cond.: T-, U-, V-, F-pts, sgn
-         rsgn = -1.
-         CALL lbc_lnk_2d( nperio, gcost, 'T', rsgn )   ;   CALL lbc_lnk_2d( nperio, gsint, 'T', rsgn )
-         CALL lbc_lnk_2d( nperio, gcosu, 'U', rsgn )   ;   CALL lbc_lnk_2d( nperio, gsinu, 'U', rsgn )
-         CALL lbc_lnk_2d( nperio, gcosv, 'V', rsgn )   ;   CALL lbc_lnk_2d( nperio, gsinv, 'V', rsgn )
-         CALL lbc_lnk_2d( nperio, gcosf, 'F', rsgn )   ;   CALL lbc_lnk_2d( nperio, gsinf, 'F', rsgn )
+         CALL lbc_lnk_2d( nperio, gcost, 'T', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsint, 'T', -1.0_8 )
+         CALL lbc_lnk_2d( nperio, gcosu, 'U', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsinu, 'U', -1.0_8 )
+         CALL lbc_lnk_2d( nperio, gcosv, 'V', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsinv, 'V', -1.0_8 )
+         CALL lbc_lnk_2d( nperio, gcosf, 'F', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsinf, 'F', -1.0_8 )
       END IF
 
    END SUBROUTINE angle
