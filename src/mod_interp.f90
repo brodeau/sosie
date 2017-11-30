@@ -7,6 +7,7 @@ MODULE MOD_INTERP
    USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
 
+   !USE mod_nemotools, ONLY: lbc_lnk
    !USE io_ezcdf ; !LOLOdebug
 
    IMPLICIT NONE
@@ -92,6 +93,14 @@ CONTAINS
          rmaskvalue = 0.
       ENDIF
 
+      !lulu
+      !IF ( i_orca_out > 0 ) THEN
+      !   PRINT *, 'LULU calling lbc_lnk on data_out (mod_interp.f90) !!! => ', i_orca_out, c_orca_out
+      !   CALL lbc_lnk( i_orca_out, data_out, c_orca_out, 1.0_8 )
+      !END IF
+      
+
+      
    END SUBROUTINE INTERP_2D
 
 

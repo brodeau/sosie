@@ -1,23 +1,31 @@
 MODULE MOD_CONF
 
    USE io_ezcdf, ONLY: nbatt_max, var_attr
-   
+
    IMPLICIT NONE
 
    !CHARACTER(len=16), PARAMETER :: csosie_version = 'svn_trunk' !: SOSIE version
    CHARACTER(len=16), PARAMETER :: csosie_version = '3.0 beta' !: SOSIE version
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
-   
+
    LOGICAL, SAVE :: l_first_call_interp_routine
 
-   INTEGER, SAVE :: is_orca_in, is_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
-   
    LOGICAL, DIMENSION(2) :: l_2d_grid_yet_regular = (/ .FALSE. , .FALSE. /) !: in case input (i=1) and/or output (i=2) domains are
    !!                                      defined with 2D longitude and latitude arrays but their grid is actually regular...
 
    CHARACTER(len=400) :: cf_nml_sosie = 'namelist' !: namelist for sosie.x
 
+   TYPE, PUBLIC :: grid_type
+      INTEGER          :: ifld_nord
+      CHARACTER(len=1) :: cgrd_type
+   END TYPE grid_type
+
+   TYPE(grid_type), SAVE  :: gt_orca_in, gt_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
+   INTEGER, SAVE          :: i_orca_in, i_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
+   CHARACTER(len=1), SAVE :: c_orca_in, c_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
+
+   
    INTEGER :: &
       &   Ntr, &                      !: time dimmension == number of time records to interpolate!
       &   ni_in, nj_in, nk_in,   &    !: dimension of input arrays
@@ -135,8 +143,8 @@ MODULE MOD_CONF
    INTEGER                              :: nb_att_t, nb_att_lon, nb_att_lat, nb_att_z, nb_att_F
    TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, vatt_info_lon, vatt_info_lat, &
       &                                    vatt_info_z, vatt_info_F
-   
-   
+
+
    !! Data arrays
    !! -----------
 
@@ -175,4 +183,3 @@ MODULE MOD_CONF
       &   lat_out      ! latitude array on target grid
 
 END MODULE MOD_CONF
-

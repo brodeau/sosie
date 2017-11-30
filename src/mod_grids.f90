@@ -10,7 +10,7 @@ MODULE MOD_GRIDS
       &      TRG_DOMAIN, &
       &      IS_ORCA_NORTH_FOLD, &
       &      TERMINATE
-
+   
    INTEGER :: &
       &     ji, jj, jt0, jz0, &
       &     n1, n2, n3, nrec,   &
@@ -64,9 +64,10 @@ CONTAINS
       min_lon_in = minval(lon_in);   min_lat_in = minval(lat_in)
 
       PRINT *, ''
-      is_orca_in = IS_ORCA_NORTH_FOLD( lat_in )
-      IF ( is_orca_in == 4 ) PRINT *, ' Input grid is an ORCA grid with north-pole T-point folding!'
-      IF ( is_orca_in == 6 ) PRINT *, ' Input grid is an ORCA grid with north-pole F-point folding!'
+      gt_orca_in = IS_ORCA_NORTH_FOLD( lat_in , cname_long=trim(cv_lon_in) )
+      i_orca_in  = gt_orca_in%ifld_nord
+      IF ( i_orca_in == 4 ) PRINT *, ' Input grid is an ORCA grid with north-pole T-point folding!'
+      IF ( i_orca_in == 6 ) PRINT *, ' Input grid is an ORCA grid with north-pole F-point folding!'
       PRINT *, ''
 
    END SUBROUTINE SRC_DOMAIN
@@ -185,10 +186,12 @@ CONTAINS
          !debug: CALL PRTMASK(REAL(mask_out(:,:,1),4), 'mask_out.nc', 'lsm')
       END IF
 
-      PRINT *, ''
-      is_orca_out = IS_ORCA_NORTH_FOLD( lon_out )
-      IF ( is_orca_out == 4 ) PRINT *, ' Target grid is an ORCA grid with north-pole T-point folding!'
-      IF ( is_orca_out == 6 ) PRINT *, ' Target grid is an ORCA grid with north-pole F-point folding!'
+      ! Type of target grid (only matters if ORCA grid...)
+      gt_orca_out = IS_ORCA_NORTH_FOLD( lon_out , cname_long=trim(cv_lon_out) )
+      i_orca_out = gt_orca_out%ifld_nord
+      c_orca_out = gt_orca_out%cgrd_type
+      IF ( i_orca_out == 4 ) PRINT *, ' Target grid is an ORCA '//c_orca_out//' grid with north-pole T-point folding!'
+      IF ( i_orca_out == 6 ) PRINT *, ' Target grid is an ORCA '//c_orca_out//' grid with north-pole F-point folding!'
       PRINT *, ''
 
    END SUBROUTINE TRG_DOMAIN
@@ -1023,7 +1026,7 @@ CONTAINS
 
 
 
-   FUNCTION IS_ORCA_NORTH_FOLD( Xlat )
+   FUNCTION IS_ORCA_NORTH_FOLD( Xtest, cname_long )
 
       !!----------------------------------------------------------
       !! Tell if there is a a 2/point band overlaping folding att the north pole
@@ -1036,18 +1039,71 @@ CONTAINS
 
       IMPLICIT NONE
       ! Argument
-      REAL(8), DIMENSION(:,:), INTENT(in) :: Xlat
-      INTEGER                             :: is_orca_north_fold
+      REAL(8), DIMENSION(:,:), INTENT(in)    :: Xtest
+      CHARACTER(len=*), INTENT(in), OPTIONAL :: cname_long
+      !INTEGER                                :: IS_ORCA_NORTH_FOLD
+      TYPE(grid_type)                     :: IS_ORCA_NORTH_FOLD
+      !!
       INTEGER :: nx, ny, jj
+      CHARACTER(len=128) :: cnlon
 
-      IS_ORCA_NORTH_FOLD = 0
+      !! We need all this 'cname_long' stuff because with our method, there is a
+      !! confusion between "Grid_U with T-fold" and "Grid_V with F-fold"
+      !! => so knowing the name of the longitude array (as in namelist, and hence as
+      !!    in netcdf file) might help taking the righ decision !!! UGLY!!!
+      !! => not implemented yet
+      cnlon = 'nav_lon' !
+      IF ( PRESENT(cname_long) ) cnlon = TRIM(cname_long)
 
-      nx = SIZE(Xlat,1)
-      ny = SIZE(Xlat,2)
 
+
+      
+      IS_ORCA_NORTH_FOLD%ifld_nord =  0
+      IS_ORCA_NORTH_FOLD%cgrd_type = 'X'
+
+      nx = SIZE(Xtest,1)
+      ny = SIZE(Xtest,2)
+      
       IF ( ny > 3 ) THEN ! (case if called with a 1D array, ignoring...)
-         IF ( SUM(Xlat(2:nx/2,ny) - Xlat(nx:nx-nx/2-2:-1  ,ny-2)) == 0. )    IS_ORCA_NORTH_FOLD = 4
-         IF ( SUM(Xlat(2:nx/2,ny) - Xlat(nx-1:nx-nx/2+1:-1,ny-1)) == 0. )    IS_ORCA_NORTH_FOLD = 6
+
+         
+         IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx:nx-nx/2+2:-1,ny-2) ) == 0. ) THEN
+            IS_ORCA_NORTH_FOLD%ifld_nord = 4 ! T-pivot, grid_T
+            IS_ORCA_NORTH_FOLD%cgrd_type = 'T'
+         END IF
+         !---
+         IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx-1:nx-nx/2+1:-1,ny-2) ) == 0. ) THEN
+            IF (TRIM(cnlon)=='glamu') THEN
+               IS_ORCA_NORTH_FOLD%ifld_nord = 4 ! T-pivot, grid_T
+               IS_ORCA_NORTH_FOLD%cgrd_type = 'U'
+            END IF
+               !! LOLO: PROBLEM == 6, V !!!
+         END IF
+         !---
+         IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx:nx-nx/2+2:-1,ny-3) ) == 0. ) THEN
+            IS_ORCA_NORTH_FOLD%ifld_nord = 4 ! T-pivot, grid_V
+            IS_ORCA_NORTH_FOLD%cgrd_type = 'V'
+         END IF
+
+         
+         IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx-1:nx-nx/2+1:-1,ny-1) ) == 0. ) THEN
+            IS_ORCA_NORTH_FOLD%ifld_nord = 6 ! F-pivot, grid_T
+            IS_ORCA_NORTH_FOLD%cgrd_type = 'T'
+         END IF
+         IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx-2:nx-nx/2:-1,ny-1) ) == 0. ) THEN
+            IS_ORCA_NORTH_FOLD%ifld_nord = 6 ! F-pivot, grid_U
+            IS_ORCA_NORTH_FOLD%cgrd_type = 'U'
+         END IF
+         !---
+         IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx-1:nx-nx/2+1:-1,ny-2) ) == 0. ) THEN
+            IF (TRIM(cnlon)=='glamv') THEN
+               IS_ORCA_NORTH_FOLD%ifld_nord = 6 ! F-pivot, grid_V
+               IS_ORCA_NORTH_FOLD%cgrd_type = 'V'
+            END IF
+               !! LOLO: PROBLEM == 4, U !!!
+         END IF
+         !---
+
       END IF
 
    END FUNCTION IS_ORCA_NORTH_FOLD

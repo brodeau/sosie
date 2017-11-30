@@ -211,23 +211,23 @@ CONTAINS
 
       IF ( l_first_call_interp_routine ) THEN
          !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
-         IF ( is_orca_out >= 4 ) THEN
+         IF ( i_orca_out >= 4 ) THEN
             rmeanv = SUM(Z2(:,ny2))/nx2
             l_last_y_row_missing = ( (rmeanv < rflg + 0.1).AND.(rmeanv > rflg - 0.1) )
          END IF
       END IF
 
       !PRINT *, ' l_last_y_row_missing =>', l_last_y_row_missing
-      !IF ( is_orca_out == 4 ) PRINT *, ' Target grid is an ORCA grid with north-pole T-point folding!'
-      !IF ( is_orca_out == 6 ) PRINT *, ' Target grid is an ORCA grid with north-pole F-point folding!'
+      !IF ( i_orca_out == 4 ) PRINT *, ' Target grid is an ORCA grid with north-pole T-point folding!'
+      !IF ( i_orca_out == 6 ) PRINT *, ' Target grid is an ORCA grid with north-pole F-point folding!'
 
       !! Correcting last missing band if relevant:
       IF ( l_last_y_row_missing ) THEN
-         IF ( is_orca_out == 4 ) THEN
+         IF ( i_orca_out == 4 ) THEN
             Z2(2:nx2/2           ,ny2)   = Z2(nx2:nx2-nx2/2-2:-1,ny2-2)
             Z2(nx2:nx2-nx2/2-2:-1,ny2)   = Z2(2:nx2/2           ,ny2-2)
          END IF
-         IF ( is_orca_out == 6 ) THEN
+         IF ( i_orca_out == 6 ) THEN
             Z2(2:nx2/2             ,ny2) = Z2(nx2-1:nx2-nx2/2+1:-1,ny2-1)
             Z2(nx2-1:nx2-nx2/2+1:-1,ny2) = Z2(2:nx2/2             ,ny2-1)
          END IF

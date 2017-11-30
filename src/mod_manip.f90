@@ -46,7 +46,7 @@ CONTAINS
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
 
-      USE mod_conf, ONLY: is_orca_in, is_orca_out
+      USE mod_conf, ONLY: i_orca_in, i_orca_out
 
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
@@ -124,7 +124,7 @@ CONTAINS
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
       !! Top side :
-      SELECT CASE( is_orca_in )
+      SELECT CASE( i_orca_in )
          !
       CASE (4)
          XP4(2:nxp4/2             ,nyp4-1) = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
@@ -147,7 +147,7 @@ CONTAINS
       !! ---------
 
       !! Top side :
-      SELECT CASE( is_orca_in )
+      SELECT CASE( i_orca_in )
 
       CASE (4)
          YP4(2:nxp4/2             ,nyp4-1) = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
@@ -218,7 +218,7 @@ CONTAINS
       END IF
 
       !! Top side :
-      SELECT CASE( is_orca_in )
+      SELECT CASE( i_orca_in )
 
       CASE (4)
          PRINT *, 'ORCA2 type of extrapolation at northern boundary!'
@@ -267,7 +267,7 @@ CONTAINS
       !!
       !!============================================================================
 
-      USE mod_conf, ONLY: is_orca_in
+      USE mod_conf, ONLY: i_orca_in
 
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
@@ -323,7 +323,7 @@ CONTAINS
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
       !! Top side :
-      SELECT CASE( is_orca_in )
+      SELECT CASE( i_orca_in )
          !
       CASE (4)
          XP4(2:nx/2             ,nyp4-1) = XP4(nx:nx-nx/2-2:-1,nyp4-5)
@@ -346,7 +346,7 @@ CONTAINS
       !! ---------
 
       !! Top side :
-      SELECT CASE( is_orca_in )
+      SELECT CASE( i_orca_in )
 
       CASE (4)
          YP4(2:nx/2             ,nyp4-1) = YP4(nx:nx-nx/2-2:-1,nyp4-5)
@@ -374,7 +374,7 @@ CONTAINS
       !! ------------
 
       !! Top side :
-      SELECT CASE( is_orca_in )
+      SELECT CASE( i_orca_in )
 
       CASE (4)
          PRINT *, 'ORCA2 type of extrapolation at northern boundary!'
@@ -701,7 +701,7 @@ CONTAINS
       !!---------------------------------------------------------------
 
       !debug: USE io_ezcdf
-      USE mod_conf,  ONLY: is_orca_out
+      USE mod_conf,  ONLY: i_orca_out
 
       IMPLICIT NONE
 
@@ -789,7 +789,7 @@ CONTAINS
 
       !! Case when latitude ONLY keeps on increasing (or decreasing) as j increase
       !!    (ie [d lat / d j] always has the same sign!)
-      IF ( l_is_reg_out .OR. (is_orca_out > 0) ) THEN
+      IF ( l_is_reg_out .OR. (i_orca_out > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
          !!
