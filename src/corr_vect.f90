@@ -52,6 +52,9 @@ PROGRAM CORR_VECT
       &    cv_rot_U ,  &  ! output name for U corrected
       &    cv_rot_V       ! output name for V corrected
 
+
+   TYPE(grid_type) :: gt_orca
+   
    INTEGER      :: &
       &    jarg, i3d, nbc, &
       &    iorca=0,      &
@@ -446,7 +449,8 @@ PROGRAM CORR_VECT
       PRINT *, ''
 
       !! Is this a known ORCA grid (just for info now, not used!):
-      iorca = IS_ORCA_NORTH_FOLD( xlat_t )
+      gt_orca = IS_ORCA_NORTH_FOLD( xlat_t )
+      iorca = gt_orca%ifld_nord
       IF ( iorca == 4 ) PRINT *, ' Grid is an ORCA grid with north-pole T-point folding!'
       IF ( iorca == 6 ) PRINT *, ' Grid is an ORCA grid with north-pole F-point folding!'
       PRINT *, ''
@@ -501,31 +505,31 @@ PROGRAM CORR_VECT
             END IF
 
             
-            IF ( iorca > 0 ) PRINT *, '   *** goona "lbc_lnk_2d" with iorca =', iorca
+            !IF ( iorca > 0 ) PRINT *, '   *** goona "lbc_lnk" with iorca =', iorca
             
             rsgn = -1.
             IF ( cgrid_out == 'U' ) THEN
                !! U-V grid:
                !! Correcting U :
                Xdum8 = XCOSU8*U_r8 + XSINU8*V_r8  !lolo: no trcik here???
-               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'U', rsgn )              
+               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'U', rsgn )              
                Uu_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
                !! Correcting V :
                Xdum8 = XCOSV8*V_r8 - XSINV8*U_r8  !lolo: no trcik here???
-               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'V', rsgn )               
+               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'V', rsgn )               
                Vv_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
             ELSE
                !! T grid:
                !! Correcting U (i-component to east) :
                Xdum8 = XCOST8*U_r8 + XSINT8*V_r8
-               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'T', rsgn )               
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )               
                Ut_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
                !! Correcting V (j-component to north):
                Xdum8 = XCOST8*V_r8 - XSINT8*U_r8
-               IF ( iorca > 0 ) CALL lbc_lnk_2d( iorca, Xdum8, 'T', rsgn )               
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )               
                Vt_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
             END IF

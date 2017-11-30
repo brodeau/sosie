@@ -29,16 +29,28 @@ MODULE mod_nemotools
    IMPLICIT NONE
    PRIVATE
 
+   
+   INTERFACE lbc_lnk
+      MODULE PROCEDURE lbc_lnk_2d_r8, lbc_lnk_2d_r4
+   END INTERFACE lbc_lnk
+   
+
+
+
+   PUBLIC   lbc_lnk, angle
+
+
+   
    REAL(8), PARAMETER, PUBLIC :: &
       &       rPi0 = 3.141592653,     &
       &       rad0 = rPi0/180.0
 
-   TYPE arrayptr
-      REAL , DIMENSION (:,:),  POINTER :: pt2d
-   END TYPE arrayptr
-   PUBLIC   arrayptr
+   !TYPE arrayptr
+   !   REAL , DIMENSION (:,:),  POINTER :: pt2d
+   !END TYPE arrayptr
+   !PUBLIC   arrayptr
 
-   PUBLIC   lbc_lnk_2d, angle
+
 
    INTEGER, PARAMETER :: wp=8
 
@@ -51,9 +63,9 @@ MODULE mod_nemotools
 
 CONTAINS
 
-   SUBROUTINE lbc_lnk_2d( nperio, pt2d, cd_type, psgn, pval )
+   SUBROUTINE lbc_lnk_2d_r8( nperio, pt2d, cd_type, psgn, pval )
       !!---------------------------------------------------------------------
-      !!                 ***  ROUTINE lbc_lnk_2d  ***
+      !!                 ***  ROUTINE lbc_lnk_2d_r8  ***
       !!
       !! ** Purpose :   set lateral boundary conditions on a 2D array (non mpp case)
       !!
@@ -135,8 +147,54 @@ CONTAINS
       END SELECT
       !
       !
-   END SUBROUTINE lbc_lnk_2d
+   END SUBROUTINE lbc_lnk_2d_r8
 
+
+
+   SUBROUTINE lbc_lnk_2d_r4( nperio, pt2d, cd_type, psgn, pval )
+      !!---------------------------------------------------------------------
+      !!                 ***  ROUTINE lbc_lnk_2d_r8  ***
+      !!
+      !! ** Purpose :   set lateral boundary conditions on a 2D array (non mpp case)
+      !!
+      !! ** Method  :   psign = -1 :    change the sign across the north fold
+      !!                      =  1 : no change of the sign across the north fold
+      !!                      =  0 : no change of the sign across the north fold and
+      !!                             strict positivity preserved: use inner row/column
+      !!                             for closed boundaries.
+      !!----------------------------------------------------------------------
+      INTEGER                     , INTENT(in   )           ::   nperio
+      CHARACTER(len=1)            , INTENT(in   )           ::   cd_type   ! nature of pt3d grid-points
+      REAL(4), DIMENSION(:,:)     , INTENT(inout)           ::   pt2d      ! 2D array on which the lbc is applied
+      REAL(wp)                    , INTENT(in   )           ::   psgn      ! control of the sign
+      REAL(wp)                    , INTENT(in   ), OPTIONAL ::   pval      ! background value (for closed boundaries)
+      !!
+      REAL(wp), DIMENSION(:,:), ALLOCATABLE :: pt2dr8
+      !!----------------------------------------------------------------------
+
+      INTEGER :: jpi, jpj, jpim1
+
+      jpi = SIZE(pt2d,1)
+      jpj = SIZE(pt2d,2)
+
+      ALLOCATE ( pt2dr8(jpi,jpj) )
+      pt2dr8(:,:) = REAL(pt2d , wp)
+      IF( PRESENT( pval ) ) THEN
+         CALL lbc_lnk_2d_r8( nperio, pt2dr8, cd_type, psgn, pval=pval )
+      ELSE
+         CALL lbc_lnk_2d_r8( nperio, pt2dr8, cd_type, psgn, pval=pval )
+      END IF
+      
+      pt2d(:,:) = REAL(pt2dr8 , 4)
+
+      DEALLOCATE ( pt2dr8 )
+      
+   END SUBROUTINE lbc_lnk_2d_r4
+
+
+
+
+   
 
 
    SUBROUTINE lbc_nfd_2d( npolj, pt2d, cd_type, psgn, pr2dj )
@@ -430,8 +488,10 @@ CONTAINS
       nx = SIZE(glamt,1)
       ny = SIZE(glamt,2)
 
-      DO jj = 1, ny
-         DO ji = 1, nx
+      !loloDO jj = 1, ny
+      DO jj = 2, ny-1
+         !loloDO ji = 1, nx
+         DO ji = 2, nx
 
             zlam = glamt(ji,jj)     ! north pole direction & modulous (at t-point)
             zphi = gphit(ji,jj)
@@ -521,8 +581,8 @@ CONTAINS
       END DO
 
 
-      DO jj = 1, ny
-         DO ji = 1, nx
+      DO jj = 2, ny-1
+         DO ji = 2, nx
             IF( MOD( ABS( glamv(ji,jj) - glamv(ji,jj-1) ), 360. ) < 1.e-8 ) THEN
                gsint(ji,jj) = 0.
                gcost(ji,jj) = 1.
@@ -545,12 +605,12 @@ CONTAINS
       !! If NEMO grid (nperio > 0):
       IF ( nperio > 0 ) THEN
          !
-         PRINT *, '  *** ANGLE => LBC_LNK_2D !!!'
+         PRINT *, '  *** ANGLE => LBC_LNK !!!'
          !           ! lateral boundary cond.: T-, U-, V-, F-pts, sgn
-         CALL lbc_lnk_2d( nperio, gcost, 'T', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsint, 'T', -1.0_8 )
-         CALL lbc_lnk_2d( nperio, gcosu, 'U', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsinu, 'U', -1.0_8 )
-         CALL lbc_lnk_2d( nperio, gcosv, 'V', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsinv, 'V', -1.0_8 )
-         CALL lbc_lnk_2d( nperio, gcosf, 'F', -1.0_8 )   ;   CALL lbc_lnk_2d( nperio, gsinf, 'F', -1.0_8 )
+         CALL lbc_lnk( nperio, gcost, 'T', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsint, 'T', -1.0_8 )
+         CALL lbc_lnk( nperio, gcosu, 'U', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinu, 'U', -1.0_8 )
+         CALL lbc_lnk( nperio, gcosv, 'V', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinv, 'V', -1.0_8 )
+         CALL lbc_lnk( nperio, gcosf, 'F', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinf, 'F', -1.0_8 )
       END IF
 
    END SUBROUTINE angle
