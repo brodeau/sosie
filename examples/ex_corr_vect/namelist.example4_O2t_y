@@ -1,0 +1,52 @@
+!! -------------------
+!! Namelist for SOSIE
+!! -------------------
+!!
+&ninput
+ivect     = 2    ! THIS IS A VECTOR INTERPOLATION, V component
+lregin    = T    ! input grid is regular (lon and lat are "1D")
+cf_in     = '../data/v10_era-int_2000.nc'
+cv_in     = 'v10'
+cv_t_in   = 'time'
+jt1       = 0    ! we want to interpolate each time record
+jt2       = 0    !           //
+jplev     = 1
+cf_x_in   = '../data/v10_era-int_2000.nc'
+cv_lon_in = 'lon'
+cv_lat_in = 'lat'
+cf_lsm_in = '../data/lsm_era-int.nc'  ! land-sea mask
+cv_lsm_in = 'lsm'
+ldrown    = T            ! we want to propagate sea values onto the land-sea mask
+ewper     = 0           ! input field does have east-west periodicity with 0 overlapping point
+vmax      =  1.E6
+vmin      = -1.E6
+/
+!!
+&nhtarget
+lregout    = F
+cf_x_out   = '../data/mesh_mask_ORCA2.nc4'
+cv_lon_out = 'glamt'
+cv_lat_out = 'gphit'
+cf_lsm_out = '../data/mesh_mask_ORCA2.nc4'
+cv_lsm_out = 'tmask'
+lmout      = T
+rmaskvalue = -9999.
+lct        = F      ! we use time from input file
+t0         = 0.
+t_stp      = 0.
+ewper_out  = 2
+/
+!!
+&noutput
+cmethod  = 'akima'
+cv_t_out = 'time_counter'
+cv_out   = 'v10'
+cu_out   = 'm/s'
+cln_out  = 'ERA-INTERIM 10m wind, 4 first 6-hourly snapshots of year 2000'
+cd_out   = '.'
+csource  = '1x1-deg'
+ctarget  = 'ORCA2'
+cextra   = 'grid_T'
+lpcknc4  = .true.
+/
+!!
