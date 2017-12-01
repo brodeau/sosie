@@ -605,17 +605,16 @@ CONTAINS
       !! If NEMO grid (nperio > 0):
       IF ( nperio > 0 ) THEN
          !
-         PRINT *, '  *** ANGLE => LBC_LNK !!!'
+         PRINT *, '  *** ANGLE (mod_nemotools.f90) => using LBC_LNK!'
          !           ! lateral boundary cond.: T-, U-, V-, F-pts, sgn
          CALL lbc_lnk( nperio, gcost, 'T', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsint, 'T', -1.0_8 )
          CALL lbc_lnk( nperio, gcosu, 'U', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinu, 'U', -1.0_8 )
          CALL lbc_lnk( nperio, gcosv, 'V', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinv, 'V', -1.0_8 )
          CALL lbc_lnk( nperio, gcosf, 'F', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinf, 'F', -1.0_8 )
       END IF
-
+      
    END SUBROUTINE angle
-
-
+   
 
    !!======================================================================
 END MODULE mod_nemotools
