@@ -18,6 +18,8 @@ PROGRAM CORR_VECT
 
    IMPLICIT NONE
 
+   LOGICAL, PARAMETER :: ldebug = .false.
+   
    !! Grid :
    CHARACTER(len=80), PARAMETER   :: &
       &    cv_glamt     = 'glamt',   &   ! input grid longitude name, T-points
@@ -31,8 +33,8 @@ PROGRAM CORR_VECT
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
 
-   CHARACTER(LEN=400)  :: cextra_x, cextra_y 
-   
+   CHARACTER(LEN=400)  :: cextra_x, cextra_y
+
    CHARACTER(len=3)    :: cdum
    CHARACTER(len=1)    :: cgrid_out='0'
    CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
@@ -54,7 +56,7 @@ PROGRAM CORR_VECT
 
 
    TYPE(grid_type) :: gt_orca
-   
+
    INTEGER      :: &
       &    jarg, i3d, nbc, &
       &    iorca=0,      &
@@ -92,14 +94,14 @@ PROGRAM CORR_VECT
       &    l_3d_inv = .FALSE., &   !: will treat 3d files in inverse mode...
       &    lmout_x, lmout_y, &
       &    lexist !,  &
-   
+
    REAL(4), PARAMETER :: zrmv = -9999.
 
    REAL(8) :: rsgn
-   
+
    CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
       &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-t','-1' /)
-      !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
+   !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -135,30 +137,30 @@ PROGRAM CORR_VECT
          l_inv = .TRUE.
          !!
          !!
-      !CASE('-x')
-      !   IF ( jarg + 1 > iargc() ) THEN
-      !      PRINT *, 'ERROR: Missing zonal component name!' ; call usage_corr_vect()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing zonal component name!'; call usage_corr_vect()
-      !      ELSE
-      !         cv_rot_U = trim(cr)
-      !      END IF
-      !   END IF
+         !CASE('-x')
+         !   IF ( jarg + 1 > iargc() ) THEN
+         !      PRINT *, 'ERROR: Missing zonal component name!' ; call usage_corr_vect()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing zonal component name!'; call usage_corr_vect()
+         !      ELSE
+         !         cv_rot_U = trim(cr)
+         !      END IF
+         !   END IF
          !!
          !!
-      !CASE('-y')
-      !   IF ( jarg + 1 > iargc() ) THEN
-      !      PRINT *, 'ERROR: Missing meridional component name!' ; call usage_corr_vect()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing meridional component name!'; call usage_corr_vect()
-      !      ELSE
-      !         cv_rot_V = trim(cr)
-      !      END IF
-      !   END IF
+         !CASE('-y')
+         !   IF ( jarg + 1 > iargc() ) THEN
+         !      PRINT *, 'ERROR: Missing meridional component name!' ; call usage_corr_vect()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing meridional component name!'; call usage_corr_vect()
+         !      ELSE
+         !         cv_rot_V = trim(cr)
+         !      END IF
+         !   END IF
          !!
       CASE('-f')
          IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
@@ -264,7 +266,7 @@ PROGRAM CORR_VECT
          PRINT *, 'ERROR: you must specify the name of time variable with the "-t" switch!'; STOP
       END IF
       PRINT *, '   => time variable name = ', trim(cv_time_0)
-   !ELSE
+      !ELSE
       !PRINT *, ' * Name for corrected vector components = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
    END IF
 
@@ -273,7 +275,7 @@ PROGRAM CORR_VECT
 
    cnmlst_x = TRIM(cf_nml_sosie)//'_x'
    cnmlst_y = TRIM(cf_nml_sosie)//'_y'
-   
+
    PRINT *, ' * namelists we expect => ', TRIM(cnmlst_x)//' and '//TRIM(cnmlst_y)
    PRINT *, ''
 
@@ -303,7 +305,7 @@ PROGRAM CORR_VECT
       cv_rot_U = cv_out
       cextra_x = cextra
 
-      
+
       !! Namelist of Y component:
       INQUIRE(FILE=TRIM(cnmlst_y), EXIST=lexist )
       IF ( .NOT. lexist ) THEN
@@ -320,7 +322,7 @@ PROGRAM CORR_VECT
 
       !lolo
 
-      
+
 
       IF ( lregout ) THEN
          PRINT *, 'Vector correction only makes sense if your target grid is distorded!'
@@ -337,12 +339,12 @@ PROGRAM CORR_VECT
 
       PRINT *, 'The two input pre-interpolated needed files are :'
       PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ;
-      
+
       cufilout = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
          &   //TRIM(ctarget)//'_'//TRIM(cextra_x)//'.'//TRIM(cfext)
       cvfilout = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
          &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'.'//TRIM(cfext)
-      
+
       PRINT *, '' ;   PRINT *, 'output files :'
       PRINT *, trim(cufilout) ;   PRINT *, trim(cvfilout) ; PRINT *, '' ; PRINT *, ''
 
@@ -460,11 +462,16 @@ PROGRAM CORR_VECT
       CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
          &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
-      !CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlon_t, xlat_t, cv_glamt, cv_gphit)
-      !STOP
+      IF ( ldebug ) THEN
+         CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cost')
+         CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sint')
+         CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cosu')
+         CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sinu')
+         CALL PRTMASK(REAL(XCOSV8,4), 'cosv_angle.nc', 'cosv')
+         CALL PRTMASK(REAL(XSINV8,4), 'sinv_angle.nc', 'sinv')
+         CALL PRTMASK(REAL(XCOSF8,4), 'cosf_angle.nc', 'cosf')
+         CALL PRTMASK(REAL(XSINF8,4), 'sinf_angle.nc', 'sinf')         
+      END IF
 
       !!  Getting time from the u_raw file or the namelist :
       IF ( lct ) THEN       ! time is being controlled
@@ -504,39 +511,39 @@ PROGRAM CORR_VECT
                V_r8 = Xdum4
             END IF
 
-            
+
             !IF ( iorca > 0 ) PRINT *, '   *** goona "lbc_lnk" with iorca =', iorca
-            
+
             rsgn = -1.
             IF ( cgrid_out == 'U' ) THEN
                !! U-V grid:
                !! Correcting U :
                Xdum8 = XCOSU8*U_r8 + XSINU8*V_r8  !lolo: no trcik here???
-               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'U', rsgn )              
+               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'U', rsgn )
                Uu_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
                !! Correcting V :
                Xdum8 = XCOSV8*V_r8 - XSINV8*U_r8  !lolo: no trcik here???
-               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'V', rsgn )               
+               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'V', rsgn )
                Vv_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
             ELSE
                !! T grid:
                !! Correcting U (i-component to east) :
                Xdum8 = XCOST8*U_r8 + XSINT8*V_r8
-               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )               
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )
                Ut_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
                !! Correcting V (j-component to north):
                Xdum8 = XCOST8*V_r8 - XSINT8*U_r8
-               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )               
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )
                Vt_c(:,:,jk) = REAL(Xdum8 , 4)
                !!
             END IF
 
          END DO ! jk
 
-         
+
          IF ( lmout_x .AND. lmout_y ) THEN
             IF ( cgrid_out == 'U' ) THEN
                WHERE ( mask_u == 0 ) Uu_c = rmaskvalue
