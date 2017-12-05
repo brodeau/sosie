@@ -91,21 +91,24 @@ Check the newly created sst\_ORCA1-1x1\_test.nc
 As the ORCA family of grids gets distorded in the northern hemisphere it is
 necessary to correct (i.e. rotate) both components of the vector. In this
 example the input vector field is the wind at 10 from a few 6-hourly snapshots
-of the ERA-INTERIM re-analysis.  Do the "raw" interpolation for the zonal component of the wind:
+of the ERA-INTERIM re-analysis.
 
-    >> sosie.x -f namelist.example4_x
-and the same for the meridional component of the wind:
+      >> cd examples/ex_corr_vect/
+Do the "raw" interpolation for the zonal component of the wind:
 
-    >> sosie.x -f namelist.example4_y
-The two following files have been generated:
+      >> sosie.x -f namelist.example4_O1t_x
+Do the "raw" interpolation for the meridional component of the wind:
 
-    uraw_1x1-deg-ORCA1_vct.nc, vraw_1x1-deg-ORCA1_vct.nc
-Then, time to correct:
+      >> sosie.x -f namelist.example4_O1t_y
+Now that uraw_1x1-deg-ORCA1_grid_T.nc4 and uraw_1x1-deg-ORCA1_grid_T.nc4 are created, time to correct onto the T-grid:
 
-    >> corr_vect.x -x u10 -y v10 -f namelist.example4_x -m data/mesh_mask_ORCA1_light.nc
-Eventually, the two following files have been generated:
+      >> corr_vect.x -G T -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
+Check the newly created u10_1x1-deg-ORCA1_grid_T.nc4 and v10_1x1-deg-ORCA1_grid_T.nc4 (vector components on T-points of the grid).
 
-    u10_1x1-deg-ORCA1_vct.nc, u10_1x1-deg-ORCA1_vct.nc
+It is possible to do the same correction onto U,V grid points rather than T points:
+
+      >> corr_vect.x -G U -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
+Check the newly created u10_1x1-deg-ORCA1_grid_U.nc4 and v10_1x1-deg-ORCA1_grid_V.nc4.
 
 
 
