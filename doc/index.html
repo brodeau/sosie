@@ -264,30 +264,41 @@
 
         <br><br><br>
         <b>&#8226; Example #4: Interpolation and correction of a 2D vector field
-          from a regular lat-lon 1x1 deg. grid to an irregular grid (ORCA1)</b><br>
+          from a regular lat-lon 1x1 deg. grid to the tripolar ORCA1 grid</b><br>
         As the ORCA family of grids gets distorted in the northern hemisphere it
         is necessary to correct (i.e. rotate) both components of the vector. In
         this example the input vector field is the wind at 10 from a few
-        6-hourly snapshots of the ERA-INTERIM re-analysis.<br>
+        6-hourly snapshots of the ERA-INTERIM reanalysis.<br>
         <br>
+        <pre><code style="font-size: 14pt">
+      >> cd examples/ex_corr_vect/
+        </pre></code>
+        
         Do the "raw" interpolation for the zonal component of the
         wind:
         <pre><code style="font-size: 14pt">
-      >> sosie.x -f namelist.example4_x
+      >> sosie.x -f namelist.example4_O1t_x
         </pre></code>
         Do the "raw" interpolation for the meridional component of the
         wind:
         <pre><code style="font-size: 14pt">
-      >> sosie.x -f namelist.example4_y
+      >> sosie.x -f namelist.example4_O1t_y
         </pre></code>
-        Now that <b>uraw_1x1-deg-ORCA1_vct.nc</b> and
-        <b>vraw_1x1-deg-ORCA1_vct.nc</b> are created, time to
-        correct:
+        Now that <b>uraw_1x1-deg-ORCA1_grid_T.nc4</b> and
+        <b>uraw_1x1-deg-ORCA1_grid_T.nc4</b> are created, time to
+        correct onto the T-grid:
         <pre><code style="font-size: 14pt">
-      >> corr_vect.x -G U -f namelist.example4 -m data/mesh_mask_ORCA1v2_light.nc4
+      >> corr_vect.x -G T -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
         </pre></code>
-        Check the newly created <b>u10_1x1-deg-ORCA1_vct.nc</b>
-        and <b>u10_1x1-deg-ORCA1_vct.nc</b> (vector components on T-points of the grid).
+        Check the newly created <b>u10_1x1-deg-ORCA1_grid_T.nc4</b>
+        and <b>v10_1x1-deg-ORCA1_grid_T.nc4</b> (vector components on T-points of the grid).
+        <br>
+        It is possible to do the same correction onto U,V grid points rather than T points:
+        <pre><code style="font-size: 14pt">
+      >> corr_vect.x -G U -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
+        </pre></code>
+        Check the newly created <b>u10_1x1-deg-ORCA1_grid_U.nc4</b>
+        and <b>v10_1x1-deg-ORCA1_grid_V.nc4</b>.
 
 
         <br><br><br>
@@ -321,7 +332,7 @@
 
       <br><br><br><br><br>
 
-      <font color="#c8bbbe">Last edited by Laurent Brodeau, 2016/05/20</font>
+      <font color="#c8bbbe">Last edited by Laurent Brodeau, 2017/12/05</font>
 
       <!-- Start of StatCounter Code -->
       <script>

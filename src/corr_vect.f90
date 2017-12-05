@@ -33,7 +33,7 @@ PROGRAM CORR_VECT
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
 
-   CHARACTER(LEN=400)  :: cextra_x, cextra_y
+   CHARACTER(LEN=400)  :: cn_xtr_x, cn_xtr_y, cextra_x, cextra_y
 
    CHARACTER(len=3)    :: cdum
    CHARACTER(len=1)    :: cgrid_out='0'
@@ -45,9 +45,9 @@ PROGRAM CORR_VECT
       &    cv_out_V    = 'vraw'        ! raw V name
 
    CHARACTER(len=800)  :: &
-      &    cf_out_U,    &  ! file containing u_raw
-      &    cf_out_V,    &  ! file containing v_raw
-      &    cufilout, cvfilout,    &
+      &    cf_raw_U,    &  ! file containing u_raw
+      &    cf_raw_V,    &  ! file containing v_raw
+      &    cf_out_U, cf_out_V,    &
       &    cufilin = 'none',  cvfilin = 'none'
 
    CHARACTER(len=80)  ::  &
@@ -73,14 +73,14 @@ PROGRAM CORR_VECT
 
    INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: Xdum4
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: ztmp4
 
 
-   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: Ut_c, Vt_c, Uu_c, Vv_c
+   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: U_c, V_c
 
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::      &
       &    XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8, &
-      &    U_r8, V_r8,  Xdum8, &
+      &    U_r8, V_r8,  ztmp8, Xdum8, Ydum8, &
       &    xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f
 
    REAL(8), DIMENSION(:), ALLOCATABLE ::   vtime, vdepth
@@ -254,10 +254,19 @@ PROGRAM CORR_VECT
    PRINT *, ''
 
 
-   IF ( cgrid_out == 'U' ) PRINT *, ' *** Gonna save on grid U and V.'
-   IF ( cgrid_out == 'T' ) PRINT *, ' *** Gonna save on grid T.'
+   IF ( cgrid_out == 'T' ) THEN
+      PRINT *, ' *** Gonna save on grid T.'
+      cextra_x = 'grid_T'
+      cextra_y = 'grid_T'
+   ELSEIF ( cgrid_out == 'U' ) THEN
+      PRINT *, ' *** Gonna save on grid U and V.'
+      cextra_x = 'grid_U'
+      cextra_y = 'grid_V'
+   ELSE
+      PRINT *, 'ERROR: "cgrid_out" value unknown: ', TRIM(cgrid_out) ; STOP
+   END IF
    PRINT *, ''
-
+   
 
    IF ( l_inv ) THEN
       PRINT *, ' * Vector files to unrotate = ', trim(cufilin), ' , ', trim(cvfilin)
@@ -303,7 +312,7 @@ PROGRAM CORR_VECT
       CALL READ_NMLST(2)
       lmout_x  = lmout
       cv_rot_U = cv_out
-      cextra_x = cextra
+      cn_xtr_x = cextra
 
 
       !! Namelist of Y component:
@@ -317,7 +326,7 @@ PROGRAM CORR_VECT
       CALL READ_NMLST(2)
       lmout_y  = lmout
       cv_rot_V = cv_out
-      cextra_y = cextra
+      cn_xtr_y = cextra
 
 
       !lolo
@@ -332,25 +341,25 @@ PROGRAM CORR_VECT
 
       IF ( lpcknc4 ) cfext='nc4'
 
-      cf_out_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra_x)//'.'//trim(cfext)
-      cf_out_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra_y)//'.'//trim(cfext)
+      cf_raw_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
+         &   //trim(ctarget)//'_'//trim(cn_xtr_x)//'.'//trim(cfext)
+      cf_raw_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
+         &   //trim(ctarget)//'_'//trim(cn_xtr_y)//'.'//trim(cfext)
 
       PRINT *, 'The two input pre-interpolated needed files are :'
-      PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ;
+      PRINT *, trim(cf_raw_U) ;   PRINT *, trim(cf_raw_V) ;
 
-      cufilout = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
+      cf_out_U = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
          &   //TRIM(ctarget)//'_'//TRIM(cextra_x)//'.'//TRIM(cfext)
-      cvfilout = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
+      cf_out_V = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
          &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'.'//TRIM(cfext)
 
       PRINT *, '' ;   PRINT *, 'output files :'
-      PRINT *, trim(cufilout) ;   PRINT *, trim(cvfilout) ; PRINT *, '' ; PRINT *, ''
+      PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ; PRINT *, '' ; PRINT *, ''
 
       PRINT *, 'File containing x and y raw components of vector to be treated :'
-      PRINT *, trim(cf_out_U)
-      PRINT *, trim(cf_out_V) ; PRINT *, ''
+      PRINT *, trim(cf_raw_U)
+      PRINT *, trim(cf_raw_V) ; PRINT *, ''
       PRINT *, 'File containing grid :'
       PRINT *, trim(cf_mm) ; PRINT *, ''
 
@@ -358,8 +367,8 @@ PROGRAM CORR_VECT
       !! Geting array dimension and testing...
       !! -------------------------------------
 
-      CALL DIMS(cf_out_U, cv_out_U, ni1, nj1, nk1, Ntr1)
-      CALL DIMS(cf_out_V, cv_out_V, ni2, nj2, nk2, Ntr2)
+      CALL DIMS(cf_raw_U, cv_out_U, ni1, nj1, nk1, Ntr1)
+      CALL DIMS(cf_raw_V, cv_out_V, ni2, nj2, nk2, Ntr2)
 
       CALL DIMS(cf_mm, cv_glamt, ni_g, nj_g, nk_g, Ntr)
 
@@ -407,13 +416,13 @@ PROGRAM CORR_VECT
 
 
       !! Allocations :
-      ALLOCATE ( Xdum4(ni,nj) ,  &
-         &    Ut_c(ni,nj,nk) , Vt_c(ni,nj,nk), mask_t(ni,nj,nk), &
-         &    xlon_t(ni,nj)  , xlat_t(ni,nj), Xdum8(ni,nj), &
+      ALLOCATE ( ztmp4(ni,nj) ,  &
+         &    U_c(ni,nj,nk) , V_c(ni,nj,nk), mask_t(ni,nj,nk), &
+         &    xlon_t(ni,nj)  , xlat_t(ni,nj), Xdum8(ni,nj), Ydum8(ni,nj), &
          &    xlon_u(ni,nj)  , xlat_u(ni,nj) , xlon_v(ni,nj)  , xlat_v(ni,nj) , &
-         &    xlon_f(ni,nj) , xlat_f(ni,nj), &
+         &    xlon_f(ni,nj) , xlat_f(ni,nj), ztmp8(ni,nj), &
          &    vtime(Ntr)   )
-      IF ( cgrid_out == 'U' ) ALLOCATE ( Uu_c(ni,nj,nk) , Vv_c(ni,nj,nk) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
+      IF ( cgrid_out == 'U' ) ALLOCATE ( mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
 
       ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , XCOSU8(ni,nj) , XSINU8(ni,nj) , XCOSV8(ni,nj) , XSINV8(ni,nj) , &
          &      XCOSF8(ni,nj) , XSINF8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
@@ -485,8 +494,8 @@ PROGRAM CORR_VECT
          vatt_info_t(1)%val_char = 'unknown'
          vatt_info_t(1)%ilength = LEN('unknown')
       ELSE                  ! we use time from input file
-         CALL GETVAR_1D(cf_out_U, cv_t_out, vtime)
-         CALL GETVAR_ATTRIBUTES(cf_out_U, cv_t_out, nb_att_t, vatt_info_t)
+         CALL GETVAR_1D(cf_raw_U, cv_t_out, vtime)
+         CALL GETVAR_ATTRIBUTES(cf_raw_U, cv_t_out, nb_att_t, vatt_info_t)
       END IF
 
 
@@ -503,76 +512,77 @@ PROGRAM CORR_VECT
                V_r8 = 0.
             ELSE
                !! Getting uncorrected U on grid T:
-               CALL  GETVAR_2D(idf_u, idv_u, cf_out_U, cv_out_U, Ntr, jk*i3d, jt, Xdum4, lz=nk)
-               U_r8 = Xdum4
+               CALL  GETVAR_2D(idf_u, idv_u, cf_raw_U, cv_out_U, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+               U_r8 = ztmp4
 
                !! Getting uncorrected V on grid T:
-               CALL  GETVAR_2D(idf_v, idv_v, cf_out_V, cv_out_V, Ntr, jk*i3d, jt, Xdum4, lz=nk)
-               V_r8 = Xdum4
+               CALL  GETVAR_2D(idf_v, idv_v, cf_raw_V, cv_out_V, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+               V_r8 = ztmp4
             END IF
 
 
             !IF ( iorca > 0 ) PRINT *, '   *** goona "lbc_lnk" with iorca =', iorca
 
-            rsgn = -1.
-            IF ( cgrid_out == 'U' ) THEN
-               !! U-V grid:
-               !! Correcting U :
-               Xdum8 = XCOSU8*U_r8 + XSINU8*V_r8  !lolo: no trcik here???
-               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'U', rsgn )
-               Uu_c(:,:,jk) = REAL(Xdum8 , 4)
+
+            !! Getting U and V on T-grid:
+            !! Correcting U (East-North to i-component) :
+            Xdum8 = XCOST8*U_r8 + XSINT8*V_r8
+            !! Correcting V (East-North to j-component) :
+            Ydum8 = XCOST8*V_r8 - XSINT8*U_r8
+            
+            
+            IF ( cgrid_out == 'T' ) THEN
+               !! to T-grid, nothing to do...
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', -1.0_8 )
+               U_c(:,:,jk) = REAL(Xdum8 , 4)
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Ydum8, 'T', -1.0_8 )
+               V_c(:,:,jk) = REAL(Ydum8 , 4)               
                !!
-               !! Correcting V :
-               Xdum8 = XCOSV8*V_r8 - XSINV8*U_r8  !lolo: no trcik here???
-               !IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'V', rsgn )
-               Vv_c(:,:,jk) = REAL(Xdum8 , 4)
+            ELSEIF ( cgrid_out == 'U' ) THEN
+               !! to U-V grid, need to interpolate
+               ztmp8(1:ni-1,:) = 0.5*(Xdum8(1:ni-1,:)+Xdum8(2:ni,:))
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, ztmp8, 'U', -1.0_8 )
+               U_c(:,:,jk) = REAL(ztmp8 , 4)
                !!
-            ELSE
-               !! T grid:
-               !! Correcting U (i-component to east) :
-               Xdum8 = XCOST8*U_r8 + XSINT8*V_r8
-               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )
-               Ut_c(:,:,jk) = REAL(Xdum8 , 4)
-               !!
-               !! Correcting V (j-component to north):
-               Xdum8 = XCOST8*V_r8 - XSINT8*U_r8
-               IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', rsgn )
-               Vt_c(:,:,jk) = REAL(Xdum8 , 4)
+               ztmp8(:,1:nj-1) = 0.5*(Ydum8(:,1:nj-1)+Ydum8(:,2:nj))
+               IF ( iorca > 0 ) CALL lbc_lnk( iorca, ztmp8, 'V', -1.0_8 )
+               V_c(:,:,jk) = REAL(ztmp8 , 4)
                !!
             END IF
 
+            
          END DO ! jk
 
-
+         
          IF ( lmout_x .AND. lmout_y ) THEN
             IF ( cgrid_out == 'U' ) THEN
-               WHERE ( mask_u == 0 ) Uu_c = rmaskvalue
-               WHERE ( mask_v == 0 ) Vv_c = rmaskvalue
+               WHERE ( mask_u == 0 ) U_c = rmaskvalue
+               WHERE ( mask_v == 0 ) V_c = rmaskvalue
             ELSE
-               WHERE ( mask_t == 0 ) Ut_c = rmaskvalue
-               WHERE ( mask_t == 0 ) Vt_c = rmaskvalue
+               WHERE ( mask_t == 0 ) U_c = rmaskvalue
+               WHERE ( mask_t == 0 ) V_c = rmaskvalue
             END IF
          ELSE
             rmaskvalue = 0.
          END IF
 
-
+         
          IF ( i3d == 1 ) THEN
 
             !! 3D:
             IF ( cgrid_out == 'U' ) THEN
-               CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, Uu_c(:,:,:),  &
-                  &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,      &
+               CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
+                  &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,      &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
-               CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, Vv_c(:,:,:),  &
-                  &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,      &
+               CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
+                  &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,      &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
             ELSE
-               CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, Ut_c(:,:,:),  &
-                  &    cufilout, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_U,      &
+               CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, U_c(:,:,:),  &
+                  &    cf_out_U, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_U,      &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
-               CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, Vt_c(:,:,:),  &
-                  &    cvfilout, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_V,      &
+               CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, V_c(:,:,:),  &
+                  &    cf_out_V, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_V,      &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
             END IF
 
@@ -580,18 +590,18 @@ PROGRAM CORR_VECT
 
             !! 2D:
             IF ( cgrid_out == 'U' ) THEN
-               CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, Uu_c(:,:,1), &
-                  &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
+               CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1), &
+                  &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
-               CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, Vv_c(:,:,1), &
-                  &    cvfilout, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
+               CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, V_c(:,:,1), &
+                  &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
             ELSE
-               CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t,         vtime, Ut_c(:,:,1), &
-                  &    cufilout, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_U,       &
+               CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t,         vtime, U_c(:,:,1), &
+                  &    cf_out_U, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_U,       &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
-               CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t,         vtime, Vt_c(:,:,1), &
-                  &    cvfilout, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
+               CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t,         vtime, V_c(:,:,1), &
+                  &    cf_out_V, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
                   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
             END IF
 
@@ -656,13 +666,13 @@ PROGRAM CORR_VECT
       !!
       !!
       !!
-      cf_out_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
+      cf_raw_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
          &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
-      cf_out_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
+      cf_raw_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
          &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
       !!
       PRINT *, 'The two unrotated raw files will be produced :'
-      PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ;
+      PRINT *, trim(cf_raw_U) ;   PRINT *, trim(cf_raw_V) ;
       !!
       PRINT *, '' ;   PRINT *, 'Input files :'
       PRINT *, trim(cufilin) ;   PRINT *, trim(cvfilin) ; PRINT *, '' ; PRINT *, ''
@@ -684,12 +694,12 @@ PROGRAM CORR_VECT
          END IF
       END IF
 
-      cf_out_U = cufilin(1:nbc-nlext)
-      cf_out_U = trim(cf_out_U)//'_unrotated.'//trim(cfext)
+      cf_raw_U = cufilin(1:nbc-nlext)
+      cf_raw_U = trim(cf_raw_U)//'_unrotated.'//trim(cfext)
 
       nbc = LEN_TRIM(cvfilin)
-      cf_out_V = cvfilin(1:nbc-nlext)
-      cf_out_V = TRIM(cf_out_V)//'_unrotated.'//trim(cfext)
+      cf_raw_V = cvfilin(1:nbc-nlext)
+      cf_raw_V = TRIM(cf_raw_V)//'_unrotated.'//trim(cfext)
 
       cv_out_U = trim(cv_rot_U)//'_unrotated'
       cv_out_V = trim(cv_rot_V)//'_unrotated'
@@ -750,8 +760,8 @@ PROGRAM CORR_VECT
 
       !! Allocations :
       !! -------------
-      ALLOCATE (Xdum4(ni,nj) , &
-         &     Ut_c(ni,nj,nk) , Vt_c(ni,nj,nk),                              &
+      ALLOCATE (ztmp4(ni,nj) , &
+         &     U_c(ni,nj,nk) , V_c(ni,nj,nk),                              &
          &     xlon_t(ni,nj) , xlat_t(ni,nj) , xlon_u(ni,nj) , xlat_u(ni,nj), xlon_v(ni,nj) , xlat_v(ni,nj) , &
          &     xlon_f(ni,nj) , xlat_f(ni,nj) , vtime(Ntr) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
       !!
@@ -822,24 +832,24 @@ PROGRAM CORR_VECT
 
             !! Getting U :
             !! -----------
-            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_rot_U, Ntr, jk*i3d, jt, Xdum4, lz=nk)
-            U_r8 = Xdum4
+            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_rot_U, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            U_r8 = ztmp4
 
             !! Getting V :
             !! -----------
-            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_rot_V, Ntr, jk*i3d, jt, Xdum4, lz=nk)
-            V_r8 = Xdum4
+            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_rot_V, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            V_r8 = ztmp4
 
 
             !! Unrotating U :
             !! --------------
-            Ut_c(:,:,jk) = REAL(XCOST8*U_r8 - XSINT8*V_r8 , 4) ! note the '-' sign --> reverse correction
+            U_c(:,:,jk) = REAL(XCOST8*U_r8 - XSINT8*V_r8 , 4) ! note the '-' sign --> reverse correction
 
 
 
             !! Unrotating V :
             !! --------------
-            Vt_c(:,:,jk) = REAL(XCOST8*V_r8 + XSINT8*U_r8 , 4) ! note the + sign for reverse correction
+            V_c(:,:,jk) = REAL(XCOST8*V_r8 + XSINT8*U_r8 , 4) ! note the + sign for reverse correction
 
 
 
@@ -847,27 +857,27 @@ PROGRAM CORR_VECT
 
 
          !lulu
-         WHERE ( mask_u == 0 ) Ut_c(:,:,1:nk) = zrmv
-         WHERE ( mask_v == 0 ) Vt_c(:,:,1:nk) = zrmv
+         WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = zrmv
+         WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = zrmv
 
          IF ( l_3d_inv ) THEN
 
-            CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, Ut_c(:,:,:),  &
-               &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U,       &
+            CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
+               &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U,       &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
-            CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, Vt_c(:,:,:),  &
-               &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V,       &
+            CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
+               &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V,       &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
          ELSE
 
-            CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, Ut_c(:,:,1),     &
-               &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U,       &
+            CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, U_c(:,:,1),     &
+               &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U,       &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
-            CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, Vt_c(:,:,1), &
-               &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V,   &
+            CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, V_c(:,:,1), &
+               &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V,   &
                &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
 
          END IF
@@ -876,7 +886,7 @@ PROGRAM CORR_VECT
       END DO
 
       PRINT *, ''
-      PRINT *, 'Files created:'; PRINT *, '   ', trim(cf_out_U); PRINT *, '   ', trim(cf_out_V)
+      PRINT *, 'Files created:'; PRINT *, '   ', trim(cf_raw_U); PRINT *, '   ', trim(cf_raw_V)
       PRINT *, ''
 
    END IF ! on l_inv
