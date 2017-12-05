@@ -221,13 +221,13 @@ CONTAINS
       SELECT CASE( i_orca_in )
 
       CASE (4)
-         PRINT *, 'ORCA2 type of extrapolation at northern boundary!'
+         PRINT *, 'ORCA north pole T-point folding type of extrapolation at northern boundary!'
          FP4(2:nxp4/2             ,nyp4-1) = FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
          FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = FP4(2:nxp4/2             ,nyp4-5)
          FP4(2:nxp4/2             ,nyp4)   = FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
          FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = FP4(2:nxp4/2             ,nyp4-6)
       CASE (6)
-         PRINT *, 'ORCA1 type of extrapolation at northern boundary!'
+         PRINT *, 'ORCA north pole F-point folding type of extrapolation at northern boundary!'         
          FP4(2:nxp4/2               ,nyp4-1) = FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
          FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = FP4(2:nxp4/2               ,nyp4-4)
          FP4(2:nxp4/2               ,nyp4)   = FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
