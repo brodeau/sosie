@@ -55,8 +55,9 @@ example (# X):
      >> gunzip data/*.gz
      >> sosie.x -f namelist.exampleX
 
+&nbsp;
 
-### Example #1: basic 2D scalar field interpolation
+#### Example #1: basic 2D scalar field interpolation
 Interpolation of Reynolds (2002) Long Term Mean SST onto the ORCA1 grid
 (illustrated on Fig. 3-4). Uncompress files coordinates+tmask\_ORCA1.nc.gz and
 sst.ltm.1971-2000.nc.gz in ./data
@@ -65,8 +66,9 @@ sst.ltm.1971-2000.nc.gz in ./data
 
 Check the newly created SST\_360x180-ORCA1\_REYNOLDS\_LTM.nc
 
+&nbsp;
 
-### Example #2: 3D scalar field interpolation
+#### Example #2: 3D scalar field interpolation
 
 3D interpolation of Levitus (1998) temperature climatology onto the ORCA1 grid
 (only march). Uncompress files coordinates+tmask\_ORCA1.nc.gz and
@@ -75,8 +77,9 @@ T\_levitus\_march.nc.gz in ./data
      >> sosie.x -f namelist.example2
 Check the newly created temp\_360x180-ORCA1\_march.nc
 
+&nbsp;
 
-### Example #3: Interpolation from an irregular (ORCA1) to a regular lat-lon 1x1 deg. grid
+#### Example #3: Interpolation from an irregular (ORCA1) to a regular lat-lon 1x1 deg. grid
 
 2D interpolation of a SST snapshot from a random NEMO-ORCA1 simulation onto
 lat-lon 1x1 deg. grid using the bilinear algorithm. Uncompress the file
@@ -85,8 +88,9 @@ sst\_ORCA1\_example.nc.gz in ./data
     >> sosie.x -f namelist.example3
 Check the newly created sst\_ORCA1-1x1\_test.nc
 
+&nbsp;
 
-### Example #4: Interpolation and correction of a 2D vector field from a regular lat-lon 1x1 deg. grid to an irregular grid (ORCA1)
+#### Example #4: Interpolation and correction of a 2D vector field from a regular lat-lon 1x1 deg. grid to an irregular grid (ORCA1)
 
 As the ORCA family of grids gets distorded in the northern hemisphere it is
 necessary to correct (i.e. rotate) both components of the vector. In this
@@ -112,17 +116,24 @@ Check the newly created u10_1x1-deg-ORCA1_grid_U.nc4 and v10_1x1-deg-ORCA1_grid_
 
 
 
-### Example #5: Interpolation of a vector field from an irregular (ORCA) grid to a regular grid
+&nbsp;
 
-Say that you want to interpolate the current field from an NEMO output to a
-regular grid.  file ORCA1\_my\_run\_grid\_U.nc contains the zonal current
-vozocrtx file ORCA1\_my\_run\_grid\_V.nc contains the meridional current
-vomecrty
+#### Example #5: 2D regular lat-lon to polar stereographic
+Interpolation of high-resolution surface 2-meter air temperature from ECMWF onto a polar stereographic projection of the Arctic.
+Do the interpolation:
 
-      >> corr_vect.x -I -x vozocrtx -y vomecrty -i ORCA1_my_run_grid_U.nc ORCA1_my_run_grid_V.nc -m mesh_mask_ORCA1_light.nc -t time_counter files
+          >> sosie.x -f namelist.example5
 
-ORCA1\_my\_run\_grid\_U\_unrotated.nc and ORCA1\_my\_run\_grid\_V\_unrotated.nc
-are generated and contain the "unrotated" version of each component of vector
-field, these fields can be normally interpolated to a regular grid using the
-bilinear method...
+Check the newly created **T2M_2560x480-polar-stereo_Arctic.nc**
+
+
+&nbsp;
+
+#### Example #6: 3D interpolation from ORCA2 to ORCA1 tri-polar grids
+Interpolation of a random 3D+time monthly salinity field on the ORCA2 grid to the ORCA1 grid using the bilinear method.
+Do the interpolation:
+
+          >> sosie.x -f namelist.example6
+
+Check the newly created **so_ORCA2-ORCA1_test.nc**
 
