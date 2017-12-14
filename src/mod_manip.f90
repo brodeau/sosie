@@ -701,6 +701,7 @@ CONTAINS
       !!---------------------------------------------------------------
 
       !debug: USE io_ezcdf
+      USE io_ezcdf
       USE mod_conf,  ONLY: i_orca_out
 
       IMPLICIT NONE
@@ -714,14 +715,15 @@ CONTAINS
       INTEGER, DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
 
       INTEGER :: &
+         &    ji, jj, &
          &    nx_in, ny_in, nx_out, ny_out, &
          &    jlat, ji_out, jj_out, ji_in, jj_in, &
          &    jmin_in, jmax_in, imin_in, imax_in, niter, &
          &    j_strt_out, j_stop_out
 
-      REAL(8) :: emax, frac_emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old, zdist
+      REAL(8) :: rmin_dlat_dj, emax, frac_emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old, zdist, rtmp
 
-      REAL(8) :: y_max_out, y_min_out, dy, y_max_in, y_min_in
+      REAL(8) :: y_max_out, y_min_out, y_max_bnd, y_min_bnd, y_max_bnd0, y_min_bnd0, dy, y_max_in, y_min_in
       REAL(8), DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
 
@@ -730,7 +732,8 @@ CONTAINS
       INTEGER, DIMENSION(1) :: ip, jp
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xdist, &
-         &                                    e1, e2    !: grid layout and metrics
+         &                                    e1_in, e2_in, &    !: grid layout and metrics
+         &                                    ztmp_out
       REAL(8),DIMENSION(:), ALLOCATABLE :: vlat, vlon
       LOGICAL :: l_is_reg_in, l_is_reg_out, lagain
 
@@ -777,8 +780,9 @@ CONTAINS
 
 
       IF (ldebug) THEN
+         !! Testing the field "distance from point at lon=2./lat=45."
          Xdist(:,:) = DISTANCE_2D(2._8, Xin(:,:), 45._8, Yin(:,:))
-         CALL PRTMASK(REAL(Xdist,4), 'distance_2_45.nc', 'dist')
+         CALL PRTMASK(REAL(Xdist,4), 'distance_fron_2_45_in.nc', 'dist')
       END IF
 
       !! Going to scan target grid through increasing  (or decreasing) j (latitude)
@@ -787,15 +791,33 @@ CONTAINS
       j_strt_out = 1
       j_stop_out = ny_out
 
-      !! Case when latitude ONLY keeps on increasing (or decreasing) as j increase
+
+
+
+
+      
+      !! We need to know if the target latitude ONLY keeps on systematically
+      !! increasing (or decreasing) as j increases:
+      !!
+      ALLOCATE ( ztmp_out(nx_out, ny_out) )
+      DO jj = 2, ny_out
+         ztmp_out(:,jj) = Yout(:,jj) - Yout(:,jj-1)
+      END DO
+
+      rtmp = SUM(ztmp_out(:,ny_out/2)) ! know if increasing (>0) or decreasing (<0)
+      ztmp_out = SIGN(1.0_8 , rtmp)*ztmp_out
+      IF (ldebug) CALL PRTMASK(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
+      rmin_dlat_dj = MINVAL(ztmp_out(:,2:))
+      IF (ldebug) PRINT *, ' Minimum dlat_dj_out =>', rmin_dlat_dj
+      
+
       !!    (ie [d lat / d j] always has the same sign!)
-      IF ( l_is_reg_out .OR. (i_orca_out > 0) ) THEN
+      IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
          !!
          !! *** Will ignore regions of the TARGET domain that
          !!     are not covered by source domain:
-
          y_min_in = MINVAL(Yin) ; ! Min and Max latitude of source domain
          y_max_in = MAXVAL(Yin)
 
@@ -812,8 +834,10 @@ CONTAINS
          IF (ldebug) THEN
             PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
             PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
+            PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
+            PRINT *, ''
          END IF
-         !PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
+
       END IF ! IF ( l_is_reg_out )
 
 
@@ -890,54 +914,71 @@ CONTAINS
          !! ---------------------------------------------------------------------------------------
       ELSE
 
+         
          !! IRREGULAR CASE !!
          PRINT *, '                        => going for advanced algorithm !'
 
-         ALLOCATE ( e1(nx_in,ny_in), e2(nx_in,ny_in) )
+         ALLOCATE ( e1_in(nx_in,ny_in), e2_in(nx_in,ny_in) )
          !! We need metric of input grid
-         e1(:,:) = 40000. ;  e2(:,:) = 40000.
+         e1_in(:,:) = 40000. ;  e2_in(:,:) = 40000.
          DO jj_in=1, ny_in
             DO ji_in=1, nx_in-1
-               e1(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in+1,jj_in),Yin(ji_in,jj_in),Yin(ji_in+1,jj_in))*1000. !(m)
+               e1_in(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in+1,jj_in),Yin(ji_in,jj_in),Yin(ji_in+1,jj_in))*1000. !(m)
             END DO
          END DO
          DO jj_in=1, ny_in-1
             DO ji_in=1, nx_in
-               e2(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in,jj_in+1),Yin(ji_in,jj_in),Yin(ji_in,jj_in+1))*1000. !(m)
+               e2_in(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in,jj_in+1),Yin(ji_in,jj_in),Yin(ji_in,jj_in+1))*1000. !(m)
             END DO
          END DO
-         e1(nx_in,:) = e1(nx_in-1,:)
-         e2(:,ny_in) = e2(:,ny_in-1)
+         e1_in(nx_in,:) = e1_in(nx_in-1,:)
+         e2_in(:,ny_in) = e2_in(:,ny_in-1)
          IF (ldebug) THEN
-            CALL PRTMASK(REAL(e1,4), 'e1.nc', 'e1')
-            CALL PRTMASK(REAL(e2,4), 'e2.nc', 'e2')
+            CALL PRTMASK(REAL(e1_in,4), 'e1_in.nc', 'e1')
+            CALL PRTMASK(REAL(e2_in,4), 'e2_in.nc', 'e2')
          END IF
 
          !! Min and Max latitude to use for binning :
-         y_max_out = MIN( y_max_out , y_max_in )
-         y_min_out = MAX( y_min_out , y_min_in )
-         y_max_out = MIN( REAL(INT(y_max_out+1),8) ,  90.)
-         y_min_out = MAX( REAL(INT(y_min_out-1),8) , -90.)
-         !! Multiple of 5:
-         y_max_out = MIN( NINT(y_max_out/5.)*5.    ,  90.)
-         y_min_out = MAX( NINT(y_min_out/5.)*5.    , -90.)
-
+         y_max_bnd = MIN( y_max_out , y_max_in )
+         y_max_bnd0 = y_max_bnd
+         y_min_bnd = MAX( y_min_out , y_min_in )
+         y_min_bnd0 = y_min_bnd
+         !PRINT *, ' y_max_bnd #1 => ', y_max_bnd         
+         !PRINT *, ' y_min_bnd #1 => ', y_min_bnd
+         y_max_bnd = MIN( REAL(INT(y_max_bnd+1),8) ,  90.)
+         !y_min_bnd = MAX( REAL(INT(y_min_bnd-1),8) , -90.)
+         !PRINT *, ' y_max_bnd #2 => ', y_max_bnd         
+         !PRINT *, ' y_min_bnd #2 => ', y_min_bnd
+         !! Multiple of 0.5:
+         y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
+         y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
+         !PRINT *, ' y_max_bnd #3 => ', y_max_bnd         
+         !PRINT *, ' y_min_bnd #3 => ', y_min_bnd
+         
          ALLOCATE ( VLAT_SPLIT_BOUNDS(Nlat_split+1), IJ_VLAT_IN(Nlat_split,2) )
-
-         dy = (y_max_out - y_min_out)/Nlat_split
+         
+         dy = (y_max_bnd - y_min_bnd)/Nlat_split         
          DO jlat=1,Nlat_split+1
-            VLAT_SPLIT_BOUNDS(jlat) = y_min_out + REAL(jlat-1)*dy
+            VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
          END DO
-         !
+
          IF ( ldebug ) THEN
             PRINT *, ''
-            PRINT *, ' *** Binning between y_min_out, y_max_out => ', REAL(y_min_out,4), REAL(y_max_out,4)
+            PRINT *, ' *** Binning between y_min_bnd, y_max_bnd, dy => ', REAL(y_min_bnd,4), REAL(y_max_bnd,4), REAL(dy,4)
+            PRINT *, '      * real natural bound =>', REAL(y_min_bnd0,4), REAL(y_max_bnd0,4)
             PRINT *, '     => VLAT_SPLIT_BOUNDS ='
             PRINT *, VLAT_SPLIT_BOUNDS
             PRINT *, ''
          END IF
-
-         DO jlat=1,Nlat_split
+         
+         IF ( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
+            PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Bounds for latitude for VLAT_SPLIT_BOUNDS are bad!'
+            PRINT *, ' y_min_bnd, y_max_bnd =', y_min_bnd, y_max_bnd
+            PRINT *, ' y_min_bnd0, y_max_bnd0 =', y_min_bnd0, y_max_bnd0
+            STOP
+         END IF
+         
+         DO jlat = 1, Nlat_split
             rlat_low = VLAT_SPLIT_BOUNDS(jlat)
             rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
             jmax_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh))
@@ -960,7 +1001,7 @@ CONTAINS
 
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
             DO ji_out = 1, nx_out
-
+               
                rlon = Xout(ji_out,jj_out)
                rlat = Yout(ji_out,jj_out)
 
@@ -980,6 +1021,7 @@ CONTAINS
 
                DO WHILE ( lagain )
                   !
+
                   !! Using band + niter surrounding:
                   jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
                   jmax_in = IJ_VLAT_IN(MIN(jlat+niter,Nlat_split), 2)
@@ -1007,15 +1049,19 @@ CONTAINS
                      PRINT *, 'The nearest point was not found!'
                      PRINT *, ' !!! ji_in or jj_in = 0 !!!'
                      PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
-                     PRINT *, ' Nearest point found on source grid:', &
-                        &  REAL(Xin(ji_in,jj_in) , 4), &
-                        &  REAL(Yin(ji_in,jj_in) , 4)
                      STOP
                   END IF
 
 
                   zdist = Xdist(ji_in,jj_in) ! minimum distance found
-                  emax = MAX(e1(ji_in,jj_in),e2(ji_in,jj_in))/1000.*SQRT(2.)
+
+                  !PRINT *, ''
+                  !PRINT *, 'ji_in,jj_in =>', ji_in,jj_in
+                  !lulu
+                  !PRINT *, 'lulu: zdist, e1_in(ji_in,jj_in), e2_in(ji_in,jj_in) =>',  zdist, e1_in(ji_in,jj_in), e2_in(ji_in,jj_in)
+                  !STOP'lulu'
+                  
+                  emax = MAX(e1_in(ji_in,jj_in),e2_in(ji_in,jj_in))/1000.*SQRT(2.)
 
                   IF (zdist <= frac_emax*emax) THEN
 
@@ -1062,7 +1108,7 @@ CONTAINS
             END DO
          END DO
 
-         DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1, e2 )
+         DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, ztmp_out )
 
       END IF
 
