@@ -20,5 +20,5 @@ FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
 
 
 # Directory to install binaries:
-INSTALL_DIR = $(HOME)/bin
+INSTALL_DIR = $(HOME)/local
 
