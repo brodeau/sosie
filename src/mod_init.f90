@@ -196,12 +196,15 @@ CONTAINS
          END IF
          WRITE(6,*)''
          !!
+         
+         IF (TRIM(cv_t_in)=='missing_rec') lct = .TRUE.
+         
          WRITE(6,*)''
-         WRITE(6,*)'Input source file: ', trim(cf_in)
+         WRITE(6,*)'Input source file: ', TRIM(cf_in)
          WRITE(6,*)''
          WRITE(6,*)'Method for 2D interoplation: ', cmethod
          WRITE(6,*)''
-         WRITE(6,*)'Time record name in source file: ', trim(cv_t_in)
+         IF ( .NOT. lct ) WRITE(6,*)'Time record name in source file: ', TRIM(cv_t_in)
          WRITE(6,*)''
          WRITE(6,*)'File containing the source grid: ', trim(cf_x_in)
          WRITE(6,*)''
@@ -273,6 +276,7 @@ CONTAINS
             PRINT *,   ' => Target depth vector in output file will be renamed to: ', trim(cv_z_out_name)
             WRITE(6,*)''
          END IF
+
 
          IF (lct) THEN
             WRITE(6,*)'Time is controled ! '

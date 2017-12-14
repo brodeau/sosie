@@ -47,7 +47,7 @@ CONTAINS
 
       IF ( l_int_3d ) ALLOCATE ( data3d_in(ni_in,nj_in,nk_in), depth_in(nk_in) )
       !! Filling time array :
-      IF ( ltime )  THEN
+      IF ( ltime  )  THEN
          IF ( lct ) THEN       ! time is being controlled
             DO jt = 1, Ntr
                vt(jt) = t0 + t_stp*REAL(jt)
