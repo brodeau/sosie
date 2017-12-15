@@ -717,7 +717,7 @@ CONTAINS
       INTEGER :: &
          &    ji, jj, &
          &    nx_in, ny_in, nx_out, ny_out, &
-         &    jlat, ji_out, jj_out, ji_in, jj_in, &
+         &    jlat, ji_out, jj_out, ji_in, jj_in, jj_out_old, &
          &    jmin_in, jmax_in, imin_in, imax_in, niter, &
          &    j_strt_out, j_stop_out
 
@@ -1001,18 +1001,24 @@ CONTAINS
             !!
          END DO
 
-         rlat_old = rflg
-
+         rlat_old   = rflg
+         jj_out_old = -10
+         
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
             DO ji_out = 1, nx_out
                
                rlon = Xout(ji_out,jj_out)
                rlat = Yout(ji_out,jj_out)
 
+               !! Display progression in stdout:
+               IF ( (ji_out == nx_out/2).AND.(jj_out /= jj_out_old) ) THEN
+                  WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
+                  jj_out_old = jj_out
+               END IF
+               
                !! Need to find which jlat of our latitude bins rlat is located in!
                IF ( rlat /= rlat_old ) THEN
-                  !lulu
-                  WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
+                  !IF ( jj_out /= jj_out_old ) WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
                   DO jlat=1,Nlat_split
                      IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
                      IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
@@ -1106,12 +1112,12 @@ CONTAINS
                rlat_old = rlat
             END DO
          END DO
-
+         
          DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, ztmp_out )
-
+         
       END IF
 
-
+      
       IF ( ldebug ) THEN
          CALL PRTMASK(REAL(JIpos,4), 'JIpos.nc', 'ji')
          CALL PRTMASK(REAL(JJpos,4), 'JJpos.nc', 'jj')
