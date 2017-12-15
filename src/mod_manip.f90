@@ -781,10 +781,10 @@ CONTAINS
 
       IF (ldebug) THEN
          !! Testing the field "distance from point at lon=2./lat=45."
-         Xdist(:,:) = DISTANCE_2D(2._8, Xin(:,:), 45._8, Yin(:,:))
+         Xdist(:,:) = DISTANCE_2D(2.0_8, Xin(:,:), 45.0_8, Yin(:,:))
          CALL PRTMASK(REAL(Xdist,4), 'distance_fron_2_45_in.nc', 'dist')
       END IF
-
+      
       !! Going to scan target grid through increasing  (or decreasing) j (latitude)
 
       !! General case:
@@ -804,11 +804,27 @@ CONTAINS
          ztmp_out(:,jj) = Yout(:,jj) - Yout(:,jj-1)
       END DO
 
+      y_min_in = MINVAL(Yin) ; ! Min and Max latitude of source domain
+      y_max_in = MAXVAL(Yin)
+
+      y_min_out = MINVAL(Yout) ; ! Min and Max latitude of target domain
+      y_max_out = MAXVAL(Yout)
+
+      IF ( ldebug ) THEN
+         PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
+         PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
+      END IF
+
+
+      
       rtmp = SUM(ztmp_out(:,ny_out/2)) ! know if increasing (>0) or decreasing (<0)
       ztmp_out = SIGN(1.0_8 , rtmp)*ztmp_out
       IF (ldebug) CALL PRTMASK(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
       rmin_dlat_dj = MINVAL(ztmp_out(:,2:))
       IF (ldebug) PRINT *, ' Minimum dlat_dj_out =>', rmin_dlat_dj
+
+
+
       
 
       !!    (ie [d lat / d j] always has the same sign!)
@@ -818,12 +834,6 @@ CONTAINS
          !!
          !! *** Will ignore regions of the TARGET domain that
          !!     are not covered by source domain:
-         y_min_in = MINVAL(Yin) ; ! Min and Max latitude of source domain
-         y_max_in = MAXVAL(Yin)
-
-         y_min_out = MINVAL(Yout) ; ! Min and Max latitude of target domain
-         y_max_out = MAXVAL(Yout)
-
          jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in))
          jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in))
          j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
@@ -832,13 +842,11 @@ CONTAINS
          IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
 
          IF (ldebug) THEN
-            PRINT *, ' Min. latitude on target & source domains =>', y_min_out, y_min_in
-            PRINT *, ' Max. latitude on target & source domains =>', y_max_out, y_max_in
             PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
             PRINT *, ''
          END IF
 
-      END IF ! IF ( l_is_reg_out )
+      END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) )
 
 
       !! Backround value to spot non-treated regions
@@ -946,7 +954,7 @@ CONTAINS
          !PRINT *, ' y_max_bnd #1 => ', y_max_bnd         
          !PRINT *, ' y_min_bnd #1 => ', y_min_bnd
          y_max_bnd = MIN( REAL(INT(y_max_bnd+1),8) ,  90.)
-         !y_min_bnd = MAX( REAL(INT(y_min_bnd-1),8) , -90.)
+         y_min_bnd = MAX( REAL(INT(y_min_bnd-1),8) , -90.)
          !PRINT *, ' y_max_bnd #2 => ', y_max_bnd         
          !PRINT *, ' y_min_bnd #2 => ', y_min_bnd
          !! Multiple of 0.5:
@@ -1021,8 +1029,8 @@ CONTAINS
 
                DO WHILE ( lagain )
                   !
-
                   !! Using band + niter surrounding:
+                  !PRINT *, ' jlat, niter =>', jlat, niter 
                   jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
                   jmax_in = IJ_VLAT_IN(MIN(jlat+niter,Nlat_split), 2)
                   !!
@@ -1215,8 +1223,8 @@ CONTAINS
       ! Local variables
       INTEGER :: nx, ny, ji, jj
 
-      REAL(8) ::  zlatar, zlatbr, zlonar, zlonbr
-      REAL(8) ::  zpds
+      REAL(8) :: zlatar, zlatbr, zlonar, zlonbr
+      REAL(8) :: zpds
       REAL(8) :: zux, zuy, zuz
       REAL(8) :: zr, zpi, zconv, zvx, zvy, zvz
 
