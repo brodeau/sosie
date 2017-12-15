@@ -43,9 +43,6 @@ CONTAINS
          PRINT *, '-------------------'
       END IF
 
-      PRINT *, 'LOLO: drown called...' ; STOP
-
-      
       IF ( ismooth > 0 ) THEN
          !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
          PRINT *, ' Smoothing '//TRIM(cv_in)//'!', ismooth, ' times'
