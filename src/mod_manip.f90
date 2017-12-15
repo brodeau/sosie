@@ -727,7 +727,7 @@ CONTAINS
       REAL(8), DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
 
-      INTEGER :: jlat_inc = 1 ; ! 1 if lat increases with j, -1 if decreases with j
+      INTEGER :: jlat_inc    ! 1 if lat increases with j, -1 if decreases with j
       INTEGER, DIMENSION(2) :: jmax_loc, jmin_loc
       INTEGER, DIMENSION(1) :: ip, jp
 
@@ -787,13 +787,12 @@ CONTAINS
       
       !! Going to scan target grid through increasing  (or decreasing) j (latitude)
 
+
+      
       !! General case:
       j_strt_out = 1
       j_stop_out = ny_out
-
-
-
-
+      jlat_inc   = 1
 
       
       !! We need to know if the target latitude ONLY keeps on systematically
@@ -827,7 +826,7 @@ CONTAINS
 
       
 
-      !!    (ie [d lat / d j] always has the same sign!)
+      !!  Simplif when [d lat / d j] always has the same sign:
       IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
@@ -838,14 +837,11 @@ CONTAINS
          jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in))
          j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
          j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
-
          IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
-
          IF (ldebug) THEN
             PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
             PRINT *, ''
          END IF
-
       END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) )
 
 
@@ -1015,7 +1011,7 @@ CONTAINS
 
                !! Need to find which jlat of our latitude bins rlat is located in!
                IF ( rlat /= rlat_old ) THEN
-                  PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
+                  PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' jj_out =', jj_out
                   DO jlat=1,Nlat_split
                      IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
                      IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
