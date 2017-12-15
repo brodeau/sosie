@@ -14,15 +14,10 @@ MODULE io_ezcdf
    TYPE, PUBLIC :: var_attr
       CHARACTER(LEN=128) :: cname
       INTEGER            :: itype
-      !CHARACTER(LEN=11)  :: ctype
       INTEGER            :: ilength
       CHARACTER(LEN=128) :: val_char
       REAL, DIMENSION(9) :: val_num   ! assuming that numeric attributes are never a vector larger than 9...
    END TYPE var_attr
-
-   !! Must be defined somewhere else official: !!!
-   !CHARACTER(len=11), DIMENSION(6), PARAMETER, PUBLIC :: &
-   !   & vtypes_def = (/ 'NF90_BYTE  ', 'NF90_CHAR  ', 'NF90_SHORT ', 'NF90_INT   ', 'NF90_FLOAT ', 'NF90_DOUBLE' /)
 
 
    PRIVATE
@@ -1022,16 +1017,32 @@ CONTAINS
          !!
          !!           CREATE NETCDF OUTPUT FILE :
 
+         PRINT *, 'lolo1'
          IF ( lp ) THEN
             CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f), crtn,cf_in,cv_in)
          ELSE
             CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idx_f), crtn,cf_in,cv_in)
          END IF
          !!
+         PRINT *, 'lolo2'
+
+         PRINT *, 'cdt = ', TRIM(cdt),'---'
+         PRINT *, 'cv_lo = ', TRIM(cv_lo),'---'
+         PRINT *, 'cv_la = ', TRIM(cv_la),'---'
+         PRINT *, 'cv_t = ', TRIM(cv_t),'---'
+         PRINT *, 'crtn = ', TRIM(crtn),'---'
+         PRINT *, 'cf_in = ', TRIM(cf_in),'---'
+         PRINT *, 'cv_in = ', TRIM(cv_in),'---'
+
+         PRINT *, 'attr_lat = ', attr_lat,'---'
+
+         PRINT *, 'attr_time = ', attr_time,'---'
+
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
             &            attr_lon=attr_lon, attr_lat=attr_lat, attr_time=attr_time)
          !!
+         PRINT *, 'lolo3'
          !! Variable
          IF ( TRIM(cv_t) /= '' ) THEN
             ALLOCATE (vidim(3))

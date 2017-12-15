@@ -10,7 +10,7 @@ MODULE MOD_GRIDS
       &      TRG_DOMAIN, &
       &      IS_ORCA_NORTH_FOLD, &
       &      TERMINATE
-   
+
    INTEGER :: &
       &     ji, jj, jt0, jz0, &
       &     n1, n2, n3, nrec,   &
@@ -46,13 +46,21 @@ CONTAINS
       END IF
 
       IF ( l_int_3d ) ALLOCATE ( data3d_in(ni_in,nj_in,nk_in), depth_in(nk_in) )
+
       !! Filling time array :
       IF ( ltime  )  THEN
          IF ( lct ) THEN       ! time is being controlled
             DO jt = 1, Ntr
                vt(jt) = t0 + t_stp*REAL(jt)
             END DO
-         ELSE        ! we use time from input file
+            nb_att_t = 1
+            vatt_info_t(:)%cname = 'null'
+            vatt_info_t(1)%cname = 'units'
+            vatt_info_t(1)%itype = 2 ! char
+            vatt_info_t(1)%val_char = 'unknown'
+            vatt_info_t(1)%ilength = LEN('unknown')
+            !!
+         ELSE    ! we get time vector and its attributes into input file
             CALL GETVAR_1D(cf_in, cv_t_in, vt0) ;  vt(:) = vt0(j_start:j_stop)
             CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t)
          END IF
@@ -1057,16 +1065,16 @@ CONTAINS
 
 
 
-      
+
       IS_ORCA_NORTH_FOLD%ifld_nord =  0
       IS_ORCA_NORTH_FOLD%cgrd_type = 'X'
 
       nx = SIZE(Xtest,1)
       ny = SIZE(Xtest,2)
-      
+
       IF ( ny > 3 ) THEN ! (case if called with a 1D array, ignoring...)
 
-         
+
          IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx:nx-nx/2+2:-1,ny-2) ) == 0. ) THEN
             IS_ORCA_NORTH_FOLD%ifld_nord = 4 ! T-pivot, grid_T
             IS_ORCA_NORTH_FOLD%cgrd_type = 'T'
@@ -1077,7 +1085,7 @@ CONTAINS
                IS_ORCA_NORTH_FOLD%ifld_nord = 4 ! T-pivot, grid_T
                IS_ORCA_NORTH_FOLD%cgrd_type = 'U'
             END IF
-               !! LOLO: PROBLEM == 6, V !!!
+            !! LOLO: PROBLEM == 6, V !!!
          END IF
          !---
          IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx:nx-nx/2+2:-1,ny-3) ) == 0. ) THEN
@@ -1085,7 +1093,7 @@ CONTAINS
             IS_ORCA_NORTH_FOLD%cgrd_type = 'V'
          END IF
 
-         
+
          IF ( SUM( Xtest(2:nx/2,ny) - Xtest(nx-1:nx-nx/2+1:-1,ny-1) ) == 0. ) THEN
             IS_ORCA_NORTH_FOLD%ifld_nord = 6 ! F-pivot, grid_T
             IS_ORCA_NORTH_FOLD%cgrd_type = 'T'
@@ -1100,7 +1108,7 @@ CONTAINS
                IS_ORCA_NORTH_FOLD%ifld_nord = 6 ! F-pivot, grid_V
                IS_ORCA_NORTH_FOLD%cgrd_type = 'V'
             END IF
-               !! LOLO: PROBLEM == 4, U !!!
+            !! LOLO: PROBLEM == 4, U !!!
          END IF
          !---
 
