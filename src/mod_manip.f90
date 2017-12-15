@@ -1011,7 +1011,8 @@ CONTAINS
 
                !! Need to find which jlat of our latitude bins rlat is located in!
                IF ( rlat /= rlat_old ) THEN
-                  PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' jj_out =', jj_out
+                  !lulu
+                  WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
                   DO jlat=1,Nlat_split
                      IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
                      IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
@@ -1059,12 +1060,6 @@ CONTAINS
 
                   zdist = Xdist(ji_in,jj_in) ! minimum distance found
 
-                  !PRINT *, ''
-                  !PRINT *, 'ji_in,jj_in =>', ji_in,jj_in
-                  !lulu
-                  !PRINT *, 'lulu: zdist, e1_in(ji_in,jj_in), e2_in(ji_in,jj_in) =>',  zdist, e1_in(ji_in,jj_in), e2_in(ji_in,jj_in)
-                  !STOP'lulu'
-                  
                   emax = MAX(e1_in(ji_in,jj_in),e2_in(ji_in,jj_in))/1000.*SQRT(2.)
 
                   IF (zdist <= frac_emax*emax) THEN
