@@ -381,9 +381,6 @@ CONTAINS
       CALL DIMS(cf_in, cv_in, n1, n2, n3, n4)
 
       IF ( (lx /= n1).OR.(ly /= n2) ) CALL print_err(crtn, ' PROBLEM #1 => '//TRIM(cv_in)//' in '//TRIM(cf_in))
-      !PRINT *, 'lt =', lt
-      !PRINT *, ' n1, n2, n3, n4 =>', n1, n2, n3, n4
-      !lolo IF ( (lt > 0).AND.(n4 < lt)  ) CALL print_err(crtn, ' PROBLEM #2  => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
       IF ( present(jt1).AND.present(jt2) ) THEN
          its = jt1 ; ite = jt2
@@ -1017,32 +1014,26 @@ CONTAINS
          !!
          !!           CREATE NETCDF OUTPUT FILE :
 
-         PRINT *, 'lolo1'
          IF ( lp ) THEN
             CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f), crtn,cf_in,cv_in)
          ELSE
             CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idx_f), crtn,cf_in,cv_in)
          END IF
          !!
-         PRINT *, 'lolo2'
-
-         PRINT *, 'cdt = ', TRIM(cdt),'---'
-         PRINT *, 'cv_lo = ', TRIM(cv_lo),'---'
-         PRINT *, 'cv_la = ', TRIM(cv_la),'---'
-         PRINT *, 'cv_t = ', TRIM(cv_t),'---'
-         PRINT *, 'crtn = ', TRIM(crtn),'---'
-         PRINT *, 'cf_in = ', TRIM(cf_in),'---'
-         PRINT *, 'cv_in = ', TRIM(cv_in),'---'
-
-         PRINT *, 'attr_lat = ', attr_lat,'---'
-
-         PRINT *, 'attr_time = ', attr_time,'---'
+         !PRINT *, 'cdt = ', TRIM(cdt),'---'
+         !PRINT *, 'cv_lo = ', TRIM(cv_lo),'---'
+         !PRINT *, 'cv_la = ', TRIM(cv_la),'---'
+         !PRINT *, 'cv_t = ', TRIM(cv_t),'---'
+         !PRINT *, 'crtn = ', TRIM(crtn),'---'
+         !PRINT *, 'cf_in = ', TRIM(cf_in),'---'
+         !PRINT *, 'cv_in = ', TRIM(cv_in),'---'
+         !PRINT *, 'attr_lat = ', attr_lat,'---'
+         !PRINT *, 'attr_time = ', attr_time,'---'
 
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
             &            attr_lon=attr_lon, attr_lat=attr_lat, attr_time=attr_time)
          !!
-         PRINT *, 'lolo3'
          !! Variable
          IF ( TRIM(cv_t) /= '' ) THEN
             ALLOCATE (vidim(3))
@@ -1060,7 +1051,7 @@ CONTAINS
          END IF
          DEALLOCATE ( vidim )
          
-         !!  VARIABLE ATTRIBUTES lolo
+         !!  VARIABLE ATTRIBUTES
          IF ( lcopy_att_F ) CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes (given in namelist):
          IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',           vflag),  crtn,cf_in,cv_in)
