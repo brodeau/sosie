@@ -319,7 +319,7 @@ PROGRAM INTERP_TO_LINE
          DO jd = 1, ndiv
             mask_show_section(JIidx(1,jd), JJidx(1,jd)) = -5
          END DO
-         CALL PRTMASK(REAL(mask_show_section(:,:),4), 'mask_stage_with_sect.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+         CALL PRTMASK(REAL(mask_show_section(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
       END IF
 
       !
