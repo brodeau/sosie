@@ -42,12 +42,9 @@ MOD_INST= mod/io_ezcdf.mod \
           mod/mod_akima_2d.mod \
           mod/mod_drown.mod
 
-
 all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x
 
 test: bin/test_stuffs.x
-
-#bin/interp_to_line.x
 
 bin/sosie.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
@@ -60,10 +57,8 @@ bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
 
 bin/interp_to_line.x: src/interp_to_line.f90 obj/mod_conf.o $(LIB_SOSIE)
+	@mkdir -p bin
 	$(FC) $(FF) obj/mod_conf.o src/interp_to_line.f90 -o bin/interp_to_line.x $(LIB)
-
-#bin/proj_vect_to_line.x: src/proj_vect_to_line.f90 obj/mod_conf.o $(LIB_SOSIE)
-#	$(FC) $(FF) obj/mod_conf.o src/proj_vect_to_line.f90 -o bin/proj_vect_to_line.x $(LIB)
 
 
 $(LIB_SOSIE): $(OBJ)

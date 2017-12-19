@@ -572,7 +572,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GETVAR_3D(idx_f, idx_v, cf_in, cv_in, lt, kt, X, jt1, jt2)
+   SUBROUTINE GETVAR_3D(idx_f, idx_v, cf_in, cv_in, lt, kt, X, jt1, jt2, jz1, jz2)
 
       !!------------------------------------------------------------------
       !! This routine extract a 3D field from a netcdf file
@@ -597,6 +597,7 @@ CONTAINS
       !! OPTIONAL INPUT :
       !! ----------------
       !!          * jt1, jt2  : first and last time snapshot to extract
+      !!          * jz1, jz2  : first and last levels to extract
       !!
       !!------------------------------------------------------------------------
 
@@ -605,13 +606,14 @@ CONTAINS
       INTEGER,                    INTENT(in)    :: lt, kt
       REAL(4), DIMENSION (:,:,:), INTENT(out)   :: X
       INTEGER,       OPTIONAL,    INTENT(in)    :: jt1, jt2
+      INTEGER,       OPTIONAL,    INTENT(in)    :: jz1, jz2
 
       INTEGER ::  &
          & lx,  &        ! x dimension of the variable        (integer)
          & ly,  &        ! y dimension of the variable        (integer)
          & lz            ! z dimension of the variable        (integer)
 
-      INTEGER :: n1, n2, n3, n4, its, ite
+      INTEGER :: n1, n2, n3, n4, its, ite, izs, ize
 
       crtn = 'GETVAR_3D'
 
@@ -629,22 +631,26 @@ CONTAINS
          its = 1   ; ite = lt
       END IF
 
-      !IF ( kt <= 1 ) THEN   ! Opening file and defining variable :
+      IF ( PRESENT(jz1).AND.PRESENT(jz2) ) THEN
+         izs = jz1 ; ize = jz2
+      ELSE
+         izs = 1   ; ize = lz
+      END IF
+      
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE,  idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
 
       IF ( kt == 0 ) THEN
-         CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,1/), count=(/lx,ly,lz/)), &
+         CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs/), count=(/lx,ly,ize/)), &
             &      crtn,cf_in,cv_in)
       ELSEIF ( kt > 0 ) THEN
-         CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,1,kt/), count=(/lx,ly,lz,1/)), &
+         CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs,kt/), count=(/lx,ly,ize,1/)), &
             &      crtn,cf_in,cv_in)
       END IF
-
+      
       IF ( ( kt == ite ).OR.( kt == 0 ) )  THEN
-         !IF (( kt == lt ).OR.( kt == 0 ))  THEN
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
       END IF
@@ -756,7 +762,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GETMASK_3D(cf_in, cv_in, IX)
+   SUBROUTINE GETMASK_3D(cf_in, cv_in, IX, jz1, jz2) !lulu
 
       !!-----------------------------------------------------------------------
       !!  Get mask (variable 'cv_in') from a netcdf file.
@@ -771,19 +777,22 @@ CONTAINS
       !! --------
       !!          * IX        :  3D array contening mask       (integer)
       !!
-      !!  Author :            Laurent Brodeau
-      !!  --------
+      !! OPTIONAL INPUT :
+      !! ----------------
+      !!          * jz1, jz2  : first and last levels to extract
+      !!
       !!------------------------------------------------------------------------
       INTEGER                                :: id_f, id_v
       CHARACTER(len=*),          INTENT(in)  :: cf_in, cv_in
       INTEGER(2), DIMENSION(:,:,:), INTENT(out) :: IX
+      INTEGER,       OPTIONAL,    INTENT(in)    :: jz1, jz2
 
       INTEGER :: &
          & lx, &    ! x dimension of the mask
          & ly, &    ! y dimension of the mask
          & lz       ! z dimension of the mask
 
-      INTEGER :: nx, ny, nk, nt
+      INTEGER :: nx, ny, nk, nt, izs, ize
 
       crtn = 'GETMASK_3D'
 
@@ -791,7 +800,12 @@ CONTAINS
       ly = size(IX,2)
       lz = size(IX,3)
 
-
+      IF ( PRESENT(jz1).AND.PRESENT(jz2) ) THEN
+         izs = jz1 ; ize = jz2
+      ELSE
+         izs = 1   ; ize = lz
+      END IF
+      
       CALL DIMS(cf_in, cv_in, nx, ny, nk, nt)
 
       IF ( nk < 1 ) THEN
@@ -800,7 +814,7 @@ CONTAINS
          CALL print_err(crtn, 'mask is not 3D')
       END IF
 
-      IF ( (nx /= lx).OR.(ny /= ly).OR.(nk /= lz) ) THEN
+      IF ( (nx /= lx).OR.(ny /= ly).OR.((ize-izs+1) /= lz) ) THEN
          !&   CALL print_err(crtn, 'data and mask file dont have same dimensions => '\\)
          PRINT *, ''
          WRITE(6,*) 'ERROR in ',TRIM(crtn),' (io_ezcdf.f90): '
@@ -817,12 +831,12 @@ CONTAINS
 
       IF ( nt > 0 ) THEN
          !! 3D+T
-         CALL sherr( NF90_GET_VAR(id_f, id_v, IX, start=(/1,1,1,1/), count=(/nx,ny,nk,1/)), &
+         CALL sherr( NF90_GET_VAR(id_f, id_v, IX, start=(/1,1,izs,1/), count=(/nx,ny,ize,1/)), &
             &      crtn,cf_in,cv_in)
 
       ELSE
          !! 3D
-         CALL sherr( NF90_GET_VAR(id_f, id_v, IX),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_GET_VAR(id_f, id_v, IX, start=(/1,1,izs/), count=(/nx,ny,ize/)),  crtn,cf_in,cv_in)
       END IF
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
