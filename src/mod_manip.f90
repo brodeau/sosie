@@ -696,6 +696,11 @@ CONTAINS
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
+      !!   Source domain: Xin, Yin
+      !!   Target domain: Xout, Yout
+      !!     => for each point of target domain: i_in,j_in location of nearest point on source domain
+      !!        => JIpos & JJpos have same shape as Xout & Yout !
+      !!
       !!                Laurent Brodeau, July, 2017
       !!
       !!---------------------------------------------------------------
@@ -818,7 +823,7 @@ CONTAINS
       
       rtmp = SUM(ztmp_out(:,ny_out/2)) ! know if increasing (>0) or decreasing (<0)
       ztmp_out = SIGN(1.0_8 , rtmp)*ztmp_out
-      IF (ldebug) CALL PRTMASK(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
+      !IF (ldebug) CALL PRTMASK(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
       rmin_dlat_dj = MINVAL(ztmp_out(:,2:))
       IF (ldebug) PRINT *, ' Minimum dlat_dj_out =>', rmin_dlat_dj
 
@@ -935,8 +940,8 @@ CONTAINS
                e2_in(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in,jj_in+1),Yin(ji_in,jj_in),Yin(ji_in,jj_in+1))*1000. !(m)
             END DO
          END DO
-         e1_in(nx_in,:) = e1_in(nx_in-1,:)
-         e2_in(:,ny_in) = e2_in(:,ny_in-1)
+         IF (nx_in>1) e1_in(nx_in,:) = e1_in(nx_in-1,:)
+         IF (ny_in>1) e2_in(:,ny_in) = e2_in(:,ny_in-1)
          IF (ldebug) THEN
             CALL PRTMASK(REAL(e1_in,4), 'e1_in.nc', 'e1')
             CALL PRTMASK(REAL(e2_in,4), 'e2_in.nc', 'e2')
