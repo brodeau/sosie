@@ -139,6 +139,19 @@ ismooth   = 0
 !! cv_z_out : name of the variable for the output depth vector in file 'cf_z_out'
 !! cv_z_out_name: name you wish to give to depth variable in file to be created...
 !!
+!! ctype_z_in  : type of coordinates in input file (currently available z/sigma)
+!! ctype_z_out : type of coordinates in output file (currently available z/sigma)
+!!
+!! These are to be set ONLY if ctype_z_in = 'sigma'
+!! cf_bathy_in : file containing the bathymetry on input grid (usually ROMS grid file)
+!! cv_bathy_in : name of bathymetry variable (usually h)
+!! ssig_in     : structure with ROMS s-coordinates parameters on input grid
+!! Vtransform | Vstretching | Nlevels | theta_s | theta_b | Tcline | hmin
+!!
+!! These are to be set ONLY if ctype_z_out = 'sigma'
+!! cf_bathy_out : file containing the bathymetry on output grid (usually ROMS grid file)
+!! cv_bathy_out : name of bathymetry variable (usually h)
+!! ssig_out     : structure with ROMS s-coordinates parameters on output grid (see above)
 !!
 &n3d
 cf_z_in  = '/data/toto/my_file.nc'
@@ -146,6 +159,16 @@ cv_z_in  = 'level'
 cf_z_out = '/data/toto/mesh_zgr.nc'
 cv_z_out = 'nav_lev'
 cv_z_out_name = 'depth'
+ctype_z_in = 'sigma'
+ctype_z_out = 'z'
+cf_bathy_in = ''
+cv_bathy_in = ''
+cf_bathy_out = '/data/toto/roms_grid.nc'
+cv_bathy_out = 'h'
+!! ROMS s-coordinates parameters (if ctype_z_in or/and ctype_z_out = 'sigma' )
+!! Vtransform | Vstretching | Nlevels | theta_s | theta_b | Tcline | hmin
+ssig_in =  2,         4,         40,       7.,       2.,     250. ,   15.
+ssig_out = 2,         4,         40,       7.,       2.,     250. ,   15.
 /
 !!
 !!

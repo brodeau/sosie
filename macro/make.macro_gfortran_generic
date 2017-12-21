@@ -1,0 +1,19 @@
+# Makefile for SOSIE
+# ==================
+
+# Fortran compiler :
+FC = gfortran
+
+# NetCDF is given to Makefile by nf-config
+NETCDF_DIR=$(shell nf-config --prefix)
+L_NCDF=$(shell nf-config --flibs)
+
+# Fortran compilation flags:
+# -- Production
+FF = -O3 -ffree-line-length-200 -J./mod -I./mod
+# -- Debugging
+#FF = -g -O0 -ffree-line-length-200 -J./mod -I./mod -w -fbounds-check
+
+# Directory to install binaries :
+INSTALL_DIR = .
+
