@@ -338,7 +338,7 @@ PROGRAM INTERP_TO_LINE
       !!
       REWIND(13)      
       DO jl = 1, nval
-         READ(13,*) rt, Xtar(1,jl), Ytar(1,jl), rdum
+         READ(13,*) rt, Xtar(1,jl), Ytar(1,jl)
       END DO
       CLOSE(13)
 
@@ -361,9 +361,9 @@ PROGRAM INTERP_TO_LINE
    
 
    IF ( l_debug ) THEN
-      DO jd = 1, nval
-         PRINT *, ' point, X, Y =', jd, Xtar(1,jd), Ytar(1,jd)
-      END DO
+      !DO jd = 1, nval
+      !   PRINT *, ' point, X, Y =', jd, Xtar(1,jd), Ytar(1,jd)
+      !END DO
       CALL PRTMASK(REAL(mask_b(:,:,1),4), 'mask_stage_2.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
       ALLOCATE ( JIidx(1,nval) , JJidx(1,nval) , mask_show_section(nib,njb) )
       CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont_b, xlatt_b,  JIidx, JJidx)
