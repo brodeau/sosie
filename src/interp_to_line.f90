@@ -25,11 +25,12 @@ PROGRAM INTERP_TO_LINE
       &   l_debug = .TRUE., &
       &   l_akima = .true., &
       &   l_bilin = .false.
-
+   !!
+   LOGICAL :: l_is_section = .FALSE., l_is_track = .FALSE.
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: ndiv
+   INTEGER :: nval, io
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: Ztar4
@@ -44,15 +45,15 @@ PROGRAM INTERP_TO_LINE
 
 
 
-   !! Grid :
+   !! Grid, default name :
    CHARACTER(len=80) :: &
-      &    cv_t   = 'time',  &
-      &    cv_mt  = 'tmask', &
-      &    cv_z   = 'depth', &
-      &    cv_lon = 'lon',   &   ! input grid longitude name, T-points
-      &    cv_lat = 'lat'        ! input grid latitude name,  T-points
+      &    cv_t   = 'time_counter',  &
+      &    cv_mt  = 'tmask',         &
+      &    cv_z   = 'deptht',        &
+      &    cv_lon = 'nav_lon',       & ! input grid longitude name, T-points
+      &    cv_lat = 'nav_lat'          ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, csection
+   CHARACTER(len=256)  :: cr, csection, ctrack
    CHARACTER(len=1)    :: c1
    !!
    !!
@@ -67,6 +68,7 @@ PROGRAM INTERP_TO_LINE
    !!
    CHARACTER(len=400)  :: &
       &    cf_section = 'transportiz.dat', &
+      &    cf_track   = 'track.dat', &
       &    cf_mm='mesh_mask.nc'
    !!
    INTEGER      :: &
@@ -85,24 +87,21 @@ PROGRAM INTERP_TO_LINE
    REAL(4), DIMENSION(:,:,:),   ALLOCATABLE :: xtmp4_b
    REAL(8), DIMENSION(:,:,:,:), ALLOCATABLE :: xvar_b
 
-
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum2d
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
       &    xlont, xlatt, &
-      &   xlont_b, xlatt_b
+      &    xlont_b, xlatt_b
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx, mask_show_section    ! debug
    !!
    INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask, mask_b
    !!
-   INTEGER :: jt
+   INTEGER :: jt, jl
    !!
-   REAL(8) :: rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max
+   REAL(8) :: rt, rlon, rlat, rdum, rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max
    !!
-   CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-s','-m' /)
-   !!
-   !!
+   CHARACTER(LEN=2), DIMENSION(10), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-s','-p','-m' /)
 
    PRINT *, ''
 
@@ -142,7 +141,12 @@ PROGRAM INTERP_TO_LINE
          CALL GET_MY_ARG('time', cv_t)
 
       CASE('-s')
+         l_is_section = .TRUE.
          CALL GET_MY_ARG('section ascii file', cf_section)
+
+      CASE('-p')
+         CALL GET_MY_ARG('orbit track ascii file', cf_track)
+         l_is_track = .TRUE.
 
       CASE('-m')
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
@@ -155,17 +159,18 @@ PROGRAM INTERP_TO_LINE
 
    END DO
 
-
-
-
    IF ( (trim(cv_in) == '').OR.(trim(cf_in) == '') ) THEN
       PRINT *, ''
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
       CALL usage()
    END IF
 
-
-
+   IF ( (l_is_section .AND. l_is_track) .OR. ( (.NOT. l_is_section).AND.(.NOT. l_is_track) ) ) THEN
+   !IF ( (l_is_section .AND. l_is_track) ) THEN
+      PRINT *, 'ERROR: you must chose to use either a section (-s <ASCII_FILE>) or an orbit track (-p <ASCII_FILE>)!'
+      PRINT *, '       Not both!'
+      CALL usage()
+   END IF
 
 
    PRINT *, ''
@@ -268,144 +273,189 @@ PROGRAM INTERP_TO_LINE
    !! LOOP ALONG SECTIONS:
    !! ~~~~~~~~~~~~~~~~~~~~
 
-   INQUIRE(FILE=trim(cf_section), EXIST=l_exist )
-   IF ( .NOT. l_exist ) THEN
-      PRINT *, 'ERROR: please provide the file containing definition of sections'; STOP
+
+   IF ( l_is_section ) THEN
+
+      INQUIRE(FILE=trim(cf_section), EXIST=l_exist )
+      IF ( .NOT. l_exist ) THEN
+         PRINT *, 'ERROR: please provide the file containing definition of sections'; STOP
+      END IF
+
+      OPEN(UNIT=13, FILE=trim(cf_section), FORM='FORMATTED', STATUS='old')  ! 11 and 12 busy with bilin module...
+
+      DO WHILE ( lcontinue )
+         c1 = '#'
+         DO WHILE ( c1 == '#' )
+            READ(13,'(a)') csection
+            c1 = csection(1:1)
+         END DO
+
+         IF (TRIM(csection) == 'EOF' ) THEN
+            PRINT *, 'Closing ', trim(cf_section) ; PRINT *, ''
+            CLOSE(13)
+            lcontinue = .FALSE.
+            EXIT
+         END IF
+
+         IF ( .NOT. lcontinue ) EXIT
+
+         PRINT *, '';  PRINT *, ''
+         PRINT *, 'Doing section ', trim(csection)
+
+         READ(13,*) imin, imax, jmin, jmax
+         PRINT*, '   =>', imin, imax, jmin, jmax
+         PRINT*, '   => Point 1:', xlont(imin,jmin), xlatt(imin,jmin)
+         PRINT*, '   => Point 2:', xlont(imax,jmax), xlatt(imax,jmax)
+         PRINT *, ''
+
+         WRITE(cf_out, '("section_",a,"_",a,".nc")') TRIM(cv_in), TRIM(csection)
+
+         !! Creating the line joining the 2 points defining the section
+         !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         CALL BUILD_TRACK()
+         !! => prepared the *_b boxes and line trajectory (Xtar & Ytar)
+
+      END DO
    END IF
 
-   OPEN(UNIT=13, FILE=trim(cf_section), FORM='FORMATTED', STATUS='old')  ! 11 and 12 busy with bilin module...
 
-   DO WHILE ( lcontinue )
-      c1 = '#'
-      DO WHILE ( c1 == '#' )
-         READ(13,'(a)') csection
-         c1 = csection(1:1)
+   IF ( l_is_track ) THEN
+
+      INQUIRE(FILE=TRIM(cf_track), EXIST=l_exist )
+      IF ( .NOT. l_exist ) THEN
+         PRINT *, 'ERROR: please provide the ascii file containing definition of orbit track'; STOP
+      END IF
+
+      !! Getting number of lines:
+      nval = -1 ; io = 0
+      OPEN (UNIT=13, FILE=TRIM(cf_track))
+      DO WHILE (io==0)
+         READ(13,*,iostat=io)
+         nval = nval + 1
       END DO
-      
-      IF (TRIM(csection) == 'EOF' ) THEN
-         PRINT *, 'Closing ', trim(cf_section) ; PRINT *, ''
-         CLOSE(13)
-         lcontinue = .FALSE.
-         EXIT
-      END IF
-
-      IF ( .NOT. lcontinue ) EXIT
-
-      PRINT *, '';  PRINT *, ''
-      PRINT *, 'Doing section ', trim(csection)
-
-      READ(13,*) imin, imax, jmin, jmax
-      PRINT*, '   =>', imin, imax, jmin, jmax
-      PRINT*, '   => Point 1:', xlont(imin,jmin), xlatt(imin,jmin)
-      PRINT*, '   => Point 2:', xlont(imax,jmax), xlatt(imax,jmax)
-      PRINT *, ''
-
-      WRITE(cf_out, '("section_",a,"_",a,".nc")') trim(cv_in), trim(csection)
-
-
-      !! Creating the line joining the 2 points defining the section
-      !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      CALL PREPARE_LINE()
-      !! => prepared the *_b boxes and line trajectory (Xtar & Ytar)
-
-      IF ( l_debug ) THEN
-         DO jd = 1, ndiv
-            PRINT *, ' point, X, Y =', jd, Xtar(1,jd), Ytar(1,jd)
-         END DO
-         CALL PRTMASK(REAL(mask_b(:,:,1),4), 'mask_stage_2.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
-         ALLOCATE ( JIidx(1,ndiv) , JJidx(1,ndiv) , mask_show_section(nib,njb) )
-         CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont_b, xlatt_b,  JIidx, JJidx)
-         mask_show_section(:,:) = mask_b(:,:,1)
-         DO jd = 1, ndiv
-            mask_show_section(JIidx(1,jd), JJidx(1,jd)) = -5
-         END DO
-         CALL PRTMASK(REAL(mask_show_section(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
-      END IF
-
-      !
-      !! Filling arrays for "local box" (defined by the section)
+      PRINT*, nval, ' points in '//TRIM(cf_track)//'...'
+      ALLOCATE ( Xtar(1,nval), Ytar(1,nval) )
       !!
-      DO jt = 1, nt
-         !!
-         xtmp4_b(:,:,:) = REAL(xvar(ji_min:ji_max,jj_min:jj_max,:,jt), 8)
-         !!
-         !! Extrapolating values over continents:
-         DO jk = 1, nk
-            CALL DROWN(-1, xtmp4_b(:,:,jk), mask_b(:,:,jk)) ! ORCA
-         END DO
-         !!
-         xvar_b(:,:,:,jt) = REAL(xtmp4_b, 8)
-         !!
+      REWIND(13)      
+      DO jl = 1, nval
+         READ(13,*) rt, Xtar(1,jl), Ytar(1,jl), rdum
       END DO
+      CLOSE(13)
+
+      nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
+      ALLOCATE( xlont_b(nib,njb), xlatt_b(nib,njb), xvar_b(nib,njb,nk,nt), mask_b(nib,njb,nk), xtmp4_b(nib,njb,nk) )
+      xlont_b(:,:) =  xlont(:,:)
+      mask_b(:,:,:)  =  mask(:,:,:)
+      xlatt_b(:,:) =  xlatt(:,:)
+
+      ALLOCATE ( Ztar4(1,nval), xcoupe(nval,nk,nt), xcmask(nval,nk), vposition(nval,1) )
+
+      !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
+      WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_in), TRIM(cf_track)
+
+   END IF    ! IF ( l_is_track )
 
 
-      l_first_call_interp_routine = .TRUE.
-      ! Interpolating the mask on target section
+
+
+   
+
+   IF ( l_debug ) THEN
+      DO jd = 1, nval
+         PRINT *, ' point, X, Y =', jd, Xtar(1,jd), Ytar(1,jd)
+      END DO
+      CALL PRTMASK(REAL(mask_b(:,:,1),4), 'mask_stage_2.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+      ALLOCATE ( JIidx(1,nval) , JJidx(1,nval) , mask_show_section(nib,njb) )
+      CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont_b, xlatt_b,  JIidx, JJidx)
+      mask_show_section(:,:) = mask_b(:,:,1)
+      DO jd = 1, nval
+         mask_show_section(JIidx(1,jd), JJidx(1,jd)) = -5
+      END DO
+      CALL PRTMASK(REAL(mask_show_section(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+   END IF
+
+   !
+   !! Filling arrays for "local box" (defined by the section)
+   !!
+   DO jt = 1, nt
+      !!
+      xtmp4_b(:,:,:) = REAL(xvar(ji_min:ji_max,jj_min:jj_max,:,jt), 8)
+      !!
+      !! Extrapolating values over continents:
+      DO jk = 1, nk
+         CALL DROWN(-1, xtmp4_b(:,:,jk), mask_b(:,:,jk)) ! ORCA
+      END DO
+      !!
+      xvar_b(:,:,:,jt) = REAL(xtmp4_b, 8)
+      !!
+   END DO
+
+
+   l_first_call_interp_routine = .TRUE.
+   ! Interpolating the mask on target section
+   DO jk = 1, nk
+      !!
+      IF ( l_akima ) CALL AKIMA_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
+         &                        Xtar, Ytar, Ztar4,  icall=1)
+      !!
+      IF ( l_bilin) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
+         &                        Xtar, Ytar, Ztar4, trim(csection))
+      !!
+      xcmask(:,jk) = Ztar4(1,:)
+      !!
+   END DO
+
+
+   ifo=0 ; ivo=0
+
+   l_first_call_interp_routine = .TRUE.
+   ! Interpolating the nt snapshots of field on target section
+   DO jt = 1, nt
+      !!
       DO jk = 1, nk
          !!
-         IF ( l_akima ) CALL AKIMA_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
-            &                        Xtar, Ytar, Ztar4,  icall=1)
+         IF ( l_akima ) CALL AKIMA_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
+            &                           Xtar,    Ytar,    Ztar4,  icall=1)
          !!
-         IF ( l_bilin) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
-            &                        Xtar, Ytar, Ztar4, trim(csection))
+         IF ( l_bilin ) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
+            &                           Xtar,    Ytar,    Ztar4, trim(csection))
          !!
-         xcmask(:,jk) = Ztar4(1,:)
+         xcoupe(:,jk,jt) = Ztar4(1,:)
          !!
       END DO
+      !!
+      WHERE( xcmask < 0.25 ) xcoupe(:,:,jt) = -9999.
+
+      CALL P2D_T(ifo, ivo, nt, jt, vposition, vdepth, vtime, xcoupe(:,:,jt), cf_out, &
+         &       'position', 'profo', cv_t, cv_in, -9999.)
+
+   END DO
+
+   !lulu
+   IF ( l_debug ) THEN
+      ivo=0 ; ifo=0
+      CALL P2D_T(ifo, ivo, 1, 1, vposition, vdepth, vtime, xcmask(:,:), 'MASK_'//TRIM(cf_out), &
+         &       'position', 'profo', cv_t, 'lsm', -9999.)
+   END IF
 
 
-      ifo=0 ; ivo=0
+   l_first_call_interp_routine = .TRUE.
 
-      l_first_call_interp_routine = .TRUE.
-      ! Interpolating the nt snapshots of field on target section
-      DO jt = 1, nt
-         !!
-         DO jk = 1, nk
-            !!
-            IF ( l_akima ) CALL AKIMA_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
-               &                           Xtar,    Ytar,    Ztar4,  icall=1)
-            !!
-            IF ( l_bilin ) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
-               &                           Xtar,    Ytar,    Ztar4, trim(csection))
-            !!
-            xcoupe(:,jk,jt) = Ztar4(1,:)
-            !!
-         END DO
-         !!
-         WHERE( xcmask < 0.25 ) xcoupe(:,:,jt) = -9999.
+   PRINT *, 'File created => ', trim(cf_out)
 
-         CALL P2D_T(ifo, ivo, nt, jt, vposition, vdepth, vtime, xcoupe(:,:,jt), cf_out, &
-            &       'position', 'profo', cv_t, cv_in, -9999.)
-       
-      END DO
-
-      !lulu
-      IF ( l_debug ) THEN
-         ivo=0 ; ifo=0
-         CALL P2D_T(ifo, ivo, 1, 1, vposition, vdepth, vtime, xcmask(:,:), 'MASK_'//TRIM(cf_out), &
-            &       'position', 'profo', cv_t, 'lsm', -9999.)
-      END IF
-      
-
-      l_first_call_interp_routine = .TRUE.
-
-      PRINT *, 'File created => ', trim(cf_out)
-
-      DEALLOCATE ( Xtar, Ytar, Ztar4 )
-      DEALLOCATE ( xcoupe, xcmask, vposition )
-      DEALLOCATE ( xlont_b, xlatt_b, xvar_b, mask_b, xtmp4_b )
-      !lolo
+   DEALLOCATE ( Xtar, Ytar, Ztar4 )
+   DEALLOCATE ( xcoupe, xcmask, vposition )
+   DEALLOCATE ( xlont_b, xlatt_b, xvar_b, mask_b, xtmp4_b )
+   !lolo
 
 
-
-   END DO  ! loop along section
 
 
 CONTAINS
 
 
 
-   SUBROUTINE PREPARE_LINE()
+   SUBROUTINE BUILD_TRACK()
 
       IF ( imax < imin ) THEN ! switching points,
          isav = imin ; jsav = jmin
@@ -435,12 +485,12 @@ CONTAINS
       dlat = lat_max - lat_min ; PRINT *, 'latg. range =', dlat
       dang = SQRT(dlon*dlon + dlat*dlat) ; PRINT *, 'Ang. range =', dang
 
-      ndiv = INT(dang/res) + 1
-      IF ( MOD(ndiv,2) == 0 ) ndiv = ndiv - 1 ! we want odd integer...
-      PRINT *, 'Number of points to create on segment:', ndiv ; PRINT *, ''
+      nval = INT(dang/res) + 1
+      IF ( MOD(nval,2) == 0 ) nval = nval - 1 ! we want odd integer...
+      PRINT *, 'Number of points to create on segment:', nval ; PRINT *, ''
 
-      ALLOCATE ( Xtar(1,ndiv), Ytar(1,ndiv), Ztar4(1,ndiv) )
-      ALLOCATE ( xcoupe(ndiv,nk,nt), xcmask(ndiv,nk), vposition(ndiv,1) )
+      ALLOCATE ( Xtar(1,nval), Ytar(1,nval), Ztar4(1,nval) )
+      ALLOCATE ( xcoupe(nval,nk,nt), xcmask(nval,nk), vposition(nval,1) )
 
       IF ( ABS(dlon) < 1.E-12 ) THEN
          PRINT *, 'ERROR: Section seems to be vertical!'; STOP
@@ -453,9 +503,9 @@ CONTAINS
       PRINT *, 'Lat1 =', rA*xlont(imin,jmin) + rB
       PRINT *, 'Lat2 =', rA*xlont(imax,jmax) + rB
 
-      dlon = dlon / (ndiv-1) ;  ; PRINT *, 'dlon =', dlon
+      dlon = dlon / (nval-1) ;  ; PRINT *, 'dlon =', dlon
 
-      DO jd = 1, ndiv
+      DO jd = 1, nval
          Xtar(1,jd) = xlont(imin,jmin) + (jd-1)*dlon
          Ytar(1,jd) = rA*Xtar(1,jd) + rB
       END DO
@@ -473,7 +523,7 @@ CONTAINS
 
       mask_b = mask(ji_min:ji_max,jj_min:jj_max,:)
 
-   END SUBROUTINE PREPARE_LINE
+   END SUBROUTINE BUILD_TRACK
 
 
 
@@ -522,6 +572,10 @@ SUBROUTINE usage()
    WRITE(6,*) ''
    WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
    WRITE(6,*) ''
+   WRITE(6,*) ' -s  <section_file>   => Specify name of ASCII file containing sections'
+   WRITE(6,*) ' OR: '
+   WRITE(6,*) ' -p  <track_file>     => Specify name of ASCII file containing orbit tack (columns: time, lon, lat)'
+   WRITE(6,*) ''
    WRITE(6,*) '    Optional:'
    WRITE(6,*)  ''
    WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
@@ -531,8 +585,6 @@ SUBROUTINE usage()
    WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
    WRITE(6,*) ''
    WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -s  <section_file>   => Specify name of ASCII file containing sections (default: transportiz.dat)'
    WRITE(6,*) ''
    WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
    WRITE(6,*) ''
