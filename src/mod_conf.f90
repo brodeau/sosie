@@ -82,6 +82,7 @@ MODULE MOD_CONF
       &    cf_in = '',      &
       &    cf_x_in = '',    &
       &    cf_z_in = '',    &
+      &    cf_coor_in = '', &
       &    cf_z_out = '',   &
       &    cf_lsm_in = '',  &
       &    cf_x_out = '',   &
@@ -112,6 +113,31 @@ MODULE MOD_CONF
       &    cv_lsm_out = '', &
       &    ca_missval
 
+   !! S-coordinates specific
+   !! -----------------------
+   CHARACTER(LEN=80) ::  &
+      &    cv_bathy_in = '',&
+      &    cv_bathy_out= '',&
+      &    cf_bathy_in = '',&
+      &    cf_bathy_out= '',&
+      &    ctype_z_in='z', &
+      &    ctype_z_out='z'  
+
+   TYPE scoord_params
+            integer :: Vtransform
+            integer :: Vstretching
+            integer :: Nlevels
+            real(wpl) :: theta_s
+            real(wpl) :: theta_b
+            real(wpl) :: Tcline
+            real(wpl) :: hmin
+   END TYPE scoord_params
+
+   TYPE (scoord_params) :: ssig_in, ssig_out
+
+   REAL(8),  DIMENSION(:),    ALLOCATABLE ::   &
+       &   Cs_rho, Sc_rho
+  
    !! Netcdf output strings :
    !! -----------------------
    CHARACTER(LEN=5)  ::  cmethod
@@ -152,9 +178,16 @@ MODULE MOD_CONF
       &   vt0, vt          !: time arrays
 
    !! Arrays on source grid :
-   REAL(8),  DIMENSION(:),    ALLOCATABLE ::  &
+   REAL(8),  DIMENSION(:,:,:),    ALLOCATABLE ::  &
       &   depth_in,   &
       &   depth_out
+
+  REAL(4),  DIMENSION(:,:,:),    ALLOCATABLE ::  &    
+       &   depth_in_tmp
+
+  REAL(wpl),  DIMENSION(:,:),    ALLOCATABLE ::  &    
+       &   bathy_in,  &
+       &   bathy_out
 
    REAL(wpl),  DIMENSION(:,:),  ALLOCATABLE ::  &
       &   data_in,    &   !: data array on source grid

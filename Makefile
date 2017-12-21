@@ -33,6 +33,7 @@ OBJ = obj/io_ezcdf.o \
       obj/mod_akima_2d.o \
       obj/mod_bilin_2d.o \
       obj/mod_akima_1d.o \
+      obj/mod_scoord.o \
       obj/mod_interp.o \
       obj/mod_nemotools.o
 
@@ -83,7 +84,7 @@ obj/mod_conf.o: src/mod_conf.f90
 	@mkdir -p mod
 	$(FC) $(FF) -c src/mod_conf.f90 -o obj/mod_conf.o
 
-obj/mod_init.o: src/mod_init.f90 obj/mod_conf.o
+obj/mod_init.o: src/mod_init.f90 obj/mod_conf.o obj/mod_scoord.o
 	$(FC) $(FF) -c src/mod_init.f90 -o obj/mod_init.o
 
 
@@ -108,6 +109,9 @@ obj/mod_bilin_2d.o: src/mod_bilin_2d.f90 obj/io_ezcdf.o
 
 obj/mod_akima_1d.o: src/mod_akima_1d.f90
 	$(FC) $(FF) -c src/mod_akima_1d.f90 -o obj/mod_akima_1d.o
+
+obj/mod_scoord.o: src/mod_scoord.f90
+	$(FC) $(FF) -c src/mod_scoord.f90 -o obj/mod_scoord.o
 
 obj/mod_nemotools.o: src/mod_nemotools.f90
 	$(FC) $(FF) -c src/mod_nemotools.f90 -o obj/mod_nemotools.o
