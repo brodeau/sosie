@@ -186,6 +186,13 @@ CONTAINS
 
          CASE('no_xy')
             data3d_tmp(:,:,jk) = data3d_in(:,:,jk)
+               IF ( trim(ctype_z_in) == 'z' ) THEN
+                  !! we don't need horizontal interpolation, all levels are flat
+                  depth_in_tmp(:,:,jk) = depth_in(1,1,jk)
+               ELSE
+                  !! input is sigma, layers are non-flat
+                  depth_in_tmp(:,:,jk) = depth_in(:,:,jk)
+               ENDIF
 
          CASE DEFAULT
             PRINT *, 'Interpolation method "', trim(cmethod), '" is unknown!!!'; STOP

@@ -131,9 +131,14 @@ jj_ex_top = 0 ; jj_ex_btm = 0
          max_lat_out  = max_lat_in
          nlat_inc_out = nlat_inc_in
 
-         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
-         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out(1,1,:))
+         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
          CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
+         DO ji=1,ni_out
+            DO jj=1,nj_out
+               depth_out(ji,jj,:) = depth_out(1,1,:)
+            ENDDO
+         ENDDO
 
          lon_out   = lon_in
          lon_out_b = lon_in
@@ -512,7 +517,7 @@ jj_ex_top = 0 ; jj_ex_btm = 0
             CALL GETVAR_2D(if0,iv0,cf_bathy_out, cv_bathy_out, 0, 0, 0, bathy_out(:,:))
             !! compute target depth on output grid from bathy_out and ssig_out params
             CALL depth_from_scoord(ssig_out, bathy_out, ni_out, nj_out, ssig_out%Nlevels, depth_out)
-            CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
+            CALL GETVAR_ATTRIBUTES(cf_bathy_out, cv_bathy_out,  nb_att_z, vatt_info_z)
          ELSEIF (trim(ctype_z_out) == 'z' ) THEN
             !! depth vector copied on all grid-points
             CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out(1,1,:))
