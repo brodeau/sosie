@@ -58,12 +58,12 @@ CONTAINS
 
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'; STOP
       END IF
 
       IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
          & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'; STOP
       END IF
 
       nx = SIZE(XX,1)
@@ -73,10 +73,10 @@ CONTAINS
       nyp4 = SIZE(XP4,2)
 
       IF ( nxp4 /= nx + 4 ) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_BANDS : target x dim is not ni+4!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target x dim is not ni+4!!!'; STOP
       END IF
       IF ( nyp4 /= ny + 4 ) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_BANDS : target y dim is not nj+4!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target y dim is not nj+4!!!'; STOP
       END IF
 
 
@@ -278,12 +278,12 @@ CONTAINS
 
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : size of input coor. and data do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : size of input coor. and data do not match!!!'; STOP
       END IF
 
       IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
          & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : size of output coor. and data do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : size of output coor. and data do not match!!!'; STOP
       END IF
 
       nx = SIZE(XX,1)
@@ -293,10 +293,10 @@ CONTAINS
       nyp4 = SIZE(XP4,2)
 
       IF ( nxp4 /= nx ) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : target x dim is not ni!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : target x dim is not ni!!!'; STOP
       END IF
       IF ( nyp4 /= ny + 4 ) THEN
-         PRINT *, 'ERROR, mod_drown.F90 => FILL_EXTRA_NORTH_SOUTH : target y dim is not nj+4!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : target y dim is not nj+4!!!'; STOP
       END IF
 
 
@@ -528,7 +528,7 @@ CONTAINS
          IF ( (ix1 == iz1).AND.(iy1 == iz2) ) THEN
             TEST_XYZ = '1d'
          ELSE
-            PRINT *, 'ERROR, mod_drown.F90 = >TEST_XYZ 1 : longitude and latitude array do not match data!'
+            PRINT *, 'ERROR, mod_manip.f90 = >TEST_XYZ 1: longitude and latitude array do not match data!'
             PRINT *, ''; STOP
          END IF
          !!
@@ -536,11 +536,10 @@ CONTAINS
          IF ( (ix1 == iz1).AND.(iy1 == iz1).AND.(ix2 == iz2).AND.(iy2 == iz2) ) THEN
             TEST_XYZ = '2d'
          ELSE
-            PRINT *, 'ERROR, mod_drown.F90 = >TEST_XYZ 2 : longitude and latitude array do not match data!'
+            PRINT *, 'ERROR, mod_manip.f90 = >TEST_XYZ 2: longitude and latitude array do not match data!'
             PRINT *, ''; STOP
          END IF
       END IF
-      !!
       !!
    END FUNCTION TEST_XYZ
 
