@@ -117,22 +117,11 @@ CONTAINS
       REWIND( numnam )
       READ( numnam, noutput )
 
-
-      IF ( TRIM(cmethod) /= 'no_xy' ) THEN
-         !!
-         !! Reading output section:
-         REWIND( numnam )
-         READ(numnam, nhtarget)
-         !!
-      ELSE
-         !!
-         WRITE(6,*) ''
-         WRITE(6,*) ' *** Ignoring the "&nhtarget" namelist block because no horizontal interpolation'
-         WRITE(6,*) ' *** is going to be performed. Only vertical interpolation!'
-         WRITE(6,*) ' ***         => from info from &n3d namelist block'
-         WRITE(6,*) ''
-         !!
-      END IF
+      !!
+      !! Reading output section:
+      !! RD dev notes: this is needed to read lmout
+      REWIND( numnam )
+      READ(numnam, nhtarget)
 
       CLOSE(numnam)
 
