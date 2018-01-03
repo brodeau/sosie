@@ -123,7 +123,7 @@ CONTAINS
 
       IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) CALL compute_scoord_2_4(ssig_out,nk_out,Cs_rho,Sc_rho)
       
-jj_ex_top = 0 ; jj_ex_btm = 0
+      jj_ex_top = 0 ; jj_ex_btm = 0
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
 
