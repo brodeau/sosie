@@ -120,6 +120,7 @@ CONTAINS
 
          PRINT *, ' Level : ', jk
 
+         IF ( cmethod /= 'no_xy' ) THEN
 
          IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data3d_in(:,:,jk))
          IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_in(:,:,jk))
@@ -144,6 +145,8 @@ CONTAINS
             PRINT *, '-------------------'
             PRINT *, 'DROWN NOT CALLED!!!'
             PRINT *, '-------------------'
+         END IF
+
          END IF
 
          IF ( ismooth > 0 ) THEN
@@ -275,51 +278,6 @@ CONTAINS
                 END IF
              END DO
           END DO
-
-
-! original from lolo
-
-
-!         zmax_in  = MAXVAL(depth_in)
-!         zmax_out = MAXVAL(depth_out)
-!
-!         IF ( zmax_out > zmax_in ) THEN
-!            !! Must find the last target level less deep than zmax_in
-!            jk_last = 1
-!            DO WHILE ( jk_last < nk_out )
-!               IF ( depth_out(jk_last+1) > zmax_in ) EXIT
-!               jk_last = jk_last + 1
-!            END DO
-!         END IF
-!
-!         !! Need to perform a vertical interpolation from data3d_tmp to data3d_out :
-!         DO jj = 1, nj_out
-!            DO ji = 1, ni_out
-!
-!               nlev = nk_out
-!               IF ( (mask_out(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
-!                  IF ( lmout ) THEN  ! adapting nlev if masking target
-!                     nlev = 1
-!                     !! RD while loop causes seg fault in debug
-!                     DO jk=1,nk_out
-!                        IF ( mask_out(ji,jj,jk) == 1 ) nlev = nlev + 1
-!                     ENDDO
-!                     nlev = nlev - 1
-!                  END IF
-!
-!                  CALL AKIMA_1D( REAL(depth_in(:)      ,4), data3d_tmp(ji,jj,:),    &
-!                     &           REAL(depth_out(1:nlev),4), data3d_out(ji,jj,1:nlev)  )
-!
-!               END IF
-!            END DO
-!         END DO
-!
-!         !! Assuring persistance at the bottom if target depth goes deeper that source depth
-!         IF ( (jk_last > 0).AND.(jk_last < nk_out) ) THEN
-!            DO jk = jk_last-1, nk_out
-!               data3d_out(:,:,jk) = data3d_out(:,:,jk_last-2)
-!            END DO
-!         END IF
 
       ELSE
          data3d_out = data3d_tmp ! target levels are same than source levels

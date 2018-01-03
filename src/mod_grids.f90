@@ -127,6 +127,8 @@ jj_ex_top = 0 ; jj_ex_btm = 0
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
 
+         CALL get_trg_conf()
+
          !! The very few things we have to do if no 2D horizontal interpolation needed:
          max_lat_out  = max_lat_in
          nlat_inc_out = nlat_inc_in
