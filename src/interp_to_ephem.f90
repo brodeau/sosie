@@ -1,4 +1,4 @@
-PROGRAM INTERP_TO_LINE
+PROGRAM INTERP_TO_EPHEM
 
    USE io_ezcdf
    USE mod_conf
@@ -38,8 +38,8 @@ PROGRAM INTERP_TO_LINE
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: Ztar4
    !!
    !! Coupe stuff:
-   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: xcoupe
-   REAL(4), DIMENSION(:,:),   ALLOCATABLE :: xcmask
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xcoupe
+   REAL(4), DIMENSION(:),   ALLOCATABLE :: xcmask
    REAL(8), DIMENSION(:,:),   ALLOCATABLE :: vposition
 
    REAL(8), DIMENSION(:,:),   ALLOCATABLE :: vdepth
@@ -73,31 +73,29 @@ PROGRAM INTERP_TO_LINE
    !!
    INTEGER      :: &
       &    jarg,   &
-      &    jd, jk, &
+      &    jd,  &
       &    i0, j0, ifo, ivo,   &
-      &    ni, nj, nk=0, nt=0, &
+      &    ni, nj, nk=0, Ntm=0, &
       &    ni1, nj1, ni2, nj2, &
       &    iargc, id_f1, id_v1
    !!
    !!
    INTEGER :: imin, imax, jmin, jmax, isav, jsav, ji_min, ji_max, jj_min, jj_max, nib, njb
 
-   REAL(4), DIMENSION(:,:,:,:), ALLOCATABLE :: xvar
-   REAL(4), DIMENSION(:,:,:),   ALLOCATABLE :: xtmp4_b
-   REAL(8), DIMENSION(:,:,:,:), ALLOCATABLE :: xvar_b
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xvar, xvar1, xvar2, xslp
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum2d
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
-      &    xlont, xlatt, &
-      &    xlont_b, xlatt_b
+      &    xlont, xlatt
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx, mask_show_track    ! debug
    !!
-   INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask, mask_b
+   INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: mask
    !!
-   INTEGER :: jt, jl
+   INTEGER :: jt, jte, jl, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
-   REAL(8) :: rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max, rt0, rdt
+   REAL(8) :: rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max, rt, rt0, rdt, &
+      &       t_min_e, t_max_e, t_min_m, t_max_m
    !!
    CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-a','-n','-m','-f' /)
@@ -191,8 +189,8 @@ PROGRAM INTERP_TO_LINE
 
    !! testing longitude and latitude
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   CALL DIMS(cf_in, 'nav_lon', ni1, nj1, nk, nt)
-   CALL DIMS(cf_in, 'nav_lat', ni2, nj2, nk, nt)
+   CALL DIMS(cf_in, 'nav_lon', ni1, nj1, nk, Ntm)
+   CALL DIMS(cf_in, 'nav_lat', ni2, nj2, nk, Ntm)
 
    IF ( (nj1==-1).AND.(nj2==-1) ) THEN
       ni = ni1 ; nj = ni2
@@ -215,7 +213,7 @@ PROGRAM INTERP_TO_LINE
 
    !! testing variable dimensions
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   CALL DIMS(cf_in, cv_in, ni1, nj1, nk, nt)
+   CALL DIMS(cf_in, cv_in, ni1, nj1, nk, Ntm)
 
    IF ( (ni1/=ni).AND.(nj1/=nj) ) THEN
       PRINT *, 'ERROR: dimension of ',trim(cv_in), 'does not agree with lon/lat' ; STOP
@@ -223,17 +221,17 @@ PROGRAM INTERP_TO_LINE
 
    IF ( nk < 1 ) nk = 1
 
-   IF ( nt < 1 ) THEN
+   IF ( Ntm < 1 ) THEN
       PRINT *, 'ERROR: ',trim(cv_in),' must have at least a time record!' ; STOP
    END IF
 
 
    PRINT *, 'Dimension for ',trim(cv_in),':'
    PRINT *, '   => ni =', ni ;   PRINT *, '   => nj =', nj
-   PRINT *, '   => nk =', nk ;   PRINT *, '   => nt =', nt
+   PRINT *, '   => nk =', nk ;   PRINT *, '   => Ntm =', Ntm
    PRINT *, ''
 
-   ALLOCATE ( xvar(ni,nj,nk,nt), mask(ni,nj,nk), vdepth(nk,1), vt_model(nt) )
+   ALLOCATE ( xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj), xslp(ni,nj), mask(ni,nj), vdepth(nk,1), vt_model(Ntm) )
 
    IF ( lregin ) THEN
       PRINT *, 'Regular case not supported yet! Priority to ORCA grids...'
@@ -258,24 +256,24 @@ PROGRAM INTERP_TO_LINE
       cdum = cs_force_tv(idx+1:)
       READ(cdum,'(f)') rdt
       PRINT *, ' *** OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
-      DO jt=1, nt
+      DO jt=1, Ntm
          vt_model(jt) = rt0 + REAL(jt-1)*rdt
       END DO
    ELSE
       !! Reading it in input file:
       CALL GETVAR_1D(cf_in, cv_t, vt_model)
    END IF
-   
+
    IF ( l_debug ) THEN
       PRINT *, ''
       PRINT *, 'Time vector in NEMO input file is (s), (h), (d):'
-      DO jt=1, nt
+      DO jt=1, Ntm
          PRINT *, vt_model(jt), vt_model(jt)/3600., vt_model(jt)/(3600.*24.)
       END DO
       PRINT *, ''
       PRINT *, ''
    END IF
-   
+
 
 
    !! Getting longitude, latitude and mask in mesh_mask file:
@@ -287,7 +285,7 @@ PROGRAM INTERP_TO_LINE
    CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xdum2d)
    xlatt(:,:) = xdum2d(:,:) ; i0=0 ; j0=0
    !! 3D LSM
-   CALL GETMASK_3D(cf_mm, cv_mt, mask, jz1=1, jz2=nk)
+   CALL GETMASK_2D(cf_mm, cv_mt, mask, jlev=1)
 
 
 
@@ -323,12 +321,8 @@ PROGRAM INTERP_TO_LINE
 
 
    nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
-   ALLOCATE( xlont_b(nib,njb), xlatt_b(nib,njb), xvar_b(nib,njb,nk,nt), mask_b(nib,njb,nk), xtmp4_b(nib,njb,nk) )
-   xlont_b(:,:) =  xlont(:,:)
-   mask_b(:,:,:)  =  mask(:,:,:)
-   xlatt_b(:,:) =  xlatt(:,:)
 
-   ALLOCATE ( Ztar4(1,nval), xcoupe(nval,nk,nt), xcmask(nval,nk), vposition(nval,1), &
+   ALLOCATE ( Ztar4(1,nval), xcoupe(nval,Ntm), xcmask(nval), vposition(nval,1), &
       &       JIidx(1,nval) , JJidx(1,nval) )
 
    !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
@@ -338,46 +332,113 @@ PROGRAM INTERP_TO_LINE
 
 
    !! Finding and storing the nearest points of NEMO grid to ephem points:
-   
-   CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont_b, xlatt_b,  JIidx, JJidx)
+
+   CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont, xlatt,  JIidx, JJidx)
 
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
       ALLOCATE ( mask_show_track(nib,njb) )
-      mask_show_track(:,:) = mask_b(:,:,1)
+      mask_show_track(:,:) = mask(:,:)
       DO jd = 1, nval
          mask_show_track(JIidx(1,jd), JJidx(1,jd)) = -5
       END DO
-      CALL PRTMASK(REAL(mask_show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+      CALL PRTMASK(REAL(mask_show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont, xlatt, 'lon0', 'lat0')
       DEALLOCATE ( mask_show_track )
    END IF
 
 
-   PRINT *, ''
-   PRINT *, ' Time vector in ephem file:'
-   PRINT *, vt_ephem(:)
+   !PRINT *, ''
+   !PRINT *, ' Time vector in ephem file:'
+   !PRINT *, vt_ephem(:)
    PRINT *, ''
    PRINT *, ' Time vector for model file:'
    PRINT *, vt_model(:)
    PRINT *, ''
 
+   t_min_e = MINVAL(vt_ephem)
+   t_max_e = MAXVAL(vt_ephem)
+   t_min_m = MINVAL(vt_model)
+   t_max_m = MAXVAL(vt_model)
+
+
+   !! Main time loop is on time vector in ephem file!
+
+
+   jt_s = 1 ; ! time step model!
+   
+   jtm_1_o = -100
+   jtm_2_o = -100
+
+   DO jte = 1, nval
+      !!
+      rt = vt_ephem(jte)
+      PRINT *, 'Treating ephem time =>', rt
+      !!
+      IF ( (rt >= t_min_m).AND.(rt <= t_max_m) ) THEN
+         !!
+         !! Two surrounding time records in model file => jtm_1 & jtm_2
+         DO jt=jt_s, Ntm-1
+            IF ( (rt >= vt_model(jt)).AND.(rt < vt_model(jt+1)) ) EXIT
+         END DO
+         !!
+         jtm_1 = jt
+         jtm_2 = jt+1
+         PRINT *, ' rt, vt_model(jtm_1), vt_model(jtm_2) =>', rt, vt_model(jtm_1), vt_model(jtm_2)
+         !!
+         !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
+         IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
+            IF ( jtm_1_o == -100 ) THEN
+               PRINT *, 'Reading field '//TRIM(cv_in)//' in '//TRIM(cf_in)//' at jtm_1=', jtm_1
+               CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_1, xvar1(:,:))
+            ELSE
+               PRINT *, 'Getting field '//TRIM(cv_in)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
+               xvar1(:,:) = xvar2(:,:)
+            END IF                  
+            PRINT *, 'Reading field '//TRIM(cv_in)//' in '//TRIM(cf_in)//' at jtm_2=', jtm_2
+            CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_2, xvar2(:,:))
+
+            xslp = (xvar2 - xvar1) / (vt_model(jtm_2) - vt_model(jtm_1)) ! slope...
+
+         END IF
+         !!
+         !! Linear interpolation of field at time rt:
+         xvar(:,:) = xvar1(:,:) + xslp(:,:)*(rt - vt_model(jtm_2))
+         !!
+
+
+         
+
+
+         !!
+         jtm_1_o = jtm_1
+         jtm_2_o = jtm_2
+         !!
+      END IF
+
+   END DO
 
 
    STOP 'LOLO: stop for now...'
 
 
+
+
+
+
+
    !! Filling xvar once for all, !BAD lolo, if few virtual memory on the machine...
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~
-   DO jt = 1, nt
+   DO jt = 1, Ntm
       !!
       PRINT *, ' *** Reading record', jt
-      CALL GETVAR_3D(id_f1, id_v1, cf_in, cv_in, nt, jt, xvar(:,:,1:nk,jt), jz1=1, jz2=nk)
+      !CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, jt, xvar(:,:,jt))
+      !CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jt, xvar(:,:,jt)) !, jt1, jt2, lz)
       !!
       !CALL PRTMASK(xvar(:,:,1,jt), TRIM(cv_in)//'_stage_1.nc', cv_in,   xlont, xlatt, 'lon0', 'lat0')
       !!
    END DO
    !!
-   
+
 
 
 
@@ -385,66 +446,60 @@ PROGRAM INTERP_TO_LINE
 
    !! Filling arrays for "local box" (defined by the section)
    !!
-   DO jt = 1, nt
-      !!
-      xtmp4_b(:,:,:) = REAL(xvar(ji_min:ji_max,jj_min:jj_max,:,jt), 8)
-      !!
-      !! Extrapolating values over continents:
-      DO jk = 1, nk
-         CALL DROWN(-1, xtmp4_b(:,:,jk), mask_b(:,:,jk)) ! ORCA
-      END DO
-      !!
-      xvar_b(:,:,:,jt) = REAL(xtmp4_b, 8)
-      !!
-   END DO
+   !DO jt = 1, Ntm
+   !   !!
+   !   xtmp4(:,:) = REAL(xvar(ji_min:ji_max,jj_min:jj_max,jt), 8)
+   !   !!
+   !   !! Extrapolating values over continents:
+   !   CALL DROWN(-1, xtmp4(:,:), mask(:,:)) ! ORCA
+   !   !!
+   !   xvar(:,:,jt) = REAL(xtmp4, 8)
+   !   !!
+   !END DO
 
 
    l_first_call_interp_routine = .TRUE.
    ! Interpolating the mask on target section
-   DO jk = 1, nk
-      !!
-      IF ( l_akima ) CALL AKIMA_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
-         &                        Xtar, Ytar, Ztar4,  icall=1)
-      !!
-      IF ( l_bilin) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
-         &                        Xtar, Ytar, Ztar4, trim(ctrack))
-      !!
-      xcmask(:,jk) = Ztar4(1,:)
-      !!
-   END DO
-
+   IF ( l_akima ) CALL AKIMA_2D(-1, xlont, xlatt, REAL(mask(:,:),4), &
+      &                        Xtar, Ytar, Ztar4,  icall=1)
+   !!
+   IF ( l_bilin) CALL BILIN_2D(-1, xlont, xlatt, REAL(mask(:,:),4), &
+      &                        Xtar, Ytar, Ztar4, TRIM(ctrack))
+   !!
+   xcmask(:) = Ztar4(1,:)
 
    ifo=0 ; ivo=0
 
    l_first_call_interp_routine = .TRUE.
-   ! Interpolating the nt snapshots of field on target section
-   DO jt = 1, nt
+   ! Interpolating the Ntm snapshots of field on target section
+   DO jt = 1, Ntm
       !!
-      DO jk = 1, nk
-         !!
-         IF ( l_akima ) CALL AKIMA_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
-            &                           Xtar,    Ytar,    Ztar4,  icall=1)
-         !!
-         IF ( l_bilin ) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
-            &                           Xtar,    Ytar,    Ztar4, trim(ctrack))
-         !!
-         xcoupe(:,jk,jt) = Ztar4(1,:)
-         !!
-      END DO
+      IF ( l_akima ) CALL AKIMA_2D(-1, xlont, xlatt, REAL(xvar(:,:),4), &
+         &                           Xtar,    Ytar,    Ztar4,  icall=1)
       !!
-      WHERE( xcmask < 0.25 ) xcoupe(:,:,jt) = -9999.
+      IF ( l_bilin ) CALL BILIN_2D(-1, xlont, xlatt, REAL(xvar(:,:),4), &
+         &                           Xtar,    Ytar,    Ztar4, trim(ctrack))
+      !!
+      xcoupe(:,jt) = Ztar4(1,:)
+      !!
+      WHERE( xcmask < 0.25 ) xcoupe(:,jt) = -9999.
 
-      CALL P2D_T(ifo, ivo, nt, jt, vposition, vdepth, vt_model, xcoupe(:,:,jt), cf_out, &
-         &       'position', 'profo', cv_t, cv_in, -9999.)
+      !CALL P2D_T(ifo, ivo, Ntm, jt, vposition, vdepth, vt_model, xcoupe(:,jt), cf_out, &
+      !   &       'position', 'profo', cv_t, cv_in, -9999.)
 
    END DO
 
+   !LOLO: CALL PT_SERIES(vtime, vseries, cf_in, cv_t, cv_in, cunit, cln, vflag, &
+   !LOLO: &                 lpack)
+
+
+
    !lulu
-   IF ( l_debug ) THEN
-      ivo=0 ; ifo=0
-      CALL P2D_T(ifo, ivo, 1, 1, vposition, vdepth, vt_model, xcmask(:,:), 'MASK_'//TRIM(cf_out), &
-         &       'position', 'profo', cv_t, 'lsm', -9999.)
-   END IF
+   !IF ( l_debug ) THEN
+   !ivo=0 ; ifo=0
+   !CALL P2D_T(ifo, ivo, 1, 1, vposition, vdepth, vt_model, xcmask(:), 'MASK_'//TRIM(cf_out), &
+   !   &       'position', 'profo', cv_t, 'lsm', -9999.)
+   !END IF
 
 
    l_first_call_interp_routine = .TRUE.
@@ -453,7 +508,7 @@ PROGRAM INTERP_TO_LINE
 
    DEALLOCATE ( Xtar, Ytar, Ztar4 )
    DEALLOCATE ( xcoupe, xcmask, vposition )
-   DEALLOCATE ( xlont_b, xlatt_b, xvar_b, mask_b, xtmp4_b )
+   DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xslp, mask ) !, xtmp4 )
    !lolo
 
 
@@ -498,7 +553,7 @@ CONTAINS
       PRINT *, 'Number of points to create on segment:', nval ; PRINT *, ''
 
       ALLOCATE ( Xtar(1,nval), Ytar(1,nval), Ztar4(1,nval) )
-      ALLOCATE ( xcoupe(nval,nk,nt), xcmask(nval,nk), vposition(nval,1) )
+      ALLOCATE ( xcoupe(nval,Ntm), xcmask(nval), vposition(nval,1) )
 
       IF ( ABS(dlon) < 1.E-12 ) THEN
          PRINT *, 'ERROR: Section seems to be vertical!'; STOP
@@ -524,12 +579,12 @@ CONTAINS
       ! BAD! lolo should find good metrics...
       vposition(:,1) = Xtar(1,:)
 
-      ALLOCATE( xlont_b(nib,njb), xlatt_b(nib,njb), xvar_b(nib,njb,nk,nt), mask_b(nib,njb,nk), xtmp4_b(nib,njb,nk) )
+      ALLOCATE( xlont(nib,njb), xlatt(nib,njb), mask(nib,njb)) !, xtmp4(nib,njb) )
 
-      xlont_b = xlont(ji_min:ji_max,jj_min:jj_max)
-      xlatt_b = xlatt(ji_min:ji_max,jj_min:jj_max)
+      xlont = xlont(ji_min:ji_max,jj_min:jj_max)
+      xlatt = xlatt(ji_min:ji_max,jj_min:jj_max)
 
-      mask_b = mask(ji_min:ji_max,jj_min:jj_max,:)
+      mask = mask(ji_min:ji_max,jj_min:jj_max)
 
    END SUBROUTINE BUILD_TRACK
 
@@ -559,7 +614,7 @@ CONTAINS
    END SUBROUTINE GET_MY_ARG
 
 
-END PROGRAM INTERP_TO_LINE
+END PROGRAM INTERP_TO_EPHEM
 
 
 
