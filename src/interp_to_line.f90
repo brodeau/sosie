@@ -26,7 +26,11 @@ PROGRAM INTERP_TO_LINE
       &   l_akima = .true., &
       &   l_bilin = .false.
    !!
-   LOGICAL :: l_is_section = .FALSE., l_is_track = .FALSE.
+   LOGICAL :: &
+      &      l_is_section = .FALSE., &
+      &      l_is_track = .FALSE.  , &
+      &      l_file_is_ascii = .FALSE., &
+      &      l_file_is_nc    = .FALSE.
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
@@ -100,8 +104,8 @@ PROGRAM INTERP_TO_LINE
    !!
    REAL(8) :: rt, rlon, rlat, rdum, rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max
    !!
-   CHARACTER(LEN=2), DIMENSION(10), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-s','-p','-m' /)
+   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-s','-p','-a','-n','-m' /)
 
    PRINT *, ''
 
@@ -142,14 +146,20 @@ PROGRAM INTERP_TO_LINE
 
       CASE('-s')
          l_is_section = .TRUE.
-         CALL GET_MY_ARG('section ascii file', cf_section)
+         CALL GET_MY_ARG('section file', cf_section)
 
       CASE('-p')
-         CALL GET_MY_ARG('orbit track ascii file', cf_track)
+         CALL GET_MY_ARG('orbit ephem track file', cf_track)
          l_is_track = .TRUE.
 
       CASE('-m')
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
+
+      CASE('-a')
+         l_file_is_ascii = .true.
+
+      CASE('-n')
+         l_file_is_nc    = .true.
 
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
@@ -166,10 +176,18 @@ PROGRAM INTERP_TO_LINE
    END IF
 
    IF ( (l_is_section .AND. l_is_track) .OR. ( (.NOT. l_is_section).AND.(.NOT. l_is_track) ) ) THEN
-   !IF ( (l_is_section .AND. l_is_track) ) THEN
-      PRINT *, 'ERROR: you must chose to use either a section (-s <ASCII_FILE>) or an orbit track (-p <ASCII_FILE>)!'
+      !IF ( (l_is_section .AND. l_is_track) ) THEN
+      PRINT *, 'ERROR: you must chose to use either a section (-s <FILE>) or an orbit ephem track (-p <FILE>)!'
       PRINT *, '       Not both!'
       CALL usage()
+   END IF
+
+   IF ( l_is_track ) THEN
+      IF ( ((.NOT. l_file_is_ascii).AND.(.NOT. l_file_is_nc)).OR.(l_file_is_ascii .AND.  l_file_is_nc) ) THEN
+         PRINT *, ''
+         PRINT *, 'When using an orbit, you must specify whether input file is in ASCII (-a) or netcdf (-n)!'
+         CALL usage()
+      END IF
    END IF
 
 
@@ -243,8 +261,8 @@ PROGRAM INTERP_TO_LINE
 
    !! Getting coordinates
    !! ~~~~~~~~~~~~~~~~~~~
-   CALL GETVAR_1D(        cf_in, cv_t, vtime)
-   IF ( nk > 1 ) CALL GETVAR_1D(        cf_in, cv_z, vdepth(:,1))
+   CALL               GETVAR_1D(cf_in, cv_t, vtime)
+   IF ( nk > 1 ) CALL GETVAR_1D(cf_in, cv_z, vdepth(:,1))
 
    ! Longitude array:
    CALL GETVAR_2D   (i0, j0, cf_in, cv_lon, 0, 0, 0, xdum2d)
@@ -323,24 +341,32 @@ PROGRAM INTERP_TO_LINE
 
       INQUIRE(FILE=TRIM(cf_track), EXIST=l_exist )
       IF ( .NOT. l_exist ) THEN
-         PRINT *, 'ERROR: please provide the ascii file containing definition of orbit track'; STOP
+         PRINT *, 'ERROR: please provide the file containing definition of orbit ephem track'; STOP
       END IF
 
-      !! Getting number of lines:
-      nval = -1 ; io = 0
-      OPEN (UNIT=13, FILE=TRIM(cf_track))
-      DO WHILE (io==0)
-         READ(13,*,iostat=io)
-         nval = nval + 1
-      END DO
-      PRINT*, nval, ' points in '//TRIM(cf_track)//'...'
-      ALLOCATE ( Xtar(1,nval), Ytar(1,nval) )
-      !!
-      REWIND(13)      
-      DO jl = 1, nval
-         READ(13,*) rt, Xtar(1,jl), Ytar(1,jl)
-      END DO
-      CLOSE(13)
+      IF ( l_file_is_ascii ) THEN
+         !! Getting number of lines:
+         nval = -1 ; io = 0
+         OPEN (UNIT=13, FILE=TRIM(cf_track))
+         DO WHILE (io==0)
+            READ(13,*,iostat=io)
+            nval = nval + 1
+         END DO
+         PRINT*, nval, ' points in '//TRIM(cf_track)//'...'
+         ALLOCATE ( Xtar(1,nval), Ytar(1,nval) )
+         !!
+         REWIND(13)
+         DO jl = 1, nval
+            READ(13,*) rt, Xtar(1,jl), Ytar(1,jl)
+         END DO
+         CLOSE(13)
+
+      ELSE
+         PRINT *, 'Netcdf orbit ephem case not supported yet!!!'
+         STOP
+      END IF
+
+
 
       nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
       ALLOCATE( xlont_b(nib,njb), xlatt_b(nib,njb), xvar_b(nib,njb,nk,nt), mask_b(nib,njb,nk), xtmp4_b(nib,njb,nk) )
@@ -358,7 +384,7 @@ PROGRAM INTERP_TO_LINE
 
 
 
-   
+
 
    IF ( l_debug ) THEN
       !DO jd = 1, nval
@@ -562,7 +588,7 @@ END PROGRAM INTERP_TO_LINE
 
 SUBROUTINE usage()
    !!
-   OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
+   !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
    !!
    WRITE(6,*) ''
    WRITE(6,*) '   List of command line options:'
@@ -572,9 +598,15 @@ SUBROUTINE usage()
    WRITE(6,*) ''
    WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
    WRITE(6,*) ''
-   WRITE(6,*) ' -s  <section_file>   => Specify name of ASCII file containing sections'
+   WRITE(6,*) ' -s  <section_file>   => Specify name of file containing sections'
    WRITE(6,*) ' OR: '
-   WRITE(6,*) ' -p  <track_file>     => Specify name of ASCII file containing orbit tack (columns: time, lon, lat)'
+   WRITE(6,*) ' -p  <track_file>     => Specify name of file containing orbit tack (columns: time, lon, lat)'
+   WRITE(6,*) ''
+   WRITE(6,*) ' -a                   => file containing orbit ephem is in ASCII'
+   WRITE(6,*) ''
+   WRITE(6,*) ' -n                   => file containing orbit ephem is in NetCDF'
+   WRITE(6,*) ''
+   !!
    WRITE(6,*) ''
    WRITE(6,*) '    Optional:'
    WRITE(6,*)  ''
@@ -591,7 +623,7 @@ SUBROUTINE usage()
    WRITE(6,*) ' -h                   => Show this message'
    WRITE(6,*) ''
    !!
-   CLOSE(6)
+   !CLOSE(6)
    STOP
    !!
 END SUBROUTINE usage
