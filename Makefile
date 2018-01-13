@@ -42,7 +42,7 @@ MOD_INST= mod/io_ezcdf.mod \
           mod/mod_akima_2d.mod \
           mod/mod_drown.mod
 
-all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x
+all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_line.x
 
 test: bin/test_stuffs.x
 
