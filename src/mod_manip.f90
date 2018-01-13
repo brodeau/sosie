@@ -760,6 +760,7 @@ CONTAINS
       END IF
       IF ( (SIZE(JIpos,1) /= nx_out) .OR. (SIZE(JIpos,2) /= ny_out) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JIpos dont agree in shape with Xout'
+         PRINT *, SIZE(JIpos,1), SIZE(JIpos,2), 'vs', nx_out, ny_out
          STOP
       END IF
       IF ( (SIZE(JJpos,1) /= nx_out) .OR. (SIZE(JJpos,2) /= ny_out) ) THEN
