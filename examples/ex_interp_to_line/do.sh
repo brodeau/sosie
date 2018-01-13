@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#../../bin/interp_to_line.x -i ../data/ssh_ORCA025.nc4 -v ssh  -m ../data/mesh_mask_ORCA025_light.nc4 \
+#../../bin/interp_to_ephem.x -i ../data/ssh_ORCA025.nc4 -v ssh  -m ../data/mesh_mask_ORCA025_light.nc4 \
 #                           -p ephem_calval_june2015_sph_short.txt -a
 ##                           -p ephem_calval_june2015_sph.txt
 
 # ORCA1:
-../../bin/interp_to_line.x -i ../data/sss_ORCA1_example.nc -v sos  -m ../data/mesh_mask_ORCA1v2_light.nc4 \
-                           -p ephem_calval_june2015_sph.txt -a
+../../bin/interp_to_ephem.x -i ../data/sss_ORCA1_example.nc -v sos  -m ../data/mesh_mask_ORCA1v2_light.nc4 \
+                           -p ephem_calval_june2015_sph_short.txt -a -f 600.,3600.
 
 
 

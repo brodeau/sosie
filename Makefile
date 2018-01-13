@@ -42,7 +42,7 @@ MOD_INST= mod/io_ezcdf.mod \
           mod/mod_akima_2d.mod \
           mod/mod_drown.mod
 
-all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_line.x
+all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ephem.x
 
 test: bin/test_stuffs.x
 
@@ -56,9 +56,9 @@ bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
 
-bin/interp_to_line.x: src/interp_to_line.f90 obj/mod_conf.o $(LIB_SOSIE)
+bin/interp_to_ephem.x: src/interp_to_ephem.f90 obj/mod_conf.o $(LIB_SOSIE)
 	@mkdir -p bin
-	$(FC) $(FF) obj/mod_conf.o src/interp_to_line.f90 -o bin/interp_to_line.x $(LIB)
+	$(FC) $(FF) obj/mod_conf.o src/interp_to_ephem.f90 -o bin/interp_to_ephem.x $(LIB)
 
 
 $(LIB_SOSIE): $(OBJ)
@@ -127,7 +127,7 @@ install: all
 
 uninstall:
 	rm -f $(INSTALL_DIR)/bin/*.x
-	rm -f $(INSTALL_DIR)/bin/interp_to_line.x $(INSTALL_DIR)/bin/proj_vect_to_line.x
+	rm -f $(INSTALL_DIR)/bin/interp_to_ephem.x $(INSTALL_DIR)/bin/proj_vect_to_ephem.x
 	rm -f $(INSTALL_DIR)/lib/$(LIB_SOSIE) $(INSTALL_DIR)/bin/apply_zon_corr.x
 	rm -f $(INSTALL_DIR)/include/io_ezcdf.mod
 
