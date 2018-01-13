@@ -1566,13 +1566,14 @@ CONTAINS
 
 
 
-   SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet)
+   SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet, mproblem)
       CHARACTER(len=*),          INTENT(in)  :: cf_in
       INTEGER, DIMENSION(:,:,:), INTENT(out) :: imtrcs
       REAL(8), DIMENSION(:,:,:), INTENT(out) :: ralfbet
+      INTEGER, DIMENSION(:,:),   INTENT(out) :: mproblem
 
       INTEGER :: id_f
-      INTEGER :: id_v1, id_v2
+      INTEGER :: id_v1, id_v2, id_v3
       
       crtn = 'RD_MAPPING_AB'
 
@@ -1580,9 +1581,11 @@ CONTAINS
 
       CALL sherr( NF90_INQ_VARID(id_f, 'metrics',   id_v1),  crtn,cf_in,cdum)
       CALL sherr( NF90_INQ_VARID(id_f, 'alphabeta', id_v2),  crtn,cf_in,cdum)
+      CALL sherr( NF90_INQ_VARID(id_f, 'iproblem',  id_v3),  crtn,cf_in,cdum)
 
-      CALL sherr( NF90_GET_VAR(id_f, id_v1, imtrcs),  crtn,cf_in,cdum)
-      CALL sherr( NF90_GET_VAR(id_f, id_v2, ralfbet), crtn,cf_in,cdum)
+      CALL sherr( NF90_GET_VAR(id_f, id_v1, imtrcs),   crtn,cf_in,cdum)
+      CALL sherr( NF90_GET_VAR(id_f, id_v2, ralfbet),  crtn,cf_in,cdum)
+      CALL sherr( NF90_GET_VAR(id_f, id_v3, mproblem), crtn,cf_in,cdum)
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cdum)
 
