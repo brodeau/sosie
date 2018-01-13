@@ -27,6 +27,8 @@ PROGRAM INTERP_TO_LINE
       &   l_bilin = .false.
    !!
    LOGICAL :: &
+      &      l_is_section = .FALSE., &
+      &      l_is_track = .FALSE.  , &
       &      l_file_is_ascii = .FALSE., &
       &      l_file_is_nc    = .FALSE.
    !!
@@ -52,10 +54,11 @@ PROGRAM INTERP_TO_LINE
       &    cv_t   = 'time_counter',  &
       &    cv_mt  = 'tmask',         &
       &    cv_z   = 'deptht',        &
-      &    cv_lon = 'glamt',       & ! input grid longitude name, T-points
-      &    cv_lat = 'gphit'          ! input grid latitude name,  T-points
+      &    cv_lon = 'nav_lon',       & ! input grid longitude name, T-points
+      &    cv_lat = 'nav_lat'          ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, ctrack
+   CHARACTER(len=256)  :: cr, csection, ctrack
+   CHARACTER(len=1)    :: c1
    !!
    !!
    !!******************** End of conf for user ********************************
@@ -63,10 +66,12 @@ PROGRAM INTERP_TO_LINE
    !!               ** don't change anything below **
    !!
    LOGICAL ::  &
+      &     lcontinue = .TRUE., &
       &     l_exist   = .FALSE.
    !!
    !!
    CHARACTER(len=400)  :: &
+      &    cf_section = 'transportiz.dat', &
       &    cf_track   = 'track.dat', &
       &    cf_mm='mesh_mask.nc'
    !!
@@ -79,6 +84,7 @@ PROGRAM INTERP_TO_LINE
       &    iargc, id_f1, id_v1
    !!
    !!
+   !! For section:
    INTEGER :: imin, imax, jmin, jmax, isav, jsav, ji_min, ji_max, jj_min, jj_max, nib, njb
 
    REAL(4), DIMENSION(:,:,:,:), ALLOCATABLE :: xvar
@@ -90,16 +96,16 @@ PROGRAM INTERP_TO_LINE
       &    xlont, xlatt, &
       &    xlont_b, xlatt_b
    !!
-   INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx, mask_show_track    ! debug
+   INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx, mask_show_section    ! debug
    !!
    INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask, mask_b
    !!
    INTEGER :: jt, jl
    !!
-   REAL(8) :: rt, rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max, rt0
+   REAL(8) :: rt, rlon, rlat, rdum, rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max
    !!
-   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-a','-n','-m' /)
+   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-s','-p','-a','-n','-m' /)
 
    PRINT *, ''
 
@@ -138,8 +144,13 @@ PROGRAM INTERP_TO_LINE
       CASE('-t')
          CALL GET_MY_ARG('time', cv_t)
 
+      CASE('-s')
+         l_is_section = .TRUE.
+         CALL GET_MY_ARG('section file', cf_section)
+
       CASE('-p')
          CALL GET_MY_ARG('orbit ephem track file', cf_track)
+         l_is_track = .TRUE.
 
       CASE('-m')
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
@@ -164,11 +175,19 @@ PROGRAM INTERP_TO_LINE
       CALL usage()
    END IF
 
-
-   IF ( ((.NOT. l_file_is_ascii).AND.(.NOT. l_file_is_nc)).OR.(l_file_is_ascii .AND.  l_file_is_nc) ) THEN
-      PRINT *, ''
-      PRINT *, 'When using an orbit, you must specify whether input file is in ASCII (-a) or netcdf (-n)!'
+   IF ( (l_is_section .AND. l_is_track) .OR. ( (.NOT. l_is_section).AND.(.NOT. l_is_track) ) ) THEN
+      !IF ( (l_is_section .AND. l_is_track) ) THEN
+      PRINT *, 'ERROR: you must chose to use either a section (-s <FILE>) or an orbit ephem track (-p <FILE>)!'
+      PRINT *, '       Not both!'
       CALL usage()
+   END IF
+
+   IF ( l_is_track ) THEN
+      IF ( ((.NOT. l_file_is_ascii).AND.(.NOT. l_file_is_nc)).OR.(l_file_is_ascii .AND.  l_file_is_nc) ) THEN
+         PRINT *, ''
+         PRINT *, 'When using an orbit, you must specify whether input file is in ASCII (-a) or netcdf (-n)!'
+         CALL usage()
+      END IF
    END IF
 
 
@@ -187,8 +206,8 @@ PROGRAM INTERP_TO_LINE
 
    !! testing longitude and latitude
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   CALL DIMS(cf_in, 'nav_lon', ni1, nj1, nk, nt)
-   CALL DIMS(cf_in, 'nav_lat', ni2, nj2, nk, nt)
+   CALL DIMS(cf_in, cv_lon, ni1, nj1, nk, nt)
+   CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, nt)
 
    IF ( (nj1==-1).AND.(nj2==-1) ) THEN
       ni = ni1 ; nj = ni2
@@ -245,96 +264,15 @@ PROGRAM INTERP_TO_LINE
    CALL               GETVAR_1D(cf_in, cv_t, vtime)
    IF ( nk > 1 ) CALL GETVAR_1D(cf_in, cv_z, vdepth(:,1))
 
-   PRINT *, ''
-   PRINT *, 'Time vector in NEMO input file is (s), (h), (d):'
-   rt0 = vtime(1)
-   DO jt=1, nt
-      vtime(jt) = vtime(jt) - rt0
-      PRINT *, vtime(jt), vtime(jt)/3600., vtime(jt)/(3600.*24.)
-   END DO
-   PRINT *, ''
-   PRINT *, ''
-
-
-
-   !! Getting longitude, latitude and mask in mesh_mask file:
    ! Longitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm, cv_lon, 0, 0, 0, xdum2d)
+   CALL GETVAR_2D   (i0, j0, cf_in, cv_lon, 0, 0, 0, xdum2d)
    xlont(:,:) = xdum2d(:,:) ; i0=0 ; j0=0
    WHERE ( xdum2d < 0. ) xlont = xlont + 360.0_8
    ! Latitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xdum2d)
+   CALL GETVAR_2D   (i0, j0, cf_in, cv_lat, 0, 0, 0, xdum2d)
    xlatt(:,:) = xdum2d(:,:) ; i0=0 ; j0=0
    !! 3D LSM
    CALL GETMASK_3D(cf_mm, cv_mt, mask, jz1=1, jz2=nk)
-
-
-
-   !! Reading along-track from file:
-
-   INQUIRE(FILE=TRIM(cf_track), EXIST=l_exist )
-   IF ( .NOT. l_exist ) THEN
-      PRINT *, 'ERROR: please provide the file containing definition of orbit ephem track'; STOP
-   END IF
-
-   IF ( l_file_is_ascii ) THEN
-      !! Getting number of lines:
-      nval = -1 ; io = 0
-      OPEN (UNIT=13, FILE=TRIM(cf_track))
-      DO WHILE (io==0)
-         READ(13,*,iostat=io)
-         nval = nval + 1
-      END DO
-      PRINT*, nval, ' points in '//TRIM(cf_track)//'...'
-      ALLOCATE ( Xtar(1,nval), Ytar(1,nval) )
-      !!
-      REWIND(13)
-      DO jl = 1, nval
-         READ(13,*) rt, Xtar(1,jl), Ytar(1,jl)
-      END DO
-      CLOSE(13)
-
-   ELSE
-      PRINT *, 'Netcdf orbit ephem case not supported yet!!!'
-      STOP
-   END IF
-
-
-
-   nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
-   ALLOCATE( xlont_b(nib,njb), xlatt_b(nib,njb), xvar_b(nib,njb,nk,nt), mask_b(nib,njb,nk), xtmp4_b(nib,njb,nk) )
-   xlont_b(:,:) =  xlont(:,:)
-   mask_b(:,:,:)  =  mask(:,:,:)
-   xlatt_b(:,:) =  xlatt(:,:)
-
-   ALLOCATE ( Ztar4(1,nval), xcoupe(nval,nk,nt), xcmask(nval,nk), vposition(nval,1), &
-      &       JIidx(1,nval) , JJidx(1,nval) )
-
-   !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
-   WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_in), TRIM(cf_track)
-
-
-
-
-   !! Finding and storing the nearest points of NEMO grid to ephem points:
-   
-   CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont_b, xlatt_b,  JIidx, JJidx)
-
-   !! Showing iy in file mask_+_nearest_points.nc:
-   IF ( l_debug ) THEN
-      ALLOCATE ( mask_show_track(nib,njb) )
-      mask_show_track(:,:) = mask_b(:,:,1)
-      DO jd = 1, nval
-         mask_show_track(JIidx(1,jd), JJidx(1,jd)) = -5
-      END DO
-      CALL PRTMASK(REAL(mask_show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
-      DEALLOCATE ( mask_show_track )
-   END IF
-
-
-
-
-   STOP 'LOLO: stop for now...'
 
 
    !! Filling xvar once for all, !BAD lolo, if few virtual memory on the machine...
@@ -344,16 +282,125 @@ PROGRAM INTERP_TO_LINE
       PRINT *, ' *** Reading record', jt
       CALL GETVAR_3D(id_f1, id_v1, cf_in, cv_in, nt, jt, xvar(:,:,1:nk,jt), jz1=1, jz2=nk)
       !!
-      !CALL PRTMASK(xvar(:,:,1,jt), TRIM(cv_in)//'_stage_1.nc', cv_in,   xlont, xlatt, 'lon0', 'lat0')
+      CALL PRTMASK(xvar(:,:,1,jt), TRIM(cv_in)//'_stage_1.nc', cv_in,   xlont, xlatt, 'lon0', 'lat0')
       !!
    END DO
    !!
-   
+
+
+   !! LOOP ALONG SECTIONS:
+   !! ~~~~~~~~~~~~~~~~~~~~
+
+
+   IF ( l_is_section ) THEN
+
+      INQUIRE(FILE=trim(cf_section), EXIST=l_exist )
+      IF ( .NOT. l_exist ) THEN
+         PRINT *, 'ERROR: please provide the file containing definition of sections'; STOP
+      END IF
+
+      OPEN(UNIT=13, FILE=trim(cf_section), FORM='FORMATTED', STATUS='old')  ! 11 and 12 busy with bilin module...
+
+      DO WHILE ( lcontinue )
+         c1 = '#'
+         DO WHILE ( c1 == '#' )
+            READ(13,'(a)') csection
+            c1 = csection(1:1)
+         END DO
+
+         IF (TRIM(csection) == 'EOF' ) THEN
+            PRINT *, 'Closing ', trim(cf_section) ; PRINT *, ''
+            CLOSE(13)
+            lcontinue = .FALSE.
+            EXIT
+         END IF
+
+         IF ( .NOT. lcontinue ) EXIT
+
+         PRINT *, '';  PRINT *, ''
+         PRINT *, 'Doing section ', trim(csection)
+
+         READ(13,*) imin, imax, jmin, jmax
+         PRINT*, '   =>', imin, imax, jmin, jmax
+         PRINT*, '   => Point 1:', xlont(imin,jmin), xlatt(imin,jmin)
+         PRINT*, '   => Point 2:', xlont(imax,jmax), xlatt(imax,jmax)
+         PRINT *, ''
+
+         WRITE(cf_out, '("section_",a,"_",a,".nc")') TRIM(cv_in), TRIM(csection)
+
+         !! Creating the line joining the 2 points defining the section
+         !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         CALL BUILD_TRACK()
+         !! => prepared the *_b boxes and line trajectory (Xtar & Ytar)
+
+      END DO
+   END IF
+
+
+   IF ( l_is_track ) THEN
+
+      INQUIRE(FILE=TRIM(cf_track), EXIST=l_exist )
+      IF ( .NOT. l_exist ) THEN
+         PRINT *, 'ERROR: please provide the file containing definition of orbit ephem track'; STOP
+      END IF
+
+      IF ( l_file_is_ascii ) THEN
+         !! Getting number of lines:
+         nval = -1 ; io = 0
+         OPEN (UNIT=13, FILE=TRIM(cf_track))
+         DO WHILE (io==0)
+            READ(13,*,iostat=io)
+            nval = nval + 1
+         END DO
+         PRINT*, nval, ' points in '//TRIM(cf_track)//'...'
+         ALLOCATE ( Xtar(1,nval), Ytar(1,nval) )
+         !!
+         REWIND(13)
+         DO jl = 1, nval
+            READ(13,*) rt, Xtar(1,jl), Ytar(1,jl)
+         END DO
+         CLOSE(13)
+
+      ELSE
+         PRINT *, 'Netcdf orbit ephem case not supported yet!!!'
+         STOP
+      END IF
+
+
+
+      nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
+      ALLOCATE( xlont_b(nib,njb), xlatt_b(nib,njb), xvar_b(nib,njb,nk,nt), mask_b(nib,njb,nk), xtmp4_b(nib,njb,nk) )
+      xlont_b(:,:) =  xlont(:,:)
+      mask_b(:,:,:)  =  mask(:,:,:)
+      xlatt_b(:,:) =  xlatt(:,:)
+
+      ALLOCATE ( Ztar4(1,nval), xcoupe(nval,nk,nt), xcmask(nval,nk), vposition(nval,1) )
+
+      !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
+      WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_in), TRIM(cf_track)
+
+   END IF    ! IF ( l_is_track )
 
 
 
 
 
+
+   IF ( l_debug ) THEN
+      !DO jd = 1, nval
+      !   PRINT *, ' point, X, Y =', jd, Xtar(1,jd), Ytar(1,jd)
+      !END DO
+      CALL PRTMASK(REAL(mask_b(:,:,1),4), 'mask_stage_2.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+      ALLOCATE ( JIidx(1,nval) , JJidx(1,nval) , mask_show_section(nib,njb) )
+      CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont_b, xlatt_b,  JIidx, JJidx)
+      mask_show_section(:,:) = mask_b(:,:,1)
+      DO jd = 1, nval
+         mask_show_section(JIidx(1,jd), JJidx(1,jd)) = -5
+      END DO
+      CALL PRTMASK(REAL(mask_show_section(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+   END IF
+
+   !
    !! Filling arrays for "local box" (defined by the section)
    !!
    DO jt = 1, nt
@@ -378,7 +425,7 @@ PROGRAM INTERP_TO_LINE
          &                        Xtar, Ytar, Ztar4,  icall=1)
       !!
       IF ( l_bilin) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(mask_b(:,:,jk),4), &
-         &                        Xtar, Ytar, Ztar4, trim(ctrack))
+         &                        Xtar, Ytar, Ztar4, trim(csection))
       !!
       xcmask(:,jk) = Ztar4(1,:)
       !!
@@ -397,7 +444,7 @@ PROGRAM INTERP_TO_LINE
             &                           Xtar,    Ytar,    Ztar4,  icall=1)
          !!
          IF ( l_bilin ) CALL BILIN_2D(-1, xlont_b, xlatt_b, REAL(xvar_b(:,:,jk,jt),4), &
-            &                           Xtar,    Ytar,    Ztar4, trim(ctrack))
+            &                           Xtar,    Ytar,    Ztar4, trim(csection))
          !!
          xcoupe(:,jk,jt) = Ztar4(1,:)
          !!
@@ -551,6 +598,8 @@ SUBROUTINE usage()
    WRITE(6,*) ''
    WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
    WRITE(6,*) ''
+   WRITE(6,*) ' -s  <section_file>   => Specify name of file containing sections'
+   WRITE(6,*) ' OR: '
    WRITE(6,*) ' -p  <track_file>     => Specify name of file containing orbit tack (columns: time, lon, lat)'
    WRITE(6,*) ''
    WRITE(6,*) ' -a                   => file containing orbit ephem is in ASCII'
