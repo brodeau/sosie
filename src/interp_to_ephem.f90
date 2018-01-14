@@ -27,12 +27,11 @@ PROGRAM INTERP_TO_EPHEM
       &   l_bilin = .false.
    !!
    LOGICAL :: &
-      &      l_file_is_ascii = .FALSE., &
       &      l_file_is_nc    = .FALSE.
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: nval, io, idx, iP, jP, iquadran
+   INTEGER :: Nte, io, idx, iP, jP, iquadran
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar, Xpt, Ypt
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: Ztar4, Zpt4
@@ -76,7 +75,6 @@ PROGRAM INTERP_TO_EPHEM
    !!
    INTEGER      :: &
       &    jarg,   &
-      &    jd,  &
       &    i0, j0, ifo, ivo,   &
       &    ni, nj, nk=0, Ntm=0, &
       &    ni1, nj1, ni2, nj2, &
@@ -85,24 +83,24 @@ PROGRAM INTERP_TO_EPHEM
    !!
    INTEGER :: imin, imax, jmin, jmax, isav, jsav, ji_min, ji_max, jj_min, jj_max, nib, njb
 
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: xvar, xvar1, xvar2, xslp
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xvar, xvar1, xvar2, xslp
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum2d
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum2d, show_track
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
       &    xlont, xlatt
    !!
-   INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx, mask_show_track    ! debug
+   INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
    INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: mask
    !!
-   INTEGER :: jt, jte, jl, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
+   INTEGER :: jt, jte, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
    REAL(8) :: rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max, rt, rt0, rdt, &
       &       t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta
    !!
-   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-a','-n','-m','-f' /)
+   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f' /)
 
    PRINT *, ''
 
@@ -149,12 +147,9 @@ PROGRAM INTERP_TO_EPHEM
 
       CASE('-f')
          CALL GET_MY_ARG('forced time vector construction', cs_force_tv)
-
-      CASE('-a')
-         l_file_is_ascii = .true.
-
+         
       CASE('-n')
-         l_file_is_nc    = .true.
+         l_file_is_nc = .TRUE.
 
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
@@ -169,14 +164,6 @@ PROGRAM INTERP_TO_EPHEM
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
       CALL usage()
    END IF
-
-
-   IF ( ((.NOT. l_file_is_ascii).AND.(.NOT. l_file_is_nc)).OR.(l_file_is_ascii .AND.  l_file_is_nc) ) THEN
-      PRINT *, ''
-      PRINT *, 'When using an orbit, you must specify whether input file is in ASCII (-a) or netcdf (-n)!'
-      CALL usage()
-   END IF
-
 
    PRINT *, ''
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
@@ -300,35 +287,46 @@ PROGRAM INTERP_TO_EPHEM
       PRINT *, 'ERROR: please provide the file containing definition of orbit ephem track'; STOP
    END IF
 
-   IF ( l_file_is_ascii ) THEN
+   IF ( .NOT. l_file_is_nc ) THEN
       !! Getting number of lines:
-      nval = -1 ; io = 0
+      Nte = -1 ; io = 0
       OPEN (UNIT=13, FILE=TRIM(cf_track))
       DO WHILE (io==0)
          READ(13,*,iostat=io)
-         nval = nval + 1
+         Nte = Nte + 1
       END DO
-      PRINT*, nval, ' points in '//TRIM(cf_track)//'...'
-      ALLOCATE ( Xtar(1,nval), Ytar(1,nval), vt_ephem(nval) )
+      PRINT*, Nte, ' points in '//TRIM(cf_track)//'...'
+      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte) )
       !!
       REWIND(13)
-      DO jl = 1, nval
-         READ(13,*) vt_ephem(jl), Xtar(1,jl), Ytar(1,jl)
+      DO jte = 1, Nte
+         READ(13,*) vt_ephem(jte), Xtar(1,jte), Ytar(1,jte)
       END DO
       CLOSE(13)
 
    ELSE
-      PRINT *, 'Netcdf orbit ephem case not supported yet!!!'
-      STOP
+      PRINT *, ''
+      PRINT *, 'NetCDF orbit ephem!'
+      CALL DIMS(cf_track, 'time', Nte, nj1, nk, ni1)
+      PRINT *, ' *** Nb. time records in NetCDF ephem file:', Nte
+      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte) )      
+      CALL GETVAR_1D(cf_track, 'time', vt_ephem)
+      CALL GETVAR_1D(cf_track, 'longitude', Xtar(1,:))
+      CALL GETVAR_1D(cf_track, 'latitude',  Ytar(1,:))
+      !DO jte = 1, Nte
+      !   PRINT *, vt_ephem(jte), Xtar(1,jte), Ytar(1,jte)
+      !END DO
+      PRINT *, 'Done!'; PRINT *, ''
+      !STOP
    END IF
 
 
 
    nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
 
-   ALLOCATE ( Ztar4(1,nval), Ftrack(nval), Fmask(nval), xcmask(nval), vposition(nval,1) )
+   ALLOCATE ( Ztar4(1,Nte), Ftrack(Nte), Fmask(Nte), xcmask(Nte), vposition(Nte,1) )
 
-   ALLOCATE ( IMETRICS(1,nval,3), RAB(1,nval,2), IPB(1,nval) )
+   ALLOCATE ( IMETRICS(1,Nte,3), RAB(1,Nte,2), IPB(1,Nte) )
 
    !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
    WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_in), TRIM(cf_track)
@@ -337,19 +335,6 @@ PROGRAM INTERP_TO_EPHEM
 
 
 
-   !! Showing iy in file mask_+_nearest_points.nc:
-   IF ( l_debug ) THEN
-      ALLOCATE (JIidx(1,nval) , JJidx(1,nval) , Ftrack_np(nval) )
-      !! Finding and storing the nearest points of NEMO grid to ephem points:
-      CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont, xlatt,  JIidx, JJidx)
-      ALLOCATE ( mask_show_track(nib,njb) )
-      mask_show_track(:,:) = mask(:,:)
-      DO jd = 1, nval
-         mask_show_track(JIidx(1,jd), JJidx(1,jd)) = -5
-      END DO
-      CALL PRTMASK(REAL(mask_show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont, xlatt, 'lon0', 'lat0')
-      DEALLOCATE ( mask_show_track )
-   END IF
 
 
    !PRINT *, ''
@@ -383,6 +368,29 @@ PROGRAM INTERP_TO_EPHEM
 
    CALL RD_MAPPING_AB('mapping.nc', IMETRICS, RAB, IPB)
    PRINT *, ''; PRINT *, ' *** Mapping and weights read into "mapping.nc"'; PRINT *, ''
+
+   
+   !lulu
+   !! Showing iy in file mask_+_nearest_points.nc:
+   IF ( l_debug ) THEN
+      ALLOCATE (JIidx(1,Nte) , JJidx(1,Nte) , Ftrack_np(Nte) )
+      !! Finding and storing the nearest points of NEMO grid to ephem points:
+      !CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont, xlatt,  JIidx, JJidx)
+      JIidx(1,:) = IMETRICS(1,:,1)
+      JJidx(1,:) = IMETRICS(1,:,2)
+      ALLOCATE ( show_track(nib,njb) )
+      show_track(:,:) = 0.
+      DO jte = 1, Nte
+         show_track(JIidx(1,jte), JJidx(1,jte)) = REAL(jte,4)
+      END DO
+      WHERE (mask == 0) show_track = -9999.
+      CALL PRTMASK(REAL(show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
+      DEALLOCATE ( show_track )
+   END IF
+
+
+
+
    !STOP 'mapping done!'
 
 
@@ -395,7 +403,7 @@ PROGRAM INTERP_TO_EPHEM
    jtm_1_o = -100
    jtm_2_o = -100
 
-   DO jte = 1, nval
+   DO jte = 1, Nte
       !!
       rt = vt_ephem(jte)
       PRINT *, 'Treating ephem time =>', rt
@@ -415,15 +423,13 @@ PROGRAM INTERP_TO_EPHEM
          IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
             IF ( jtm_1_o == -100 ) THEN
                PRINT *, 'Reading field '//TRIM(cv_in)//' in '//TRIM(cf_in)//' at jtm_1=', jtm_1
-               CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_1, xdum2d(:,:))
-               xvar1(:,:) = REAL(xdum2d(:,:),8)
+               CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_1, xvar1)
             ELSE
                PRINT *, 'Getting field '//TRIM(cv_in)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
             END IF
             PRINT *, 'Reading field '//TRIM(cv_in)//' in '//TRIM(cf_in)//' at jtm_2=', jtm_2
-            CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_2, xdum2d(:,:))
-            xvar2(:,:) = REAL(xdum2d(:,:),8)
+            CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_2, xvar2)
             xslp = (xvar2 - xvar1) / (vt_model(jtm_2) - vt_model(jtm_1)) ! slope...
 
          END IF
@@ -444,7 +450,7 @@ PROGRAM INTERP_TO_EPHEM
             Fmask(jte) = -9999. ; ! masking
          ELSE
             !! INTERPOLATION !
-            Ftrack(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, xvar)
+            Ftrack(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
             Fmask(jte)  = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(mask,8))
             !!
          END IF
@@ -474,7 +480,7 @@ PROGRAM INTERP_TO_EPHEM
       CALL PT_SERIES(vt_ephem, REAL(Ftrack_np,4), 'result_np.nc', 'time', cv_in, 'boo', 'ta mere', -9999.)
    END IF
 
-   !DO jte = 1, nval
+   !DO jte = 1, Nte
     !  PRINT *, ''
 
    STOP 'LOLO: stop for now...'
@@ -517,10 +523,10 @@ PROGRAM INTERP_TO_EPHEM
    ! Interpolating the Ntm snapshots of field on target section
    DO jt = 1, Ntm
       !!
-      IF ( l_akima ) CALL AKIMA_2D(-1, xlont, xlatt, REAL(xvar(:,:),4), &
+      IF ( l_akima ) CALL AKIMA_2D(-1, xlont, xlatt, xvar(:,:), &
          &                           Xtar,    Ytar,    Ztar4,  icall=1)
       !!
-      IF ( l_bilin ) CALL BILIN_2D(-1, xlont, xlatt, REAL(xvar(:,:),4), &
+      IF ( l_bilin ) CALL BILIN_2D(-1, xlont, xlatt, xvar(:,:), &
          &                           Xtar,    Ytar,    Ztar4, trim(ctrack))
       !!
       !xcoupe(:,jt) = Ztar4(1,:)
@@ -591,12 +597,12 @@ CONTAINS
       dlat = lat_max - lat_min ; PRINT *, 'latg. range =', dlat
       dang = SQRT(dlon*dlon + dlat*dlat) ; PRINT *, 'Ang. range =', dang
 
-      nval = INT(dang/res) + 1
-      IF ( MOD(nval,2) == 0 ) nval = nval - 1 ! we want odd integer...
-      PRINT *, 'Number of points to create on segment:', nval ; PRINT *, ''
+      Nte = INT(dang/res) + 1
+      IF ( MOD(Nte,2) == 0 ) Nte = Nte - 1 ! we want odd integer...
+      PRINT *, 'Number of points to create on segment:', Nte ; PRINT *, ''
 
-      ALLOCATE ( Xtar(1,nval), Ytar(1,nval), Ztar4(1,nval) )
-      ALLOCATE ( xcmask(nval), vposition(nval,1) )
+      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), Ztar4(1,Nte) )
+      ALLOCATE ( xcmask(Nte), vposition(Nte,1) )
 
       IF ( ABS(dlon) < 1.E-12 ) THEN
          PRINT *, 'ERROR: Section seems to be vertical!'; STOP
@@ -609,11 +615,11 @@ CONTAINS
       PRINT *, 'Lat1 =', rA*xlont(imin,jmin) + rB
       PRINT *, 'Lat2 =', rA*xlont(imax,jmax) + rB
 
-      dlon = dlon / (nval-1) ;  ; PRINT *, 'dlon =', dlon
+      dlon = dlon / (Nte-1) ;  ; PRINT *, 'dlon =', dlon
 
-      DO jd = 1, nval
-         Xtar(1,jd) = xlont(imin,jmin) + (jd-1)*dlon
-         Ytar(1,jd) = rA*Xtar(1,jd) + rB
+      DO jte = 1, Nte
+         Xtar(1,jte) = xlont(imin,jmin) + (jte-1)*dlon
+         Ytar(1,jte) = rA*Xtar(1,jte) + rB
       END DO
 
       ! Only positive longitudes:
@@ -680,9 +686,8 @@ SUBROUTINE usage()
    WRITE(6,*) ''
    WRITE(6,*) ' -p  <track_file>     => Specify name of file containing orbit tack (columns: time, lon, lat)'
    WRITE(6,*) ''
-   WRITE(6,*) ' -a                   => file containing orbit ephem is in ASCII'
-   WRITE(6,*) ''
    WRITE(6,*) ' -n                   => file containing orbit ephem is in NetCDF'
+   WRITE(6,*) '                         (default is columns in ASCII file <time> <lon> <lat>'
    WRITE(6,*) ''
    !!
    WRITE(6,*) ''
