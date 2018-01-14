@@ -8,7 +8,7 @@
 #                           -p ephem_calval_june2015_sph.txt -f 600.,3600.
 #exit
 
-../../bin/interp_to_ephem.x -i ~/NATL60-CJM165_y2013m04d01.1h_SSH_jt_21-23_time_20h-22h.nc4 -v sossheig -m ~/NEMO/NATL60_data/mesh_hgr_NATL60.nc4 \
+../../bin/interp_to_ephem.x -i ~/NATL60-CJM165_y2013m04d01.1h_SSH_jt_21-23_time_20h-22h.nc4 -v sossheig -m ~/NEMO/NATL60_data/mesh_t_minimum_NATL60.nc4 \
     -p /home/users/brodeau/sat/saral_sentinel2_max_cls/SARAL-Altika/dt_global_alg_sla_vxxc_20170401_20180104_tr_41496-42490.nc4 \
     -f 600.,3600. -n
 
