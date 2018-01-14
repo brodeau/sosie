@@ -180,8 +180,8 @@ PROGRAM INTERP_TO_EPHEM
 
    !! testing longitude and latitude
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   CALL DIMS(cf_in, 'nav_lon', ni1, nj1, nk, Ntm)
-   CALL DIMS(cf_in, 'nav_lat', ni2, nj2, nk, Ntm)
+   CALL DIMS(cf_mm, cv_lon, ni1, nj1, nk, Ntm)
+   CALL DIMS(cf_mm, cv_lat, ni2, nj2, nk, Ntm)
 
    IF ( (nj1==-1).AND.(nj2==-1) ) THEN
       ni = ni1 ; nj = ni2
