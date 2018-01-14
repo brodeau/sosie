@@ -33,11 +33,11 @@ PROGRAM INTERP_TO_EPHEM
    !!
    INTEGER :: Nte, io, idx, iP, jP, iquadran
    !!
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar, Xpt, Ypt
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: Ztar4, Zpt4
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar, Xpt, Ypt, Ztar
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: Zpt4
    !!
    !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack, Fmask, Ftrack_np
+   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack, Fmask, Ftrack_np, Ftrack_ephem
    REAL(4), DIMENSION(:),   ALLOCATABLE :: xcmask
    REAL(8), DIMENSION(:,:),   ALLOCATABLE :: vposition
 
@@ -71,7 +71,8 @@ PROGRAM INTERP_TO_EPHEM
    CHARACTER(len=400)  :: &
       &    cf_track   = 'track.dat', &
       &    cf_mm='mesh_mask.nc', &
-      &    cs_force_tv=''
+      &    cs_force_tv_m='', &
+      &    cs_force_tv_e=''
    !!
    INTEGER      :: &
       &    jarg,   &
@@ -99,8 +100,8 @@ PROGRAM INTERP_TO_EPHEM
       &       t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta
    !!
-   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f' /)
+   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
 
    PRINT *, ''
 
@@ -146,7 +147,10 @@ PROGRAM INTERP_TO_EPHEM
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
 
       CASE('-f')
-         CALL GET_MY_ARG('forced time vector construction', cs_force_tv)
+         CALL GET_MY_ARG('forced time vector construction for model', cs_force_tv_m)
+         
+      CASE('-g')
+         CALL GET_MY_ARG('forced time vector construction for ephem', cs_force_tv_e)
          
       CASE('-n')
          l_file_is_nc = .TRUE.
@@ -239,14 +243,14 @@ PROGRAM INTERP_TO_EPHEM
    IF ( nk > 1 ) CALL GETVAR_1D(cf_in, cv_z, vdepth(:,1))
 
 
-   IF ( TRIM(cs_force_tv) /= '' ) THEN
+   IF ( TRIM(cs_force_tv_m) /= '' ) THEN
       !! Building new time vector!
-      idx = SCAN(TRIM(cs_force_tv),',')
-      cdum = cs_force_tv(1:idx-1)
+      idx = SCAN(TRIM(cs_force_tv_m),',')
+      cdum = cs_force_tv_m(1:idx-1)
       READ(cdum,'(f)') rt0
-      cdum = cs_force_tv(idx+1:)
+      cdum = cs_force_tv_m(idx+1:)
       READ(cdum,'(f)') rdt
-      PRINT *, ' *** OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
+      PRINT *, ' *** MODEL: OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
       DO jt=1, Ntm
          vt_model(jt) = rt0 + REAL(jt-1)*rdt
       END DO
@@ -296,7 +300,7 @@ PROGRAM INTERP_TO_EPHEM
          Nte = Nte + 1
       END DO
       PRINT*, Nte, ' points in '//TRIM(cf_track)//'...'
-      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte) )
+      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte), Ztar(1,Nte) )
       !!
       REWIND(13)
       DO jte = 1, Nte
@@ -306,25 +310,38 @@ PROGRAM INTERP_TO_EPHEM
 
    ELSE
       PRINT *, ''
-      PRINT *, 'NetCDF orbit ephem!'
+      PRINT *, 'NetCDF orbit ephem!' 
       CALL DIMS(cf_track, 'time', Nte, nj1, nk, ni1)
       PRINT *, ' *** Nb. time records in NetCDF ephem file:', Nte
-      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte) )      
+      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte), Ztar(1,Nte))
       CALL GETVAR_1D(cf_track, 'time', vt_ephem)
       CALL GETVAR_1D(cf_track, 'longitude', Xtar(1,:))
       CALL GETVAR_1D(cf_track, 'latitude',  Ytar(1,:))
-      !DO jte = 1, Nte
-      !   PRINT *, vt_ephem(jte), Xtar(1,jte), Ytar(1,jte)
-      !END DO
+      CALL GETVAR_1D(cf_track, 'sla_unfiltered',  Ztar(1,:))
       PRINT *, 'Done!'; PRINT *, ''
-      !STOP
    END IF
+
+
+   IF ( TRIM(cs_force_tv_e) /= '' ) THEN
+      !! Building new time vector!
+      idx = SCAN(TRIM(cs_force_tv_e),',')
+      cdum = cs_force_tv_e(1:idx-1)
+      READ(cdum,'(f)') rt0
+      cdum = cs_force_tv_e(idx+1:)
+      READ(cdum,'(f)') rdt
+      PRINT *, ' *** EPHEM: OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
+      DO jt=1, Nte
+         vt_ephem(jt) = rt0 + REAL(jt-1)*rdt
+         PRINT *, ' vt_ephem(jt)= ', vt_ephem(jt)
+      END DO
+   END IF
+
 
 
 
    nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
 
-   ALLOCATE ( Ztar4(1,Nte), Ftrack(Nte), Fmask(Nte), xcmask(Nte), vposition(Nte,1) )
+   ALLOCATE ( Ftrack(Nte), Ftrack_ephem(Nte), Fmask(Nte), xcmask(Nte), vposition(Nte,1) )
 
    ALLOCATE ( IMETRICS(1,Nte,3), RAB(1,Nte,2), IPB(1,Nte) )
 
@@ -349,6 +366,13 @@ PROGRAM INTERP_TO_EPHEM
    t_max_e = MAXVAL(vt_ephem)
    t_min_m = MINVAL(vt_model)
    t_max_m = MAXVAL(vt_model)
+
+
+
+   PRINT *, ''
+   PRINT *, ' *** Max min time for ephem:', t_min_e, t_max_e
+   PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
+   PRINT *, ''
 
 
    !! Main time loop is on time vector in ephem file!
@@ -395,6 +419,7 @@ PROGRAM INTERP_TO_EPHEM
 
 
    IF ( l_debug ) Ftrack_np(:) = -9999.
+   Ftrack_ephem(:) = -9999.
    Ftrack(:) = -9999.
    Fmask(:) = -9999.
 
@@ -447,11 +472,14 @@ PROGRAM INTERP_TO_EPHEM
          
          IF ( (iP == INT(rflg)).OR.(jP == INT(rflg)) ) THEN
             Ftrack(jte) = -9999. ; ! masking
+            Ftrack_ephem(jte) = -9999. ; ! masking
             Fmask(jte) = -9999. ; ! masking
          ELSE
             !! INTERPOLATION !
             Ftrack(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
             Fmask(jte)  = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(mask,8))
+            !!
+            Ftrack_ephem(jte) = Ztar(1,jte) ! Input ephem data
             !!
          END IF
          
@@ -469,9 +497,12 @@ PROGRAM INTERP_TO_EPHEM
    !WHERE ( IPB(1,:) > 0 ) Ftrack = -9999.
    WHERE ( Ftrack > 1.E9 ) Ftrack = -9999.
    WHERE ( Fmask < 1.    ) Ftrack = -9999.
+   WHERE ( Ftrack_ephem > 1.E9 ) Ftrack_ephem = -9999.
 
    CALL PT_SERIES(vt_ephem, REAL(Ftrack,4), 'result.nc', 'time', cv_in, 'boo', 'ta mere', -9999.)
    CALL PT_SERIES(vt_ephem, REAL(Fmask,4), 'result_mask.nc', 'time', 'lsm', 'boo', 'ta mere', -9999.)
+
+   CALL PT_SERIES(vt_ephem, REAL(Ftrack_ephem,4), 'data_ephem.nc', 'time', cv_in, 'boo', 'ta mere', -9999.)
 
    IF ( l_debug ) THEN
       DEALLOCATE ( JIidx, JJidx )
@@ -485,77 +516,7 @@ PROGRAM INTERP_TO_EPHEM
 
    STOP 'LOLO: stop for now...'
 
-
-
-
-
-
-
-
-
-   !! Filling arrays for "local box" (defined by the section)
-   !!
-   !DO jt = 1, Ntm
-   !   !!
-   !   xtmp4(:,:) = REAL(xvar(ji_min:ji_max,jj_min:jj_max,jt), 8)
-   !   !!
-   !   !! Extrapolating values over continents:
-   !   CALL DROWN(-1, xtmp4(:,:), mask(:,:)) ! ORCA
-   !   !!
-   !   xvar(:,:,jt) = REAL(xtmp4, 8)
-   !   !!
-   !END DO
-
-
-   l_first_call_interp_routine = .TRUE.
-   ! Interpolating the mask on target section
-   IF ( l_akima ) CALL AKIMA_2D(-1, xlont, xlatt, REAL(mask(:,:),4), &
-      &                        Xtar, Ytar, Ztar4,  icall=1)
-   !!
-   IF ( l_bilin) CALL BILIN_2D(-1, xlont, xlatt, REAL(mask(:,:),4), &
-      &                        Xtar, Ytar, Ztar4, TRIM(ctrack))
-   !!
-   xcmask(:) = Ztar4(1,:)
-
-   ifo=0 ; ivo=0
-
-   l_first_call_interp_routine = .TRUE.
-   ! Interpolating the Ntm snapshots of field on target section
-   DO jt = 1, Ntm
-      !!
-      IF ( l_akima ) CALL AKIMA_2D(-1, xlont, xlatt, xvar(:,:), &
-         &                           Xtar,    Ytar,    Ztar4,  icall=1)
-      !!
-      IF ( l_bilin ) CALL BILIN_2D(-1, xlont, xlatt, xvar(:,:), &
-         &                           Xtar,    Ytar,    Ztar4, trim(ctrack))
-      !!
-      !xcoupe(:,jt) = Ztar4(1,:)
-      !!
-      !WHERE( xcmask < 0.25 ) xcoupe(:,jt) = -9999.
-
-      !CALL P2D_T(ifo, ivo, Ntm, jt, vposition, vdepth, vt_model, xcoupe(:,jt), cf_out, &
-      !   &       'position', 'profo', cv_t, cv_in, -9999.)
-
-   END DO
-
-   !LOLO: CALL PT_SERIES(vtime, vseries, cf_in, cv_t, cv_in, cunit, cln, vflag, &
-   !LOLO: &                 lpack)
-
-
-
-   !lulu
-   !IF ( l_debug ) THEN
-   !ivo=0 ; ifo=0
-   !CALL P2D_T(ifo, ivo, 1, 1, vposition, vdepth, vt_model, xcmask(:), 'MASK_'//TRIM(cf_out), &
-   !   &       'position', 'profo', cv_t, 'lsm', -9999.)
-   !END IF
-
-
-
-
-   PRINT *, 'File created => ', trim(cf_out)
-
-   DEALLOCATE ( Xtar, Ytar, Ztar4 )
+   DEALLOCATE ( Xtar, Ytar, Ztar )
    DEALLOCATE ( Ftrack, xcmask, vposition )
    DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xslp, mask ) !, xtmp4 )
    !lolo
@@ -601,7 +562,7 @@ CONTAINS
       IF ( MOD(Nte,2) == 0 ) Nte = Nte - 1 ! we want odd integer...
       PRINT *, 'Number of points to create on segment:', Nte ; PRINT *, ''
 
-      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), Ztar4(1,Nte) )
+      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), Ztar(1,Nte) )
       ALLOCATE ( xcmask(Nte), vposition(Nte,1) )
 
       IF ( ABS(dlon) < 1.E-12 ) THEN
@@ -704,6 +665,9 @@ SUBROUTINE usage()
    WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
    WRITE(6,*) ''
    WRITE(6,*) ' -f  <t0,dt>          => overide time vector in input NEMO file with one of same length'
+   WRITE(6,*) '                         based on t0 and dt (in seconds!) (ex: " ... -f 0.,3600.")'
+   WRITE(6,*) ''
+   WRITE(6,*) ' -g  <t0,dt>          => overide time vector in ephem file with one of same length'
    WRITE(6,*) '                         based on t0 and dt (in seconds!) (ex: " ... -f 0.,3600.")'
    WRITE(6,*) ''
    WRITE(6,*) ' -h                   => Show this message'
