@@ -1399,7 +1399,7 @@ CONTAINS
 
 
 
-   SUBROUTINE PRTMASK(xmsk, cf_in, cv_in,   xlon, xlat, cv_lo, cv_la)
+   SUBROUTINE PRTMASK(xmsk, cf_in, cv_in,   xlon, xlat, cv_lo, cv_la,  rfill)
       !!
       !!-----------------------------------------------------------------------------
       !! This routine prints an integer array of a 2D mask into a netcdf file
@@ -1416,6 +1416,7 @@ CONTAINS
       !!        xlat    = latitude array
       !!        cv_lo = longitude name
       !!        cv_la = latitude name
+      !!        rfill = values of xmsk to mask i netcdf file
       !!
       !!------------------------------------------------------------------------------
       !!
@@ -1427,16 +1428,18 @@ CONTAINS
       !!
       REAL(8), DIMENSION(:,:), INTENT(in), OPTIONAL :: xlon, xlat
       CHARACTER(len=*),        INTENT(in), OPTIONAL :: cv_lo, cv_la
+      REAL(4),                 INTENT(in), OPTIONAL :: rfill
       !!
       INTEGER     :: lx, ly, i01, i02
       !!
-      LOGICAL :: lzcoord
+      LOGICAL :: lzcoord, l_mask
       !!
       crtn = 'PRTMASK'
       !!
       lx = size(xmsk,1) ; ly = size(xmsk,2)
       !!
       lzcoord = .FALSE.
+      l_mask = .FALSE.
       !!
       IF ( present(xlon).AND.present(xlat) ) THEN
          IF ( present(cv_lo).AND.present(cv_la) ) THEN
@@ -1448,8 +1451,8 @@ CONTAINS
          vextrema(1,:) = (/minval(xlon),maxval(xlon)/); vextrema(2,:) = (/minval(xlat),maxval(xlat)/)
       END IF
       !!
+      IF ( PRESENT(rfill) ) l_mask = .TRUE.
 
-      !!
       !!
       !!           CREATE NETCDF OUTPUT FILE :
       !!           ---------------------------
@@ -1466,7 +1469,8 @@ CONTAINS
             &            crtn,cf_in,cv_in)
       END IF
       !!
-      CALL sherr( NF90_DEF_VAR(id_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v),       crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(id_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v), crtn,cf_in,cv_in)
+      IF (l_mask) CALL sherr( NF90_PUT_ATT(id_f, id_v,'_FillValue',         rfill), crtn,cf_in,cv_in)
       !!
       CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in) ! END OF DEFINITION
       !!
