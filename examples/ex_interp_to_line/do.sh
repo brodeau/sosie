@@ -4,13 +4,13 @@
 ##                           -p ephem_calval_june2015_sph.txt
 
 # ORCA1:
-#../../bin/interp_to_ephem.x -i ../data/sss_ORCA1_example.nc -v sos  -m ../data/mesh_mask_ORCA1v2_light.nc4 \
-#                           -p ephem_calval_june2015_sph.txt -f 600.,3600.
+../../bin/interp_to_ephem.x -i ../data/sss_ORCA1_example.nc -v sos  -m ../data/mesh_mask_ORCA1v2_light.nc4 \
+    -p ephem_calval_june2015_sph.txt -f 600.,3600.
 #exit
 
-../../bin/interp_to_ephem.x -i ../data/sss_ORCA1_example.nc -v sos  -m ../data/mesh_mask_ORCA1v2_light.nc4 \
-    -p /home/users/brodeau/sat/saral_sentinel2_max_cls/SARAL-Altika/dt_global_alg_sla_vxxc_20170401_20180104_tr_41496-42490.nc4 \
-    -f 600.,3600. -n
+#../../bin/interp_to_ephem.x -i ../data/sss_ORCA1_example.nc -v sos  -m ../data/mesh_mask_ORCA1v2_light.nc4 \
+#    -p /home/users/brodeau/sat/saral_sentinel2_max_cls/SARAL-Altika/dt_global_alg_sla_vxxc_20170401_20180104_tr_41496-42490.nc4 \
+#    -f 600.,3600. -n
 #-p /home/users/brodeau/sat/saral_sentinel2_max_cls/SARAL-Altika/dt_global_alg_sla_vxxc_20170401_20180104_tr_42490-44404.nc4 \
 #    -p /home/users/brodeau/sat/saral_sentinel2_max_cls/SARAL-Altika/dt_global_alg_sla_vxxc_20170501_20180104_tr.nc4 \
 
