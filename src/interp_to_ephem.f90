@@ -236,6 +236,28 @@ PROGRAM INTERP_TO_EPHEM
 
 
 
+   !! The first important stage is to compare time slices in the OGCM 2D input field
+   !! w.r.t the one in the ephem orbit file!
+   !! Since we are dealing with satellite data, useing the UNIX "epoch" time seems 
+   !! appropriate:
+   !!
+   !! The Unix epoch (or Unix time or POSIX time or Unix timestamp) is the
+   !! number of seconds that have elapsed since January 1, 1970 (midnight
+   !! UTC/GMT), not counting leap seconds (in ISO 8601: 1970-01-01T00:00:00Z).
+   !!
+   !! As such, step #1 is to convert the time vector in both files to epoch time
+   !! If there is no overlapping period of time between the two file, then no
+   !! need to go further...
+   !!
+   !#lolo
+
+
+
+
+
+
+
+
 
    !! Getting coordinates
    !! ~~~~~~~~~~~~~~~~~~~
@@ -503,6 +525,8 @@ PROGRAM INTERP_TO_EPHEM
    CALL PT_SERIES(vt_ephem, REAL(Fmask,4), 'result_mask.nc', 'time', 'lsm', 'boo', 'ta mere', -9999.)
 
    CALL PT_SERIES(vt_ephem, REAL(Ftrack_ephem,4), 'data_ephem.nc', 'time', cv_in, 'boo', 'ta mere', -9999.)
+   CALL PT_SERIES(vt_ephem, REAL(Ytar(1,:),4), 'lat_ephem.nc', 'time', 'latitude', 'boo', 'ta mere', -9999.)
+   CALL PT_SERIES(vt_ephem, REAL(Xtar(1,:),4), 'lon_ephem.nc', 'time', 'longitude', 'boo', 'ta mere', -9999.)
 
    IF ( l_debug ) THEN
       DEALLOCATE ( JIidx, JJidx )
