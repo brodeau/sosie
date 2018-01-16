@@ -1954,7 +1954,7 @@ CONTAINS
 
    FUNCTION GET_TIME_UNIT_T0( cstr )
       TYPE(t_unit_t0)              :: GET_TIME_UNIT_T0
-      CHARACTER(len=*), INTENT(in) :: cstr  ! ex: "days since 1950-01-01"
+      CHARACTER(len=*), INTENT(in) :: cstr  ! ex: "days since 1950-01-01 00:00:00"
       !!
       INTEGER :: i1, i2
       CHARACTER(len=32) :: cdum, chour

@@ -27,7 +27,7 @@ PROGRAM INTERP_TO_EPHEM
       &   l_bilin = .false.
    !!
    LOGICAL :: &
-      &      l_file_is_nc    = .FALSE.
+      &      l_orbit_file_is_nc    = .FALSE.
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
@@ -106,22 +106,24 @@ PROGRAM INTERP_TO_EPHEM
 
    TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
 
-   !! Epoch is our reference time unit, it is "seconds since 1970-01-01" which translates into:
-   tut_epoch%unit  = 's'
-   tut_epoch%year  = 1970
-   tut_epoch%month = 1
-   tut_epoch%day   = 1
+   !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
+   tut_epoch%unit   = 's'
+   tut_epoch%year   = 1970
+   tut_epoch%month  = 1
+   tut_epoch%day    = 1
+   tut_epoch%hour   = 0
+   tut_epoch%minute = 0
+   tut_epoch%second = 0
 
 
    PRINT *, ''
 
 
-
-   tut_ephem  = GET_TIME_UNIT_T0('days since 1950-01-01 00:00:00')
-   PRINT *, ' tut_ephem =', tut_ephem
-   !tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01')
+   !tut_ephem  = GET_TIME_UNIT_T0('days since 1950-01-01 00:00:00')
+   !PRINT *, ' tut_ephem =', tut_ephem
+   !tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01 00:00:00')
    !PRINT *, ' tut_model =', tut_model
-   STOP
+   !STOP
 
 
    !! Getting string arguments :
@@ -170,7 +172,7 @@ PROGRAM INTERP_TO_EPHEM
          CALL GET_MY_ARG('forced time vector construction for ephem', cs_force_tv_e)
          
       CASE('-n')
-         l_file_is_nc = .TRUE.
+         l_orbit_file_is_nc = .TRUE.
 
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
@@ -267,7 +269,17 @@ PROGRAM INTERP_TO_EPHEM
    !! need to go further...
    !!
    CALL GET_VAR_INFO(cf_in, cv_t, cunit, cdum)
-   PRINT *, TRIM(cunit), ' ,', trim(cdum)
+   tut_model  = GET_TIME_UNIT_T0(TRIM(cunit))
+   PRINT *, ' *** Unit and reference time in model file:'
+   PRINT *, tut_model
+   
+   IF ( l_orbit_file_is_nc ) THEN
+      CALL GET_VAR_INFO(cf_track, 'time', cunit, cdum)
+      tut_ephem  = GET_TIME_UNIT_T0(TRIM(cunit))
+      PRINT *, ' *** Unit and reference time in ephem file:'
+      PRINT *, tut_ephem
+   END IF
+   PRINT *, ''
 
    STOP '#lolo'
 
@@ -330,7 +342,7 @@ PROGRAM INTERP_TO_EPHEM
       PRINT *, 'ERROR: please provide the file containing definition of orbit ephem track'; STOP
    END IF
 
-   IF ( .NOT. l_file_is_nc ) THEN
+   IF ( .NOT. l_orbit_file_is_nc ) THEN
       !! Getting number of lines:
       Nte = -1 ; io = 0
       OPEN (UNIT=13, FILE=TRIM(cf_track))
