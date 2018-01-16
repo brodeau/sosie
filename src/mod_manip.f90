@@ -10,7 +10,7 @@ MODULE MOD_MANIP
    PRIVATE
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, test_xyz, partial_deriv, &
-      &      flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
+      &      flip_ud_1d, flip_ud_1d_double, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
       &      distance, find_nearest_point
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
@@ -589,7 +589,47 @@ CONTAINS
    END SUBROUTINE PARTIAL_DERIV
 
 
+   SUBROUTINE FLIP_UD_1D(XF)
 
+      REAL(4), DIMENSION(:), INTENT(inout) :: XF
+
+      INTEGER :: nz, jk
+      REAL(4), DIMENSION(:), ALLOCATABLE :: ztmp
+
+      nz = SIZE(XF,1) 
+
+      ALLOCATE ( ztmp(nz) )
+
+      ztmp(:) = XF(:)
+
+      DO jk = 1, nz
+         XF(jk) =  ztmp(nz-jk+1)
+      END DO
+
+      DEALLOCATE ( ztmp )
+
+   END SUBROUTINE FLIP_UD_1D
+
+   SUBROUTINE FLIP_UD_1D_DOUBLE(XF)
+
+      REAL(8), DIMENSION(:), INTENT(inout) :: XF
+
+      INTEGER :: nz, jk
+      REAL(8), DIMENSION(:), ALLOCATABLE :: ztmp
+
+      nz = SIZE(XF,1)
+
+      ALLOCATE ( ztmp(nz) )
+
+      ztmp(:) = XF(:)
+
+      DO jk = 1, nz
+         XF(jk) =  ztmp(nz-jk+1)
+      END DO
+
+      DEALLOCATE ( ztmp )
+
+   END SUBROUTINE FLIP_UD_1D_DOUBLE
 
    SUBROUTINE FLIP_UD_2D(XF)
 

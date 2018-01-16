@@ -98,20 +98,20 @@
 !!
 &ninput
 ivect     = 0
-lregin    = T
-cf_in     = '/data/toto/my_file.nc'
+lregin    = F
+cf_in     = './data_roms/roms_eastcoast.nc'
 cv_in     = 'temp'
-cv_t_in   = 'time'
+cv_t_in   = 'ocean_time'
 jt1       = 0
 jt2       = 0
-jplev     = 1
-cf_x_in   = '/data/toto/my_file.nc'
-cv_lon_in = 'lon'
-cv_lat_in = 'lat'
-cf_lsm_in = 'missing_value'
-cv_lsm_in = ''
+jplev     = 0
+cf_x_in   = './data_roms/roms_eastcoast.nc'
+cv_lon_in = 'lon_rho'
+cv_lat_in = 'lat_rho'
+cf_lsm_in = './data_roms/roms_eastcoast.nc'
+cv_lsm_in = 'mask_rho'
 ldrown    = T
-ewper     = 0
+ewper     = -1
 vmax      =  1.E6
 vmin      = -1.E6
 ismooth   = 0
@@ -154,17 +154,17 @@ ismooth   = 0
 !! ssig_out     : structure with ROMS s-coordinates parameters on output grid (see above)
 !!
 &n3d
-cf_z_in  = '/data/toto/my_file.nc'
-cv_z_in  = 'level'
-cf_z_out = '/data/toto/mesh_zgr.nc'
-cv_z_out = 'nav_lev'
-cv_z_out_name = 'depth'
+cf_z_in  = ''
+cv_z_in  = ''
+cf_z_out = './data_roms/mask_ROMS_eastcoast.nc'
+cv_z_out = 'z'
+cv_z_out_name = 'z'
 ctype_z_in = 'sigma'
 ctype_z_out = 'z'
-cf_bathy_in = ''
-cv_bathy_in = ''
-cf_bathy_out = '/data/toto/roms_grid.nc'
-cv_bathy_out = 'h'
+cf_bathy_in = './data_roms/roms_eastcoast.nc'
+cv_bathy_in = 'h'
+cf_bathy_out = ''
+cv_bathy_out = ''
 !! ROMS s-coordinates parameters (if ctype_z_in or/and ctype_z_out = 'sigma' )
 !! Vtransform | Vstretching | Nlevels | theta_s | theta_b | Tcline | hmin
 ssig_in =  2,         4,         40,       7.,       2.,     250. ,   15.
@@ -224,17 +224,17 @@ ssig_out = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!
 &nhtarget
 lregout    = F
-cf_x_out   = '/data/toto/coordinates_ORCA_R2.nc'
-cv_lon_out = 'nav_lon'
-cv_lat_out = 'nav_lat'
-cf_lsm_out = '/data/toto/mask_ORCA2.nc'
-cv_lsm_out = 'tmask'
+cf_x_out   = './data_roms/roms_eastcoast.nc'
+cv_lon_out = 'lon_rho'
+cv_lat_out = 'lat_rho'
+cf_lsm_out = './data_roms/mask_ROMS_eastcoast.nc'
+cv_lsm_out = 'mask'
 lmout      = T
-rmaskvalue = -9999.
+rmaskvalue = 1.e+15
 lct        = F
 t0         = 0.
-t_stp      = 0.
-ewper_out  = 2
+t_stp      = 0.25
+ewper_out  = -1
 /
 !!
 !!
@@ -273,16 +273,16 @@ ewper_out  = 2
 !! lpcknc4  : pack data (netcdf4 with deflate level set to 9!) [boolean]
 !!
 &noutput
-cmethod  = 'akima'
-cv_t_out = 'time_counter'
+cmethod  = 'no_xy'
+cv_t_out = 'time'
 cv_out   = 'temp'
-cu_out   = ''
-cln_out  = ''
+cu_out   = 'degC'
+cln_out  = 'Temperature'
 cd_out   = '.'
 !!
-csource  = 'ERA40'
-ctarget  = 'ORCA2'
-cextra   = 'monthly_1998'
+csource  = 'ROMS'
+ctarget  = 'zlevels'
+cextra   = 'example'
 lpcknc4  = .true.
 /
 !!

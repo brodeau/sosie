@@ -190,14 +190,26 @@ PROGRAM SOSIE
          !! Print current record into netcdf file
          !!  => data3d_out for current time step is ready to be written in netcdf file
 
-         CALL P3D_T(idf_o, idv_o, Ntr, jt, &
-            &       lon_out_b, lat_out, depth_out, vt, data3d_out,                &
-            &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
-            &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
-            &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
-            &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
-            &       lpack=lpcknc4, cextrainfo=cextinf)
-         
+        IF (trim(ctype_z_out) == 'z') THEN
+          CALL P3D_T(idf_o, idv_o, Ntr, jt, &
+             &       lon_out_b, lat_out, depth_out(1,1,:), vt, data3d_out,                &
+             &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
+             &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
+             &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
+             &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+             &       lpack=lpcknc4, cextrainfo=cextinf)
+        ELSEIF (trim(ctype_z_out) == 'sigma' ) THEN
+          CALL P3D_T(idf_o, idv_o, Ntr, jt, &
+             &       lon_out_b, lat_out, Sc_rho(:), vt, data3d_out,                &
+             &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
+             &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
+             &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
+             &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+             &       lpack=lpcknc4, cextrainfo=cextinf)
+        ELSE
+          PRINT *, 'Unknown vertical coordinate' ; STOP
+        ENDIF
+
       END IF ! .not. l_int_3d
 
    END DO  ! end of time loop

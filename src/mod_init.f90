@@ -12,9 +12,11 @@ MODULE MOD_INIT
 
    NAMELIST /ninput/   ivect, lregin, cf_in, cv_in, cv_t_in, jt1, jt2, &
       &                jplev, cf_x_in, cv_lon_in, cv_lat_in, cf_lsm_in, cv_lsm_in, &
-      &                ldrown, ewper, vmax, vmin, ismooth
+      &                ldrown, ewper, vmax, vmin, ismooth, cf_coor_in
 
-   NAMELIST /n3d/      cf_z_in, cv_z_in, cf_z_out, cv_z_out, cv_z_out_name
+   NAMELIST /n3d/      cf_z_in, cv_z_in, cf_z_out, cv_z_out, cv_z_out_name, &
+      &                cf_bathy_in, cv_bathy_in, cf_bathy_out, cv_bathy_out, &
+      &                ctype_z_in, ssig_in, ctype_z_out, ssig_out
 
    NAMELIST /nhtarget/ lregout, cf_x_out, cv_lon_out, cv_lat_out, cf_lsm_out,   &
       &                cv_lsm_out, lmout, rmaskvalue, lct, t0, t_stp, ewper_out
@@ -115,22 +117,11 @@ CONTAINS
       REWIND( numnam )
       READ( numnam, noutput )
 
-
-      IF ( TRIM(cmethod) /= 'no_xy' ) THEN
-         !!
-         !! Reading output section:
-         REWIND( numnam )
-         READ(numnam, nhtarget)
-         !!
-      ELSE
-         !!
-         WRITE(6,*) ''
-         WRITE(6,*) ' *** Ignoring the "&nhtarget" namelist block because no horizontal interpolation'
-         WRITE(6,*) ' *** is going to be performed. Only vertical interpolation!'
-         WRITE(6,*) ' ***         => from info from &n3d namelist block'
-         WRITE(6,*) ''
-         !!
-      END IF
+      !!
+      !! Reading output section:
+      !! RD dev notes: this is needed to read lmout
+      REWIND( numnam )
+      READ(numnam, nhtarget)
 
       CLOSE(numnam)
 

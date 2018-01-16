@@ -99,13 +99,13 @@
 &ninput
 ivect     = 0
 lregin    = T
-cf_in     = '/data/toto/my_file.nc'
-cv_in     = 'temp'
+cf_in     = './data/T_levitus_march.nc'
+cv_in     = 'otemp'
 cv_t_in   = 'time'
-jt1       = 0
-jt2       = 0
-jplev     = 1
-cf_x_in   = '/data/toto/my_file.nc'
+jt1       = 1
+jt2       = 1
+jplev     = 0
+cf_x_in   = './data/T_levitus_march.nc'
 cv_lon_in = 'lon'
 cv_lat_in = 'lat'
 cf_lsm_in = 'missing_value'
@@ -154,16 +154,16 @@ ismooth   = 0
 !! ssig_out     : structure with ROMS s-coordinates parameters on output grid (see above)
 !!
 &n3d
-cf_z_in  = '/data/toto/my_file.nc'
+cf_z_in  = './data/T_levitus_march.nc'
 cv_z_in  = 'level'
-cf_z_out = '/data/toto/mesh_zgr.nc'
-cv_z_out = 'nav_lev'
-cv_z_out_name = 'depth'
-ctype_z_in = 'sigma'
-ctype_z_out = 'z'
+cf_z_out = ''
+cv_z_out = ''
+cv_z_out_name = 's_rho'
+ctype_z_in = 'z'
+ctype_z_out = 'sigma'
 cf_bathy_in = ''
 cv_bathy_in = ''
-cf_bathy_out = '/data/toto/roms_grid.nc'
+cf_bathy_out = './data_roms/roms_eastcoast.nc'
 cv_bathy_out = 'h'
 !! ROMS s-coordinates parameters (if ctype_z_in or/and ctype_z_out = 'sigma' )
 !! Vtransform | Vstretching | Nlevels | theta_s | theta_b | Tcline | hmin
@@ -224,16 +224,16 @@ ssig_out = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!
 &nhtarget
 lregout    = F
-cf_x_out   = '/data/toto/coordinates_ORCA_R2.nc'
-cv_lon_out = 'nav_lon'
-cv_lat_out = 'nav_lat'
-cf_lsm_out = '/data/toto/mask_ORCA2.nc'
-cv_lsm_out = 'tmask'
+cf_x_out   = './data_roms/roms_eastcoast.nc'
+cv_lon_out = 'lon_rho'
+cv_lat_out = 'lat_rho'
+cf_lsm_out = './data_roms/roms_eastcoast.nc'
+cv_lsm_out = 'mask_rho'
 lmout      = T
-rmaskvalue = -9999.
+rmaskvalue = 1.e+15
 lct        = F
 t0         = 0.
-t_stp      = 0.
+t_stp      = 0.25
 ewper_out  = 2
 /
 !!
@@ -274,15 +274,15 @@ ewper_out  = 2
 !!
 &noutput
 cmethod  = 'akima'
-cv_t_out = 'time_counter'
+cv_t_out = 'ocean_time'
 cv_out   = 'temp'
-cu_out   = ''
-cln_out  = ''
+cu_out   = 'degC'
+cln_out  = 'Temperature'
 cd_out   = '.'
 !!
-csource  = 'ERA40'
-ctarget  = 'ORCA2'
-cextra   = 'monthly_1998'
+csource  = 'WOA09'
+ctarget  = 'ROMS'
+cextra   = 'example'
 lpcknc4  = .true.
 /
 !!

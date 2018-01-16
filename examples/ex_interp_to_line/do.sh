@@ -27,4 +27,9 @@ exit
 
 
 
+echo "../../bin/interp_to_line.x -i ${F_IN} -v ${V_IN} -x nav_lon -y nav_lat -t time_counter -m ${M_IN}"
+../../bin/interp_to_line.x -i ${F_IN} -v ${V_IN} -x nav_lon -y nav_lat -t time_counter -m ${M_IN}
+echo
+
+
 

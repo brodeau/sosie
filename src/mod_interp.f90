@@ -120,6 +120,7 @@ CONTAINS
 
          PRINT *, ' Level : ', jk
 
+         IF ( cmethod /= 'no_xy' ) THEN
 
          IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data3d_in(:,:,jk))
          IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_in(:,:,jk))
@@ -146,6 +147,8 @@ CONTAINS
             PRINT *, '-------------------'
          END IF
 
+         END IF
+
          IF ( ismooth > 0 ) THEN
             IF ( TRIM(cmethod) == 'no_xy' ) THEN
                PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
@@ -162,13 +165,37 @@ CONTAINS
          CASE('akima')
             CALL akima_2d(ewper, lon_in,  lat_in,  data3d_in(:,:,jk), &
                &              lon_out, lat_out, data3d_tmp(:,:,jk))
+            IF ( trim(ctype_z_in) == 'z' ) THEN
+               !! we don't need horizontal interpolation, all levels are flat
+               depth_in_tmp(:,:,jk) = depth_in(1,1,jk)
+            ELSE
+               !! input is sigma, layers are non-flat
+               CALL akima_2d(ewper, lon_in,  lat_in,  REAL(depth_in(:,:,jk),4), &
+               &              lon_out, lat_out, depth_in_tmp(:,:,jk) )
+            ENDIF
 
          CASE('bilin')
             CALL bilin_2d(ewper, lon_in,  lat_in,  data3d_in(:,:,jk), &
                &              lon_out, lat_out, data3d_tmp(:,:,jk), cpat)
 
+               IF ( trim(ctype_z_in) == 'z' ) THEN
+                  !! we don't need horizontal interpolation, all levels are flat
+                  depth_in_tmp(:,:,jk) = depth_in(1,1,jk)
+               ELSE
+                  !! input is sigma, layers are non-flat
+                  CALL bilin_2d(ewper, lon_in,  lat_in,  REAL(depth_in(:,:,jk),4), &
+                 &              lon_out, lat_out, depth_in_tmp(:,:,jk), cpat)
+               ENDIF
+
          CASE('no_xy')
             data3d_tmp(:,:,jk) = data3d_in(:,:,jk)
+               IF ( trim(ctype_z_in) == 'z' ) THEN
+                  !! we don't need horizontal interpolation, all levels are flat
+                  depth_in_tmp(:,:,jk) = depth_in(1,1,jk)
+               ELSE
+                  !! input is sigma, layers are non-flat
+                  depth_in_tmp(:,:,jk) = depth_in(:,:,jk)
+               ENDIF
 
          CASE DEFAULT
             PRINT *, 'Interpolation method "', trim(cmethod), '" is unknown!!!'; STOP
@@ -186,47 +213,71 @@ CONTAINS
 
          depth_in  = ABS(depth_in)
          depth_out = ABS(depth_out)
-
-         zmax_in  = MAXVAL(depth_in)
-         zmax_out = MAXVAL(depth_out)
-
-         IF ( zmax_out > zmax_in ) THEN
-            !! Must find the last target level less deep than zmax_in
-            jk_last = 1
-            DO WHILE ( jk_last < nk_out )
-               IF ( depth_out(jk_last+1) > zmax_in ) EXIT
-               jk_last = jk_last + 1
-            END DO
-         END IF
+         depth_in_tmp  = ABS(depth_in_tmp)
 
          !! Need to perform a vertical interpolation from data3d_tmp to data3d_out :
-         DO jj = 1, nj_out
-            DO ji = 1, ni_out
+         DO ji = 1, ni_out
+            DO jj = 1, nj_out
 
-               nlev = nk_out
-               IF ( (mask_out(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
-                  IF ( lmout ) THEN  ! adapting nlev if masking target
-                     nlev = 1
-                     !! RD while loop causes seg fault in debug
-                     DO jk=1,nk_out
-                        IF ( mask_out(ji,jj,jk) == 1 ) nlev = nlev + 1
-                     ENDDO
-                     nlev = nlev - 1
-                  END IF
+                !! RD dev notes : we need to make sure that the depth vector for both in and out
+                !! are from smallest to largest value so that persistance works
+                IF ( trim(ctype_z_in) == 'sigma' ) THEN
+                   CALL FLIP_UD_1D(depth_in_tmp(ji,jj,:))
+                   CALL FLIP_UD_1D(data3d_tmp(ji,jj,:))
+                ENDIF
 
-                  CALL AKIMA_1D( REAL(depth_in(:)      ,4), data3d_tmp(ji,jj,:),    &
-                     &           REAL(depth_out(1:nlev),4), data3d_out(ji,jj,1:nlev)  )
+                IF ( trim(ctype_z_out) == 'sigma' ) THEN
+                   CALL FLIP_UD_1D_DOUBLE(depth_out(ji,jj,:))
+                ENDIF
 
-               END IF
-            END DO
-         END DO
+                !! RD dev notes : we compare the depth from source depth vector and target depth vector
+                !! at the same horizontal location : compare depth_in_tmp and depth_out
+                zmax_in  = MAXVAL(depth_in_tmp(ji,jj,:))
+                zmax_out = MAXVAL(depth_out(ji,jj,:))
 
-         !! Assuring persistance at the bottom if target depth goes deeper that source depth
-         IF ( (jk_last > 0).AND.(jk_last < nk_out) ) THEN
-            DO jk = jk_last-1, nk_out
-               data3d_out(:,:,jk) = data3d_out(:,:,jk_last-2)
-            END DO
-         END IF
+                IF ( zmax_out > zmax_in ) THEN
+                   !! Must find the last target level less deep than zmax_in
+                   jk_last = 1
+                   DO WHILE ( jk_last < nk_out )
+                      IF ( depth_out(ji,jj,jk_last+1) > zmax_in ) EXIT
+                      jk_last = jk_last + 1
+                   END DO
+                ELSE
+                   jk_last = nk_out
+                END IF
+
+                IF ( (mask_out(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
+                   IF ( lmout ) THEN  ! adapting nlev if masking target
+                      nlev = 1
+                      !! RD while loop causes seg fault in debug
+                      DO jk=1,nk_out
+                         IF ( mask_out(ji,jj,jk) == 1 ) nlev = nlev + 1
+                      ENDDO
+                      nlev = nlev - 1
+                   END IF
+                   !!
+                   CALL AKIMA_1D(REAL(depth_in_tmp(ji,jj,:),4),data3d_tmp(ji,jj,:),  &
+  &                              REAL(depth_out(ji,jj,1:nlev),4),data3d_out(ji,jj,1:nlev))
+                   !!
+                   !! Assuring persistance at the bottom if target depth goes deeper that source depth
+                   !! RD dev notes : I think the indices were off. If jk_last is the last target level
+                   !! that can be properly computed then we want to apply persistance to jk_last + 1 to nk_out
+                   !! btw, interp from z to sigma works slightly better without this on my test case
+                   IF ( (jk_last > 0).AND.(jk_last < nk_out) ) THEN
+                      DO jk = jk_last+1, nk_out
+                         data3d_out(ji,jj,jk) = data3d_out(ji,jj,jk_last)
+                      END DO
+                   END IF
+
+                   !! RD dev notes : when interpolating to sigma, need to reverse again arrays
+                   IF ( trim(ctype_z_out) == 'sigma' ) THEN
+                      CALL FLIP_UD_1D_DOUBLE(depth_out(ji,jj,:))
+                      CALL FLIP_UD_1D(data3d_out(ji,jj,:))
+                   ENDIF
+
+                END IF
+             END DO
+          END DO
 
       ELSE
          data3d_out = data3d_tmp ! target levels are same than source levels

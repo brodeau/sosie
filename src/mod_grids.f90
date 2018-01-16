@@ -1,6 +1,7 @@
 MODULE MOD_GRIDS
 
    USE mod_conf
+   USE mod_scoord
 
    IMPLICIT none
 
@@ -45,8 +46,9 @@ CONTAINS
          ALLOCATE ( lon_in(ni_in,nj_in), lat_in(ni_in,nj_in) )
       END IF
 
-      IF ( l_int_3d ) ALLOCATE ( data3d_in(ni_in,nj_in,nk_in), depth_in(nk_in) )
-
+      IF ( l_int_3d ) ALLOCATE ( data3d_in(ni_in,nj_in,nk_in), depth_in(ni_in,nj_in,nk_in) )
+      !! if input grid is in terrain-following, need array for input bathy
+      IF ( l_int_3d .AND. trim(ctype_z_in) == 'sigma' ) ALLOCATE ( bathy_in(ni_in,nj_in) )
       !! Filling time array :
       IF ( ltime  )  THEN
          IF ( lct ) THEN       ! time is being controlled
@@ -111,22 +113,34 @@ CONTAINS
       END IF
 
       IF (l_int_3d) THEN
-         ALLOCATE ( depth_out(nk_out) )
+         ALLOCATE ( depth_in_tmp(ni_out, nj_out, nk_in), depth_out(ni_out,nj_out,nk_out) )
          ALLOCATE ( data3d_tmp(ni_out, nj_out, nk_in), data3d_out(ni_out,nj_out,nk_out) )
       END IF
 
+      !! If output grid is terrain-following, then allocate for bathy_out
+      IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) ALLOCATE ( bathy_out(ni_out,nj_out) )
+      IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) ALLOCATE ( Cs_rho(nk_out), Sc_rho(nk_out) )
 
+      IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) CALL compute_scoord_2_4(ssig_out,nk_out,Cs_rho,Sc_rho)
+      
       jj_ex_top = 0 ; jj_ex_btm = 0
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
+
+         CALL get_trg_conf()
 
          !! The very few things we have to do if no 2D horizontal interpolation needed:
          max_lat_out  = max_lat_in
          nlat_inc_out = nlat_inc_in
 
-         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
-         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out(1,1,:))
+         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
          CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
+         DO ji=1,ni_out
+            DO jj=1,nj_out
+               depth_out(ji,jj,:) = depth_out(1,1,:)
+            ENDDO
+         ENDDO
 
          lon_out   = lon_in
          lon_out_b = lon_in
@@ -224,6 +238,9 @@ CONTAINS
          DEALLOCATE ( data3d_in, depth_in )
          !data3d_tmp = 0.0;  depth_out = 0.0;  data3d_out = 0.0
          DEALLOCATE ( data3d_tmp, depth_out, data3d_out )
+         DEALLOCATE ( depth_in_tmp )
+         IF (trim(ctype_z_in) == 'sigma' )  DEALLOCATE ( bathy_in )
+         IF (trim(ctype_z_out) == 'sigma' ) DEALLOCATE ( bathy_out )
       END IF
 
    END SUBROUTINE TERMINATE
@@ -240,7 +257,7 @@ CONTAINS
 
       USE io_ezcdf
       USE mod_manip
-
+      USE mod_scoord
       !! Local :
       INTEGER :: ji, jj, jk
       REAL    :: rval_thrshld
@@ -250,8 +267,32 @@ CONTAINS
       CALL rd_grid(-1, lregin, cf_x_in, cv_lon_in, cv_lat_in, lon_in, lat_in)
 
       IF ( l_int_3d ) THEN
-         CALL rd_vgrid(nk_in, cf_z_in, cv_z_in, depth_in)
-         WRITE(6,*) ''; WRITE(6,*) 'Input Depths ='; PRINT *, depth_in ; WRITE(6,*) ''
+          IF ( trim(ctype_z_in) == 'sigma' ) THEN
+              !! read input bathymetry
+              CALL GETVAR_2D(if0,iv0,cf_bathy_in, cv_bathy_in, 0, 0, 0, bathy_in(:,:))
+              !! compute 3D depth_in for input variable from bathy and sigma parameters
+              CALL depth_from_scoord(ssig_in, bathy_in, ni_in, nj_in, nk_in, depth_in)
+          ELSEIF ( trim(ctype_z_in) == 'z' ) THEN
+              !! in z case, the depth vector is copied at each grid-point
+              CALL rd_vgrid(nk_in, cf_z_in, cv_z_in, depth_in(1,1,:))
+              WRITE(6,*) ''; WRITE(6,*) 'Input Depths ='; PRINT *, depth_in(1,1,:) ; WRITE(6,*) ''
+              DO ji=1,ni_in
+                  DO jj=1,nj_in
+                      depth_in(ji,jj,:) = depth_in(1,1,:)
+                  ENDDO
+              ENDDO
+          ELSE
+              PRINT*,''; PRINT *, 'Not a valid input vertical coordinate' ; PRINT*,''
+          ENDIF
+
+          IF ( trim(ctype_z_in) == 'z' ) THEN
+              PRINT*,''; WRITE(6,*) 'Input has z coordinates and depth vector is =', depth_in(1,1,:); PRINT*,''
+          ELSEIF ( trim(ctype_z_in) == 'sigma' ) THEN
+              PRINT*,''; WRITE(6,*) 'Input has sigma coordinates and depth range is ', MINVAL(depth_in), &
+  &                           ' to ', MAXVAL(depth_in) ; PRINT*,''
+          ELSE
+              PRINT*,''; WRITE(6,*) 'You should not see this' ; STOP
+          ENDIF
       END IF
 
       !! What about scale_factor / add_offset
@@ -352,7 +393,14 @@ CONTAINS
                IF ( n3 == nk_in ) THEN
                   WRITE(6,*) 'Opening 3D land-sea mask on source grid for level', jplev
                   PRINT *, trim(cv_lsm_in)
-                  CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1), jlev=jplev)
+                  !! if terrain-following, open the 2d mask, not sure interp one single level works
+                  IF (trim(ctype_z_in) == 'sigma' ) THEN
+                      CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
+                  ELSEIF (trim(ctype_z_in) == 'z' ) THEN
+                      CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1), jlev=jplev)
+                  ELSE
+                      STOP
+                  ENDIF
                ELSE
                   WRITE(6,*) 'PROBLEM! You want to interpolate level', jplev
                   WRITE(6,*) 'but your source land-sea mask is not 3D!'
@@ -362,9 +410,23 @@ CONTAINS
                   STOP
                END IF
             ELSEIF ( l_int_3d ) THEN
+               !! RD: dims reads n3 = -1 on lsm, needs to force n3 to ROMS Nlevels
+               !! RD: maybe there is a more elegant way to do that
+               IF (trim(ctype_z_in) == 'sigma' ) n3 = ssig_in%Nlevels
                IF ( n3 == nk_in ) THEN
-                  WRITE(6,*) 'Opening 3D land-sea mask file on source grid, ', trim(cv_lsm_in)
-                  CALL GETMASK_3D(cf_lsm_in, cv_lsm_in, mask_in)
+                  !! if terrain-following, read 2D mask and copy it on all levels
+                   IF (trim(ctype_z_in) == 'sigma' ) THEN
+                       WRITE(6,*) 'Opening 2D land-sea mask file on source grid: ', trim(cf_lsm_in)
+                       CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
+                       DO jz0=2,nk_in
+                           mask_in(:,:,jz0) = mask_in(:,:,1)
+                       ENDDO
+                   ELSEIF (trim(ctype_z_in) == 'z' ) THEN
+                      WRITE(6,*) 'Opening 3D land-sea mask file on source grid, ', trim(cv_lsm_in)
+                      CALL GETMASK_3D(cf_lsm_in, cv_lsm_in, mask_in)
+                   ELSE
+                      STOP
+                   ENDIF
                ELSE
                   WRITE(6,*) 'We need to open the 3D source land-sea mask,'
                   WRITE(6,*) 'but the vertical dimension of it does not match!'
@@ -391,6 +453,7 @@ CONTAINS
    SUBROUTINE get_trg_conf()
 
       USE io_ezcdf
+      USE mod_scoord
 
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
@@ -450,12 +513,41 @@ CONTAINS
          IF ( trim(cf_x_out)  == 'spheric') THEN
             cf_z_out = cf_z_in ;  cv_z_out = cv_z_in         !Important
          END IF
-         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
-         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
-         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
+
+         IF ( trim(ctype_z_out) == 'sigma' ) THEN
+            !! read bathy for output grid
+            CALL GETVAR_2D(if0,iv0,cf_bathy_out, cv_bathy_out, 0, 0, 0, bathy_out(:,:))
+            !! compute target depth on output grid from bathy_out and ssig_out params
+            CALL depth_from_scoord(ssig_out, bathy_out, ni_out, nj_out, ssig_out%Nlevels, depth_out)
+            CALL GETVAR_ATTRIBUTES(cf_bathy_out, cv_bathy_out,  nb_att_z, vatt_info_z)
+         ELSEIF (trim(ctype_z_out) == 'z' ) THEN
+            !! depth vector copied on all grid-points
+            CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out(1,1,:))
+            !WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
+            CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
+            DO ji=1,ni_out
+               DO jj=1,nj_out
+                  depth_out(ji,jj,:) = depth_out(1,1,:)
+               ENDDO
+            ENDDO
+         ELSE
+            PRINT*,''; WRITE(6,*) 'Not a valid output vertical coordinate' ; STOP
+         !!
+         ENDIF
+
+!RD fix this
+!         IF (trim(ctype_z_out) == 'z' ) THEN
+!            PRINT*,''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; PRINT*,''
+!         ELSEIF ( trim(ctype_z_out) == 'sigma' ) THEN
+!            PRINT*,''; WRITE(6,*) 'Output on sigma coordinates' ; PRINT*,''
+!         ENDIF
+
       END IF
 
-
+!RD fix this
+!         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
+!         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+!         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
 
       !!  Getting target mask (mandatory doing 3D interpolation!)
       IF ( lmout .OR. l_int_3d ) THEN
@@ -496,10 +588,22 @@ CONTAINS
                      WRITE(6,*) 'WARNING: no target 3D land-sea mask provided (cf_lsm_out)!'
                      mask_out = 1
                   ELSE
-                     WRITE(6,*) 'Opening 3D land-sea mask file on target grid: ',trim(cf_lsm_out)
-                     WRITE(6,*) '             => name mask : ',trim(cv_lsm_out)
-                     CALL GETMASK_3D(cf_lsm_out, cv_lsm_out, mask_out)
-                     WRITE(6,*) ''
+                     !! select coord type
+                     IF ( trim(ctype_z_out) == 'sigma' ) THEN
+                        WRITE(6,*) 'Opening 2D land-sea mask file on target grid: ', trim(cf_lsm_out)
+                        !! read 2D mask for output and make it 3D
+                        CALL GETMASK_2D(cf_lsm_out, cv_lsm_out, mask_out(:,:,1))
+                        DO jz0=2,nk_out
+                           mask_out(:,:,jz0) = mask_out(:,:,1)
+                        ENDDO
+                     ELSEIF ( trim(ctype_z_out) == 'z' ) THEN
+                        WRITE(6,*) 'Opening 3D land-sea mask file on target grid: ',trim(cf_lsm_out)
+                        WRITE(6,*) '             => name mask : ',trim(cv_lsm_out)
+                        CALL GETMASK_3D(cf_lsm_out, cv_lsm_out, mask_out(:,:,:))
+                        WRITE(6,*) ''
+                     ELSE
+                        STOP
+                     ENDIF
                   END IF
                ELSE
                   WRITE(6,*) 'Opening 2D land-sea mask file on target grid: ', trim(cf_lsm_out)
@@ -859,6 +963,8 @@ CONTAINS
          END IF
       END IF
 
+      IF ( l_int_3d .AND. trim(ctype_z_in) == 'sigma' ) nk_in = ssig_in%Nlevels ! ugly but should work
+
    END SUBROUTINE know_dim_in
 
 
@@ -916,7 +1022,11 @@ CONTAINS
          WRITE(6,*) ''
          WRITE(6,*) ' => we read target levels in the following file:'
          PRINT *, TRIM(cf_z_out); WRITE(6,*) ''
-         CALL DIMS(cf_z_out, cv_z_out, nk_out, n1, n2, nrec)
+         IF ( trim(ctype_z_out) == 'sigma' ) THEN
+            nk_out = ssig_out%Nlevels
+         ELSE
+            CALL DIMS(cf_z_out, cv_z_out, nk_out, n1, n2, nrec)
+         ENDIF
          WRITE(6,*) 'nk_out = ', nk_out ; WRITE(6,*) ''
          WRITE(6,*) '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
          WRITE(6,*) 'Target grid dimension is', ni_out,'x',nj_out,'x',nk_out
