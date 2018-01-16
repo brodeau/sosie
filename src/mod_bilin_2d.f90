@@ -20,6 +20,7 @@ MODULE MOD_BILIN_2D
    !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
    REAL(8), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iquadran at each point
+   INTEGER, DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
 
 
    PRIVATE
@@ -33,7 +34,7 @@ MODULE MOD_BILIN_2D
 
    LOGICAL, SAVE :: l_last_y_row_missing
 
-   PUBLIC :: BILIN_2D
+   PUBLIC :: BILIN_2D, MAPPING_BL, INTERP_BL
 
 
 CONTAINS
@@ -160,7 +161,7 @@ CONTAINS
          IF ( lefw ) THEN
             PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
             PRINT *, 'Still! Insure that this is really the one you need!!!'
-            PRINT *, 'No need to build it, skipping routine MAPPING !'
+            PRINT *, 'No need to build it, skipping routine MAPPING_BL !'
          ELSE
             PRINT *, 'No mapping file found in the current directory!'
             PRINT *, 'We are going to build it: ', trim(cf_wght)
@@ -168,10 +169,10 @@ CONTAINS
             PRINT *, 'Therefore, you should keep this file for any future interpolation'
             PRINT *, 'using the same "source-target" setup'
 
-            CALL MAPPING(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght)
+            CALL MAPPING_BL(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght)
 
          END IF
-         PRINT *, ''; PRINT *, 'MAPPING OK';
+         PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
       END IF
 
@@ -181,9 +182,9 @@ CONTAINS
 
       IF ( l_first_call_interp_routine ) THEN
 
-         ALLOCATE ( IMETRICS(nx2,ny2,3), RAB(nx2,ny2,2) )
+         ALLOCATE ( IMETRICS(nx2,ny2,3), RAB(nx2,ny2,2), IPB(nx2,ny2) )
          
-         CALL RD_MAPPING_AB(cf_wght, IMETRICS, RAB)
+         CALL RD_MAPPING_AB(cf_wght, IMETRICS, RAB, IPB)
          PRINT *, ''; PRINT *, 'Mapping and weights read into ', trim(cf_wght); PRINT *, ''
 
       END IF
@@ -202,7 +203,7 @@ CONTAINS
                Z2(ji,jj) = rflg ; ! masking
             ELSE
                !! INTERPOLATION !
-               Z2(ji,jj) = REAL(INTERP_BL(k_ew_per, iP, jP, alpha, beta, Z_in), 4)
+               Z2(ji,jj) = REAL(INTERP_BL(k_ew_per, iP, jP, iquadran, alpha, beta, Z_in), 4)
                !!
             END IF
 
@@ -247,12 +248,12 @@ CONTAINS
 
 
 
-   FUNCTION INTERP_BL(k_ew_per, iP, jP, xa, xb, Z_in)
+   FUNCTION INTERP_BL(k_ew_per, iP, jP, iquadran, xa, xb, Z_in)
 
       IMPLICIT none
 
       INTEGER,                 INTENT(in) :: k_ew_per
-      INTEGER,                 INTENT(in) :: iP, jP
+      INTEGER,                 INTENT(in) :: iP, jP, iquadran
       REAL(8),                 INTENT(in) :: xa, xb
       REAL(8), DIMENSION(:,:), INTENT(in) :: Z_in
 
@@ -330,10 +331,10 @@ CONTAINS
 
 
 
-   SUBROUTINE MAPPING(k_ew_per, lon_in, lat_in, lon_out, lat_out, cf_w)
+   SUBROUTINE MAPPING_BL(k_ew_per, lon_in, lat_in, lon_out, lat_out, cf_w)
 
       !!----------------------------------------------------------------------------
-      !!            ***  SUBROUTINE MAPPING  ***
+      !!            ***  SUBROUTINE MAPPING_BL  ***
       !!
       !!   ** Purpose:  Write file of position, weight need by interpolation
       !!   *  Extract of CDFTOOLS cdfweight.f90 writen by Jean Marc Molines
@@ -348,7 +349,7 @@ CONTAINS
       INTEGER,                 INTENT(in) :: k_ew_per
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_in, lat_in
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_out, lat_out
-      CHARACTER(len=400)     , INTENT(in) :: cf_w ! file containing mapping pattern
+      CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
 
 
       INTEGER :: &
@@ -392,9 +393,8 @@ CONTAINS
 
       ALLOCATE ( mask_metrics(nxo,nyo) )
       mask_metrics(:,:) = 0
-
-      ALLOCATE ( i_nrst_in(ni_out, nj_out), j_nrst_in(ni_out, nj_out) )
-
+      
+      ALLOCATE ( i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
       
       CALL FIND_NEAREST_POINT( lon_out, lat_out, lon_in, lat_in, i_nrst_in, j_nrst_in )
       
@@ -583,7 +583,7 @@ CONTAINS
 
       DEALLOCATE ( MTRCS, ZAB, mask_metrics )
 
-   END SUBROUTINE MAPPING
+   END SUBROUTINE MAPPING_BL
 
 
 
