@@ -25,6 +25,9 @@ MODULE io_ezcdf
       INTEGER            :: year
       INTEGER            :: month
       INTEGER            :: day
+      INTEGER            :: hour
+      INTEGER            :: minute
+      INTEGER            :: second
    END TYPE t_unit_t0
 
 
@@ -1954,12 +1957,13 @@ CONTAINS
       CHARACTER(len=*), INTENT(in) :: cstr  ! ex: "days since 1950-01-01"
       !!
       INTEGER :: i1, i2
-      CHARACTER(len=16) :: cdum
+      CHARACTER(len=32) :: cdum, chour
       !!
       crtn = 'GET_TIME_UNIT_T0'
       i1 = SCAN(cstr, ' ')
       i2 = SCAN(cstr, ' ', back=.TRUE.)
-      IF ( cstr(i1+1:i2-1) /= 'since' ) STOP 'Aborting GET_TIME_UNIT_T0!'
+      !!
+      chour = cstr(i2+1:)
       cdum =  cstr(1:i1-1)
       SELECT CASE(TRIM(cdum))
       CASE('days')
@@ -1971,6 +1975,12 @@ CONTAINS
       CASE DEFAULT
          CALL print_err(crtn, 'the only time units we know are "seconds", "hours" and "days"')
       END SELECT
+      !!      
+      cdum = cstr(1:i2-1)   ! => "days since 1950-01-01"
+      i2 = SCAN(TRIM(cdum), ' ', back=.TRUE.)
+      IF ( cstr(i1+1:i2-1) /= 'since' ) STOP 'Aborting GET_TIME_UNIT_T0!'
+      !!
+      !! Date:
       cdum = cstr(i2+1:)
       i1 = SCAN(cdum, '-')
       i2 = SCAN(cdum, '-', back=.TRUE.)
@@ -1978,6 +1988,14 @@ CONTAINS
       READ(cdum(1:4),'(i)')  GET_TIME_UNIT_T0%year
       READ(cdum(6:7),'(i)')  GET_TIME_UNIT_T0%month
       READ(cdum(9:10),'(i)') GET_TIME_UNIT_T0%day
+      !!
+      !! Time of day:
+      i1 = SCAN(chour, ':')
+      i2 = SCAN(chour, ':', back=.TRUE.)
+      IF ( (i1 /= 3).OR.(i2 /= 6) ) CALL print_err(crtn, 'hour of origin date not recognized, must be "hh:mm:ss"')
+      READ(chour(1:2),'(i)')  GET_TIME_UNIT_T0%hour
+      READ(chour(4:5),'(i)')  GET_TIME_UNIT_T0%minute
+      READ(chour(7:8),'(i)') GET_TIME_UNIT_T0%second
       !!
    END FUNCTION GET_TIME_UNIT_T0
 

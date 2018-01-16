@@ -57,7 +57,7 @@ PROGRAM INTERP_TO_EPHEM
       &    cv_lon = 'glamt',       & ! input grid longitude name, T-points
       &    cv_lat = 'gphit'          ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, ctrack, cdum
+   CHARACTER(len=256)  :: cr, cunit, ctrack, cdum
    !!
    !!
    !!******************** End of conf for user ********************************
@@ -104,20 +104,23 @@ PROGRAM INTERP_TO_EPHEM
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
 
 
-   TYPE(t_unit_t0) :: tut_ephem, tut_model
+   TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
+
+   !! Epoch is our reference time unit, it is "seconds since 1970-01-01" which translates into:
+   tut_epoch%unit  = 's'
+   tut_epoch%year  = 1970
+   tut_epoch%month = 1
+   tut_epoch%day   = 1
+
 
    PRINT *, ''
 
 
 
-   tut_ephem  = GET_TIME_UNIT_T0('days since 1956-01-01')
+   tut_ephem  = GET_TIME_UNIT_T0('days since 1950-01-01 00:00:00')
    PRINT *, ' tut_ephem =', tut_ephem
-
-   tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01')
-   PRINT *, ' tut_model =', tut_model
-
-
-
+   !tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01')
+   !PRINT *, ' tut_model =', tut_model
    STOP
 
 
@@ -263,10 +266,10 @@ PROGRAM INTERP_TO_EPHEM
    !! If there is no overlapping period of time between the two file, then no
    !! need to go further...
    !!
-   !#lolo
+   CALL GET_VAR_INFO(cf_in, cv_t, cunit, cdum)
+   PRINT *, TRIM(cunit), ' ,', trim(cdum)
 
-
-
+   STOP '#lolo'
 
 
 
