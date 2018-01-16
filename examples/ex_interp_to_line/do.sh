@@ -1,4 +1,15 @@
 #!/bin/bash
+
+
+
+
+
+../../bin/interp_to_ephem.x -i ../data/sss_ORCA1_example.nc -v sos -f 600.,3600. \
+    -m ../data/mesh_mask_ORCA1v2_light.nc4 \
+    -p ../data/dt_global_al_phy_vxxc_l3_20130401_20170110_tr.nc4 -n  -g 0.,3600
+
+exit
+
 #../../bin/interp_to_ephem.x -i ../data/ssh_ORCA025.nc4 -v ssh  -m ../data/mesh_mask_ORCA025_light.nc4 \
 #                           -p ephem_calval_june2015_sph_short.txt -a
 ##                           -p ephem_calval_june2015_sph.txt

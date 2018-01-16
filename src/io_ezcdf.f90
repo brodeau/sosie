@@ -20,6 +20,14 @@ MODULE io_ezcdf
    END TYPE var_attr
 
 
+   TYPE, PUBLIC :: t_unit_t0
+      CHARACTER(LEN=1)   :: unit
+      INTEGER            :: year
+      INTEGER            :: month
+      INTEGER            :: day
+   END TYPE t_unit_t0
+
+
    PRIVATE
 
    !! List of public routines
@@ -40,10 +48,11 @@ MODULE io_ezcdf
       &    check_4_miss,     &
       &    get_var_info,     &
       &    prtmask,          &
-      &    p2d_mapping_ab,    &
-      &    rd_mapping_ab,     &
+      &    p2d_mapping_ab,   &
+      &    rd_mapping_ab,    &
       &    phovmoller,       &
-      &    who_is_mv
+      &    who_is_mv,        &
+      &    get_time_unit_t0
    !!===========================
 
 
@@ -636,7 +645,7 @@ CONTAINS
       ELSE
          izs = 1   ; ize = lz
       END IF
-      
+
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE,  idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
@@ -649,7 +658,7 @@ CONTAINS
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs,kt/), count=(/lx,ly,ize,1/)), &
             &      crtn,cf_in,cv_in)
       END IF
-      
+
       IF ( ( kt == ite ).OR.( kt == 0 ) )  THEN
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
@@ -805,7 +814,7 @@ CONTAINS
       ELSE
          izs = 1   ; ize = lz
       END IF
-      
+
       CALL DIMS(cf_in, cv_in, nx, ny, nk, nt)
 
       IF ( nk < 1 ) THEN
@@ -983,7 +992,7 @@ CONTAINS
 
       INTEGER  :: id_x, id_y, id_t
       INTEGER  :: id_lo, id_la
-      INTEGER  :: id_tim      
+      INTEGER  :: id_tim
       INTEGER  :: lx, ly
       LOGICAL  :: lp = .FALSE.
       REAL(4)  :: rmin, rmax
@@ -1064,7 +1073,7 @@ CONTAINS
                &      crtn,cf_in,cv_in )
          END IF
          DEALLOCATE ( vidim )
-         
+
          !!  VARIABLE ATTRIBUTES
          IF ( lcopy_att_F ) CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes (given in namelist):
@@ -1072,7 +1081,7 @@ CONTAINS
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
             &                                TRIM(cv_t)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
-         
+
          !! Global attributes
          IF ( PRESENT(cextrainfo) ) &
             CALL sherr( NF90_PUT_ATT(idx_f, NF90_GLOBAL, 'Info', TRIM(cextrainfo)),  crtn,cf_in,cv_in)
@@ -1578,7 +1587,7 @@ CONTAINS
 
       INTEGER :: id_f
       INTEGER :: id_v1, id_v2, id_v3
-      
+
       crtn = 'RD_MAPPING_AB'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cdum)
@@ -1867,11 +1876,11 @@ CONTAINS
          &       lcopy_att_lon  = .FALSE., &
          &       lcopy_att_lat  = .FALSE., &
          &       lcopy_att_time = .FALSE.
-      
+
       IF ( PRESENT(attr_lon) ) lcopy_att_lon  = .TRUE.
       IF ( PRESENT(attr_lat) ) lcopy_att_lat  = .TRUE.
       IF ( PRESENT(attr_time)) lcopy_att_time = .TRUE.
-      
+
       !!    HORIZONTAL
       IF ( (TRIM(cv_lon) /= '').AND.(TRIM(cv_lat) /= '') ) THEN
          !!
@@ -1940,6 +1949,41 @@ CONTAINS
 
 
 
+   FUNCTION GET_TIME_UNIT_T0( cstr )
+      TYPE(t_unit_t0)              :: GET_TIME_UNIT_T0
+      CHARACTER(len=*), INTENT(in) :: cstr  ! ex: "days since 1950-01-01"
+      !!
+      INTEGER :: i1, i2
+      CHARACTER(len=16) :: cdum
+      !!
+      crtn = 'GET_TIME_UNIT_T0'
+      i1 = SCAN(cstr, ' ')
+      i2 = SCAN(cstr, ' ', back=.TRUE.)
+      IF ( cstr(i1+1:i2-1) /= 'since' ) STOP 'Aborting GET_TIME_UNIT_T0!'
+      cdum =  cstr(1:i1-1)
+      SELECT CASE(TRIM(cdum))
+      CASE('days')
+         GET_TIME_UNIT_T0%unit = 'd'
+      CASE('hours')
+         GET_TIME_UNIT_T0%unit = 'h'
+      CASE('seconds')
+         GET_TIME_UNIT_T0%unit = 's'
+      CASE DEFAULT
+         CALL print_err(crtn, 'the only time units we know are "seconds", "hours" and "days"')
+      END SELECT
+      cdum = cstr(i2+1:)
+      i1 = SCAN(cdum, '-')
+      i2 = SCAN(cdum, '-', back=.TRUE.)
+      IF ( (i1 /= 5).OR.(i2 /= 8) ) CALL print_err(crtn, 'origin date not recognized, must be "yyyy-mm-dd"')
+      READ(cdum(1:4),'(i)')  GET_TIME_UNIT_T0%year
+      READ(cdum(6:7),'(i)')  GET_TIME_UNIT_T0%month
+      READ(cdum(9:10),'(i)') GET_TIME_UNIT_T0%day
+      !!
+   END FUNCTION GET_TIME_UNIT_T0
+
+
+
+
    SUBROUTINE print_err(crout, cmess)
       CHARACTER(len=*), INTENT(in) :: crout, cmess
       PRINT *, ''
@@ -1952,3 +1996,5 @@ CONTAINS
 
 
 END MODULE io_ezcdf
+
+! LocalWords:  cu

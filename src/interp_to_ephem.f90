@@ -103,8 +103,22 @@ PROGRAM INTERP_TO_EPHEM
    CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
 
+
+   TYPE(t_unit_t0) :: tut_ephem, tut_model
+
    PRINT *, ''
 
+
+
+   tut_ephem  = GET_TIME_UNIT_T0('days since 1956-01-01')
+   PRINT *, ' tut_ephem =', tut_ephem
+
+   tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01')
+   PRINT *, ' tut_model =', tut_model
+
+
+
+   STOP
 
 
    !! Getting string arguments :
