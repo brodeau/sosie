@@ -1057,7 +1057,7 @@ CONTAINS
 
                !! Display progression in stdout:
                IF ( (ji_out == nx_out/2).AND.(jj_out /= jj_out_old) ) THEN
-                  WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
+                  WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
                   jj_out_old = jj_out
                END IF
                
