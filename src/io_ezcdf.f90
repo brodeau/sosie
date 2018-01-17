@@ -55,7 +55,9 @@ MODULE io_ezcdf
       &    rd_mapping_ab,    &
       &    phovmoller,       &
       &    who_is_mv,        &
-      &    get_time_unit_t0
+      &    get_time_unit_t0, &
+      &    l_is_leap_year,   &
+      &   to_epoch_time_scalar
    !!===========================
 
 
@@ -81,11 +83,17 @@ MODULE io_ezcdf
       &     c_nm_missing_val = (/ 'FillValue ', '_FillValue', '_Fillvalue' /)
 
 
+   INTEGER, DIMENSION(12), PARAMETER :: &
+      &   tdmn = (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /),        &
+      &   tdml = (/ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /),        &
+      &  tcdmn = (/ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 /), &
+      &  tcdml = (/ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 /)
+   
+
 CONTAINS
 
 
-
-
+   
    SUBROUTINE DIMS(cf_in, cv_in, lx, ly, lz, lt)
 
       !!-----------------------------------------------------------------------
@@ -1951,7 +1959,6 @@ CONTAINS
 
 
 
-
    FUNCTION GET_TIME_UNIT_T0( cstr )
       TYPE(t_unit_t0)              :: GET_TIME_UNIT_T0
       CHARACTER(len=*), INTENT(in) :: cstr  ! ex: "days since 1950-01-01 00:00:00" => 'd' 1950 1 1 0 0 0
@@ -1975,7 +1982,7 @@ CONTAINS
       CASE DEFAULT
          CALL print_err(crtn, 'the only time units we know are "seconds", "hours" and "days"')
       END SELECT
-      !!      
+      !!
       cdum = cstr(1:i2-1)   ! => "days since 1950-01-01"
       i2 = SCAN(TRIM(cdum), ' ', back=.TRUE.)
       IF ( cstr(i1+1:i2-1) /= 'since' ) STOP 'Aborting GET_TIME_UNIT_T0!'
@@ -1999,8 +2006,126 @@ CONTAINS
       !!
    END FUNCTION GET_TIME_UNIT_T0
 
+   FUNCTION L_IS_LEAP_YEAR( iyear )
+      LOGICAL :: L_IS_LEAP_YEAR
+      INTEGER, INTENT(in) :: iyear
+      L_IS_LEAP_YEAR = .FALSE.
+      !IF ( MOD(iyear,4)==0 )     L_IS_LEAP_YEAR = .TRUE.
+      !IF ( MOD(iyear,100)==0 )   L_IS_LEAP_YEAR = .FALSE.
+      !IF ( MOD(iyear,400)==0 )   L_IS_LEAP_YEAR = .TRUE.
+      IF ( (MOD(iyear,4)==0).AND.(.NOT.((MOD(iyear,100)==0).AND.(MOD(iyear,400)/=0)) ) )  L_IS_LEAP_YEAR = .TRUE.
+   END FUNCTION L_IS_LEAP_YEAR
 
 
+   FUNCTION nbd_m( imonth, iyear )
+      !! Number of days in month # imonth of year iyear
+      INTEGER :: nbd_m
+      INTEGER, INTENT(in) :: imonth, iyear
+      IF (( imonth > 12 ).OR.( imonth < 1 ) ) THEN
+         PRINT *, 'ERROR: nbd_m of io_ezcdf.f90 => 1 <= imonth cannot <= 12 !!!', imonth
+         STOP
+      END IF
+      nbd_m = tdmn(imonth)
+      IF ( L_IS_LEAP_YEAR(iyear) )  nbd_m = tdml(imonth)
+   END FUNCTION nbd_m
+
+
+
+
+   FUNCTION to_epoch_time_scalar( cal_unit_ref0, rt )
+      !!
+      INTEGER(8)                  :: to_epoch_time_scalar
+      TYPE(t_unit_t0), INTENT(in) :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
+      REAL(8)        , INTENT(in) :: rt ! time as specified as cal_unit_ref0
+      !!
+      REAL(8)    :: zt
+      INTEGER    :: jy, jmn, jd, inc, js, jm, jh, jd_m, jd_y, jd_old
+      LOGICAL    :: lcontinue
+      INTEGER(4) :: jh_t, jd_t, jmn_t, jy_t
+      INTEGER(8) :: js_t, js_t_old, js0_epoch
+      !!
+      zt = rt
+      IF ( cal_unit_ref0%unit == 'h' ) THEN
+         PRINT *, ' Switching from hours to seconds!'
+         zt = rt*3600.
+      END IF
+      IF ( cal_unit_ref0%unit == 'd' ) THEN
+         PRINT *, ' Switching from days to seconds!'
+         zt = rt*24.*3600.
+      END IF
+      !!
+      inc = 60 ! increment in seconds!
+      !!
+      jy = cal_unit_ref0%year
+      jmn = cal_unit_ref0%month
+      jd = cal_unit_ref0%day
+      js= cal_unit_ref0%second
+      jm= cal_unit_ref0%minute
+      jh= cal_unit_ref0%hour
+      !!
+      js_t = 0 ; js_t_old = 0 ; jd_t = 0
+      !!
+      !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+      lcontinue = .TRUE.
+      DO WHILE ( lcontinue )
+         jd_old = jd
+         js_t = js_t + inc
+         !
+         !js = js + 1
+         !IF ( js == 60 ) THEN
+         !   js = 0
+         !   jm = jm+1
+         !END IF
+         IF ( MOD(js_t,60) == 0 ) THEN
+            js = 0
+            jm = jm+1
+         END IF
+         IF ( jm == 60 ) THEN
+            jm = 0
+            jh = jh+1
+         END IF
+         !IF ( MOD(js_t,3600) == 0 ) THEN
+         !   jm = 0
+         !   jh = jh+1
+         !END IF
+         !
+         IF ( jh == 24 ) THEN
+            jh = 0
+            jd = jd + 1
+            jd_t = jd_t + 1  ! total days
+            jd_y = jd_y + 1  ! day of year
+            jd_m = jd_m + 1  ! day of month
+         END IF
+         IF ( jd == nbd_m(jmn,jy)+1 ) THEN
+            jd = 1
+            jmn_t = jmn_t + 1
+            jmn = jmn + 1
+         END IF
+         IF ( jmn == 13 ) THEN
+            jmn  = 1
+            jy_t = jy_t+1
+            jy = jy+1
+         END IF
+         IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(js==0) ) js0_epoch = js_t
+         !
+         !IF ( jd /= jd_old ) THEN
+         !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+         !END IF
+         IF ( (zt <= REAL(js_t,8)).AND.(zt > REAL(js_t_old,8)) ) lcontinue = .FALSE.
+         IF ( jy == 2019 ) THEN
+            PRINT *, 'js_t =', js_t
+            STOP 'ERROR: to_epoch_time_scalar => beyond 2018!'
+         END IF
+         js_t_old = js_t
+      END DO
+      !
+      to_epoch_time_scalar = js_t - js0_epoch
+      !
+      !PRINT *, 'Found !!!', zt, REAL(js_t)
+      WRITE(*,'(" *** to_epoch_time_scalar => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, js
+      !PRINT *, ' + js0_epoch =', js0_epoch
+      !PRINT *, '  Date (epoch) =>', to_epoch_time_scalar
+   END FUNCTION to_epoch_time_scalar
 
    SUBROUTINE print_err(crout, cmess)
       CHARACTER(len=*), INTENT(in) :: crout, cmess

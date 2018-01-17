@@ -106,8 +106,19 @@ PROGRAM INTERP_TO_EPHEM
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
 
 
+   INTEGER(4) :: itime
    TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
 
+   TYPE(datetime) :: dt_r0
+
+
+   !dt_r0 = datetime(1977,4,19,0,0,0)
+
+   !PRINT *, ' T epoch for 1977-04-19 =>', dt_r0%secondsSinceEpoch()
+
+
+
+   
    !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
    tut_epoch%unit   = 's'
    tut_epoch%year   = 1970
@@ -283,9 +294,6 @@ PROGRAM INTERP_TO_EPHEM
    END IF
    PRINT *, ''
 
-   STOP '#lolo'
-
-
 
 
 
@@ -385,7 +393,7 @@ PROGRAM INTERP_TO_EPHEM
       PRINT *, ' *** EPHEM: OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
       DO jt=1, Nte
          vt_ephem(jt) = rt0 + REAL(jt-1)*rdt
-         PRINT *, ' vt_ephem(jt)= ', vt_ephem(jt)
+         !PRINT *, ' vt_ephem(jt)= ', vt_ephem(jt)
       END DO
    END IF
 
@@ -403,6 +411,41 @@ PROGRAM INTERP_TO_EPHEM
 
 
 
+
+
+
+
+
+
+
+   PRINT *, ''
+   PRINT *, 'First time record for model:', vt_model(1)
+   itime = to_epoch_time_scalar( tut_model, vt_model(1) )
+   PRINT *, '     ==> in epoch time =>',  itime
+   PRINT *, 'Last time record for model:', vt_model(Ntm)
+   itime = to_epoch_time_scalar( tut_model, vt_model(Ntm) )
+   PRINT *, '     ==> in epoch time =>',  itime
+   
+   
+   PRINT *, ''
+   PRINT *, 'First time record for ephem:', vt_ephem(1)
+   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(1) )
+   PRINT *, '     ==> in epoch time =>',  itime
+   PRINT *, 'Last time record for ephem:', vt_ephem(Nte)
+   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(Nte) )
+   PRINT *, '     ==> in epoch time =>',  itime
+   
+   
+   STOP '#lolo'
+
+
+
+
+
+
+
+
+   
 
 
 
@@ -680,10 +723,6 @@ CONTAINS
 
 
 END PROGRAM INTERP_TO_EPHEM
-
-
-
-
 
 
 
