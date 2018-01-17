@@ -43,7 +43,7 @@ MOD_INST= mod/io_ezcdf.mod \
           mod/mod_akima_2d.mod \
           mod/mod_drown.mod
 
-all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ephem.x
+all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x
 
 test: bin/test_stuffs.x
 
@@ -57,9 +57,15 @@ bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
 
-bin/interp_to_ephem.x: src/interp_to_ephem.f90 obj/mod_conf.o $(LIB_SOSIE)
+
+
+# interp_to_ephem.x requires the "datetime fortran" library modules to be compiled on your system!
+# => https://github.com/wavebitscientific/datetime-fortran/
+bin/interp_to_ephem.x: src/interp_to_ephem.f90 obj/mod_conf.o $(LIB_SOSIE) $(DATETIME_FORTRAN_DIR)/lib/libdatetime.a
 	@mkdir -p bin
-	$(FC) $(FF) obj/mod_conf.o src/interp_to_ephem.f90 -o bin/interp_to_ephem.x $(LIB)
+	$(FC) $(FF) -I$(DATETIME_FORTRAN_DIR)/include obj/mod_conf.o src/interp_to_ephem.f90 -o bin/interp_to_ephem.x $(LIB) -L$(DATETIME_FORTRAN_DIR)/lib -ldatetime
+
+
 
 
 $(LIB_SOSIE): $(OBJ)

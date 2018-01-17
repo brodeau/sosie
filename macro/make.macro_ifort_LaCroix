@@ -15,7 +15,7 @@ L_NCDF = -lnetcdff
 
 # Fortran compilation flags:
 # -- Production
-FF = -O3 -i4 -xHOST -parallel -module mod/
+FF = -O3 -i4 -xHOST -module mod/
 
 # -- Debugging
 #FF = -O0 -i4 -traceback -fpe0 -CB -heap-arrays -module mod/
@@ -23,3 +23,10 @@ FF = -O3 -i4 -xHOST -parallel -module mod/
 
 # Directory to install binaries:
 INSTALL_DIR = /usr/local
+
+
+# interp_to_ephem.x requires the "datetime fortran" library modules to be compiled on your system!
+# => https://github.com/wavebitscientific/datetime-fortran
+#
+DATETIME_FORTRAN_DIR=$(HOME)/src/datetime-fortran/build
+#
