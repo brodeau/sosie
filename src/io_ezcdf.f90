@@ -2039,9 +2039,9 @@ CONTAINS
       REAL(8)        , INTENT(in) :: rt ! time as specified as cal_unit_ref0
       !!
       REAL(8)    :: zt
-      INTEGER    :: jy, jmn, jd, inc, js, jm, jh, jd_m, jd_y, jd_old
+      INTEGER    :: jy, jmn, jd, inc, js, jm, jh, jd_old
       LOGICAL    :: lcontinue
-      INTEGER(4) :: jh_t, jd_t, jmn_t, jy_t
+      INTEGER(4) :: jh_t, jd_t
       INTEGER(8) :: js_t, js_t_old, js0_epoch
       !!
       zt = rt
@@ -2093,17 +2093,13 @@ CONTAINS
             jh = 0
             jd = jd + 1
             jd_t = jd_t + 1  ! total days
-            jd_y = jd_y + 1  ! day of year
-            jd_m = jd_m + 1  ! day of month
          END IF
          IF ( jd == nbd_m(jmn,jy)+1 ) THEN
             jd = 1
-            jmn_t = jmn_t + 1
             jmn = jmn + 1
          END IF
          IF ( jmn == 13 ) THEN
             jmn  = 1
-            jy_t = jy_t+1
             jy = jy+1
          END IF
          IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(js==0) ) js0_epoch = js_t
