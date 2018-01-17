@@ -1,6 +1,6 @@
 PROGRAM INTERP_TO_EPHEM
 
-   USE datetime_module, ONLY:datetime ! => https://github.com/wavebitscientific/datetime-fortran/releases
+   !USE datetime_module, ONLY:datetime ! => https://github.com/wavebitscientific/datetime-fortran/releases
    
    USE io_ezcdf
    USE mod_conf
@@ -109,8 +109,7 @@ PROGRAM INTERP_TO_EPHEM
    INTEGER(4) :: itime
    TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
 
-   TYPE(datetime) :: dt_r0
-
+   !TYPE(datetime) :: dt_r0
 
    !dt_r0 = datetime(1977,4,19,0,0,0)
 
