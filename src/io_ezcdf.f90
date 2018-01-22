@@ -57,7 +57,8 @@ MODULE io_ezcdf
       &    who_is_mv,        &
       &    get_time_unit_t0, &
       &    l_is_leap_year,   &
-      &   to_epoch_time_scalar
+      &    to_epoch_time_scalar, to_epoch_time_vect, &
+      &    time_vector_to_epoch_time
    !!===========================
 
 
@@ -88,12 +89,12 @@ MODULE io_ezcdf
       &   tdml = (/ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /),        &
       &  tcdmn = (/ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 /), &
       &  tcdml = (/ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 /)
-   
+
 
 CONTAINS
 
 
-   
+
    SUBROUTINE DIMS(cf_in, cv_in, lx, ly, lz, lt)
 
       !!-----------------------------------------------------------------------
@@ -2032,29 +2033,42 @@ CONTAINS
 
 
 
-   FUNCTION to_epoch_time_scalar( cal_unit_ref0, rt )
+   FUNCTION to_epoch_time_scalar( cal_unit_ref0, rt, dt )
       !!
       INTEGER(8)                  :: to_epoch_time_scalar
       TYPE(t_unit_t0), INTENT(in) :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
       REAL(8)        , INTENT(in) :: rt ! time as specified as cal_unit_ref0
+      REAL(8)  , OPTIONAL      , INTENT(in) :: dt ! time as specified as cal_unit_ref0
       !!
-      REAL(8)    :: zt
-      INTEGER    :: jy, jmn, jd, inc, js, jm, jh, jd_old
+      REAL(8)    :: zt, zinc
+      INTEGER    :: jy, jmn, jd, inc, jm, jh, jd_old, ipass, nb_pass, js
       LOGICAL    :: lcontinue
       INTEGER(4) :: jh_t, jd_t
-      INTEGER(8) :: js_t, js_t_old, js0_epoch
+      REAL(8)    :: rjs_t, rjs_t_old, rjs_t_oo, rjs0_epoch, rjs
       !!
-      zt = rt
-      IF ( cal_unit_ref0%unit == 'h' ) THEN
-         PRINT *, ' Switching from hours to seconds!'
-         zt = rt*3600.
+      crtn = 'to_epoch_time_scalar'
+      !!
+      nb_pass = 1
+      IF ( PRESENT(dt) ) THEN
+         IF ( dt < 60. ) nb_pass = 2
       END IF
-      IF ( cal_unit_ref0%unit == 'd' ) THEN
+      !!
+      SELECT CASE(cal_unit_ref0%unit)
+      CASE('d')
          PRINT *, ' Switching from days to seconds!'
          zt = rt*24.*3600.
-      END IF
+      CASE('h')
+         PRINT *, ' Switching from hours to seconds!'
+         zt = rt*3600.
+      CASE('s')
+         zt = rt
+      CASE DEFAULT
+         CALL print_err(crtn, 'the only time units we know are "s" (seconds), "h" (hours) and "d" (days)')
+      END SELECT
       !!
-      inc = 60 ! increment in seconds!
+      !!
+      !! Starting with large time increment (in seconds):
+      zinc = 60. ! increment in seconds!
       !!
       jy = cal_unit_ref0%year
       jmn = cal_unit_ref0%month
@@ -2063,28 +2077,80 @@ CONTAINS
       jm= cal_unit_ref0%minute
       jh= cal_unit_ref0%hour
       !!
-      js_t = 0 ; js_t_old = 0 ; jd_t = 0
+      rjs = REAL(js, 8)
+      rjs_t = 0. ; rjs_t_old = 0. ; rjs_t_oo = 0. ; jd_t = 0
+      !!
+      DO ipass=1, nb_pass
+
+         PRINT *, '' ; PRINT *, ' ipass = ', ipass
+         
+         IF ( ipass == 2 ) THEN
+            !!
+            PRINT *, ' after 1st pass:', jy, jmn, jd, jh, jm, rjs
+            !! Tiny increment (sometime the time step is lower than 1 second on stelite ephem tracks!!!)
+            !! Rewind 2 minutes backward:
+            !! jm:
+            !! 3 => 1
+            !! 2 => 0
+            !! 1 => 59
+            !! 0 => 58
+            !!
+            IF ( jm > 1 ) THEN
+               jm = jm - 2
+            ELSE
+               jm = 58 + jm
+               IF ( jh == 0 ) THEN
+                  jh = 23
+                  IF ( jd == 1 ) THEN
+                     jd = nbd_m(jmn-1,jy)
+                     IF ( jmn == 1 ) THEN
+                        jmn = 12
+                        jy  = jy - 1
+                     ELSE ! jmn
+                        jmn = jmn - 1
+                     END IF
+                  ELSE ! jd
+                     jd = jd - 1
+                  END IF
+               ELSE ! jh
+                  jh = jh - 1
+               END IF
+            END IF
+            
+            zinc = 0.1 ! seconds
+            rjs_t     = rjs_t     - 120.
+            rjs_t_old = rjs_t - zinc
+
+            PRINT *, ' before 2nd pass:', jy, jmn, jd, jh, jm, rjs
+            
+         END IF
+         
+
       !!
       !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
       lcontinue = .TRUE.
       DO WHILE ( lcontinue )
          jd_old = jd
-         js_t = js_t + inc
-         !
-         !js = js + 1
-         !IF ( js == 60 ) THEN
-         !   js = 0
-         !   jm = jm+1
-         !END IF
-         IF ( MOD(js_t,60) == 0 ) THEN
-            js = 0
-            jm = jm+1
+         rjs_t = rjs_t + zinc
+         rjs = rjs + zinc
+         !!
+         
+         IF ( ipass == 1 ) THEN
+            IF ( MOD(rjs_t,60.) == 0. ) THEN
+               rjs = 0.
+               jm  = jm+1
+            END IF
+         ELSE
+            IF ( rjs >= 60.) THEN
+               rjs = rjs - 60.
+               jm  = jm+1
+            END IF
          END IF
          IF ( jm == 60 ) THEN
             jm = 0
             jh = jh+1
          END IF
-         !IF ( MOD(js_t,3600) == 0 ) THEN
+         !IF ( MOD(rjs_t,3600) == 0 ) THEN
          !   jm = 0
          !   jh = jh+1
          !END IF
@@ -2102,26 +2168,80 @@ CONTAINS
             jmn  = 1
             jy = jy+1
          END IF
-         IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(js==0) ) js0_epoch = js_t
+         IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
          !
          !IF ( jd /= jd_old ) THEN
-         !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+         !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t, jd_t
          !END IF
-         IF ( (zt <= REAL(js_t,8)).AND.(zt > REAL(js_t_old,8)) ) lcontinue = .FALSE.
+         IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
          IF ( jy == 2019 ) THEN
-            PRINT *, 'js_t =', js_t
+            PRINT *, 'rjs_t =', rjs_t
             STOP 'ERROR: to_epoch_time_scalar => beyond 2018!'
          END IF
-         js_t_old = js_t
+         rjs_t_old = rjs_t
       END DO
       !
-      to_epoch_time_scalar = js_t - js0_epoch
+      to_epoch_time_scalar = rjs_t - rjs0_epoch
       !
-      !PRINT *, 'Found !!!', zt, REAL(js_t)
-      WRITE(*,'(" *** to_epoch_time_scalar => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, js
-      !PRINT *, ' + js0_epoch =', js0_epoch
+      !PRINT *, 'Found !!!', zt, REAL(rjs_t)
+      WRITE(*,'(" *** to_epoch_time_scalar => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, NINT(rjs)
+      !PRINT *, ' + rjs0_epoch =', rjs0_epoch
       !PRINT *, '  Date (epoch) =>', to_epoch_time_scalar
+
+   END DO
+      
    END FUNCTION to_epoch_time_scalar
+
+
+
+
+   SUBROUTINE time_vector_to_epoch_time( cal_unit_ref0, vt )
+      !!
+      TYPE(t_unit_t0),               INTENT(in)    :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
+      REAL(8)        , DIMENSION(:), INTENT(inout) :: vt           ! time as specified as cal_unit_ref0
+      !!
+      REAL(8)    :: zdt, zt0
+      REAL(8), DIMENSION(:), ALLOCATABLE :: vtmp
+      INTEGER    :: ntr ! jy, jmn, jd, inc, js, jm, jh, jd_old
+      !LOGICAL    :: lcontinue
+
+      crtn = 'TIME_VECTOR_TO_EPOCH_TIME'
+
+      ntr = SIZE(vt,1)
+      PRINT *, ' ntr =', ntr
+      ALLOCATE ( vtmp(ntr) )
+
+
+      SELECT CASE(cal_unit_ref0%unit)
+      CASE('d')
+         zdt = 3600.*24.
+      CASE('h')
+         zdt = 3600.
+      CASE('s')
+         zdt = 1.
+      CASE DEFAULT
+         CALL print_err(crtn, 'the only time units we know are "s" (seconds), "h" (hours) and "d" (days)')
+      END SELECT
+
+      PRINT *, 'zdt = ', zdt
+
+      zt0 = to_epoch_time_scalar(cal_unit_ref0, vt(1))
+
+      vtmp(:) = (vt(:) - vt(1))*zdt
+
+      vt(:) = zt0 + vtmp(:)
+
+      !PRINT *, ' vt =', vt(2:ntr)-vt(1:ntr-1)
+      PRINT *, ' vt =', vt(:)
+
+
+      DEALLOCATE ( vtmp )
+   END SUBROUTINE time_vector_to_epoch_time
+
+
+
+
+
 
    SUBROUTINE print_err(crout, cmess)
       CHARACTER(len=*), INTENT(in) :: crout, cmess
@@ -2134,6 +2254,135 @@ CONTAINS
 
 
 
-END MODULE io_ezcdf
 
-! LocalWords:  cu
+
+
+   SUBROUTINE to_epoch_time_vect( cal_unit_ref0, vt )
+      !!
+      TYPE(t_unit_t0), INTENT(in) :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
+      REAL(8)        , DIMENSION(:), INTENT(inout) :: vt           ! time as specified as cal_unit_ref0
+      !!
+      REAL(8)    :: zt, dt_min
+      REAL(8), DIMENSION(:), ALLOCATABLE :: vtmp
+
+      INTEGER    :: ntr, jt, jy, jmn, jd, js, jm, jh, jd_old
+      LOGICAL    :: lcontinue
+      INTEGER(4) :: jh_t, jd_t
+      REAL(8)    :: js_t, js_t_old, js0_epoch, rinc
+      !!
+      crtn = 'to_epoch_time_scalar'
+      !!
+      SELECT CASE(cal_unit_ref0%unit)
+      CASE('d')
+         PRINT *, ' Switching from days to seconds!'
+         vt = 24.*3600.*vt
+      CASE('h')
+         PRINT *, ' Switching from hours to seconds!'
+         vt = 3600.*vt
+      CASE('s')
+         PRINT *, ' Already in seconds...'
+      CASE DEFAULT
+         CALL print_err(crtn, 'the only time units we know are "s" (seconds), "h" (hours) and "d" (days)')
+      END SELECT
+      !!
+      !!
+      ntr = SIZE(vt,1)
+      PRINT *, ' ntr =', ntr
+      ALLOCATE ( vtmp(ntr-1) )
+
+      vtmp(:) = vt(2:ntr) - vt(1:ntr-1)
+
+      dt_min = MINVAL(vtmp)
+      PRINT *, ' * Minimum time-step (in seconds) => ', dt_min
+      dt_min = dt_min - dt_min/100.
+      !!
+      jy = cal_unit_ref0%year
+      jmn = cal_unit_ref0%month
+      jd = cal_unit_ref0%day
+      js= cal_unit_ref0%second
+      jm= cal_unit_ref0%minute
+      jh= cal_unit_ref0%hour
+      !!
+      js_t = 0. ; js_t_old = 0. ; jd_t = 0
+      !!
+      !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+      
+      rinc = 1.0 ! increment in seconds!
+      
+      DO jt=1, ntr
+
+         zt = vt(jt)
+         PRINT *, ''
+         PRINT *, ' zt = ', zt, jt
+
+         lcontinue = .TRUE.
+         DO WHILE ( lcontinue )
+            jd_old = jd
+            js_t = js_t + rinc
+            !
+            IF ( MOD(js_t,60.) == 0. ) THEN
+               js = 0
+               jm = jm+1
+            END IF
+            IF ( jm == 60 ) THEN
+               jm = 0
+               jh = jh+1
+            END IF
+            IF ( jh == 24 ) THEN
+               jh = 0
+               jd = jd + 1
+               jd_t = jd_t + 1  ! total days
+            END IF
+            IF ( jd == nbd_m(jmn,jy)+1 ) THEN
+               jd = 1
+               jmn = jmn + 1
+            END IF
+            IF ( jmn == 13 ) THEN
+               jmn  = 1
+               jy = jy+1
+            END IF
+            IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(js==0) ) js0_epoch = js_t
+            !
+            IF ( jt>1 ) THEN
+               WRITE(*,'(" *** Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," js_t=",f15.4)') jy, jmn, jd, jh, jm, js, js_t
+               PRINT *, 'zt, js_t, js_t_old =', zt, js_t, js_t_old
+               PRINT *, ''
+            END IF
+            !
+            !IF ( jd /= jd_old ) THEN
+            !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+            !END IF
+            IF ( (zt <= REAL(js_t,8)).AND.(zt > REAL(js_t_old,8)) ) THEN
+               PRINT *, ' js_t found: zt, js_t, js_t_old =', zt, js_t, js_t_old
+               
+               lcontinue = .FALSE.
+            END IF
+            
+            IF ( jy == 2019 ) THEN
+               PRINT *, 'js_t =', js_t
+               STOP 'ERROR: to_epoch_time_scalar => beyond 2018!'
+            END IF
+            js_t_old = js_t
+         END DO
+         !
+         vt(jt) = REAL( js_t - js0_epoch , 8)
+         !
+         IF ( jt == 1 ) rinc = dt_min ! switching to the smaller time step
+      END DO
+
+      !PRINT *, 'Found !!!', zt, REAL(js_t)
+      !WRITE(*,'(" *** to_epoch_time_scalar => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, js
+      !PRINT *, ' + js0_epoch =', js0_epoch
+      !PRINT *, '  Date (epoch) =>', to_epoch_time_scalar
+   END SUBROUTINE to_epoch_time_vect
+
+
+
+
+
+
+
+
+
+
+END MODULE io_ezcdf

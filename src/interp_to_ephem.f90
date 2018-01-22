@@ -413,26 +413,65 @@ PROGRAM INTERP_TO_EPHEM
 
 
 
-
-
-
-
    PRINT *, ''
    PRINT *, 'First time record for model:', vt_model(1)
    itime = to_epoch_time_scalar( tut_model, vt_model(1) )
    PRINT *, '     ==> in epoch time =>',  itime
+   PRINT *, ''
    PRINT *, 'Last time record for model:', vt_model(Ntm)
    itime = to_epoch_time_scalar( tut_model, vt_model(Ntm) )
    PRINT *, '     ==> in epoch time =>',  itime
+
+
+      
+   PRINT *, '' ; PRINT *, ''
    
+   PRINT *, 'First time record for ephem:', vt_ephem(1)
+   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(1), dt=0.1_8 )
+   PRINT *, '     ==> in epoch time =>',  itime
+   PRINT *, ''
+   PRINT *, 'Last time record for ephem:', vt_ephem(Nte)
+   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(Nte), dt=0.1_8 )
+   PRINT *, '     ==> in epoch time =>',  itime
+
+   STOP
+
+   !!
+   !! Converting time vectors to epoch:
+   !CALL time_vector_to_epoch_time( tut_ephem, vt_ephem )
+   !CALL time_vector_to_epoch_time( tut_model, vt_model )
+
+   
+   CALL to_epoch_time_vect( tut_model, vt_model )
+   PRINT *, vt_model(:)
+   PRINT *, ''
+
+
+   CALL to_epoch_time_vect( tut_ephem, vt_ephem )
+   PRINT *, vt_ephem(:)
+   PRINT *, ''
+
+
+   
+   STOP
+   
+   !PRINT *, ''
+   !PRINT *, ' Time vector in ephem file:'
+   !PRINT *, vt_ephem(:)
+   !PRINT *, ''
+   !PRINT *, ' Time vector for model file:'
+
+   t_min_e = MINVAL(vt_ephem)
+   t_max_e = MAXVAL(vt_ephem)
+   t_min_m = MINVAL(vt_model)
+   t_max_m = MAXVAL(vt_model)
    
    PRINT *, ''
-   PRINT *, 'First time record for ephem:', vt_ephem(1)
-   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(1) )
-   PRINT *, '     ==> in epoch time =>',  itime
-   PRINT *, 'Last time record for ephem:', vt_ephem(Nte)
-   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(Nte) )
-   PRINT *, '     ==> in epoch time =>',  itime
+   PRINT *, ' *** Max min time for ephem:', t_min_e, t_max_e
+   PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
+   PRINT *, ''
+
+
    
    
    STOP '#lolo'
@@ -449,25 +488,6 @@ PROGRAM INTERP_TO_EPHEM
 
 
 
-   !PRINT *, ''
-   !PRINT *, ' Time vector in ephem file:'
-   !PRINT *, vt_ephem(:)
-   PRINT *, ''
-   PRINT *, ' Time vector for model file:'
-   PRINT *, vt_model(:)
-   PRINT *, ''
-
-   t_min_e = MINVAL(vt_ephem)
-   t_max_e = MAXVAL(vt_ephem)
-   t_min_m = MINVAL(vt_model)
-   t_max_m = MAXVAL(vt_model)
-
-
-
-   PRINT *, ''
-   PRINT *, ' *** Max min time for ephem:', t_min_e, t_max_e
-   PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
-   PRINT *, ''
 
 
    !! Main time loop is on time vector in ephem file!

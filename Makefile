@@ -47,6 +47,8 @@ all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x
 
 test: bin/test_stuffs.x
 
+ephem: bin/interp_to_ephem.x
+
 bin/sosie.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
 	$(FC) $(FF) src/sosie.f90 -o bin/sosie.x $(LIB)
