@@ -2035,6 +2035,10 @@ CONTAINS
 
    FUNCTION to_epoch_time_scalar( cal_unit_ref0, rt, dt )
       !!
+      !! Tests: wcstools:
+      !! => getdate fd2ts   2013-03-31T23:38:38  (to "seconds since 1950)
+      !! => getdate fd2tsu  2013-03-31T23:38:38  (to "seconds since 1970" aka epoch unix...)
+      !!
       INTEGER(8)                  :: to_epoch_time_scalar
       TYPE(t_unit_t0), INTENT(in) :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
       REAL(8)        , INTENT(in) :: rt ! time as specified as cal_unit_ref0
