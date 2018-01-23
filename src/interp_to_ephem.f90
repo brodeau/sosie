@@ -100,7 +100,7 @@ PROGRAM INTERP_TO_EPHEM
    !!
    REAL(8) :: rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max, rt, rt0, rdt, &
       &       t_min_e, t_max_e, t_min_m, t_max_m, &
-      &       alpha, beta
+      &       alpha, beta, t_min, t_max
    !!
    CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
@@ -468,8 +468,10 @@ PROGRAM INTERP_TO_EPHEM
    PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
    PRINT *, ''
 
+   t_min = MAX(t_min_e, t_min_m)
+   t_max = MAX(t_max_e, t_max_m)
 
-   
+   PRINT *, ' *** Time overlap for Model and Ephem file:', NINT(t_min), NINT(t_max)
    
    STOP '#lolo'
 
