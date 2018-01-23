@@ -25,7 +25,7 @@ PROGRAM INTERP_TO_EPHEM
    !!
    LOGICAL, PARAMETER :: &
       &   l_debug = .TRUE., &
-      &   l_debug_mapping = .TRUE., &
+      &   l_debug_mapping = .FALSE., &
       &   l_akima = .true., &
       &   l_bilin = .false.
    !!
@@ -406,7 +406,6 @@ PROGRAM INTERP_TO_EPHEM
 
    ALLOCATE ( Ftrack(Nte), Ftrack_ephem(Nte), Fmask(Nte), xcmask(Nte), vposition(Nte,1) )
 
-   ALLOCATE ( IMETRICS(1,Nte,3), RAB(1,Nte,2), IPB(1,Nte) )
 
    !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
    WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_in), TRIM(cf_track)
@@ -506,7 +505,7 @@ PROGRAM INTERP_TO_EPHEM
 
    !ALLOCATE ( Xtar(1,Nten), Ytar(1,Nten), vt_e(Nten), Ztar(1,Nten) )
 
-
+   ALLOCATE ( IMETRICS(1,Nten,3), RAB(1,Nten,2), IPB(1,Nten) )
 
 
 
