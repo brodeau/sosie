@@ -57,8 +57,7 @@ MODULE io_ezcdf
       &    who_is_mv,        &
       &    get_time_unit_t0, &
       &    l_is_leap_year,   &
-      &    to_epoch_time_scalar, to_epoch_time_vect, &
-      &    time_vector_to_epoch_time
+      &    to_epoch_time_scalar, to_epoch_time_vect
    !!===========================
 
 
@@ -2047,7 +2046,7 @@ CONTAINS
       REAL(8)    :: zt, zinc
       INTEGER    :: jy, jmn, jd, inc, jm, jh, jd_old, ipass, nb_pass, js
       LOGICAL    :: lcontinue
-      INTEGER(4) :: jh_t, jd_t
+      INTEGER(4) :: jh_t
       REAL(8)    :: rjs_t, rjs_t_old, rjs_t_oo, rjs0_epoch, rjs
       !!
       crtn = 'to_epoch_time_scalar'
@@ -2082,7 +2081,7 @@ CONTAINS
       jh= cal_unit_ref0%hour
       !!
       rjs = REAL(js, 8)
-      rjs_t = 0. ; rjs_t_old = 0. ; rjs_t_oo = 0. ; jd_t = 0
+      rjs_t = 0. ; rjs_t_old = 0. ; rjs_t_oo = 0.
       !!
       DO ipass=1, nb_pass
 
@@ -2102,7 +2101,7 @@ CONTAINS
 
 
          !!
-         !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+         !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t
          lcontinue = .TRUE.
          DO WHILE ( lcontinue )
             jd_old = jd
@@ -2133,7 +2132,6 @@ CONTAINS
             IF ( jh == 24 ) THEN
                jh = 0
                jd = jd + 1
-               jd_t = jd_t + 1  ! total days
             END IF
             IF ( jd == nbd_m(jmn,jy)+1 ) THEN
                jd = 1
@@ -2146,7 +2144,7 @@ CONTAINS
             IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
             !
             !IF ( jd /= jd_old ) THEN
-            !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t, jd_t
+            !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t
             !END IF
             IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
             IF ( jy == 2019 ) THEN
@@ -2168,70 +2166,6 @@ CONTAINS
    END FUNCTION to_epoch_time_scalar
 
 
-
-
-   SUBROUTINE time_vector_to_epoch_time( cal_unit_ref0, vt )
-      !!
-      TYPE(t_unit_t0),               INTENT(in)    :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
-      REAL(8)        , DIMENSION(:), INTENT(inout) :: vt           ! time as specified as cal_unit_ref0
-      !!
-      REAL(8)    :: zdt, zt0
-      REAL(8), DIMENSION(:), ALLOCATABLE :: vtmp
-      INTEGER    :: ntr ! jy, jmn, jd, inc, js, jm, jh, jd_old
-      !LOGICAL    :: lcontinue
-
-      crtn = 'TIME_VECTOR_TO_EPOCH_TIME'
-
-      ntr = SIZE(vt,1)
-      PRINT *, ' ntr =', ntr
-      ALLOCATE ( vtmp(ntr) )
-
-
-      SELECT CASE(cal_unit_ref0%unit)
-      CASE('d')
-         zdt = 3600.*24.
-      CASE('h')
-         zdt = 3600.
-      CASE('s')
-         zdt = 1.
-      CASE DEFAULT
-         CALL print_err(crtn, 'the only time units we know are "s" (seconds), "h" (hours) and "d" (days)')
-      END SELECT
-
-      PRINT *, 'zdt = ', zdt
-
-      zt0 = to_epoch_time_scalar(cal_unit_ref0, vt(1))
-
-      vtmp(:) = (vt(:) - vt(1))*zdt
-
-      vt(:) = zt0 + vtmp(:)
-
-      !PRINT *, ' vt =', vt(2:ntr)-vt(1:ntr-1)
-      PRINT *, ' vt =', vt(:)
-
-
-      DEALLOCATE ( vtmp )
-   END SUBROUTINE time_vector_to_epoch_time
-
-
-
-
-
-
-   SUBROUTINE print_err(crout, cmess)
-      CHARACTER(len=*), INTENT(in) :: crout, cmess
-      PRINT *, ''
-      WRITE(6,*) 'ERROR in ',trim(crout),' (io_ezcdf.f90): '
-      WRITE(6,*) trim(cmess) ; PRINT *, ''
-      STOP
-   END SUBROUTINE print_err
-
-
-
-
-
-
-
    SUBROUTINE to_epoch_time_vect( cal_unit_ref0, vt,  l_dt_below_sec )
       !!
       TYPE(t_unit_t0), INTENT(in) :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
@@ -2244,13 +2178,13 @@ CONTAINS
       INTEGER    :: ntr, jt, jd_old
       INTEGER    :: jy, jmn, jd, jh, jm, js, jx
       LOGICAL    :: lcontinue, l_be_accurate
-      INTEGER(4) :: jh_t, jd_t
+      INTEGER(4) :: jh_t
       REAL(8)    :: rjs_t, rjs_t_old, rjs0_epoch, zinc, rjs
       !!
       crtn = 'to_epoch_time_scalar'
       !!
       l_be_accurate = .FALSE.
-      IF ( PRESENT(l_dt_below_sec) ) l_be_accurate = l_dt_below_sec       
+      IF ( PRESENT(l_dt_below_sec) ) l_be_accurate = l_dt_below_sec
       !!
       SELECT CASE(cal_unit_ref0%unit)
       CASE('d')
@@ -2267,7 +2201,7 @@ CONTAINS
       !!
       IF ( l_be_accurate ) PRINT *, '    high accuracy turned on!'
       !!
-      
+
       ntr = SIZE(vt,1)
       !PRINT *, ' ntr =', ntr
       !ALLOCATE ( vtmp(ntr-1) )
@@ -2294,7 +2228,7 @@ CONTAINS
       !!
       !!
       rjs = REAL(js, 8)
-      rjs_t = 0. ; rjs_t_old = 0. ; jd_t = 0
+      rjs_t = 0. ; rjs_t_old = 0.
       !!
       zinc = 60. ! seconds
       !!
@@ -2304,33 +2238,29 @@ CONTAINS
 
          !PRINT *, '' ; PRINT *, ' jt, zt = ', jt, zt
 
-         IF ( (l_be_accurate).AND.(jt > 0) ) THEN
-            !!
-            zinc = 0.01 ! seconds
-            !!
-         END IF
-         
+         IF ( (l_be_accurate).AND.(jt > 0) ) zinc = 0.01 ! seconds
+
          !PRINT *, ' after previous jt:', jy, jmn, jd, jh, jm, js, jx
          IF ( jt == 1 ) THEN
             !! Rewind 2 minutes backward (to find again, more acurately the start date (accuracy of 1/100 of a second rather than 60 second!
-            CALL REWIND_2MN(jy, jmn, jd, jh, jm)           
+            CALL REWIND_2MN(jy, jmn, jd, jh, jm)
             rjs_t     = rjs_t - 120.
             rjs_t_old = rjs_t - zinc
          END IF
          !PRINT *, ' before comming jt:', jy, jmn, jd, jh, jm, js, jx
 
-         
-         !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+
+         !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t
          lcontinue = .TRUE.
          DO WHILE ( lcontinue )
             jd_old = jd
             rjs_t = rjs_t + zinc
 
             !IF ( jt > 0 ) PRINT *, ' *** LOOP before zinc: jh, jm, js, jx =>', jh, jm, js, jx
-            
+
             js = js + INT(zinc)
             IF ( l_be_accurate ) jx = jx + NINT(100.*MOD(zinc, 1.0))
-            
+
             IF ( jt == 0 ) THEN
                IF ( MOD(rjs_t,60.) == 0. ) THEN
                   js = 0
@@ -2353,7 +2283,6 @@ CONTAINS
             IF ( jh == 24 ) THEN
                jh = 0
                jd = jd + 1
-               jd_t = jd_t + 1  ! total days
             END IF
             IF ( jd == nbd_m(jmn,jy)+1 ) THEN
                jd = 1
@@ -2381,7 +2310,7 @@ CONTAINS
          IF ( jt==ntr ) WRITE(*,'(" *** to_epoch_time_vect =>   End date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
          !
       END DO
-      
+
       vt(:) = vtmp(:)
 
       DEALLOCATE ( vtmp )
@@ -2423,6 +2352,19 @@ CONTAINS
 
 
 
+
+
+
+
+
+
+   SUBROUTINE print_err(crout, cmess)
+      CHARACTER(len=*), INTENT(in) :: crout, cmess
+      PRINT *, ''
+      WRITE(6,*) 'ERROR in ',trim(crout),' (io_ezcdf.f90): '
+      WRITE(6,*) trim(cmess) ; PRINT *, ''
+      STOP
+   END SUBROUTINE print_err
 
 
 END MODULE io_ezcdf
