@@ -413,26 +413,26 @@ PROGRAM INTERP_TO_EPHEM
 
 
 
-   PRINT *, ''
-   PRINT *, 'First time record for model:', vt_model(1)
-   itime = to_epoch_time_scalar( tut_model, vt_model(1) )
-   PRINT *, '     ==> in epoch time =>',  itime
-   PRINT *, ''
-   PRINT *, 'Last time record for model:', vt_model(Ntm)
-   itime = to_epoch_time_scalar( tut_model, vt_model(Ntm) )
-   PRINT *, '     ==> in epoch time =>',  itime
+   !PRINT *, ''
+   !PRINT *, 'First time record for model:', vt_model(1)
+   !itime = to_epoch_time_scalar( tut_model, vt_model(1) )
+   !PRINT *, '     ==> in epoch time =>',  itime
+   !PRINT *, ''
+   !PRINT *, 'Last time record for model:', vt_model(Ntm)
+   !itime = to_epoch_time_scalar( tut_model, vt_model(Ntm) )
+   !PRINT *, '     ==> in epoch time =>',  itime
       
-   PRINT *, '' ; PRINT *, ''
+   !PRINT *, '' ; PRINT *, ''
    
-   PRINT *, 'First time record for ephem:', vt_ephem(1)
-   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(1), dt=0.1_8 )
-   PRINT *, '     ==> in epoch time =>',  itime
-   PRINT *, ''
-   PRINT *, 'Last time record for ephem:', vt_ephem(Nte)
-   itime = to_epoch_time_scalar( tut_ephem, vt_ephem(Nte), dt=0.1_8 )
-   PRINT *, '     ==> in epoch time =>',  itime
+   !PRINT *, 'First time record for ephem:', vt_ephem(1)
+   !itime = to_epoch_time_scalar( tut_ephem, vt_ephem(1), dt=0.1_8 )
+   !PRINT *, '     ==> in epoch time =>',  itime
+   !PRINT *, ''
+   !PRINT *, 'Last time record for ephem:', vt_ephem(Nte)
+   !itime = to_epoch_time_scalar( tut_ephem, vt_ephem(Nte), dt=0.1_8 )
+   !PRINT *, '     ==> in epoch time =>',  itime
 
-   PRINT *, ''
+   !PRINT *, ''
 
    !!
    !! Converting time vectors to epoch:
@@ -445,20 +445,19 @@ PROGRAM INTERP_TO_EPHEM
    !PRINT *, ''
 
 
-   CALL to_epoch_time_vect( tut_ephem, vt_ephem )
-   PRINT *, vt_ephem(:)
+   PRINT *, ''
+   PRINT *, ' Time vector in ephem file:'
+   CALL to_epoch_time_vect( tut_ephem, vt_ephem, l_dt_below_sec=.true. )
+   !PRINT *, vt_ephem(:)
+   PRINT *, ''
+   PRINT *, ''
+   PRINT *, ' Time vector in model file:'
+   CALL to_epoch_time_vect( tut_model, vt_model, l_dt_below_sec=.FALSE. )
+   !PRINT *, vt_model(:)
    PRINT *, ''
 
 
    
-   STOP
-   
-   !PRINT *, ''
-   !PRINT *, ' Time vector in ephem file:'
-   !PRINT *, vt_ephem(:)
-   !PRINT *, ''
-   !PRINT *, ' Time vector for model file:'
-
    t_min_e = MINVAL(vt_ephem)
    t_max_e = MAXVAL(vt_ephem)
    t_min_m = MINVAL(vt_model)

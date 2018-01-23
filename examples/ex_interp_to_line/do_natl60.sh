@@ -2,8 +2,8 @@
 
 F_NATL="${HOME}/Dropbox/tmp/NATL60/NATL60-CJM165_y2013m04d01.1h_SSH_jt_21-23_time_20h-22h.nc4"
 M_NATL="${HOME}/Dropbox/tmp/NATL60/mesh_t_minimum_NATL60.nc4"
-#F_EPHM="../data/dt_global_al_phy_vxxc_l3_20130401_20170110_tr.nc4"
-F_EPHM="../data/dt_short.nc4"
+F_EPHM="../data/dt_global_al_phy_vxxc_l3_20130401_20170110_tr.nc4"
+#F_EPHM="../data/dt_short.nc4"
 
 #../../bin/interp_to_ephem.x -i ../data/ssh_ORCA025.nc4 -v ssh  -m ../data/mesh_mask_ORCA025_light.nc4 \
 #                           -p ephem_calval_june2015_sph_short.txt -a

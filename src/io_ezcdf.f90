@@ -783,7 +783,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GETMASK_3D(cf_in, cv_in, IX, jz1, jz2) !lulu
+   SUBROUTINE GETMASK_3D(cf_in, cv_in, IX, jz1, jz2)
 
       !!-----------------------------------------------------------------------
       !!  Get mask (variable 'cv_in') from a netcdf file.
@@ -2093,40 +2093,11 @@ CONTAINS
             PRINT *, ' after 1st pass:', jy, jmn, jd, jh, jm, rjs
             !! Tiny increment (sometime the time step is lower than 1 second on stelite ephem tracks!!!)
             !! Rewind 2 minutes backward:
-            !! jm:
-            !! 3 => 1
-            !! 2 => 0
-            !! 1 => 59
-            !! 0 => 58
-            !!
-            IF ( jm > 1 ) THEN
-               jm = jm - 2
-            ELSE
-               jm = 58 + jm
-               IF ( jh == 0 ) THEN
-                  jh = 23
-                  IF ( jd == 1 ) THEN
-                     jd = nbd_m(jmn-1,jy)
-                     IF ( jmn == 1 ) THEN
-                        jmn = 12
-                        jy  = jy - 1
-                     ELSE ! jmn
-                        jmn = jmn - 1
-                     END IF
-                  ELSE ! jd
-                     jd = jd - 1
-                  END IF
-               ELSE ! jh
-                  jh = jh - 1
-               END IF
-            END IF
-
+            CALL REWIND_2MN(jy, jmn, jd, jh, jm)
             zinc = 0.1 ! seconds
             rjs_t     = rjs_t     - 120.
             rjs_t_old = rjs_t - zinc
-
             PRINT *, ' before 2nd pass:', jy, jmn, jd, jh, jm, rjs
-
          END IF
 
 
@@ -2261,20 +2232,25 @@ CONTAINS
 
 
 
-   SUBROUTINE to_epoch_time_vect( cal_unit_ref0, vt )
+   SUBROUTINE to_epoch_time_vect( cal_unit_ref0, vt,  l_dt_below_sec )
       !!
       TYPE(t_unit_t0), INTENT(in) :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
       REAL(8)        , DIMENSION(:), INTENT(inout) :: vt           ! time as specified as cal_unit_ref0
+      LOGICAL        , OPTIONAL, INTENT(in) :: l_dt_below_sec
       !!
       REAL(8)    :: zt, dt_min
       REAL(8), DIMENSION(:), ALLOCATABLE :: vtmp
 
-      INTEGER    :: ntr, jt, jy, jmn, jd, js, jm, jh, jd_old
-      LOGICAL    :: lcontinue
+      INTEGER    :: ntr, jt, jd_old
+      INTEGER    :: jy, jmn, jd, jh, jm, js, jx
+      LOGICAL    :: lcontinue, l_be_accurate
       INTEGER(4) :: jh_t, jd_t
       REAL(8)    :: rjs_t, rjs_t_old, rjs0_epoch, zinc, rjs
       !!
       crtn = 'to_epoch_time_scalar'
+      !!
+      l_be_accurate = .FALSE.
+      IF ( PRESENT(l_dt_below_sec) ) l_be_accurate = l_dt_below_sec       
       !!
       SELECT CASE(cal_unit_ref0%unit)
       CASE('d')
@@ -2289,104 +2265,84 @@ CONTAINS
          CALL print_err(crtn, 'the only time units we know are "s" (seconds), "h" (hours) and "d" (days)')
       END SELECT
       !!
+      IF ( l_be_accurate ) PRINT *, '    high accuracy turned on!'
       !!
+      
       ntr = SIZE(vt,1)
-      PRINT *, ' ntr =', ntr
-      ALLOCATE ( vtmp(ntr) )
-
+      !PRINT *, ' ntr =', ntr
+      !ALLOCATE ( vtmp(ntr-1) )
       !vtmp(:) = vt(2:ntr) - vt(1:ntr-1)
       !dt_min = MINVAL(vtmp)
       !PRINT *, ' * Minimum time-step (in seconds) => ', dt_min
       !dt_min = dt_min - dt_min/100.
+      !PRINT *, vtmp(1:40)
+      !DEALLOCATE ( vtmp )
 
 
+      ALLOCATE ( vtmp(ntr) )
       !!
       !! Starting with large time increment (in seconds):
 
       !!
       jy = cal_unit_ref0%year
       jmn = cal_unit_ref0%month
-      jd = cal_unit_ref0%day
-      js= cal_unit_ref0%second
-      jm= cal_unit_ref0%minute
-      jh= cal_unit_ref0%hour
+      jd  = cal_unit_ref0%day
+      jh  = cal_unit_ref0%hour
+      jm  = cal_unit_ref0%minute
+      js  = cal_unit_ref0%second
+      jx  = 0
+      !!
       !!
       rjs = REAL(js, 8)
       rjs_t = 0. ; rjs_t_old = 0. ; jd_t = 0
       !!
-      zinc = 60.
+      zinc = 60. ! seconds
       !!
       DO jt = 0, ntr ! 0 is the initial pass to find the start
 
          zt   = vt(MAX(jt,1))
 
-         PRINT *, '' ; PRINT *, ' jt, zt = ', jt, zt
+         !PRINT *, '' ; PRINT *, ' jt, zt = ', jt, zt
 
-         IF ( jt > 0 ) THEN
+         IF ( (l_be_accurate).AND.(jt > 0) ) THEN
             !!
-            zt   = vt(jt)
-            zinc = 0.1 ! seconds
+            zinc = 0.01 ! seconds
             !!
-            PRINT *, ' after previous jt:', jy, jmn, jd, jh, jm, rjs
-            !! Tiny increment (sometime the time step is lower than 1 second on stelite ephem tracks!!!)
-
-            IF ( jt == 1 ) THEN
-               !! Rewind 2 minutes backward:
-               !! jm:
-               !! 3 => 1
-               !! 2 => 0
-               !! 1 => 59
-               !! 0 => 58
-               !!
-               IF ( jm > 1 ) THEN
-                  jm = jm - 2
-               ELSE
-                  jm = 58 + jm
-                  IF ( jh == 0 ) THEN
-                     jh = 23
-                     IF ( jd == 1 ) THEN
-                        jd = nbd_m(jmn-1,jy)
-                        IF ( jmn == 1 ) THEN
-                           jmn = 12
-                           jy  = jy - 1
-                        ELSE ! jmn
-                           jmn = jmn - 1
-                        END IF
-                     ELSE ! jd
-                        jd = jd - 1
-                     END IF
-                  ELSE ! jh
-                     jh = jh - 1
-                  END IF
-               END IF
-
-               rjs_t     = rjs_t - 120.
-               rjs_t_old = rjs_t - zinc
-
-            END IF
-
-            PRINT *, ' before comming jt:', jy, jmn, jd, jh, jm, rjs
-
          END IF
+         
+         !PRINT *, ' after previous jt:', jy, jmn, jd, jh, jm, js, jx
+         IF ( jt == 1 ) THEN
+            !! Rewind 2 minutes backward (to find again, more acurately the start date (accuracy of 1/100 of a second rather than 60 second!
+            CALL REWIND_2MN(jy, jmn, jd, jh, jm)           
+            rjs_t     = rjs_t - 120.
+            rjs_t_old = rjs_t - zinc
+         END IF
+         !PRINT *, ' before comming jt:', jy, jmn, jd, jh, jm, js, jx
 
-
-         !!
+         
          !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
          lcontinue = .TRUE.
          DO WHILE ( lcontinue )
             jd_old = jd
             rjs_t = rjs_t + zinc
-            rjs = rjs + zinc
-            !!
 
+            !IF ( jt > 0 ) PRINT *, ' *** LOOP before zinc: jh, jm, js, jx =>', jh, jm, js, jx
+            
+            js = js + INT(zinc)
+            IF ( l_be_accurate ) jx = jx + NINT(100.*MOD(zinc, 1.0))
+            
             IF ( jt == 0 ) THEN
                IF ( MOD(rjs_t,60.) == 0. ) THEN
-                  rjs = 0.
-                  jm  = jm+1
+                  js = 0
+                  jm = jm+1
                END IF
             ELSE
-               IF ( rjs >= 60.) THEN
-                  rjs = rjs - 60.
+               IF ( jx >= 100) THEN
+                  js = js + jx/100
+                  jx = jx - 100
+               END IF
+               IF ( js >= 60 ) THEN
+                  js  = js - 60
                   jm  = jm+1
                END IF
             END IF
@@ -2407,11 +2363,10 @@ CONTAINS
                jmn  = 1
                jy = jy+1
             END IF
+            !IF ( jt > 0 ) PRINT *, ' *** LOOP after zinc: jh, jm, js, jx =>', jh, jm, js, jx
+            !
             IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
             !
-            !IF ( jd /= jd_old ) THEN
-            !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t, jd_t
-            !END IF
             IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
             IF ( jy == 2019 ) THEN
                PRINT *, 'rjs_t =', rjs_t
@@ -2420,24 +2375,51 @@ CONTAINS
             rjs_t_old = rjs_t
          END DO
          !
-         vtmp(jt) = rjs_t - rjs0_epoch
+         vtmp(MAX(jt,1)) = rjs_t - rjs0_epoch
          !
-         !WRITE(*,'(" *** to_epoch_time_vect => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, NINT(rjs)
-         WRITE(*,'(" *** to_epoch_time_vect => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",f15.4)') jy, jmn, jd, jh, jm, rjs
-
-
+         IF ( jt==1   ) WRITE(*,'(" *** to_epoch_time_vect => Start date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
+         IF ( jt==ntr ) WRITE(*,'(" *** to_epoch_time_vect =>   End date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
+         !
       END DO
-
-      vt(:) = vtmp(:)
       
-      !DEALLOCATE ( vtmp )
+      vt(:) = vtmp(:)
+
+      DEALLOCATE ( vtmp )
 
    END SUBROUTINE to_epoch_time_vect
 
 
 
+   SUBROUTINE REWIND_2MN(jy, jmn, jd, jh, jm)
+      INTEGER, INTENT(inout) :: jy, jmn, jd, jh, jm
+      !! jm:
+      !! 3 => 1
+      !! 2 => 0
+      !! 1 => 59
+      !! 0 => 58
+      IF ( jm > 1 ) THEN
+         jm = jm - 2
+      ELSE
+         jm = 58 + jm
+         IF ( jh == 0 ) THEN
+            jh = 23
+            IF ( jd == 1 ) THEN
+               jd = nbd_m(jmn-1,jy)
+               IF ( jmn == 1 ) THEN
+                  jmn = 12
+                  jy  = jy - 1
+               ELSE ! jmn
+                  jmn = jmn - 1
+               END IF
+            ELSE ! jd
+               jd = jd - 1
+            END IF
+         ELSE ! jh
+            jh = jh - 1
+         END IF
+      END IF
 
-
+   END SUBROUTINE REWIND_2MN
 
 
 
