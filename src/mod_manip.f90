@@ -227,7 +227,7 @@ CONTAINS
          FP4(2:nxp4/2             ,nyp4)   = FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
          FP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = FP4(2:nxp4/2             ,nyp4-6)
       CASE (6)
-         PRINT *, 'ORCA north pole F-point folding type of extrapolation at northern boundary!'         
+         PRINT *, 'ORCA north pole F-point folding type of extrapolation at northern boundary!'
          FP4(2:nxp4/2               ,nyp4-1) = FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
          FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = FP4(2:nxp4/2               ,nyp4-4)
          FP4(2:nxp4/2               ,nyp4)   = FP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
@@ -596,7 +596,7 @@ CONTAINS
       INTEGER :: nz, jk
       REAL(4), DIMENSION(:), ALLOCATABLE :: ztmp
 
-      nz = SIZE(XF,1) 
+      nz = SIZE(XF,1)
 
       ALLOCATE ( ztmp(nz) )
 
@@ -779,7 +779,7 @@ CONTAINS
          &                                    e1_in, e2_in, &    !: grid layout and metrics
          &                                    ztmp_out
       REAL(8),DIMENSION(:), ALLOCATABLE :: vlat, vlon
-      LOGICAL :: l_is_reg_in, l_is_reg_out, lagain
+      LOGICAL :: l_is_reg_in, l_is_reg_out, lagain, lbluff
 
 
       nx_in  = SIZE(Xin,1)
@@ -829,17 +829,17 @@ CONTAINS
          Xdist(:,:) = DISTANCE_2D(2.0_8, Xin(:,:), 45.0_8, Yin(:,:))
          CALL PRTMASK(REAL(Xdist,4), 'distance_fron_2_45_in.nc', 'dist')
       END IF
-      
+
       !! Going to scan target grid through increasing  (or decreasing) j (latitude)
 
 
-      
+
       !! General case:
       j_strt_out = 1
       j_stop_out = ny_out
       jlat_inc   = 1
 
-      
+
       !! We need to know if the target latitude ONLY keeps on systematically
       !! increasing (or decreasing) as j increases:
       !!
@@ -860,7 +860,7 @@ CONTAINS
       END IF
 
 
-      
+
       rtmp = SUM(ztmp_out(:,ny_out/2)) ! know if increasing (>0) or decreasing (<0)
       ztmp_out = SIGN(1.0_8 , rtmp)*ztmp_out
       !IF (ldebug) CALL PRTMASK(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
@@ -869,7 +869,7 @@ CONTAINS
 
 
 
-      
+
 
       !!  Simplif when [d lat / d j] always has the same sign:
       IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) ) THEN
@@ -963,7 +963,7 @@ CONTAINS
          !! ---------------------------------------------------------------------------------------
       ELSE
 
-         
+
          !! IRREGULAR CASE !!
          PRINT *, '                        => going for advanced algorithm !'
 
@@ -992,21 +992,21 @@ CONTAINS
          y_max_bnd0 = y_max_bnd
          y_min_bnd = MAX( y_min_out , y_min_in )
          y_min_bnd0 = y_min_bnd
-         !PRINT *, ' y_max_bnd #1 => ', y_max_bnd         
+         !PRINT *, ' y_max_bnd #1 => ', y_max_bnd
          !PRINT *, ' y_min_bnd #1 => ', y_min_bnd
          y_max_bnd = MIN( REAL(INT(y_max_bnd+1),8) ,  90.)
          y_min_bnd = MAX( REAL(INT(y_min_bnd-1),8) , -90.)
-         !PRINT *, ' y_max_bnd #2 => ', y_max_bnd         
+         !PRINT *, ' y_max_bnd #2 => ', y_max_bnd
          !PRINT *, ' y_min_bnd #2 => ', y_min_bnd
          !! Multiple of 0.5:
          y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
          y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
-         !PRINT *, ' y_max_bnd #3 => ', y_max_bnd         
+         !PRINT *, ' y_max_bnd #3 => ', y_max_bnd
          !PRINT *, ' y_min_bnd #3 => ', y_min_bnd
-         
+
          ALLOCATE ( VLAT_SPLIT_BOUNDS(Nlat_split+1), IJ_VLAT_IN(Nlat_split,2) )
-         
-         dy = (y_max_bnd - y_min_bnd)/Nlat_split         
+
+         dy = (y_max_bnd - y_min_bnd)/Nlat_split
          DO jlat=1,Nlat_split+1
             VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
          END DO
@@ -1019,14 +1019,14 @@ CONTAINS
             PRINT *, VLAT_SPLIT_BOUNDS
             PRINT *, ''
          END IF
-         
+
          IF ( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
             PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Bounds for latitude for VLAT_SPLIT_BOUNDS are bad!'
             PRINT *, ' y_min_bnd, y_max_bnd =', y_min_bnd, y_max_bnd
             PRINT *, ' y_min_bnd0, y_max_bnd0 =', y_min_bnd0, y_max_bnd0
             STOP
          END IF
-         
+
          DO jlat = 1, Nlat_split
             rlat_low = VLAT_SPLIT_BOUNDS(jlat)
             rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
@@ -1048,10 +1048,10 @@ CONTAINS
 
          rlat_old   = rflg
          jj_out_old = -10
-         
+
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
             DO ji_out = 1, nx_out
-               
+
                rlon = Xout(ji_out,jj_out)
                rlat = Yout(ji_out,jj_out)
 
@@ -1060,7 +1060,7 @@ CONTAINS
                   WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
                   jj_out_old = jj_out
                END IF
-               
+
                !! Need to find which jlat of our latitude bins rlat is located in!
                IF ( rlat /= rlat_old ) THEN
                   !IF ( jj_out /= jj_out_old ) WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
@@ -1072,29 +1072,49 @@ CONTAINS
                END IF
 
                lagain    = .TRUE.
+               lbluff    = .TRUE.
                niter     = 0
                frac_emax = 0.5
-
+               
                DO WHILE ( lagain )
                   !
-                  !! Using band + niter surrounding:
-                  !PRINT *, ' jlat, niter =>', jlat, niter 
-                  jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
-                  jmax_in = IJ_VLAT_IN(MIN(jlat+niter,Nlat_split), 2)
-                  !!
-                  IF ( ldebug ) THEN
-                     PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
-                     PRINT *, '     => bin #', jlat
-                     PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
+                  !! It's not stupid to assume that the next point to locate is
+                  !! pretty near the previous found point (ji_in,jj_in):
+                  IF ( lbluff ) THEN
+                     !lulu
+                     PRINT *, 'bluff...', rlon, rlat
+                     imin_in = MAX(ji_in - 5 , 1)
+                     imax_in = MIN(ji_in + 5 , nx_in)
+                     jmin_in = MAX(jj_in - 5 , 1)
+                     jmax_in = MIN(jj_in + 5 , ny_in)
+                  ELSE
+                     
+                     PRINT *, 'not bluff...', rlon, rlat
+                     imin_in = 1
+                     imax_in = nx_in
+
+                     !! Using band + niter surrounding:
+                     !PRINT *, ' jlat, niter =>', jlat, niter
+                     jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
+                     jmax_in = IJ_VLAT_IN(MIN(jlat+niter,Nlat_split), 2)
+                     !!
+                     IF ( ldebug ) THEN
+                        PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
+                        PRINT *, '     => bin #', jlat
+                        PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
+                     END IF
+
                   END IF
 
+                  PRINT *, ' --- imin_in, imax_in, jmin_in, jmax_in: ', imin_in, imax_in, jmin_in, jmax_in
+
                   Xdist = 1.E12
-                  Xdist(1:nx_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(1:nx_in,jmin_in:jmax_in), rlat, Yin(1:nx_in,jmin_in:jmax_in))
+                  Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
 
                   !CALL PRTMASK(REAL(Xdist,4), 'distance_last.nc', 'dist')
 
                   !! Nearest point is where distance is smallest:
-                  jmin_loc = MINLOC(Xdist(1:nx_in,jmin_in:jmax_in))
+                  jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
                   ji_in = jmin_loc(1)
                   jj_in = jmin_loc(2) + jmin_in - 1
                   JIpos(ji_out,jj_out) = ji_in
@@ -1114,8 +1134,9 @@ CONTAINS
                   emax = MAX(e1_in(ji_in,jj_in),e2_in(ji_in,jj_in))/1000.*SQRT(2.)
 
                   IF (zdist <= frac_emax*emax) THEN
-
                      lagain = .FALSE.
+                     PRINT *, '  Found! ji_in,jj_in =', ji_in,jj_in
+                     IF ( lbluff ) PRINT *, '    --- found with bluff!!! --- '
 
                   ELSE
                      IF (ldebug) THEN
@@ -1153,16 +1174,17 @@ CONTAINS
                      niter = niter + 1
                   END IF
 
+                  lbluff = .FALSE.
                END DO
                rlat_old = rlat
             END DO
          END DO
-         
+
          DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, ztmp_out )
-         
+
       END IF
 
-      
+
       IF ( ldebug ) THEN
          CALL PRTMASK(REAL(JIpos,4), 'JIpos.nc', 'ji')
          CALL PRTMASK(REAL(JJpos,4), 'JJpos.nc', 'jj')

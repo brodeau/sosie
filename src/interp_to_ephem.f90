@@ -1,7 +1,7 @@
 PROGRAM INTERP_TO_EPHEM
 
    !USE datetime_module, ONLY:datetime ! => https://github.com/wavebitscientific/datetime-fortran/releases
-   
+
    USE io_ezcdf
    USE mod_conf
    USE mod_drown
@@ -25,6 +25,7 @@ PROGRAM INTERP_TO_EPHEM
    !!
    LOGICAL, PARAMETER :: &
       &   l_debug = .TRUE., &
+      &   l_debug_mapping = .TRUE., &
       &   l_akima = .true., &
       &   l_bilin = .false.
    !!
@@ -110,7 +111,7 @@ PROGRAM INTERP_TO_EPHEM
    TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
 
    INTEGER :: it1, it2
-   
+
    !TYPE(datetime) :: dt_r0
 
    !dt_r0 = datetime(1977,4,19,0,0,0)
@@ -119,7 +120,7 @@ PROGRAM INTERP_TO_EPHEM
 
 
 
-   
+
    !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
    tut_epoch%unit   = 's'
    tut_epoch%year   = 1970
@@ -181,10 +182,10 @@ PROGRAM INTERP_TO_EPHEM
 
       CASE('-f')
          CALL GET_MY_ARG('forced time vector construction for model', cs_force_tv_m)
-         
+
       CASE('-g')
          CALL GET_MY_ARG('forced time vector construction for ephem', cs_force_tv_e)
-         
+
       CASE('-n')
          l_orbit_file_is_nc = .TRUE.
 
@@ -271,7 +272,7 @@ PROGRAM INTERP_TO_EPHEM
 
    !! The first important stage is to compare time slices in the OGCM 2D input field
    !! w.r.t the one in the ephem orbit file!
-   !! Since we are dealing with satellite data, useing the UNIX "epoch" time seems 
+   !! Since we are dealing with satellite data, useing the UNIX "epoch" time seems
    !! appropriate:
    !!
    !! The Unix epoch (or Unix time or POSIX time or Unix timestamp) is the
@@ -286,7 +287,7 @@ PROGRAM INTERP_TO_EPHEM
    tut_model  = GET_TIME_UNIT_T0(TRIM(cunit))
    PRINT *, ' *** Unit and reference time in model file:'
    PRINT *, tut_model
-   
+
    IF ( l_orbit_file_is_nc ) THEN
       CALL GET_VAR_INFO(cf_track, 'time', cunit, cdum)
       tut_ephem  = GET_TIME_UNIT_T0(TRIM(cunit))
@@ -372,7 +373,7 @@ PROGRAM INTERP_TO_EPHEM
 
    ELSE
       PRINT *, ''
-      PRINT *, 'NetCDF orbit ephem!' 
+      PRINT *, 'NetCDF orbit ephem!'
       CALL DIMS(cf_track, 'time', Nte, nj1, nk, ni1)
       PRINT *, ' *** Nb. time records in NetCDF ephem file:', Nte
       ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte), Ztar(1,Nte))
@@ -423,9 +424,9 @@ PROGRAM INTERP_TO_EPHEM
    !PRINT *, 'Last time record for model:', vt_model(Ntm)
    !itime = to_epoch_time_scalar( tut_model, vt_model(Ntm) )
    !PRINT *, '     ==> in epoch time =>',  itime
-      
+
    !PRINT *, '' ; PRINT *, ''
-   
+
    !PRINT *, 'First time record for ephem:', vt_ephem(1)
    !itime = to_epoch_time_scalar( tut_ephem, vt_ephem(1), dt=0.1_8 )
    !PRINT *, '     ==> in epoch time =>',  itime
@@ -441,7 +442,7 @@ PROGRAM INTERP_TO_EPHEM
    !CALL time_vector_to_epoch_time( tut_ephem, vt_ephem )
    !CALL time_vector_to_epoch_time( tut_model, vt_model )
 
-   
+
    !CALL to_epoch_time_vect( tut_model, vt_model )
    !PRINT *, vt_model(:)
    !PRINT *, ''
@@ -453,69 +454,67 @@ PROGRAM INTERP_TO_EPHEM
    !PRINT *, vt_ephem(:)
    PRINT *, ''
    PRINT *, ''
-   PRINT *, ' Time vector in model file:'
-   CALL to_epoch_time_vect( tut_model, vt_model, l_dt_below_sec=.FALSE. )
-   !PRINT *, vt_model(:)
-   PRINT *, ''
 
 
-   
-   t_min_e = MINVAL(vt_ephem)
-   t_max_e = MAXVAL(vt_ephem)
-   t_min_m = MINVAL(vt_model)
-   t_max_m = MAXVAL(vt_model)
-   
-   PRINT *, ''
-   PRINT *, ' *** Max min time for ephem:', t_min_e, t_max_e
-   PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
-   PRINT *, ''
-   
-   IF ( (t_min_m >= t_max_e).OR.(t_min_e >= t_max_m).OR.(t_max_m <= t_min_e).OR.(t_max_e <= t_min_m) ) THEN
-      PRINT *, ' No time overlap for Model and Ephem file! '
-      STOP
-   END IF
-   
-   t_min = MAX(t_min_e, t_min_m)
-   t_max = MIN(t_max_e, t_max_m)
-   PRINT *, ' *** Time overlap for Model and Ephem file:', NINT(t_min), NINT(t_max)
+   IF ( .NOT. l_debug_mapping ) THEN
+      PRINT *, ' Time vector in model file:'
+      CALL to_epoch_time_vect( tut_model, vt_model, l_dt_below_sec=.FALSE. )
+      !PRINT *, vt_model(:)
+      PRINT *, ''
 
 
-   !! Findin when we can start and stop when scanning the ephem file:
-   !! it1, it2
-   DO it1 = 1, Nte-1
-      IF ( (vt_ephem(it1) <= t_min).AND.(vt_ephem(it1+1) > t_min) ) EXIT
-   END DO
-   it1 = it1 + 1
-   DO it2 = it1, Nte-1
-      IF ( (vt_ephem(it2) <= t_max).AND.(vt_ephem(it2+1) > t_max) ) EXIT
-   END DO
-
-   Nten = it2 - it1 + 1
-   
-   PRINT *, ' it1, it2 =',it1, it2
-   PRINT *, Nten, '  out of ', Nte
-   PRINT *, ' => ', vt_ephem(it1), vt_ephem(it2)
-   PRINT *, ''
 
 
+      t_min_e = MINVAL(vt_ephem)
+      t_max_e = MAXVAL(vt_ephem)
+      t_min_m = MINVAL(vt_model)
+      t_max_m = MAXVAL(vt_model)
+
+      PRINT *, ''
+      PRINT *, ' *** Max min time for ephem:', t_min_e, t_max_e
+      PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
+      PRINT *, ''
+
+      IF ( (t_min_m >= t_max_e).OR.(t_min_e >= t_max_m).OR.(t_max_m <= t_min_e).OR.(t_max_e <= t_min_m) ) THEN
+         PRINT *, ' No time overlap for Model and Ephem file! '
+         STOP
+      END IF
+
+      t_min = MAX(t_min_e, t_min_m)
+      t_max = MIN(t_max_e, t_max_m)
+      PRINT *, ' *** Time overlap for Model and Ephem file:', NINT(t_min), NINT(t_max)
+
+
+      !! Findin when we can start and stop when scanning the ephem file:
+      !! it1, it2
+      DO it1 = 1, Nte-1
+         IF ( (vt_ephem(it1) <= t_min).AND.(vt_ephem(it1+1) > t_min) ) EXIT
+      END DO
+      it1 = it1 + 1
+      DO it2 = it1, Nte-1
+         IF ( (vt_ephem(it2) <= t_max).AND.(vt_ephem(it2+1) > t_max) ) EXIT
+      END DO
+
+      Nten = it2 - it1 + 1
+
+      PRINT *, ' it1, it2 =',it1, it2
+      PRINT *, Nten, '  out of ', Nte
+      PRINT *, ' => ', vt_ephem(it1), vt_ephem(it2)
+      PRINT *, ''
+
+   END IF ! IF ( .NOT. l_debug_mapping )
 
    !ALLOCATE ( Xtar(1,Nten), Ytar(1,Nten), vt_e(Nten), Ztar(1,Nten) )
 
-   
 
 
 
 
-
-
-
-
-
-   
-
-
-
-
+   IF ( l_debug_mapping ) THEN
+      it1  = 1
+      it2  = Nte
+      Nten = Nte
+   END IF
 
 
    !! Main time loop is on time vector in ephem file!
@@ -536,7 +535,7 @@ PROGRAM INTERP_TO_EPHEM
    CALL RD_MAPPING_AB('mapping.nc', IMETRICS, RAB, IPB)
    PRINT *, ''; PRINT *, ' *** Mapping and weights read into "mapping.nc"'; PRINT *, ''
 
-   
+
    !lulu
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
@@ -554,6 +553,8 @@ PROGRAM INTERP_TO_EPHEM
       CALL PRTMASK(REAL(show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
       DEALLOCATE ( show_track )
    END IF
+
+   IF ( l_debug_mapping ) STOP'l_debug_mapping'
 
    STOP'#lolo'
 
@@ -609,10 +610,10 @@ PROGRAM INTERP_TO_EPHEM
          iP       = IMETRICS(1,jte,1)
          jP       = IMETRICS(1,jte,2)
          iquadran = IMETRICS(1,jte,3)
-         
+
          alpha    = RAB(1,jte,1)
          beta     = RAB(1,jte,2)
-         
+
          IF ( (iP == INT(rflg)).OR.(jP == INT(rflg)) ) THEN
             Ftrack(jte) = -9999. ; ! masking
             Ftrack_ephem(jte) = -9999. ; ! masking
@@ -625,9 +626,9 @@ PROGRAM INTERP_TO_EPHEM
             Ftrack_ephem(jte) = Ztar(1,jte) ! Input ephem data
             !!
          END IF
-         
+
          IF ( l_debug ) Ftrack_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
-         
+
          jtm_1_o = jtm_1
          jtm_2_o = jtm_2
          jt_s    = jtm_1 ! so we do not rescan from begining...
@@ -657,7 +658,7 @@ PROGRAM INTERP_TO_EPHEM
    END IF
 
    !DO jte = 1, Nte
-    !  PRINT *, ''
+   !  PRINT *, ''
 
    STOP 'LOLO: stop for now...'
 
