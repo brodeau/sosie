@@ -2087,7 +2087,7 @@ CONTAINS
       DO ipass=1, nb_pass
 
          PRINT *, '' ; PRINT *, ' ipass = ', ipass
-         
+
          IF ( ipass == 2 ) THEN
             !!
             PRINT *, ' after 1st pass:', jy, jmn, jd, jh, jm, rjs
@@ -2120,80 +2120,80 @@ CONTAINS
                   jh = jh - 1
                END IF
             END IF
-            
+
             zinc = 0.1 ! seconds
             rjs_t     = rjs_t     - 120.
             rjs_t_old = rjs_t - zinc
 
             PRINT *, ' before 2nd pass:', jy, jmn, jd, jh, jm, rjs
-            
-         END IF
-         
 
-      !!
-      !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
-      lcontinue = .TRUE.
-      DO WHILE ( lcontinue )
-         jd_old = jd
-         rjs_t = rjs_t + zinc
-         rjs = rjs + zinc
+         END IF
+
+
          !!
-         
-         IF ( ipass == 1 ) THEN
-            IF ( MOD(rjs_t,60.) == 0. ) THEN
-               rjs = 0.
-               jm  = jm+1
-            END IF
-         ELSE
-            IF ( rjs >= 60.) THEN
-               rjs = rjs - 60.
-               jm  = jm+1
-            END IF
-         END IF
-         IF ( jm == 60 ) THEN
-            jm = 0
-            jh = jh+1
-         END IF
-         !IF ( MOD(rjs_t,3600) == 0 ) THEN
-         !   jm = 0
-         !   jh = jh+1
-         !END IF
-         !
-         IF ( jh == 24 ) THEN
-            jh = 0
-            jd = jd + 1
-            jd_t = jd_t + 1  ! total days
-         END IF
-         IF ( jd == nbd_m(jmn,jy)+1 ) THEN
-            jd = 1
-            jmn = jmn + 1
-         END IF
-         IF ( jmn == 13 ) THEN
-            jmn  = 1
-            jy = jy+1
-         END IF
-         IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
-         !
-         !IF ( jd /= jd_old ) THEN
-         !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t, jd_t
-         !END IF
-         IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
-         IF ( jy == 2019 ) THEN
-            PRINT *, 'rjs_t =', rjs_t
-            STOP 'ERROR: to_epoch_time_scalar => beyond 2018!'
-         END IF
-         rjs_t_old = rjs_t
-      END DO
-      !
-      to_epoch_time_scalar = rjs_t - rjs0_epoch
-      !
-      !PRINT *, 'Found !!!', zt, REAL(rjs_t)
-      WRITE(*,'(" *** to_epoch_time_scalar => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, NINT(rjs)
-      !PRINT *, ' + rjs0_epoch =', rjs0_epoch
-      !PRINT *, '  Date (epoch) =>', to_epoch_time_scalar
+         !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+         lcontinue = .TRUE.
+         DO WHILE ( lcontinue )
+            jd_old = jd
+            rjs_t = rjs_t + zinc
+            rjs = rjs + zinc
+            !!
 
-   END DO
-      
+            IF ( ipass == 1 ) THEN
+               IF ( MOD(rjs_t,60.) == 0. ) THEN
+                  rjs = 0.
+                  jm  = jm+1
+               END IF
+            ELSE
+               IF ( rjs >= 60.) THEN
+                  rjs = rjs - 60.
+                  jm  = jm+1
+               END IF
+            END IF
+            IF ( jm == 60 ) THEN
+               jm = 0
+               jh = jh+1
+            END IF
+            !IF ( MOD(rjs_t,3600) == 0 ) THEN
+            !   jm = 0
+            !   jh = jh+1
+            !END IF
+            !
+            IF ( jh == 24 ) THEN
+               jh = 0
+               jd = jd + 1
+               jd_t = jd_t + 1  ! total days
+            END IF
+            IF ( jd == nbd_m(jmn,jy)+1 ) THEN
+               jd = 1
+               jmn = jmn + 1
+            END IF
+            IF ( jmn == 13 ) THEN
+               jmn  = 1
+               jy = jy+1
+            END IF
+            IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
+            !
+            !IF ( jd /= jd_old ) THEN
+            !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t, jd_t
+            !END IF
+            IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
+            IF ( jy == 2019 ) THEN
+               PRINT *, 'rjs_t =', rjs_t
+               STOP 'ERROR: to_epoch_time_scalar => beyond 2018!'
+            END IF
+            rjs_t_old = rjs_t
+         END DO
+         !
+         to_epoch_time_scalar = rjs_t - rjs0_epoch
+         !
+         !PRINT *, 'Found !!!', zt, REAL(rjs_t)
+         WRITE(*,'(" *** to_epoch_time_scalar => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, NINT(rjs)
+         !PRINT *, ' + rjs0_epoch =', rjs0_epoch
+         !PRINT *, '  Date (epoch) =>', to_epoch_time_scalar
+
+      END DO
+
    END FUNCTION to_epoch_time_scalar
 
 
@@ -2272,7 +2272,7 @@ CONTAINS
       INTEGER    :: ntr, jt, jy, jmn, jd, js, jm, jh, jd_old
       LOGICAL    :: lcontinue
       INTEGER(4) :: jh_t, jd_t
-      REAL(8)    :: js_t, js_t_old, js0_epoch, rinc
+      REAL(8)    :: rjs_t, rjs_t_old, rjs0_epoch, zinc, rjs
       !!
       crtn = 'to_epoch_time_scalar'
       !!
@@ -2292,13 +2292,17 @@ CONTAINS
       !!
       ntr = SIZE(vt,1)
       PRINT *, ' ntr =', ntr
-      ALLOCATE ( vtmp(ntr-1) )
+      ALLOCATE ( vtmp(ntr) )
 
-      vtmp(:) = vt(2:ntr) - vt(1:ntr-1)
+      !vtmp(:) = vt(2:ntr) - vt(1:ntr-1)
+      !dt_min = MINVAL(vtmp)
+      !PRINT *, ' * Minimum time-step (in seconds) => ', dt_min
+      !dt_min = dt_min - dt_min/100.
 
-      dt_min = MINVAL(vtmp)
-      PRINT *, ' * Minimum time-step (in seconds) => ', dt_min
-      dt_min = dt_min - dt_min/100.
+
+      !!
+      !! Starting with large time increment (in seconds):
+
       !!
       jy = cal_unit_ref0%year
       jmn = cal_unit_ref0%month
@@ -2307,26 +2311,84 @@ CONTAINS
       jm= cal_unit_ref0%minute
       jh= cal_unit_ref0%hour
       !!
-      js_t = 0. ; js_t_old = 0. ; jd_t = 0
+      rjs = REAL(js, 8)
+      rjs_t = 0. ; rjs_t_old = 0. ; jd_t = 0
       !!
-      !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
-      
-      rinc = 1.0 ! increment in seconds!
-      
-      DO jt=1, ntr
+      zinc = 60.
+      !!
+      DO jt = 0, ntr ! 0 is the initial pass to find the start
 
-         zt = vt(jt)
-         PRINT *, ''
-         PRINT *, ' zt = ', zt, jt
+         zt   = vt(MAX(jt,1))
 
+         PRINT *, '' ; PRINT *, ' jt, zt = ', jt, zt
+
+         IF ( jt > 0 ) THEN
+            !!
+            zt   = vt(jt)
+            zinc = 0.1 ! seconds
+            !!
+            PRINT *, ' after previous jt:', jy, jmn, jd, jh, jm, rjs
+            !! Tiny increment (sometime the time step is lower than 1 second on stelite ephem tracks!!!)
+
+            IF ( jt == 1 ) THEN
+               !! Rewind 2 minutes backward:
+               !! jm:
+               !! 3 => 1
+               !! 2 => 0
+               !! 1 => 59
+               !! 0 => 58
+               !!
+               IF ( jm > 1 ) THEN
+                  jm = jm - 2
+               ELSE
+                  jm = 58 + jm
+                  IF ( jh == 0 ) THEN
+                     jh = 23
+                     IF ( jd == 1 ) THEN
+                        jd = nbd_m(jmn-1,jy)
+                        IF ( jmn == 1 ) THEN
+                           jmn = 12
+                           jy  = jy - 1
+                        ELSE ! jmn
+                           jmn = jmn - 1
+                        END IF
+                     ELSE ! jd
+                        jd = jd - 1
+                     END IF
+                  ELSE ! jh
+                     jh = jh - 1
+                  END IF
+               END IF
+
+               rjs_t     = rjs_t - 120.
+               rjs_t_old = rjs_t - zinc
+
+            END IF
+
+            PRINT *, ' before comming jt:', jy, jmn, jd, jh, jm, rjs
+
+         END IF
+
+
+         !!
+         !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
          lcontinue = .TRUE.
          DO WHILE ( lcontinue )
             jd_old = jd
-            js_t = js_t + rinc
-            !
-            IF ( MOD(js_t,60.) == 0. ) THEN
-               js = 0
-               jm = jm+1
+            rjs_t = rjs_t + zinc
+            rjs = rjs + zinc
+            !!
+
+            IF ( jt == 0 ) THEN
+               IF ( MOD(rjs_t,60.) == 0. ) THEN
+                  rjs = 0.
+                  jm  = jm+1
+               END IF
+            ELSE
+               IF ( rjs >= 60.) THEN
+                  rjs = rjs - 60.
+                  jm  = jm+1
+               END IF
             END IF
             IF ( jm == 60 ) THEN
                jm = 0
@@ -2345,39 +2407,31 @@ CONTAINS
                jmn  = 1
                jy = jy+1
             END IF
-            IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(js==0) ) js0_epoch = js_t
-            !
-            IF ( jt>1 ) THEN
-               WRITE(*,'(" *** Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," js_t=",f15.4)') jy, jmn, jd, jh, jm, js, js_t
-               PRINT *, 'zt, js_t, js_t_old =', zt, js_t, js_t_old
-               PRINT *, ''
-            END IF
+            IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
             !
             !IF ( jd /= jd_old ) THEN
-            !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t, jd_t
+            !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t, jd_t
             !END IF
-            IF ( (zt <= REAL(js_t,8)).AND.(zt > REAL(js_t_old,8)) ) THEN
-               PRINT *, ' js_t found: zt, js_t, js_t_old =', zt, js_t, js_t_old
-               
-               lcontinue = .FALSE.
-            END IF
-            
+            IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
             IF ( jy == 2019 ) THEN
-               PRINT *, 'js_t =', js_t
-               STOP 'ERROR: to_epoch_time_scalar => beyond 2018!'
+               PRINT *, 'rjs_t =', rjs_t
+               STOP 'ERROR: to_epoch_time_vect => beyond 2018!'
             END IF
-            js_t_old = js_t
+            rjs_t_old = rjs_t
          END DO
          !
-         vt(jt) = REAL( js_t - js0_epoch , 8)
+         vtmp(jt) = rjs_t - rjs0_epoch
          !
-         IF ( jt == 1 ) rinc = dt_min ! switching to the smaller time step
+         !WRITE(*,'(" *** to_epoch_time_vect => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, NINT(rjs)
+         WRITE(*,'(" *** to_epoch_time_vect => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",f15.4)') jy, jmn, jd, jh, jm, rjs
+
+
       END DO
 
-      !PRINT *, 'Found !!!', zt, REAL(js_t)
-      !WRITE(*,'(" *** to_epoch_time_scalar => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, js
-      !PRINT *, ' + js0_epoch =', js0_epoch
-      !PRINT *, '  Date (epoch) =>', to_epoch_time_scalar
+      vt(:) = vtmp(:)
+      
+      !DEALLOCATE ( vtmp )
+
    END SUBROUTINE to_epoch_time_vect
 
 

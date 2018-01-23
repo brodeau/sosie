@@ -421,8 +421,6 @@ PROGRAM INTERP_TO_EPHEM
    PRINT *, 'Last time record for model:', vt_model(Ntm)
    itime = to_epoch_time_scalar( tut_model, vt_model(Ntm) )
    PRINT *, '     ==> in epoch time =>',  itime
-
-
       
    PRINT *, '' ; PRINT *, ''
    
@@ -434,7 +432,7 @@ PROGRAM INTERP_TO_EPHEM
    itime = to_epoch_time_scalar( tut_ephem, vt_ephem(Nte), dt=0.1_8 )
    PRINT *, '     ==> in epoch time =>',  itime
 
-   STOP
+   PRINT *, ''
 
    !!
    !! Converting time vectors to epoch:
@@ -442,9 +440,9 @@ PROGRAM INTERP_TO_EPHEM
    !CALL time_vector_to_epoch_time( tut_model, vt_model )
 
    
-   CALL to_epoch_time_vect( tut_model, vt_model )
-   PRINT *, vt_model(:)
-   PRINT *, ''
+   !CALL to_epoch_time_vect( tut_model, vt_model )
+   !PRINT *, vt_model(:)
+   !PRINT *, ''
 
 
    CALL to_epoch_time_vect( tut_ephem, vt_ephem )
