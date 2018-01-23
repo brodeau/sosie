@@ -33,9 +33,9 @@ PROGRAM INTERP_TO_EPHEM
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: Nte, io, idx, iP, jP, iquadran
+   INTEGER :: Nte, Nten, io, idx, iP, jP, iquadran
    !!
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar, Xpt, Ypt, Ztar
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar, Ztar
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: Zpt4
    !!
    !! Coupe stuff:
@@ -109,6 +109,8 @@ PROGRAM INTERP_TO_EPHEM
    INTEGER(4) :: itime
    TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
 
+   INTEGER :: it1, it2
+   
    !TYPE(datetime) :: dt_r0
 
    !dt_r0 = datetime(1977,4,19,0,0,0)
@@ -467,13 +469,40 @@ PROGRAM INTERP_TO_EPHEM
    PRINT *, ' *** Max min time for ephem:', t_min_e, t_max_e
    PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
    PRINT *, ''
-
-   t_min = MAX(t_min_e, t_min_m)
-   t_max = MAX(t_max_e, t_max_m)
-
-   PRINT *, ' *** Time overlap for Model and Ephem file:', NINT(t_min), NINT(t_max)
    
-   STOP '#lolo'
+   IF ( (t_min_m >= t_max_e).OR.(t_min_e >= t_max_m).OR.(t_max_m <= t_min_e).OR.(t_max_e <= t_min_m) ) THEN
+      PRINT *, ' No time overlap for Model and Ephem file! '
+      STOP
+   END IF
+   
+   t_min = MAX(t_min_e, t_min_m)
+   t_max = MIN(t_max_e, t_max_m)
+   PRINT *, ' *** Time overlap for Model and Ephem file:', NINT(t_min), NINT(t_max)
+
+
+   !! Findin when we can start and stop when scanning the ephem file:
+   !! it1, it2
+   DO it1 = 1, Nte-1
+      IF ( (vt_ephem(it1) <= t_min).AND.(vt_ephem(it1+1) > t_min) ) EXIT
+   END DO
+   it1 = it1 + 1
+   DO it2 = it1, Nte-1
+      IF ( (vt_ephem(it2) <= t_max).AND.(vt_ephem(it2+1) > t_max) ) EXIT
+   END DO
+
+   Nten = it2 - it1 + 1
+   
+   PRINT *, ' it1, it2 =',it1, it2
+   PRINT *, Nten, '  out of ', Nte
+   PRINT *, ' => ', vt_ephem(it1), vt_ephem(it2)
+   PRINT *, ''
+
+
+
+   !ALLOCATE ( Xtar(1,Nten), Ytar(1,Nten), vt_e(Nten), Ztar(1,Nten) )
+
+   
+
 
 
 
@@ -492,12 +521,12 @@ PROGRAM INTERP_TO_EPHEM
    !! Main time loop is on time vector in ephem file!
 
 
-   ALLOCATE ( Xpt(1,1), Ypt(1,1), Zpt4(1,1) )
+   !ALLOCATE ( Xpt(1,1), Ypt(1,1), Zpt4(1,1) )
 
    INQUIRE(FILE='mapping.nc', EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...'
-      CALL MAPPING_BL(-1, xlont, xlatt, Xtar, Ytar, 'mapping.nc')
+      CALL MAPPING_BL(-1, xlont, xlatt, Xtar(:,it1:it2), Ytar(:,it1:it2), 'mapping.nc')
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
       PRINT *, ' *** File "mapping.nc" found in current directory, using it!'
@@ -511,14 +540,14 @@ PROGRAM INTERP_TO_EPHEM
    !lulu
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
-      ALLOCATE (JIidx(1,Nte) , JJidx(1,Nte) , Ftrack_np(Nte) )
+      ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) , Ftrack_np(Nten) )
       !! Finding and storing the nearest points of NEMO grid to ephem points:
       !CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont, xlatt,  JIidx, JJidx)
       JIidx(1,:) = IMETRICS(1,:,1)
       JJidx(1,:) = IMETRICS(1,:,2)
       ALLOCATE ( show_track(nib,njb) )
       show_track(:,:) = 0.
-      DO jte = 1, Nte
+      DO jte = 1, Nten
          show_track(JIidx(1,jte), JJidx(1,jte)) = REAL(jte,4)
       END DO
       WHERE (mask == 0) show_track = -9999.
@@ -526,7 +555,7 @@ PROGRAM INTERP_TO_EPHEM
       DEALLOCATE ( show_track )
    END IF
 
-
+   STOP'#lolo'
 
 
    !STOP 'mapping done!'
