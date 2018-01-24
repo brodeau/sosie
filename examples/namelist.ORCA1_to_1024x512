@@ -46,7 +46,7 @@ cu_out   = ''
 cln_out  = ''
 cd_out   = '.'
 !!
-csource  = 'ORCA12'
+csource  = 'ORCA1'
 ctarget  = '1024x512'
 cextra   = 'bilin'
 lpcknc4  = .true.
