@@ -53,6 +53,7 @@ PROGRAM INTERP_TO_EPHEM
    !! Grid, default name :
    CHARACTER(len=80) :: &
       &    cv_model, &
+      &    cv_ephem, &
       &    cv_t   = 'time_counter',  &
       &    cv_mt  = 'tmask',         &
       &    cv_z   = 'deptht',        &
@@ -137,6 +138,10 @@ PROGRAM INTERP_TO_EPHEM
    PRINT *, ''
 
 
+   !LOLO: add to command line option:
+   cv_ephem = 'sla_unfiltered' !lolo
+
+   
    !tut_ephem  = GET_TIME_UNIT_T0('days since 1950-01-01 00:00:00')
    !PRINT *, ' tut_ephem =', tut_ephem
    !tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01 00:00:00')
@@ -397,7 +402,7 @@ PROGRAM INTERP_TO_EPHEM
       CALL GETVAR_1D(cf_track, 'time', vt_ephem)
       CALL GETVAR_1D(cf_track, 'longitude', Xtar(1,:))
       CALL GETVAR_1D(cf_track, 'latitude',  Ytar(1,:))
-      CALL GETVAR_1D(cf_track, 'sla_unfiltered',  Ztar(1,:))
+      CALL GETVAR_1D(cf_track, cv_ephem,  Ztar(1,:))
       PRINT *, 'Done!'; PRINT *, ''
    END IF
 
@@ -584,7 +589,7 @@ PROGRAM INTERP_TO_EPHEM
 
    vte(:) = vt_ephem(it1:it2)
    
-   IF ( l_debug ) Ftrack_np(:) = -9999.
+   Ftrack_np(:) = -9999.
    Ftrack_ephem(:) = -9999.
    Ftrack(:) = -9999.
    Fmask(:) = -9999.
@@ -645,11 +650,11 @@ PROGRAM INTERP_TO_EPHEM
             Ftrack(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
             Fmask(jte)  = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(mask,8))
             !!
-            Ftrack_ephem(jte) = Ztar(1,jte) ! Input ephem data
+            Ftrack_ephem(jte) = Ztar(1,it1+jte-1) ! Input ephem data
             !!
          END IF
 
-         IF ( l_debug ) Ftrack_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
+         Ftrack_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
 
          jtm_1_o = jtm_1
          jtm_2_o = jtm_2
@@ -663,21 +668,35 @@ PROGRAM INTERP_TO_EPHEM
    !WHERE ( IPB(1,:) > 0 ) Ftrack = -9999.
    WHERE ( Ftrack > 1.E9 ) Ftrack = -9999.
    WHERE ( Fmask < 1.    ) Ftrack = -9999.
-   WHERE ( Ftrack_ephem > 1.E9 ) Ftrack_ephem = -9999.
 
-   CALL PT_SERIES(vte(:), REAL(Ftrack,4), 'result.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
-   CALL PT_SERIES(vte(:), REAL(Fmask,4), 'result_mask.nc', 'time', 'lsm', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   WHERE ( Ftrack_np > 1.E9 ) Ftrack_np = -9999.
+   WHERE ( Ftrack_np < -100. ) Ftrack_np = -9999.
+   WHERE ( Fmask < 1.    )    Ftrack_np = -9999.
 
-   CALL PT_SERIES(vte(:), REAL(Ftrack_ephem,4), 'data_ephem.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   Ftrack_np(:) = 0.5
    
-   CALL PT_SERIES(vte(:), REAL(Ytar(1,it1:it2),4), 'lat_ephem.nc', 'time', 'latitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
-   CALL PT_SERIES(vte(:), REAL(Xtar(1,it1:it2),4), 'lon_ephem.nc', 'time', 'longitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   WHERE ( Ftrack_ephem > 1.E9 )  Ftrack_ephem = -9999.
+   WHERE ( Ftrack_ephem < -100. ) Ftrack_ephem = -9999.
+
+
+   
+   CALL PT_SERIES(vte(:), REAL(Ftrack,4), 'result.nc', 'time', cv_model, 'm', 'Model data, bi-linear interpolation', -9999., &
+      &           ct_unit=TRIM(cunit_time_out), &
+      &           vdt2=REAL(Ftrack_np,4),    cv_dt2=TRIM(cv_model)//'_np', cln2='Model data, nearest-point interpolation', &
+      &           vdt3=REAL(Ftrack_ephem,4), cv_dt3=cv_ephem, cln3='Original data as in ephem file...')
+   
+
+
+   !CALL PT_SERIES(vte(:), REAL(Fmask,4), 'result_mask.nc', 'time', 'lsm', 'boo', 'ta mere', -9999., ct_unit=TRIM(cunit_time_out))
+
+   !CALL PT_SERIES(vte(:), REAL(Ftrack_ephem,4), 'data_ephem.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   
+   !CALL PT_SERIES(vte(:), REAL(Ytar(1,it1:it2),4), 'lat_ephem.nc', 'time', 'latitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   !CALL PT_SERIES(vte(:), REAL(Xtar(1,it1:it2),4), 'lon_ephem.nc', 'time', 'longitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
 
    IF ( l_debug ) THEN
       DEALLOCATE ( JIidx, JJidx )
-      WHERE ( Ftrack_np > 1.E9 ) Ftrack_np = -9999.
-      WHERE ( Fmask < 1.    ) Ftrack_np = -9999.
-      CALL PT_SERIES(vte(:), REAL(Ftrack_np,4), 'result_np.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+      !CALL PT_SERIES(vte(:), REAL(Ftrack_np,4), 'result_np.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
    END IF
 
    !DO jte = 1, Nte
