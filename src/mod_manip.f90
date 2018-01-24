@@ -16,7 +16,7 @@ MODULE MOD_MANIP
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
    !LOGICAL, PARAMETER :: ldebug = .TRUE.
-   LOGICAL, PARAMETER :: ldebug = .FALSE.
+   LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .FALSE.
 
    LOGICAL  :: lfirst_dist = .TRUE.
 
@@ -904,7 +904,7 @@ CONTAINS
 
 
       !! ---------------------------------------------------------------------------------------
-      IF ( l_is_reg_in ) THEN
+      IF ( l_is_reg_in .and. (.NOT. l_force_use_of_advanced) ) THEN
 
          PRINT *, '                        => going for simple algorithm !'
 
@@ -1063,26 +1063,21 @@ CONTAINS
                rlon = Xout(ji_out,jj_out)
                rlat = Yout(ji_out,jj_out)
 
+               !! Display progression in stdout:
+               IF ( (ji_out == nx_out/2).AND.(jj_out /= jj_out_old) ) THEN
+                  WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
+                  jj_out_old = jj_out
+               END IF
+               IF ( (nx_out == 1).AND.(MOD(jj_out,10)==0) ) &
+                  & WRITE(*,'("*** Treated point of target domain = ",i7," (ouf of ",i7,")")') jj_out, ABS(j_stop_out-j_strt_out+1) ! in case of trajectory/ephem stuff
                
+               !! We need to ignore target points when their location (lon,lat) is not part of the source domain
+               !!  => only doing it if the chased latitude rlat exists in source domain...                  
                IF ( (rlat >= y_min_in).AND.(rlat <= y_max_in) ) THEN
-                  
-                  l_lon_here = ANY( (Xin>rlon-2.).AND.(Xin<rlon+2.) )
-                  !IF ( l_lon_here ) THEN
-                  !   PRINT *, 'LOLO: there are values between rlon-2 and rlon+2', rlon
-                  !ELSE
-                  !   PRINT *, 'LOLO: there are NO values between rlon-2 and rlon+2', rlon
-                  !END IF
-                  !PRINT *, ''
-                  
+                  !! => only doing it if the chased longitude rlon exists in source domain...
+                  l_lon_here = ANY( (Xin>rlon-1.).AND.(Xin<rlon+1.) )                  
                   IF (l_lon_here) THEN
-
-
-                     !! Display progression in stdout:
-                     IF ( (ji_out == nx_out/2).AND.(jj_out /= jj_out_old) ) THEN
-                        WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
-                        jj_out_old = jj_out
-                     END IF
-
+                     
                      !! Need to find which jlat of our latitude bins rlat is located in!
                      IF ( rlat /= rlat_old ) THEN
                         !IF ( jj_out /= jj_out_old ) WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
@@ -1105,14 +1100,12 @@ CONTAINS
                         !! It's not stupid to assume that the next point to locate is
                         !! pretty near the previous found point (ji_in,jj_in):
                         IF ( lbluff ) THEN
-                           !lulu
-                           !PRINT *, 'bluff...', ji_in, jj_in
                            imin_in = MAX(ji_in - 5 , 1)
                            imax_in = MIN(ji_in + 5 , nx_in)
                            jmin_in = MAX(jj_in - 5 , 1)
                            jmax_in = MIN(jj_in + 5 , ny_in)
                         ELSE
-
+                           
                            !PRINT *, 'not bluff...', rlon, rlat
                            imin_in = 1
                            imax_in = nx_in
@@ -1179,10 +1172,8 @@ CONTAINS
                            IF (niter > Nlat_split/3) THEN
                               !! => increasing max. distance
                               niter = 1
-                              !lolo:frac_emax = 1.5*frac_emax
                               frac_emax = 1.25*frac_emax    !lolo
-                              !lolo:IF ( frac_emax > 2. ) THEN
-                              IF ( frac_emax > 5. ) THEN !lolo
+                              IF ( frac_emax > 10. ) THEN   !lolo
                                  PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
                                  PRINT *, '     => did not find nearest point for target coordinates:', &
                                     &              REAL(rlon,4), REAL(rlat,4)

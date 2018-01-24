@@ -211,7 +211,7 @@ PROGRAM INTERP_TO_EPHEM
    PRINT *, '   => associated variable names = ', trim(cv_in)
    PRINT *, '   => associated longitude/latitude/time = ', trim(cv_lon), ', ', trim(cv_lat), ', ', trim(cv_t)
    PRINT *, '   => mesh_mask file = ', trim(cf_mm)
-   PRINT *, ' * Output file = ', trim(cf_out)
+
 
    PRINT *, ''
 
@@ -409,7 +409,7 @@ PROGRAM INTERP_TO_EPHEM
 
    !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
    WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_in), TRIM(cf_track)
-
+   PRINT *, ' * Output file = ', trim(cf_out)
 
 
 

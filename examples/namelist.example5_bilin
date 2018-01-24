@@ -208,7 +208,7 @@ cd_out   = '.'
 !!
 csource  = '2560x480'
 ctarget  = 'polar-stereo'
-cextra   = 'Arctic'
+cextra   = 'Arctic_bilin'
 lpcknc4  = .true.
 /
 !!

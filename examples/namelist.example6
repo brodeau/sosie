@@ -233,7 +233,7 @@ cd_out   = '.'
 !!
 csource  = 'ORCA2'
 ctarget  = 'ORCA1'
-cextra   = 'test'
+cextra   = 'bilin'
 lpcknc4  = .true.
 /
 !!
