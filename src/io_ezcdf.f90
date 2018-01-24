@@ -867,7 +867,7 @@ CONTAINS
 
 
    SUBROUTINE PT_SERIES(vtime, vseries, cf_in, cv_t, cv_in, cunit, cln, vflag, &
-      &                 lpack)
+      &                 ct_unit, lpack)
 
       !! INPUT :
       !! -------
@@ -880,6 +880,7 @@ CONTAINS
       !!        cln = long-name for treated variable              [character]
       !!        vflag = flag value or "0."                        [real]
       !!
+      !!        ct_unit = time unit
       !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
       !!
       !!--------------------------------------------------------------------------
@@ -888,6 +889,7 @@ CONTAINS
       REAL(4), DIMENSION(:),      INTENT(in)  :: vseries
       CHARACTER(len=*),           INTENT(in)  :: cf_in, cv_t, cv_in, cunit, cln
       REAL(4),                    INTENT(in)  :: vflag
+      CHARACTER(len=*), OPTIONAL, INTENT(in)  :: ct_unit
       LOGICAL,          OPTIONAL, INTENT(in)  :: lpack
       !!
       INTEGER          :: idf, idv, idtd, idt, nbt, jt
@@ -928,10 +930,11 @@ CONTAINS
       END IF
 
       !! Time
-      CALL sherr( NF90_DEF_DIM(idf, trim(cv_t), NF90_UNLIMITED, idtd),      crtn,cf_in,cv_in)
-      CALL sherr( NF90_DEF_VAR(idf, trim(cv_t), NF90_DOUBLE,    idtd, idt), crtn,cf_in,cv_in)
-      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),          crtn,cf_in,cv_in)
-      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),          crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_DIM(idf, TRIM(cv_t), NF90_UNLIMITED, idtd),      crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE,    idtd, idt), crtn,cf_in,cv_in)
+      IF ( PRESENT(ct_unit) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'units', TRIM(ct_unit)), crtn,cf_in,cv_in)
+      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),       crtn,cf_in,cv_in)
+      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),       crtn,cf_in,cv_in)
 
       !! Variable
       IF ( lp ) THEN

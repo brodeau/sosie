@@ -41,11 +41,9 @@ PROGRAM INTERP_TO_EPHEM
    !!
    !! Coupe stuff:
    REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack, Fmask, Ftrack_np, Ftrack_ephem
-   REAL(4), DIMENSION(:),   ALLOCATABLE :: xcmask
-   REAL(8), DIMENSION(:,:),   ALLOCATABLE :: vposition
 
    REAL(8), DIMENSION(:,:),   ALLOCATABLE :: vdepth
-   REAL(8), DIMENSION(:),     ALLOCATABLE :: vt_model, vt_ephem   ! in seconds
+   REAL(8), DIMENSION(:),     ALLOCATABLE :: vte, vt_model, vt_ephem   ! in seconds
 
    REAL(8), DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
@@ -54,13 +52,15 @@ PROGRAM INTERP_TO_EPHEM
 
    !! Grid, default name :
    CHARACTER(len=80) :: &
+      &    cv_model, &
       &    cv_t   = 'time_counter',  &
       &    cv_mt  = 'tmask',         &
       &    cv_z   = 'deptht',        &
-      &    cv_lon = 'glamt',       & ! input grid longitude name, T-points
-      &    cv_lat = 'gphit'          ! input grid latitude name,  T-points
+      &    cv_lon = 'glamt',         & ! input grid longitude name, T-points
+      &    cv_lat = 'gphit'            ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, cunit, ctrack, cdum
+   CHARACTER(len=256)  :: cr, cunit, ctrack
+   CHARACTER(len=512)  :: cdum, cconf
    !!
    !!
    !!******************** End of conf for user ********************************
@@ -73,12 +73,15 @@ PROGRAM INTERP_TO_EPHEM
    !!
    CHARACTER(len=400)  :: &
       &    cf_track   = 'track.dat', &
+      &    cf_model, &
       &    cf_mm='mesh_mask.nc', &
+      &    cf_mapping, &
       &    cs_force_tv_m='', &
       &    cs_force_tv_e=''
    !!
    INTEGER      :: &
       &    jarg,   &
+      &    idot,   &
       &    i0, j0, ifo, ivo,   &
       &    ni, nj, nk=0, Ntm=0, &
       &    ni1, nj1, ni2, nj2, &
@@ -119,7 +122,7 @@ PROGRAM INTERP_TO_EPHEM
    !PRINT *, ' T epoch for 1977-04-19 =>', dt_r0%secondsSinceEpoch()
 
 
-
+   CHARACTER(80), PARAMETER :: cunit_time_out = 'seconds since 1970-01-01 00:00:00'
 
    !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
    tut_epoch%unit   = 's'
@@ -157,10 +160,10 @@ PROGRAM INTERP_TO_EPHEM
          call usage()
 
       CASE('-i')
-         CALL GET_MY_ARG('input file', cf_in)
+         CALL GET_MY_ARG('input file', cf_model)
 
       CASE('-v')
-         CALL GET_MY_ARG('input variable', cv_in)
+         CALL GET_MY_ARG('input variable', cv_model)
 
       CASE('-x')
          CALL GET_MY_ARG('longitude', cv_lon)
@@ -197,7 +200,7 @@ PROGRAM INTERP_TO_EPHEM
 
    END DO
 
-   IF ( (trim(cv_in) == '').OR.(trim(cf_in) == '') ) THEN
+   IF ( (trim(cv_model) == '').OR.(trim(cf_model) == '') ) THEN
       PRINT *, ''
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
       CALL usage()
@@ -207,13 +210,27 @@ PROGRAM INTERP_TO_EPHEM
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
    PRINT *, ''
 
-   PRINT *, ' * Input file = ', trim(cf_in)
-   PRINT *, '   => associated variable names = ', trim(cv_in)
+   PRINT *, ' * Input file = ', trim(cf_model)
+   PRINT *, '   => associated variable names = ', trim(cv_model)
    PRINT *, '   => associated longitude/latitude/time = ', trim(cv_lon), ', ', trim(cv_lat), ', ', trim(cv_t)
    PRINT *, '   => mesh_mask file = ', trim(cf_mm)
 
 
    PRINT *, ''
+
+   !! Name of config: lulu
+   idot = SCAN(cf_model, '/', back=.TRUE.)
+   cdum = cf_model(idot+1:)
+   idot = SCAN(cdum, '.', back=.TRUE.)
+   cconf = cdum(:idot-1)
+
+   idot = SCAN(cf_track, '/', back=.TRUE.)
+   cdum = cf_track(idot+1:)
+   idot = SCAN(cdum, '.', back=.TRUE.)
+   cconf = trim(cconf)//'__to__'//cdum(:idot-1)
+
+   
+   PRINT *, ' *** CONFIG: cconf ='//TRIM(cconf)
 
 
    !! testing longitude and latitude
@@ -242,20 +259,20 @@ PROGRAM INTERP_TO_EPHEM
 
    !! testing variable dimensions
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   CALL DIMS(cf_in, cv_in, ni1, nj1, nk, Ntm)
+   CALL DIMS(cf_model, cv_model, ni1, nj1, nk, Ntm)
 
    IF ( (ni1/=ni).AND.(nj1/=nj) ) THEN
-      PRINT *, 'ERROR: dimension of ',trim(cv_in), 'does not agree with lon/lat' ; STOP
+      PRINT *, 'ERROR: dimension of ',trim(cv_model), 'does not agree with lon/lat' ; STOP
    END IF
 
    IF ( nk < 1 ) nk = 1
 
    IF ( Ntm < 1 ) THEN
-      PRINT *, 'ERROR: ',trim(cv_in),' must have at least a time record!' ; STOP
+      PRINT *, 'ERROR: ',trim(cv_model),' must have at least a time record!' ; STOP
    END IF
 
 
-   PRINT *, 'Dimension for ',trim(cv_in),':'
+   PRINT *, 'Dimension for ',trim(cv_model),':'
    PRINT *, '   => ni =', ni ;   PRINT *, '   => nj =', nj
    PRINT *, '   => nk =', nk ;   PRINT *, '   => Ntm =', Ntm
    PRINT *, ''
@@ -283,7 +300,7 @@ PROGRAM INTERP_TO_EPHEM
    !! If there is no overlapping period of time between the two file, then no
    !! need to go further...
    !!
-   CALL GET_VAR_INFO(cf_in, cv_t, cunit, cdum)
+   CALL GET_VAR_INFO(cf_model, cv_t, cunit, cdum)
    tut_model  = GET_TIME_UNIT_T0(TRIM(cunit))
    PRINT *, ' *** Unit and reference time in model file:'
    PRINT *, tut_model
@@ -303,7 +320,7 @@ PROGRAM INTERP_TO_EPHEM
    !! Getting coordinates
    !! ~~~~~~~~~~~~~~~~~~~
 
-   IF ( nk > 1 ) CALL GETVAR_1D(cf_in, cv_z, vdepth(:,1))
+   IF ( nk > 1 ) CALL GETVAR_1D(cf_model, cv_z, vdepth(:,1))
 
 
    IF ( TRIM(cs_force_tv_m) /= '' ) THEN
@@ -319,7 +336,7 @@ PROGRAM INTERP_TO_EPHEM
       END DO
    ELSE
       !! Reading it in input file:
-      CALL GETVAR_1D(cf_in, cv_t, vt_model)
+      CALL GETVAR_1D(cf_model, cv_t, vt_model)
    END IF
 
    IF ( l_debug ) THEN
@@ -404,11 +421,10 @@ PROGRAM INTERP_TO_EPHEM
 
    nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
 
-   ALLOCATE ( Ftrack(Nte), Ftrack_ephem(Nte), Fmask(Nte), xcmask(Nte), vposition(Nte,1) )
 
 
    !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
-   WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_in), TRIM(cf_track)
+   WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_model), TRIM(cf_track)
    PRINT *, ' * Output file = ', trim(cf_out)
 
 
@@ -521,24 +537,28 @@ PROGRAM INTERP_TO_EPHEM
 
    !ALLOCATE ( Xpt(1,1), Ypt(1,1), Zpt4(1,1) )
 
-   INQUIRE(FILE='mapping.nc', EXIST=l_exist )
+
+   cf_mapping = 'MAPPING__'//TRIM(cconf)//'.nc'
+
+   
+   INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...'
-      CALL MAPPING_BL(-1, xlont, xlatt, Xtar(:,it1:it2), Ytar(:,it1:it2), 'mapping.nc')
+      CALL MAPPING_BL(-1, xlont, xlatt, Xtar(:,it1:it2), Ytar(:,it1:it2), cf_mapping)
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
-      PRINT *, ' *** File "mapping.nc" found in current directory, using it!'
+      PRINT *, ' *** File "',trim(cf_mapping),'" found in current directory, using it!'
       PRINT *, ''
    END IF
 
-   CALL RD_MAPPING_AB('mapping.nc', IMETRICS, RAB, IPB)
-   PRINT *, ''; PRINT *, ' *** Mapping and weights read into "mapping.nc"'; PRINT *, ''
+   CALL RD_MAPPING_AB(cf_mapping, IMETRICS, RAB, IPB)
+   PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mapping),'"'; PRINT *, ''
 
 
    !lulu
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
-      ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) , Ftrack_np(Nten) )
+      ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) )
       !! Finding and storing the nearest points of NEMO grid to ephem points:
       !CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont, xlatt,  JIidx, JJidx)
       JIidx(1,:) = IMETRICS(1,:,1)
@@ -555,12 +575,15 @@ PROGRAM INTERP_TO_EPHEM
 
    IF ( l_debug_mapping ) STOP'l_debug_mapping'
 
-   STOP'#lolo'
 
 
    !STOP 'mapping done!'
 
+   ALLOCATE ( vte(Nten), Ftrack(Nten), Ftrack_ephem(Nten), Fmask(Nten), Ftrack_np(Nten) )
 
+
+   vte(:) = vt_ephem(it1:it2)
+   
    IF ( l_debug ) Ftrack_np(:) = -9999.
    Ftrack_ephem(:) = -9999.
    Ftrack(:) = -9999.
@@ -571,9 +594,9 @@ PROGRAM INTERP_TO_EPHEM
    jtm_1_o = -100
    jtm_2_o = -100
 
-   DO jte = 1, Nte
+   DO jte = 1, Nten
       !!
-      rt = vt_ephem(jte)
+      rt = vte(jte)
       PRINT *, 'Treating ephem time =>', rt
       !!
       IF ( (rt >= t_min_m).AND.(rt < t_max_m) ) THEN
@@ -590,14 +613,14 @@ PROGRAM INTERP_TO_EPHEM
          !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
          IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
             IF ( jtm_1_o == -100 ) THEN
-               PRINT *, 'Reading field '//TRIM(cv_in)//' in '//TRIM(cf_in)//' at jtm_1=', jtm_1
-               CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_1, xvar1)
+               PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_1=', jtm_1
+               CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_1, xvar1)
             ELSE
-               PRINT *, 'Getting field '//TRIM(cv_in)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
+               PRINT *, 'Getting field '//TRIM(cv_model)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
             END IF
-            PRINT *, 'Reading field '//TRIM(cv_in)//' in '//TRIM(cf_in)//' at jtm_2=', jtm_2
-            CALL GETVAR_2D(id_f1, id_v1, cf_in, cv_in, Ntm, 0, jtm_2, xvar2)
+            PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_2=', jtm_2
+            CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_2, xvar2)
             xslp = (xvar2 - xvar1) / (vt_model(jtm_2) - vt_model(jtm_1)) ! slope...
 
          END IF
@@ -642,18 +665,19 @@ PROGRAM INTERP_TO_EPHEM
    WHERE ( Fmask < 1.    ) Ftrack = -9999.
    WHERE ( Ftrack_ephem > 1.E9 ) Ftrack_ephem = -9999.
 
-   CALL PT_SERIES(vt_ephem, REAL(Ftrack,4), 'result.nc', 'time', cv_in, 'boo', 'ta mere', -9999.)
-   CALL PT_SERIES(vt_ephem, REAL(Fmask,4), 'result_mask.nc', 'time', 'lsm', 'boo', 'ta mere', -9999.)
+   CALL PT_SERIES(vte(:), REAL(Ftrack,4), 'result.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   CALL PT_SERIES(vte(:), REAL(Fmask,4), 'result_mask.nc', 'time', 'lsm', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
 
-   CALL PT_SERIES(vt_ephem, REAL(Ftrack_ephem,4), 'data_ephem.nc', 'time', cv_in, 'boo', 'ta mere', -9999.)
-   CALL PT_SERIES(vt_ephem, REAL(Ytar(1,:),4), 'lat_ephem.nc', 'time', 'latitude', 'boo', 'ta mere', -9999.)
-   CALL PT_SERIES(vt_ephem, REAL(Xtar(1,:),4), 'lon_ephem.nc', 'time', 'longitude', 'boo', 'ta mere', -9999.)
+   CALL PT_SERIES(vte(:), REAL(Ftrack_ephem,4), 'data_ephem.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   
+   CALL PT_SERIES(vte(:), REAL(Ytar(1,it1:it2),4), 'lat_ephem.nc', 'time', 'latitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
+   CALL PT_SERIES(vte(:), REAL(Xtar(1,it1:it2),4), 'lon_ephem.nc', 'time', 'longitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
 
    IF ( l_debug ) THEN
       DEALLOCATE ( JIidx, JJidx )
       WHERE ( Ftrack_np > 1.E9 ) Ftrack_np = -9999.
       WHERE ( Fmask < 1.    ) Ftrack_np = -9999.
-      CALL PT_SERIES(vt_ephem, REAL(Ftrack_np,4), 'result_np.nc', 'time', cv_in, 'boo', 'ta mere', -9999.)
+      CALL PT_SERIES(vte(:), REAL(Ftrack_np,4), 'result_np.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
    END IF
 
    !DO jte = 1, Nte
@@ -662,7 +686,7 @@ PROGRAM INTERP_TO_EPHEM
    STOP 'LOLO: stop for now...'
 
    DEALLOCATE ( Xtar, Ytar, Ztar )
-   DEALLOCATE ( Ftrack, xcmask, vposition )
+   DEALLOCATE ( Ftrack, Ftrack_ephem )
    DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xslp, mask ) !, xtmp4 )
    !lolo
 
@@ -670,82 +694,6 @@ PROGRAM INTERP_TO_EPHEM
 
 
 CONTAINS
-
-
-
-   SUBROUTINE BUILD_TRACK()
-
-      IF ( imax < imin ) THEN ! switching points,
-         isav = imin ; jsav = jmin
-         imin = imax ; jmin = jmax
-         imax = isav ; jmax = jsav
-      END IF
-
-      !! Creating the local box with 4 extrapoints:
-      !!   => lolo: should mind limits (1,1,ni,nj) !!!!
-      ji_min = MIN(imin,imax) - 2
-      jj_min = MIN(jmin,jmax) - 2
-      ji_max = MAX(imin,imax) + 2
-      jj_max = MAX(jmin,jmax) + 2
-      PRINT *, 'ji_min, ji_max, jj_min, jj_max:'; PRINT *, ji_min, ji_max, jj_min, jj_max
-      nib = ji_max - ji_min + 1
-      njb = jj_max - jj_min + 1
-      PRINT *, 'nib, njb =', nib, njb
-
-      !lolo: change with actual min and max (use min_val ..)
-      lon_max = MAX(xlont(ji_max,jj_min),xlont(ji_max,jj_max))
-      lon_min = MIN(xlont(ji_min,jj_min),xlont(ji_min,jj_max))
-      lat_max = MAX(xlatt(ji_max,jj_max),xlatt(ji_min,jj_max))
-      lat_min = MIN(xlatt(ji_max,jj_min),xlatt(ji_min,jj_min))
-
-      PRINT *, ''
-      dlon = lon_max - lon_min ; PRINT *, 'long. range =', dlon
-      dlat = lat_max - lat_min ; PRINT *, 'latg. range =', dlat
-      dang = SQRT(dlon*dlon + dlat*dlat) ; PRINT *, 'Ang. range =', dang
-
-      Nte = INT(dang/res) + 1
-      IF ( MOD(Nte,2) == 0 ) Nte = Nte - 1 ! we want odd integer...
-      PRINT *, 'Number of points to create on segment:', Nte ; PRINT *, ''
-
-      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), Ztar(1,Nte) )
-      ALLOCATE ( xcmask(Nte), vposition(Nte,1) )
-
-      IF ( ABS(dlon) < 1.E-12 ) THEN
-         PRINT *, 'ERROR: Section seems to be vertical!'; STOP
-      END IF
-
-      rA = (xlatt(imax,jmax) - xlatt(imin,jmin))/ dlon
-      rB = xlatt(imin,jmin) - rA*xlont(imin,jmin)
-
-      PRINT *, 'rA, rB = ', rA, rB
-      PRINT *, 'Lat1 =', rA*xlont(imin,jmin) + rB
-      PRINT *, 'Lat2 =', rA*xlont(imax,jmax) + rB
-
-      dlon = dlon / (Nte-1) ;  ; PRINT *, 'dlon =', dlon
-
-      DO jte = 1, Nte
-         Xtar(1,jte) = xlont(imin,jmin) + (jte-1)*dlon
-         Ytar(1,jte) = rA*Xtar(1,jte) + rB
-      END DO
-
-      ! Only positive longitudes:
-      WHERE( Xtar(1,:) < 0. ) Xtar(1,:) = Xtar(1,:) + 360.
-
-      ! BAD! lolo should find good metrics...
-      vposition(:,1) = Xtar(1,:)
-
-      ALLOCATE( xlont(nib,njb), xlatt(nib,njb), mask(nib,njb)) !, xtmp4(nib,njb) )
-
-      xlont = xlont(ji_min:ji_max,jj_min:jj_max)
-      xlatt = xlatt(ji_min:ji_max,jj_min:jj_max)
-
-      mask = mask(ji_min:ji_max,jj_min:jj_max)
-
-   END SUBROUTINE BUILD_TRACK
-
-
-
-
 
 
 
