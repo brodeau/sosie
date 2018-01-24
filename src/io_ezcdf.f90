@@ -1963,8 +1963,8 @@ CONTAINS
       TYPE(t_unit_t0)              :: GET_TIME_UNIT_T0
       CHARACTER(len=*), INTENT(in) :: cstr  ! ex: "days since 1950-01-01 00:00:00" => 'd' 1950 1 1 0 0 0
       !!
-      INTEGER :: i1, i2
-      CHARACTER(len=32) :: cdum, chour
+      INTEGER :: i1, i2, is, ncday
+      CHARACTER(len=32) :: cdum, chour, cday
       !!
       crtn = 'GET_TIME_UNIT_T0'
       i1 = SCAN(cstr, ' ')
@@ -1991,11 +1991,29 @@ CONTAINS
       cdum = cstr(i2+1:)
       i1 = SCAN(cdum, '-')
       i2 = SCAN(cdum, '-', back=.TRUE.)
-      IF ( (i1 /= 5).OR.(i2 /= 8) ) CALL print_err(crtn, 'origin date not recognized, must be "yyyy-mm-dd"')
-      READ(cdum(1:4),'(i)')  GET_TIME_UNIT_T0%year
-      READ(cdum(6:7),'(i)')  GET_TIME_UNIT_T0%month
-      READ(cdum(9:10),'(i)') GET_TIME_UNIT_T0%day
-      !!
+
+      is = SCAN(TRIM(cdum), ' ', back=.TRUE.)
+
+      !! Day of calendar:
+      cday = cdum(:is)
+      ncday = len(TRIM(cday))      
+      IF ( i1 == 5 ) THEN
+         READ(cdum(1:4),'(i)')  GET_TIME_UNIT_T0%year
+         IF ( i2 == 8 ) THEN
+            READ(cdum(6:7),'(i)')  GET_TIME_UNIT_T0%month
+            IF ( ncday == 10 ) READ(cdum(9:10),'(i)') GET_TIME_UNIT_T0%day
+            IF ( ncday ==  9 ) READ(cdum(9:9) ,'(i)') GET_TIME_UNIT_T0%day
+         ELSEIF ( i2 == 7 ) THEN
+            READ(cdum(6:6),'(i)')  GET_TIME_UNIT_T0%month
+            IF ( ncday == 8 ) READ(cdum(8:8),'(i)') GET_TIME_UNIT_T0%day
+            IF ( ncday == 9 ) READ(cdum(8:9),'(i)') GET_TIME_UNIT_T0%day
+         ELSE
+            CALL print_err(crtn, 'origin date not recognized, must be "yyyy-mm-dd"')
+         END IF
+      ELSE
+         CALL print_err(crtn, 'origin date not recognized, must be "yyyy-mm-dd"')
+      END IF
+
       !! Time of day:
       i1 = SCAN(chour, ':')
       i2 = SCAN(chour, ':', back=.TRUE.)
