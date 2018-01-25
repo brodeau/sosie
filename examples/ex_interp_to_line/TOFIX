@@ -1,5 +1,0 @@
-
-Fix case where discontinuous longitude (360 to 0 transition, as in "AUSTRALIA-MADAGASCAR")
-
-Fix case ??? as in "AUSTRALIA-TURKEY" (not regular since north?)
-

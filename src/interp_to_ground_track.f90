@@ -1,4 +1,4 @@
-PROGRAM INTERP_TO_EPHEM
+PROGRAM INTERP_TO_GROUND_TRACK
 
    !USE datetime_module, ONLY:datetime ! => https://github.com/wavebitscientific/datetime-fortran/releases
 
@@ -502,7 +502,7 @@ PROGRAM INTERP_TO_EPHEM
 
       t_min = MAX(t_min_e, t_min_m)
       t_max = MIN(t_max_e, t_max_m)
-      PRINT *, ' *** Time overlap for Model and Ephem file:', NINT(t_min), NINT(t_max)
+      PRINT *, ' *** Time overlap for Model and Ephem file:', t_min, t_max
 
 
       !! Findin when we can start and stop when scanning the ephem file:
@@ -510,7 +510,6 @@ PROGRAM INTERP_TO_EPHEM
       DO it1 = 1, Nte-1
          IF ( (vt_ephem(it1) <= t_min).AND.(vt_ephem(it1+1) > t_min) ) EXIT
       END DO
-      it1 = it1 + 1
       DO it2 = it1, Nte-1
          IF ( (vt_ephem(it2) <= t_max).AND.(vt_ephem(it2+1) > t_max) ) EXIT
       END DO
@@ -560,7 +559,6 @@ PROGRAM INTERP_TO_EPHEM
    PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mapping),'"'; PRINT *, ''
 
 
-   !lulu
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
       ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) )
@@ -571,13 +569,13 @@ PROGRAM INTERP_TO_EPHEM
       ALLOCATE ( show_track(nib,njb) )
       show_track(:,:) = 0.
       DO jte = 1, Nten
-         show_track(JIidx(1,jte), JJidx(1,jte)) = REAL(jte,4)
+         IF ( (JIidx(1,jte)>0).AND.(JJidx(1,jte)>0) )  show_track(JIidx(1,jte), JJidx(1,jte)) = REAL(jte,4)
       END DO
       WHERE (mask == 0) show_track = -9999.
       CALL PRTMASK(REAL(show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
       DEALLOCATE ( show_track )
    END IF
-
+   
    IF ( l_debug_mapping ) STOP'l_debug_mapping'
 
 
@@ -613,19 +611,22 @@ PROGRAM INTERP_TO_EPHEM
          !!
          jtm_1 = jt
          jtm_2 = jt+1
+         IF (jte==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
+         
          PRINT *, ' rt, vt_model(jtm_1), vt_model(jtm_2) =>', rt, vt_model(jtm_1), vt_model(jtm_2)
          !!
          !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
          IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
             IF ( jtm_1_o == -100 ) THEN
                PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_1=', jtm_1
-               CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_1, xvar1)
+               PRINT *, 'LOLO: id_f1, id_v1, jtm_1 =>', id_f1, id_v1, jtm_1
+               CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_1, xvar1, jt1=jt_s)
             ELSE
                PRINT *, 'Getting field '//TRIM(cv_model)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
             END IF
             PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_2=', jtm_2
-            CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_2, xvar2)
+            CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_2, xvar2, jt1=jt_s)
             xslp = (xvar2 - xvar1) / (vt_model(jtm_2) - vt_model(jtm_1)) ! slope...
 
          END IF
@@ -674,9 +675,9 @@ PROGRAM INTERP_TO_EPHEM
 
    WHERE ( Ftrack_ephem > 1.E9 )  Ftrack_ephem = -9999.
 
-
    
-   CALL PT_SERIES(vte(:), REAL(Ftrack,4), 'result.nc', 'time', cv_model, 'm', 'Model data, bi-linear interpolation', -9999., &
+   
+   CALL PT_SERIES(vte(:), REAL(Ftrack,4), 'result__'//TRIM(cconf)//'.nc4', 'time', cv_model, 'm', 'Model data, bi-linear interpolation', -9999., &
       &           ct_unit=TRIM(cunit_time_out), lpack=.TRUE., &
       &           vdt2=REAL(Ftrack_np,4),    cv_dt2=TRIM(cv_model)//'_np', cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_ephem,4), cv_dt3=cv_ephem,              cln3='Original data as in ephem file...',   &
@@ -713,7 +714,7 @@ CONTAINS
    END SUBROUTINE GET_MY_ARG
 
 
-END PROGRAM INTERP_TO_EPHEM
+END PROGRAM INTERP_TO_GROUND_TRACK
 
 
 

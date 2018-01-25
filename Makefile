@@ -45,9 +45,9 @@ MOD_INST= mod/io_ezcdf.mod \
 
 all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x
 
-test: bin/test_stuffs.x
+gt: bin/interp_to_ground_track.x
 
-ephem: bin/interp_to_ephem.x
+test: bin/test_stuffs.x
 
 bin/sosie.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
@@ -61,14 +61,14 @@ bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 
 
 
-# interp_to_ephem.x requires the "datetime fortran" library modules to be compiled on your system!
+# interp_to_ground_track.x requires the "datetime fortran" library modules to be compiled on your system!
 # => https://github.com/wavebitscientific/datetime-fortran/
-#bin/interp_to_ephem.x: src/interp_to_ephem.f90 obj/mod_conf.o $(LIB_SOSIE) $(DATETIME_FORTRAN_DIR)/lib/libdatetime.a
+#bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 obj/mod_conf.o $(LIB_SOSIE) $(DATETIME_FORTRAN_DIR)/lib/libdatetime.a
 #	@mkdir -p bin
-#	$(FC) $(FF) -I$(DATETIME_FORTRAN_DIR)/include obj/mod_conf.o src/interp_to_ephem.f90 -o bin/interp_to_ephem.x $(LIB) -L$(DATETIME_FORTRAN_DIR)/lib -ldatetime
-bin/interp_to_ephem.x: src/interp_to_ephem.f90 obj/mod_conf.o $(LIB_SOSIE)
+#	$(FC) $(FF) -I$(DATETIME_FORTRAN_DIR)/include obj/mod_conf.o src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB) -L$(DATETIME_FORTRAN_DIR)/lib -ldatetime
+bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 obj/mod_conf.o $(LIB_SOSIE)
 	@mkdir -p bin
-	$(FC) $(FF) obj/mod_conf.o src/interp_to_ephem.f90 -o bin/interp_to_ephem.x $(LIB)
+	$(FC) $(FF) obj/mod_conf.o src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB)
 
 
 
@@ -142,7 +142,7 @@ install: all
 
 uninstall:
 	rm -f $(INSTALL_DIR)/bin/*.x
-	rm -f $(INSTALL_DIR)/bin/interp_to_ephem.x $(INSTALL_DIR)/bin/proj_vect_to_ephem.x
+	rm -f $(INSTALL_DIR)/bin/interp_to_ground_track.x
 	rm -f $(INSTALL_DIR)/lib/$(LIB_SOSIE) $(INSTALL_DIR)/bin/apply_zon_corr.x
 	rm -f $(INSTALL_DIR)/include/io_ezcdf.mod
 

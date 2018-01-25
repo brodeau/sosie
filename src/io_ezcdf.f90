@@ -69,7 +69,7 @@ MODULE io_ezcdf
 
    INTEGER :: nd
 
-   CHARACTER(len=400)    :: crtn, cu
+   CHARACTER(len=400)    :: cu
 
    CHARACTER(len=8), PARAMETER :: cdum = 'dummy'
 
@@ -127,9 +127,7 @@ CONTAINS
 
       INTEGER, DIMENSION(:), ALLOCATABLE :: id_dim, nlen
       INTEGER :: jdim, id_unlim_dim
-
-
-      crtn = 'DIMS'
+      CHARACTER(len=80), PARAMETER :: crtn = 'DIMS'
 
       lx = -1 ; ly = -1 ; lz = -1 ; lt = -1
 
@@ -240,7 +238,7 @@ CONTAINS
       REAL, DIMENSION(:), ALLOCATABLE :: rvalue ! will store attribute with numeric values
       INTEGER :: ierr, jatt, iwhat, ilg
       !!
-      crtn = 'GETVAR_ATTRIBUTES'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_ATTRIBUTES'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
       CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
@@ -287,7 +285,7 @@ CONTAINS
       !Local:
       INTEGER :: jatt
       !!
-      crtn = 'FORCE_ATTR'
+      CHARACTER(len=80), PARAMETER :: crtn = 'FORCE_ATTR'
       !!
       !! Find position of attribute to modify "cattr" and change its content if found!
       DO jatt = 0, nbatt_max-1
@@ -330,7 +328,7 @@ CONTAINS
       CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
       REAL(8), DIMENSION (:), INTENT(out) ::  X
 
-      crtn = 'GETVAR_1D'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
 
@@ -391,7 +389,7 @@ CONTAINS
 
       LOGICAL :: l_okay
 
-      crtn = 'GETVAR_2D'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D'
 
       lx = size(X,1)
       ly = size(X,2)
@@ -402,11 +400,9 @@ CONTAINS
 
       IF ( (lx /= n1).OR.(ly /= n2) ) CALL print_err(crtn, ' PROBLEM #1 => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
-      IF ( present(jt1).AND.present(jt2) ) THEN
-         its = jt1 ; ite = jt2
-      ELSE
-         its = 1   ; ite = lt
-      END IF
+      its = 1 ; ite = lt
+      IF ( PRESENT(jt1) ) its = jt1
+      IF ( PRESENT(jt2) ) ite = jt2
 
       IF ( present(lz) ) kz_stop = lz
 
@@ -415,6 +411,7 @@ CONTAINS
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
 
+      IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
       l_okay = .FALSE.
       DO WHILE ( .NOT. l_okay )
@@ -509,7 +506,7 @@ CONTAINS
 
       LOGICAL :: l_okay
 
-      crtn = 'GETVAR_2D_R8'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R8'
 
       lx = size(X,1)
       ly = size(X,2)
@@ -522,11 +519,9 @@ CONTAINS
       !PRINT *, ' n4, lt =>', n4, lt
       IF ( (lt > 0).AND.(n4 /= lt)  ) CALL print_err(crtn, ' PROBLEM #2  => '//trim(cv_in)//' in '//trim(cf_in))
 
-      IF ( present(jt1).AND.present(jt2) ) THEN
-         its = jt1 ; ite = jt2
-      ELSE
-         its = 1   ; ite = lt
-      END IF
+      its = 1 ; ite = lt
+      IF ( PRESENT(jt1) ) its = jt1
+      IF ( PRESENT(jt2) ) ite = jt2
 
       IF ( present(lz) ) kz_stop = lz
 
@@ -535,6 +530,7 @@ CONTAINS
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
 
+      IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
       l_okay = .FALSE.
       DO WHILE ( .NOT. l_okay )
@@ -635,7 +631,7 @@ CONTAINS
 
       INTEGER :: n1, n2, n3, n4, its, ite, izs, ize
 
-      crtn = 'GETVAR_3D'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_3D'
 
       lx = size(X,1)
       ly = size(X,2)
@@ -645,11 +641,9 @@ CONTAINS
 
       IF ( (lx /= n1).OR.(ly /= n2) ) CALL print_err(crtn, ' PROBLEM #1 => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
-      IF ( PRESENT(jt1).AND.PRESENT(jt2) ) THEN
-         its = jt1 ; ite = jt2
-      ELSE
-         its = 1   ; ite = lt
-      END IF
+      its = 1 ; ite = lt
+      IF ( PRESENT(jt1) ) its = jt1
+      IF ( PRESENT(jt2) ) ite = jt2
 
       IF ( PRESENT(jz1).AND.PRESENT(jz2) ) THEN
          izs = jz1 ; ize = jz2
@@ -662,6 +656,8 @@ CONTAINS
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
 
+      IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
+      
       IF ( kt == 0 ) THEN
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs/), count=(/lx,ly,ize/)), &
             &      crtn,cf_in,cv_in)
@@ -709,7 +705,7 @@ CONTAINS
 
       INTEGER :: nx, ny, nk, nt, icz
 
-      crtn = 'GETMASK_2D'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETMASK_2D'
 
       lx = size(IX,1)
       ly = size(IX,2)
@@ -814,7 +810,7 @@ CONTAINS
 
       INTEGER :: nx, ny, nk, nt, izs, ize
 
-      crtn = 'GETMASK_3D'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETMASK_3D'
 
       lx = size(IX,1)
       ly = size(IX,2)
@@ -905,7 +901,7 @@ CONTAINS
       LOGICAL          :: lp = .FALSE.
       REAL(4)          :: rmin, rmax
 
-      crtn = 'PT_SERIES'
+      CHARACTER(len=80), PARAMETER :: crtn = 'PT_SERIES'
 
       nbt = size(vdt1,1)
 
@@ -1069,7 +1065,7 @@ CONTAINS
       LOGICAL  :: lcopy_att_F = .FALSE.
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
-      crtn = 'P2D_T'
+      CHARACTER(len=80), PARAMETER :: crtn = 'P2D_T'
 
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
@@ -1234,7 +1230,7 @@ CONTAINS
          &       lcopy_att_z = .FALSE.
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
-      crtn = 'P3D_T'
+      CHARACTER(len=80), PARAMETER :: crtn = 'P3D_T'
 
       IF ( PRESENT(attr_z) ) lcopy_att_z = .TRUE.
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
@@ -1391,7 +1387,7 @@ CONTAINS
       !!
       INTEGER :: ierr
       !!
-      crtn = 'CHECK_4_MISS'
+      CHARACTER(len=80), PARAMETER :: crtn = 'CHECK_4_MISS'
       !!
       !!
       !! Opening file :
@@ -1451,7 +1447,7 @@ CONTAINS
       INTEGER :: ierr
       CHARACTER(len=400) :: c00
       !!
-      crtn = 'GET_VAR_INFO'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GET_VAR_INFO'
       !!
       !!
       !! Opening file :
@@ -1513,7 +1509,7 @@ CONTAINS
       !!
       LOGICAL :: lzcoord, l_mask
       !!
-      crtn = 'PRTMASK'
+      CHARACTER(len=80), PARAMETER :: crtn = 'PRTMASK'
       !!
       lx = size(xmsk,1) ; ly = size(xmsk,2)
       !!
@@ -1586,7 +1582,7 @@ CONTAINS
 
       INTEGER          :: lx, ly, il0, id_n2, id_n3, id_v1, id_v2, id_v3
 
-      crtn = 'P2D_MAPPING_AB'
+      CHARACTER(len=80), PARAMETER :: crtn = 'P2D_MAPPING_AB'
 
       lx = size(ralfbet,1) ; ly = size(ralfbet,2)
 
@@ -1658,7 +1654,7 @@ CONTAINS
       INTEGER :: id_f
       INTEGER :: id_v1, id_v2, id_v3
 
-      crtn = 'RD_MAPPING_AB'
+      CHARACTER(len=80), PARAMETER :: crtn = 'RD_MAPPING_AB'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cdum)
 
@@ -1712,7 +1708,7 @@ CONTAINS
       CHARACTER(len=64) :: cuXin, cuYin
       INTEGER :: lx, ly, i01, i02
 
-      crtn = 'PHOVMOLLER'
+      CHARACTER(len=80), PARAMETER :: crtn = 'PHOVMOLLER'
 
       lx = size(x2d,1) ; ly = size(x2d,2)
 
@@ -1787,7 +1783,7 @@ CONTAINS
       !! local :
       INTEGER :: ierr1, ierr2
       !!
-      crtn = 'GET_SF_AO'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GET_SF_AO'
       !!
       !!
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in)
@@ -2025,7 +2021,7 @@ CONTAINS
       INTEGER :: i1, i2, is, ncday
       CHARACTER(len=32) :: cdum, chour, cday
       !!
-      crtn = 'GET_TIME_UNIT_T0'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GET_TIME_UNIT_T0'
       i1 = SCAN(cstr, ' ')
       i2 = SCAN(cstr, ' ', back=.TRUE.)
       !!
@@ -2125,8 +2121,7 @@ CONTAINS
       LOGICAL    :: lcontinue
       INTEGER(4) :: jh_t
       REAL(8)    :: rjs_t, rjs_t_old, rjs_t_oo, rjs0_epoch, rjs
-      !!
-      crtn = 'to_epoch_time_scalar'
+      CHARACTER(len=80), PARAMETER :: crtn = 'to_epoch_time_scalar'
       !!
       nb_pass = 1
       IF ( PRESENT(dt) ) THEN
@@ -2257,8 +2252,7 @@ CONTAINS
       LOGICAL    :: lcontinue, l_be_accurate
       INTEGER(4) :: jh_t
       REAL(8)    :: rjs_t, rjs_t_old, rjs0_epoch, zinc, rjs
-      !!
-      crtn = 'to_epoch_time_scalar'
+      CHARACTER(len=80), PARAMETER :: crtn = 'to_epoch_time_vect'
       !!
       l_be_accurate = .FALSE.
       IF ( PRESENT(l_dt_below_sec) ) l_be_accurate = l_dt_below_sec
