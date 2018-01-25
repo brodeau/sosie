@@ -52,41 +52,48 @@ rDPI=100.
 fig_ext='png'
 #fig_ext='svg'
 
+jt1=0 ; jt2=0
+
 narg = len(sys.argv)
-if narg < 3: print 'Usage: '+sys.argv[0]+' <file> <variable>'; sys.exit(0)
-cf_in = sys.argv[1] ; cv_in=sys.argv[2]
 
-#cf_in  = 'result.nc'
-#cf_saral = 'data_ephem.nc'
-#cv_in = 'sossheig'
-#cf_lat = 'lat_ephem.nc'
-    
+print narg
+
+if narg != 4 and narg != 6 :
+    print 'Usage: '+sys.argv[0]+' <file> <variable model> <variable ephem> (<jt1> <jt2>)'; sys.exit(0)
+
+cf_in = sys.argv[1] ; cv_mdl=sys.argv[2] ; cv_eph=sys.argv[3]
+if narg == 6:
+    jt1=int(sys.argv[4]) ; jt2=int(sys.argv[5])
+
 bt.chck4f(cf_in)
-#bt.chck4f(cf_saral)
-
-
-#id_saral = Dataset(cf_saral)
-#vtime  =  id_saral.variables['time'][:]
-#vsaral =  id_saral.variables[cv_in][:]
-#id_saral.close()
-
-#id_lat = Dataset(cf_lat)
-#vlat  =  id_lat.variables['latitude'][:]
-#id_lat.close()
 
 id_in    = Dataset(cf_in)
 vt_epoch = id_in.variables['time'][:]
-vmodel   = id_in.variables[cv_in][:]
+vmodel   = id_in.variables[cv_mdl][:]
+vephem   = id_in.variables[cv_eph][:]
 id_in.close()
 print "  => READ!"
 
 
 nbr = len(vt_epoch)
 
+if jt2 == 0: jt2 = nbr-1
+
+if jt1 >= nbr or jt2 >= nbr:
+    print 'ERROR: the file contains only '+str(nbr)+' time records!' ; sys.exit(0)
+if jt1 >= jt2:
+    print 'ERROR: jt2 must be > jt1!' ; sys.exit(0)
+
+
+
+
+nbp = jt2-jt1+1
+
+print ' *** Considering '+str(nbp)+' points!\n'
+
 # Create Matplotlib time array:
-vtime = nmp.zeros(nbr)
-for jt in range(nbr):
-    vtime[jt] = mdates.epoch2num(vt_epoch[jt])
+vtime = nmp.zeros(nbp)
+for jt in range(nbp): vtime[jt] = mdates.epoch2num(vt_epoch[jt1+jt])
 
 
 
@@ -106,7 +113,11 @@ params = { 'font.family':'Ubuntu',
 #           'figure.facecolor': 'w' }
 mpl.rcParams.update(params)
 
-xticks_d=600.
+ii=nbp/300
+ib=max(ii-ii%10,1)
+print ' ii , ib =', ii, ib
+
+xticks_d=30.*ib
 
 fig = plt.figure(num = 1, figsize=(12,7), facecolor='w', edgecolor='k')
 ax1 = plt.axes([0.07, 0.24, 0.9, 0.75])
@@ -116,9 +127,9 @@ ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
 plt.xticks(rotation='60')
 
 
-#plt.plot(vtime, vsaral, '-', color=color_dark_blue, linewidth=2, label='SARAL', zorder=10)
-plt.plot(vtime, vmodel, '-', color=b_org, linewidth=2,  label='Model', zorder=15)
-ax1.set_ylim(-0.68,0.68) ;# ax1.set_xlim(0.,13.2)
+plt.plot(vtime, vephem[jt1:jt2+1], '-', color=color_dark_blue, linewidth=2, label='Satellite ("'+cv_eph+'")', zorder=10)
+plt.plot(vtime, vmodel[jt1:jt2+1], '-', color=b_org, linewidth=2,  label='Model ("'+cv_mdl+'")', zorder=15)
+ax1.set_ylim(-0.68,0.68) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
 plt.xlabel('Time [seconds since 1970]')
 plt.ylabel('SSH [m]')
 #cstep = '%5.5i'%(jpnij)
