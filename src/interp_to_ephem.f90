@@ -665,52 +665,29 @@ PROGRAM INTERP_TO_EPHEM
    END DO
 
 
-   !WHERE ( IPB(1,:) > 0 ) Ftrack = -9999.
+   !! Masking
    WHERE ( Ftrack > 1.E9 ) Ftrack = -9999.
    WHERE ( Fmask < 1.    ) Ftrack = -9999.
 
    WHERE ( Ftrack_np > 1.E9 ) Ftrack_np = -9999.
-   WHERE ( Ftrack_np < -100. ) Ftrack_np = -9999.
    WHERE ( Fmask < 1.    )    Ftrack_np = -9999.
 
-   Ftrack_np(:) = 0.5
-   
    WHERE ( Ftrack_ephem > 1.E9 )  Ftrack_ephem = -9999.
-   WHERE ( Ftrack_ephem < -100. ) Ftrack_ephem = -9999.
 
 
    
    CALL PT_SERIES(vte(:), REAL(Ftrack,4), 'result.nc', 'time', cv_model, 'm', 'Model data, bi-linear interpolation', -9999., &
-      &           ct_unit=TRIM(cunit_time_out), &
+      &           ct_unit=TRIM(cunit_time_out), lpack=.TRUE., &
       &           vdt2=REAL(Ftrack_np,4),    cv_dt2=TRIM(cv_model)//'_np', cln2='Model data, nearest-point interpolation', &
-      &           vdt3=REAL(Ftrack_ephem,4), cv_dt3=cv_ephem, cln3='Original data as in ephem file...')
+      &           vdt3=REAL(Ftrack_ephem,4), cv_dt3=cv_ephem,              cln3='Original data as in ephem file...',   &
+      &           vdt4=REAL(Xtar(1,it1:it2),4), cv_dt4='longitude',        cln4='Longitude (as in ephem file)',  &
+      &           vdt5=REAL(Ytar(1,it1:it2),4), cv_dt5='latitude',         cln5='Latitude (as in ephem file)' ,  &
+      &           vdt6=REAL(Fmask,4),           cv_dt6='mask',             cln6='Mask' )
    
-
-
-   !CALL PT_SERIES(vte(:), REAL(Fmask,4), 'result_mask.nc', 'time', 'lsm', 'boo', 'ta mere', -9999., ct_unit=TRIM(cunit_time_out))
-
-   !CALL PT_SERIES(vte(:), REAL(Ftrack_ephem,4), 'data_ephem.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
-   
-   !CALL PT_SERIES(vte(:), REAL(Ytar(1,it1:it2),4), 'lat_ephem.nc', 'time', 'latitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
-   !CALL PT_SERIES(vte(:), REAL(Xtar(1,it1:it2),4), 'lon_ephem.nc', 'time', 'longitude', 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
-
-   IF ( l_debug ) THEN
-      DEALLOCATE ( JIidx, JJidx )
-      !CALL PT_SERIES(vte(:), REAL(Ftrack_np,4), 'result_np.nc', 'time', cv_model, 'boo', 'ta mere', -9999., ct_unit=trim(cunit_time_out))
-   END IF
-
-   !DO jte = 1, Nte
-   !  PRINT *, ''
-
-   STOP 'LOLO: stop for now...'
-
+   IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
    DEALLOCATE ( Xtar, Ytar, Ztar )
    DEALLOCATE ( Ftrack, Ftrack_ephem )
-   DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xslp, mask ) !, xtmp4 )
-   !lolo
-
-
-
+   DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xslp, mask )
 
 CONTAINS
 
