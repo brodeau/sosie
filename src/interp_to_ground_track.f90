@@ -232,7 +232,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    idot = SCAN(cf_track, '/', back=.TRUE.)
    cdum = cf_track(idot+1:)
    idot = SCAN(cdum, '.', back=.TRUE.)
-   cconf = trim(cconf)//'__to__'//cdum(:idot-1)
+   cconf = TRIM(cconf)//'__to__'//cdum(:idot-1)
 
    
    PRINT *, ' *** CONFIG: cconf ='//TRIM(cconf)
@@ -572,7 +572,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          IF ( (JIidx(1,jte)>0).AND.(JJidx(1,jte)>0) )  show_track(JIidx(1,jte), JJidx(1,jte)) = REAL(jte,4)
       END DO
       WHERE (mask == 0) show_track = -9999.
-      CALL PRTMASK(REAL(show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
+      CALL PRTMASK(REAL(show_track(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
       DEALLOCATE ( show_track )
    END IF
    
