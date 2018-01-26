@@ -38,12 +38,18 @@ OBJ = obj/io_ezcdf.o \
       obj/mod_nemotools.o
 
 
+OBJ_I2GT = obj/io_ezcdf.o \
+           obj/mod_conf.o \
+           obj/mod_manip.o \
+           obj/mod_bilin_2d.o
+
+
 # Modules to install in $INSTALL_DIR/include :
 MOD_INST= mod/io_ezcdf.mod \
           mod/mod_akima_2d.mod \
           mod/mod_drown.mod
 
-all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x
+all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x
 
 gt: bin/interp_to_ground_track.x
 
@@ -61,14 +67,9 @@ bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 
 
 
-# interp_to_ground_track.x requires the "datetime fortran" library modules to be compiled on your system!
-# => https://github.com/wavebitscientific/datetime-fortran/
-#bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 obj/mod_conf.o $(LIB_SOSIE) $(DATETIME_FORTRAN_DIR)/lib/libdatetime.a
-#	@mkdir -p bin
-#	$(FC) $(FF) -I$(DATETIME_FORTRAN_DIR)/include obj/mod_conf.o src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB) -L$(DATETIME_FORTRAN_DIR)/lib -ldatetime
-bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 obj/mod_conf.o $(LIB_SOSIE)
+bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 $(OBJ_I2GT)
 	@mkdir -p bin
-	$(FC) $(FF) obj/mod_conf.o src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB)
+	$(FC) $(FF) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB_CDF)
 
 
 
@@ -90,7 +91,7 @@ obj/io_ezcdf.o: src/io_ezcdf.f90
 	@mkdir -p mod
 	$(FC) $(FF) -I$(NCDF_INC) -c src/io_ezcdf.f90 -o obj/io_ezcdf.o
 
-obj/mod_conf.o: src/mod_conf.f90
+obj/mod_conf.o: src/mod_conf.f90 obj/io_ezcdf.o
 	@mkdir -p obj
 	@mkdir -p mod
 	$(FC) $(FF) -c src/mod_conf.f90 -o obj/mod_conf.o

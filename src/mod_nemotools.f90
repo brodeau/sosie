@@ -172,7 +172,7 @@ CONTAINS
       REAL(wp), DIMENSION(:,:), ALLOCATABLE :: pt2dr8
       !!----------------------------------------------------------------------
 
-      INTEGER :: jpi, jpj, jpim1
+      INTEGER :: jpi, jpj
 
       jpi = SIZE(pt2d,1)
       jpj = SIZE(pt2d,2)
@@ -197,7 +197,7 @@ CONTAINS
    
 
 
-   SUBROUTINE lbc_nfd_2d( npolj, pt2d, cd_type, psgn, pr2dj )
+   SUBROUTINE lbc_nfd_2d( npolj, pt2d, cd_type, psgn)
       !!----------------------------------------------------------------------
       !!                  ***  routine lbc_nfd_2d  ***
       !!
@@ -215,7 +215,7 @@ CONTAINS
       !                                                      !   = -1. , the sign is changed if north fold boundary
       !                                                      !   =  1. , the sign is kept  if north fold boundary
       REAL(wp), DIMENSION(:,:), INTENT(inout) ::   pt2d      ! 2D array on which the boundary condition is applied
-      INTEGER , OPTIONAL      , INTENT(in   ) ::   pr2dj     !OPTIONAL! number of additional halos
+      !INTEGER , OPTIONAL      , INTENT(in   ) ::   pr2dj     !OPTIONAL! number of additional halos
       !
       INTEGER  ::   ji, jl, ipr2dj
       INTEGER  ::   ijt, iju, ijpj, ijpjm1

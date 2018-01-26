@@ -1,14 +1,10 @@
 PROGRAM INTERP_TO_GROUND_TRACK
 
-   !USE datetime_module, ONLY:datetime ! => https://github.com/wavebitscientific/datetime-fortran/releases
-
    USE io_ezcdf
    USE mod_conf
-   USE mod_drown
-   USE mod_akima_2d
    USE mod_bilin_2d
-   USE mod_manip ! debug
-
+   USE mod_manip
+   
    !!========================================================================
    !! Purpose :
    !!
@@ -25,7 +21,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    LOGICAL, PARAMETER :: &
       &   l_debug = .TRUE., &
-      &   l_debug_mapping = .FALSE., &
+      &   l_debug_mapping = .false., &
       &   l_akima = .true., &
       &   l_bilin = .false.
    !!
@@ -37,7 +33,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER :: Nte, Nten, io, idx, iP, jP, iquadran
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar, Ztar
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: Zpt4
    !!
    !! Coupe stuff:
    REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack, Fmask, Ftrack_np, Ftrack_ephem
@@ -45,9 +40,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
    REAL(8), DIMENSION(:,:),   ALLOCATABLE :: vdepth
    REAL(8), DIMENSION(:),     ALLOCATABLE :: vte, vt_model, vt_ephem   ! in seconds
 
-   REAL(8), DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
-   INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
-   INTEGER, DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
+   REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
+   INTEGER(8), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
+   INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
 
 
    !! Grid, default name :
@@ -60,7 +55,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &    cv_lon = 'glamt',         & ! input grid longitude name, T-points
       &    cv_lat = 'gphit'            ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, cunit, ctrack
+   CHARACTER(len=256)  :: cr, cunit
    CHARACTER(len=512)  :: cdum, cconf
    !!
    !!
@@ -83,13 +78,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER      :: &
       &    jarg,   &
       &    idot,   &
-      &    i0, j0, ifo, ivo,   &
+      &    i0, j0,  &
       &    ni, nj, nk=0, Ntm=0, &
       &    ni1, nj1, ni2, nj2, &
       &    iargc, id_f1, id_v1
    !!
    !!
-   INTEGER :: imin, imax, jmin, jmax, isav, jsav, ji_min, ji_max, jj_min, jj_max, nib, njb
+   INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: xvar, xvar1, xvar2, xslp
 
@@ -103,7 +98,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER :: jt, jte, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
-   REAL(8) :: rA, rB, dlon, dlat, dang, lon_min, lon_max, lat_min, lat_max, rt, rt0, rdt, &
+   REAL(8) :: rt, rt0, rdt, &
       &       t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta, t_min, t_max
    !!
@@ -111,7 +106,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
 
 
-   INTEGER(4) :: itime
    TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
 
    INTEGER :: it1, it2
@@ -428,7 +422,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   !ctrack = TRIM(cf_track(1:LEN(cf_track)-4))
    WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_model), TRIM(cf_track)
    PRINT *, ' * Output file = ', trim(cf_out)
 
@@ -475,7 +468,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ''
    PRINT *, ''
 
-
+   !! Defaults:
+   Nten = Nte
+   it1  = 1 
+   it2  = Nte
+   
    IF ( .NOT. l_debug_mapping ) THEN
       PRINT *, ' Time vector in model file:'
       CALL to_epoch_time_vect( tut_model, vt_model, l_dt_below_sec=.FALSE. )
@@ -520,31 +517,19 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, Nten, '  out of ', Nte
       PRINT *, ' => ', vt_ephem(it1), vt_ephem(it2)
       PRINT *, ''
-
    END IF ! IF ( .NOT. l_debug_mapping )
 
-   !ALLOCATE ( Xtar(1,Nten), Ytar(1,Nten), vt_e(Nten), Ztar(1,Nten) )
-
    ALLOCATE ( IMETRICS(1,Nten,3), RAB(1,Nten,2), IPB(1,Nten) )
-
-
-
-   IF ( l_debug_mapping ) THEN
-      it1  = 1
-      it2  = Nte
-      Nten = Nte
-   END IF
 
 
    !! Main time loop is on time vector in ephem file!
 
 
-   !ALLOCATE ( Xpt(1,1), Ypt(1,1), Zpt4(1,1) )
-
-
    cf_mapping = 'MAPPING__'//TRIM(cconf)//'.nc'
 
    
+
+
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...'
@@ -558,6 +543,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CALL RD_MAPPING_AB(cf_mapping, IMETRICS, RAB, IPB)
    PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mapping),'"'; PRINT *, ''
 
+
+
+   !PRINT *, 'LOLO IMETRICS(1,:,1) =>', IMETRICS(1,:,1)
 
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN

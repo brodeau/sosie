@@ -1162,7 +1162,7 @@ CONTAINS
       !INTEGER                                :: IS_ORCA_NORTH_FOLD
       TYPE(grid_type)                     :: IS_ORCA_NORTH_FOLD
       !!
-      INTEGER :: nx, ny, jj
+      INTEGER :: nx, ny
       CHARACTER(len=128) :: cnlon
 
       !! We need all this 'cname_long' stuff because with our method, there is a

@@ -46,7 +46,7 @@ CONTAINS
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
 
-      USE mod_conf, ONLY: i_orca_in, i_orca_out
+      USE mod_conf, ONLY: i_orca_in
 
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
@@ -754,12 +754,12 @@ CONTAINS
          &                   Nlat_split = 30, &  ! number of latitude bands to split the search work
          &                   nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
 
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
-      INTEGER, DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
+      REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
+      REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
+      INTEGER(8), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
 
       INTEGER :: &
-         &    ji, jj, &
+         &    jj, &
          &    nx_in, ny_in, nx_out, ny_out, &
          &    jlat, ji_out, jj_out, ji_in, jj_in, jj_out_old, &
          &    jmin_in, jmax_in, imin_in, imax_in, niter, &
@@ -767,8 +767,8 @@ CONTAINS
 
       REAL(8) :: rmin_dlat_dj, emax, frac_emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old, zdist, rtmp
 
-      REAL(8) :: y_max_out, y_min_out, x_max_out, x_min_out, y_max_bnd, y_min_bnd, y_max_bnd0, y_min_bnd0, dy, &
-         &       y_max_in, y_min_in, x_max_in, x_min_in
+      REAL(8) :: y_max_out, y_min_out, y_max_bnd, y_min_bnd, y_max_bnd0, y_min_bnd0, dy, &
+         &       y_max_in, y_min_in ! , x_max_out, x_min_out, x_max_in, x_min_in
       REAL(8), DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
 

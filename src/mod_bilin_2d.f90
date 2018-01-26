@@ -18,8 +18,8 @@ MODULE MOD_BILIN_2D
    IMPLICIT NONE
 
    !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
-   REAL(8), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
-   INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iquadran at each point
+   REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
+   INTEGER(8), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iquadran at each point
    INTEGER, DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
 
 
@@ -359,7 +359,7 @@ CONTAINS
          &     iPm1, iPp1,  &
          &     iproblem
 
-      INTEGER, DIMENSION(:,:), ALLOCATABLE :: i_nrst_in, j_nrst_in
+      INTEGER(8), DIMENSION(:,:), ALLOCATABLE :: i_nrst_in, j_nrst_in
 
       REAL(8) ::  &
          &  xP, yP, &
@@ -375,9 +375,9 @@ CONTAINS
          &    loni, lati    !: the 4 grid points around target (1-4) + the target (0)
 
       !! To save in the netcdf file:
-      REAL(8), DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
-      INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iquadran at each point
-      INTEGER, DIMENSION(:,:),   ALLOCATABLE :: mask_metrics
+      REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
+      INTEGER(8), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iquadran at each point
+      INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: mask_metrics
 
       REAL(8) :: alpha, beta
 
@@ -576,7 +576,6 @@ CONTAINS
          ZAB(:,:,2) = 0.5
          mask_metrics(:,:) = mask_metrics(:,:) + 10
       END WHERE
-
 
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, mask_metrics)

@@ -1574,9 +1574,9 @@ CONTAINS
    SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, mproblem)
       INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
       CHARACTER(len=*),          INTENT(in) :: cf_out
-      REAL(8), DIMENSION(:,:),   INTENT(in) :: xlon, xlat
-      INTEGER, DIMENSION(:,:,:), INTENT(in) :: imtrcs
-      REAL(8), DIMENSION(:,:,:), INTENT(in) :: ralfbet
+      REAL(8),    DIMENSION(:,:),   INTENT(in) :: xlon, xlat
+      INTEGER(8), DIMENSION(:,:,:), INTENT(in) :: imtrcs
+      REAL(8),    DIMENSION(:,:,:), INTENT(in) :: ralfbet
       REAL(8),                   INTENT(in) :: vflag
       INTEGER, DIMENSION(:,:),   INTENT(in) :: mproblem
 
@@ -1647,8 +1647,8 @@ CONTAINS
 
    SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet, mproblem)
       CHARACTER(len=*),          INTENT(in)  :: cf_in
-      INTEGER, DIMENSION(:,:,:), INTENT(out) :: imtrcs
-      REAL(8), DIMENSION(:,:,:), INTENT(out) :: ralfbet
+      INTEGER(8), DIMENSION(:,:,:), INTENT(out) :: imtrcs
+      REAL(8),    DIMENSION(:,:,:), INTENT(out) :: ralfbet
       INTEGER, DIMENSION(:,:),   INTENT(out) :: mproblem
 
       INTEGER :: id_f
@@ -2117,9 +2117,8 @@ CONTAINS
       REAL(8)  , OPTIONAL      , INTENT(in) :: dt ! time as specified as cal_unit_ref0
       !!
       REAL(8)    :: zt, zinc
-      INTEGER    :: jy, jmn, jd, inc, jm, jh, jd_old, ipass, nb_pass, js
+      INTEGER    :: jy, jmn, jd, jm, jh, jd_old, ipass, nb_pass, js
       LOGICAL    :: lcontinue
-      INTEGER(4) :: jh_t
       REAL(8)    :: rjs_t, rjs_t_old, rjs_t_oo, rjs0_epoch, rjs
       CHARACTER(len=80), PARAMETER :: crtn = 'to_epoch_time_scalar'
       !!
@@ -2244,13 +2243,12 @@ CONTAINS
       REAL(8)        , DIMENSION(:), INTENT(inout) :: vt           ! time as specified as cal_unit_ref0
       LOGICAL        , OPTIONAL, INTENT(in) :: l_dt_below_sec
       !!
-      REAL(8)    :: zt, dt_min
+      REAL(8)    :: zt !, dt_min
       REAL(8), DIMENSION(:), ALLOCATABLE :: vtmp
 
       INTEGER    :: ntr, jt, jd_old
       INTEGER    :: jy, jmn, jd, jh, jm, js, jx
       LOGICAL    :: lcontinue, l_be_accurate
-      INTEGER(4) :: jh_t
       REAL(8)    :: rjs_t, rjs_t_old, rjs0_epoch, zinc, rjs
       CHARACTER(len=80), PARAMETER :: crtn = 'to_epoch_time_vect'
       !!
