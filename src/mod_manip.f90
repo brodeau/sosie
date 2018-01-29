@@ -730,7 +730,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT(Xout, Yout, Xin, Yin, JIpos, JJpos)
+   SUBROUTINE FIND_NEAREST_POINT(Xout, Yout, Xin, Yin, JIpos, JJpos,  mask_out)
       !!
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
@@ -742,6 +742,9 @@ CONTAINS
       !!
       !!                Laurent Brodeau, July, 2017
       !!
+      !!
+      !! OPTIONAL:
+      !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
       !!---------------------------------------------------------------
 
       !debug: USE io_ezcdf
@@ -758,6 +761,9 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
 
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_out
+
+
       INTEGER :: &
          &    jj, &
          &    nx_in, ny_in, nx_out, ny_out, &
@@ -771,6 +777,7 @@ CONTAINS
          &       y_max_in, y_min_in ! , x_max_out, x_min_out, x_max_in, x_min_in
       REAL(8), DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
+      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out
 
       INTEGER :: jlat_inc    ! 1 if lat increases with j, -1 if decreases with j
       INTEGER, DIMENSION(2) :: jmax_loc, jmin_loc
@@ -820,6 +827,11 @@ CONTAINS
       !!  points...
       l_is_reg_out = L_IS_GRID_REGULAR( Xout , Yout )
       PRINT *, ' *** FIND_NEAREST_POINT => Is target grid regular ??? =>', l_is_reg_out
+
+
+      ALLOCATE ( mask_ignore_out(nx_out,ny_out) )
+      mask_ignore_out(:,:) = 1
+      IF ( PRESENT( mask_out ) ) mask_ignore_out(:,:) = mask_out(:,:)
 
 
       ALLOCATE ( Xdist(nx_in,ny_in) )
@@ -918,50 +930,52 @@ CONTAINS
          !END IF
 
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
-
-            IF ( MOD(jj_out,10)==0 ) PRINT *, ' *** Treated j-point of target domain =', jj_out !REAL(rlat,4)
-
             DO ji_out = 1, nx_out
 
-               rlon = Xout(ji_out,jj_out)
-               rlat = Yout(ji_out,jj_out)
+               IF ( mask_ignore_out(ji_out,jj_out) == 1 ) THEN
 
-               ! Nearest point (in terms of index):
-               ip =  MINLOC(ABS(vlon(:)-rlon))
-               jp =  MINLOC(ABS(vlat(:)-rlat))
+                  IF ( (ji_out==1) .AND. MOD(jj_out,10)==0 ) PRINT *, ' *** Treated j-point of target domain =', jj_out !REAL(rlat,4)
 
-               !! Define the box to scan for shortest distance:
-               imin_in = MAX(ip(1)-nframe_scan ,  1)
-               imax_in = MIN(ip(1)+nframe_scan , nx_in)
-               jmin_in = MAX(jp(1)-nframe_scan ,  1)
-               jmax_in = MIN(jp(1)+nframe_scan , ny_in)
+                  rlon = Xout(ji_out,jj_out)
+                  rlat = Yout(ji_out,jj_out)
 
-               ! Nearest point (in terms of distance):
-               Xdist = 1.E12
-               Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
-               jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
-               ji_in = jmin_loc(1) + imin_in - 1
-               jj_in = jmin_loc(2) + jmin_in - 1
-               JIpos(ji_out,jj_out) = ji_in
-               JJpos(ji_out,jj_out) = jj_in
-               IF ((ji_in==0).OR.(jj_in==0)) THEN
-                  PRINT *, ''
-                  PRINT *, 'The nearest point was not found!'
-                  PRINT *, ' !!! ji_in or jj_in = 0 !!!'
-                  PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
-                  PRINT *, ' Nearest point found on source grid:', &
-                     &  REAL(Xin(ji_in,jj_in) , 4), &
-                     &  REAL(Yin(ji_in,jj_in) , 4)
-                  STOP
+                  ! Nearest point (in terms of index):
+                  ip =  MINLOC(ABS(vlon(:)-rlon))
+                  jp =  MINLOC(ABS(vlat(:)-rlat))
+
+                  !! Define the box to scan for shortest distance:
+                  imin_in = MAX(ip(1)-nframe_scan ,  1)
+                  imax_in = MIN(ip(1)+nframe_scan , nx_in)
+                  jmin_in = MAX(jp(1)-nframe_scan ,  1)
+                  jmax_in = MIN(jp(1)+nframe_scan , ny_in)
+
+                  ! Nearest point (in terms of distance):
+                  Xdist = 1.E12
+                  Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
+                  jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
+                  ji_in = jmin_loc(1) + imin_in - 1
+                  jj_in = jmin_loc(2) + jmin_in - 1
+                  JIpos(ji_out,jj_out) = ji_in
+                  JJpos(ji_out,jj_out) = jj_in
+                  IF ((ji_in==0).OR.(jj_in==0)) THEN
+                     PRINT *, ''
+                     PRINT *, 'The nearest point was not found!'
+                     PRINT *, ' !!! ji_in or jj_in = 0 !!!'
+                     PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
+                     PRINT *, ' Nearest point found on source grid:', &
+                        &  REAL(Xin(ji_in,jj_in) , 4), &
+                        &  REAL(Yin(ji_in,jj_in) , 4)
+                     STOP
+                  END IF
+
+                  IF ( ( JIpos(ji_out,jj_out) == INT(rflg) ).OR.( JJpos(ji_out,jj_out) == INT(rflg) ) ) THEN
+                     PRINT *, 'ERROR in FIND_NEAREST_POINT of mod_bilin_2d.f90 !'
+                     PRINT *, 'Point rlon, rlat', rlon, rlat
+                     PRINT *, 'not found on the source grid!'
+                     STOP
+                  END IF
+
                END IF
-
-               IF ( ( JIpos(ji_out,jj_out) == INT(rflg) ).OR.( JJpos(ji_out,jj_out) == INT(rflg) ) ) THEN
-                  PRINT *, 'ERROR in FIND_NEAREST_POINT of mod_bilin_2d.f90 !'
-                  PRINT *, 'Point rlon, rlat', rlon, rlat
-                  PRINT *, 'not found on the source grid!'
-                  STOP
-               END IF
-
             END DO
          END DO
 
@@ -1060,141 +1074,143 @@ CONTAINS
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
             DO ji_out = 1, nx_out
 
-               rlon = Xout(ji_out,jj_out)
-               rlat = Yout(ji_out,jj_out)
+               IF ( mask_ignore_out(ji_out,jj_out) == 1 ) THEN
 
-               !! Display progression in stdout:
-               IF ( (ji_out == nx_out/2).AND.(jj_out /= jj_out_old) ) THEN
-                  WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
-                  jj_out_old = jj_out
-               END IF
-               IF ( (nx_out == 1).AND.(MOD(jj_out,10)==0) ) &
-                  & WRITE(*,'("*** Treated point of target domain = ",i7," (ouf of ",i7,")")') jj_out, ABS(j_stop_out-j_strt_out+1) ! in case of trajectory/ephem stuff
-               
-               !! We need to ignore target points when their location (lon,lat) is not part of the source domain
-               !!  => only doing it if the chased latitude rlat exists in source domain...                  
-               IF ( (rlat >= y_min_in).AND.(rlat <= y_max_in) ) THEN
-                  !! => only doing it if the chased longitude rlon exists in source domain...
-                  l_lon_here = ANY( (Xin>rlon-1.).AND.(Xin<rlon+1.) )                  
-                  IF (l_lon_here) THEN
-                     
-                     !! Need to find which jlat of our latitude bins rlat is located in!
-                     IF ( rlat /= rlat_old ) THEN
-                        !IF ( jj_out /= jj_out_old ) WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
-                        DO jlat=1,Nlat_split
-                           IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
-                           IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
-                        END DO
+                  rlon = Xout(ji_out,jj_out)
+                  rlat = Yout(ji_out,jj_out)
+
+                  !! Display progression in stdout:
+                  IF ( (ji_out == nx_out/2).AND.(jj_out /= jj_out_old) ) THEN
+                     WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
+                     jj_out_old = jj_out
+                  END IF
+                  IF ( (nx_out == 1).AND.(MOD(jj_out,10)==0) ) &
+                     & WRITE(*,'("*** Treated point of target domain = ",i7," (ouf of ",i7,")")') jj_out, ABS(j_stop_out-j_strt_out+1) ! in case of trajectory/ephem stuff
+
+                  !! We need to ignore target points when their location (lon,lat) is not part of the source domain
+                  !!  => only doing it if the chased latitude rlat exists in source domain...
+                  !IF ( (rlat >= y_min_in).AND.(rlat <= y_max_in) ) THEN
+                  !   !! => only doing it if the chased longitude rlon exists in source domain...
+                  !   l_lon_here = ANY( (Xin>rlon-1.).AND.(Xin<rlon+1.) )
+                  !   IF (l_lon_here) THEN
+
+                  !! Need to find which jlat of our latitude bins rlat is located in!
+                  IF ( rlat /= rlat_old ) THEN
+                     !IF ( jj_out /= jj_out_old ) WRITE(*,'("*** Treated latitude of target domain = ",f7.4," (jj_out = ",i5.5,")")') REAL(rlat,4), jj_out
+                     DO jlat=1,Nlat_split
+                        IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
+                        IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
+                     END DO
+                     !!
+                  END IF
+
+                  lagain    = .TRUE.
+                  lbluff    = .TRUE.
+                  niter     = 0
+                  frac_emax = 0.5
+
+                  DO WHILE ( lagain )
+                     !
+                     !PRINT *, 'New loop for lon, lat:', REAL(rlon,4), REAL(rlat,4)
+                     !PRINT *, ''
+                     !! It's not stupid to assume that the next point to locate is
+                     !! pretty near the previous found point (ji_in,jj_in):
+                     IF ( lbluff ) THEN
+                        imin_in = MAX(ji_in - 5 , 1)
+                        imax_in = MIN(ji_in + 5 , nx_in)
+                        jmin_in = MAX(jj_in - 5 , 1)
+                        jmax_in = MIN(jj_in + 5 , ny_in)
+                     ELSE
+
+                        !PRINT *, 'not bluff...', rlon, rlat
+                        imin_in = 1
+                        imax_in = nx_in
+
+                        !! Using band + niter surrounding:
+                        !PRINT *, ' jlat, niter =>', jlat, niter
+                        jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
+                        jmax_in = IJ_VLAT_IN(MIN(jlat+niter,Nlat_split), 2)
                         !!
+                        IF ( ldebug ) THEN
+                           PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
+                           PRINT *, '     => bin #', jlat
+                           PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
+                        END IF
+
                      END IF
 
-                     lagain    = .TRUE.
-                     lbluff    = .TRUE.
-                     niter     = 0
-                     frac_emax = 0.5
+                     !PRINT *, ' --- imin_in, imax_in, jmin_in, jmax_in: ', imin_in, imax_in, jmin_in, jmax_in
 
-                     DO WHILE ( lagain )
-                        !
-                        !PRINT *, 'New loop for lon, lat:', REAL(rlon,4), REAL(rlat,4)
-                        !PRINT *, ''
-                        !! It's not stupid to assume that the next point to locate is
-                        !! pretty near the previous found point (ji_in,jj_in):
-                        IF ( lbluff ) THEN
-                           imin_in = MAX(ji_in - 5 , 1)
-                           imax_in = MIN(ji_in + 5 , nx_in)
-                           jmin_in = MAX(jj_in - 5 , 1)
-                           jmax_in = MIN(jj_in + 5 , ny_in)
-                        ELSE
-                           
-                           !PRINT *, 'not bluff...', rlon, rlat
-                           imin_in = 1
-                           imax_in = nx_in
+                     Xdist = 1.E12
+                     Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
 
-                           !! Using band + niter surrounding:
-                           !PRINT *, ' jlat, niter =>', jlat, niter
-                           jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
-                           jmax_in = IJ_VLAT_IN(MIN(jlat+niter,Nlat_split), 2)
-                           !!
-                           IF ( ldebug ) THEN
-                              PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
-                              PRINT *, '     => bin #', jlat
-                              PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
-                           END IF
+                     !CALL PRTMASK(REAL(Xdist,4), 'distance_last.nc', 'dist')
 
-                        END IF
+                     !! Nearest point is where distance is smallest:
+                     jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
+                     ji_in = jmin_loc(1) + imin_in - 1
+                     jj_in = jmin_loc(2) + jmin_in - 1
 
-                        !PRINT *, ' --- imin_in, imax_in, jmin_in, jmax_in: ', imin_in, imax_in, jmin_in, jmax_in
+                     !PRINT *, '   => ji_in, jj_in =', ji_in, jj_in
+                     JIpos(ji_out,jj_out) = ji_in
+                     JJpos(ji_out,jj_out) = jj_in
 
-                        Xdist = 1.E12
-                        Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
+                     IF ((ji_in==0).OR.(jj_in==0)) THEN
+                        PRINT *, ''
+                        PRINT *, 'The nearest point was not found!'
+                        PRINT *, ' !!! ji_in or jj_in = 0 !!!'
+                        PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
+                        STOP
+                     END IF
 
-                        !CALL PRTMASK(REAL(Xdist,4), 'distance_last.nc', 'dist')
+                     zdist = Xdist(ji_in,jj_in) ! minimum distance found
 
-                        !! Nearest point is where distance is smallest:
-                        jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
-                        ji_in = jmin_loc(1) + imin_in - 1
-                        jj_in = jmin_loc(2) + jmin_in - 1
+                     emax = MAX(e1_in(ji_in,jj_in),e2_in(ji_in,jj_in))/1000.*SQRT(2.)
 
-                        !PRINT *, '   => ji_in, jj_in =', ji_in, jj_in
-                        JIpos(ji_out,jj_out) = ji_in
-                        JJpos(ji_out,jj_out) = jj_in
-
-                        IF ((ji_in==0).OR.(jj_in==0)) THEN
+                     IF (zdist <= frac_emax*emax) THEN
+                        lagain = .FALSE.
+                        IF ( ldebug .AND. lbluff ) PRINT *, '    --- found with bluff!!! --- '
+                     ELSE
+                        IF (ldebug) THEN
                            PRINT *, ''
-                           PRINT *, 'The nearest point was not found!'
-                           PRINT *, ' !!! ji_in or jj_in = 0 !!!'
                            PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
-                           STOP
+                           PRINT *, ' Nearest point found on source grid:', &
+                              &  REAL(Xin(ji_in,jj_in) , 4), &
+                              &  REAL(Yin(ji_in,jj_in) , 4)
+                           PRINT *, ''
+                           PRINT *, 'The nearest point was not found! zdist / frac_emax*emax ', zdist, frac_emax*emax
+                           PRINT *, 'Xin(1:6,1) =>', Xin(1:6,1) ; PRINT *, ''
+                           PRINT *, 'Xin(nx_in-6:nx_in,1) =>', Xin(nx_in-6:nx_in,1) ; PRINT *, ''
+                           PRINT *, ' jmin_in, jmax_in =>', jmin_in, jmax_in
                         END IF
 
-
-                        zdist = Xdist(ji_in,jj_in) ! minimum distance found
-
-                        emax = MAX(e1_in(ji_in,jj_in),e2_in(ji_in,jj_in))/1000.*SQRT(2.)
-
-                        IF (zdist <= frac_emax*emax) THEN
-                           lagain = .FALSE.
-                           IF ( ldebug .AND. lbluff ) PRINT *, '    --- found with bluff!!! --- '
-                        ELSE
-                           IF (ldebug) THEN
+                        IF (niter > Nlat_split/3) THEN
+                           !! => increasing max. distance
+                           niter = 1
+                           frac_emax = 1.25*frac_emax    !lolo
+                           IF ( frac_emax > 10. ) THEN   !lolo
+                              PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
+                              PRINT *, '     => did not find nearest point for target coordinates:', &
+                                 &              REAL(rlon,4), REAL(rlat,4)
+                              PRINT *, '     => last tested frac_emax was:', frac_emax
                               PRINT *, ''
-                              PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
-                              PRINT *, ' Nearest point found on source grid:', &
-                                 &  REAL(Xin(ji_in,jj_in) , 4), &
-                                 &  REAL(Yin(ji_in,jj_in) , 4)
-                              PRINT *, ''
-                              PRINT *, 'The nearest point was not found! zdist / frac_emax*emax ', zdist, frac_emax*emax
-                              PRINT *, 'Xin(1:6,1) =>', Xin(1:6,1) ; PRINT *, ''
-                              PRINT *, 'Xin(nx_in-6:nx_in,1) =>', Xin(nx_in-6:nx_in,1) ; PRINT *, ''
-                              PRINT *, ' jmin_in, jmax_in =>', jmin_in, jmax_in
+                              lagain = .FALSE.
+                              !! JIpos(ji_out,jj_out) & JJpos(ji_out,jj_out) should normally contain INT(rflg)
+                              !! due to initialization with this value earlier...
+                           ELSE
+                              IF (ldebug) PRINT *, '   => testing new emax mutiple =>', frac_emax
                            END IF
-
-                           IF (niter > Nlat_split/3) THEN
-                              !! => increasing max. distance
-                              niter = 1
-                              frac_emax = 1.25*frac_emax    !lolo
-                              IF ( frac_emax > 10. ) THEN   !lolo
-                                 PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
-                                 PRINT *, '     => did not find nearest point for target coordinates:', &
-                                    &              REAL(rlon,4), REAL(rlat,4)
-                                 PRINT *, '     => last tested frac_emax was:', frac_emax
-                                 PRINT *, ''
-                                 lagain = .FALSE.
-                                 !! JIpos(ji_out,jj_out) & JJpos(ji_out,jj_out) should normally contain INT(rflg)
-                                 !! due to initialization with this value earlier...
-                              ELSE
-                                 IF (ldebug) PRINT *, '   => testing new emax mutiple =>', frac_emax
-                              END IF
-                           END IF
-                           niter = niter + 1
                         END IF
+                        niter = niter + 1
+                     END IF
 
-                        lbluff = .FALSE.
-                     END DO
-                     rlat_old = rlat
+                     lbluff = .FALSE.
+                  END DO
+                  rlat_old = rlat
 
-                  END IF !IF (l_lon_here)
-               END IF !IF ( (rlat >= y_min_in).OR.(rlat <= y_max_in) )
+                  !lolo   END IF !IF (l_lon_here)
+                  !loloEND IF !IF ( (rlat >= y_min_in).OR.(rlat <= y_max_in) )
+               END IF
             END DO
          END DO
 
@@ -1445,6 +1461,10 @@ CONTAINS
 
    END FUNCTION L_IS_GRID_REGULAR
 
+
+   !! ROUTINE degree 0 -- 360 East to -180 -- +180 East :
+   !! xdum = SIGN(1.,180.-xlon_gt)*MIN(xlon_gt,ABS(xlon_gt-360.)) ! like xlon_gt but between -180 and +180 !
+   !!
 
 END MODULE MOD_MANIP
 

@@ -9,7 +9,9 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
-   LOGICAL, SAVE :: l_first_call_interp_routine
+   LOGICAL, SAVE :: l_first_call_interp_routine, &
+      &             l_glob_lon_wize !lolo
+   
 
    LOGICAL, DIMENSION(2) :: l_2d_grid_yet_regular = (/ .FALSE. , .FALSE. /) !: in case input (i=1) and/or output (i=2) domains are
    !!                                      defined with 2D longitude and latitude arrays but their grid is actually regular...
@@ -44,6 +46,7 @@ MODULE MOD_CONF
       &   rsf, rao
 
    REAL(8) ::  &
+      &   lon_min_1, lon_max_1, & !lolo
       &   max_lon_in,  min_lon_in, &
       &   max_lat_in,  min_lat_in, &
       &   max_lat_out, min_lat_out
@@ -202,6 +205,8 @@ MODULE MOD_CONF
       &      data3d_out, &
       &      data3d_tmp  ! horizontal target resol. + vertical source resol.
 
+   INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0) 
+   
    INTEGER(2),   DIMENSION(:,:,:),  ALLOCATABLE ::   &
       &   mask_in, mask_in_b, &  !: land-sea mask on input grid
       &   mask_out               !: land-sea mask on output grid

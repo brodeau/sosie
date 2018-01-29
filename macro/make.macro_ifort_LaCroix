@@ -15,7 +15,7 @@ L_NCDF = -lnetcdff
 
 # Fortran compilation flags:
 # -- Production
-FF = -O3 -i4 -xHOST -traceback -module mod/
+FF = -O3 -i4 -xHOST -traceback -CB -module mod/
 
 # -- Debugging
 #FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C

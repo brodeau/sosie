@@ -40,7 +40,7 @@ MODULE MOD_BILIN_2D
 CONTAINS
 
 
-   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat)
+   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat,  mask_out)
 
       !!================================================================
       !!
@@ -60,6 +60,10 @@ CONTAINS
       !! OUTPUT :
       !!             Z2    : field extrapolated from source to target grid
       !!
+      !!
+      !! OPTIONAL IN:
+      !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
+      !!
       !!================================================================
 
       USE io_ezcdf ; !lolo?
@@ -71,7 +75,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       CHARACTER(len=*),      INTENT(in)  :: cnpat
-
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_out
 
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
@@ -85,6 +89,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
          &    X1, Y1, X2, Y2,   &
          &    lon_in , lat_in, Z_in
+      INTEGER(1), DIMENSION(:,:), ALLOCATABLE   :: mask_ignore_out
 
       CHARACTER(len=2)   :: ctype
 
@@ -112,6 +117,9 @@ CONTAINS
       nx2 = size(Z2,1) ; ny2 = size(Z2,2)
       ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) )
 
+      ALLOCATE ( mask_ignore_out(nx2,ny2) )
+      mask_ignore_out(:,:) = 1
+      IF ( PRESENT(mask_out) ) mask_ignore_out(:,:) = mask_out(:,:)
 
       IF ( ctype == '1d' ) THEN
          DO jj=1, ny2
@@ -169,7 +177,8 @@ CONTAINS
             PRINT *, 'Therefore, you should keep this file for any future interpolation'
             PRINT *, 'using the same "source-target" setup'
 
-            CALL MAPPING_BL(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght)
+            !CALL PRTMASK(REAL(mask_ignore_out,4), 'ignored2.nc', 'ign')  !#lolo            
+            CALL MAPPING_BL(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght, mask_out=mask_ignore_out)
 
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
@@ -183,7 +192,7 @@ CONTAINS
       IF ( l_first_call_interp_routine ) THEN
 
          ALLOCATE ( IMETRICS(nx2,ny2,3), RAB(nx2,ny2,2), IPB(nx2,ny2) )
-         
+
          CALL RD_MAPPING_AB(cf_wght, IMETRICS, RAB, IPB)
          PRINT *, ''; PRINT *, 'Mapping and weights read into ', trim(cf_wght); PRINT *, ''
 
@@ -315,7 +324,7 @@ CONTAINS
       IF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
          PRINT *, ' WARNING: INTERP_BL => at least one of the i,j index is zero!'
       END IF
-      
+
       ! interpolate with non-masked  values, above target point
 
       IF ( wup == 0. ) THEN
@@ -325,13 +334,13 @@ CONTAINS
       ELSE
          INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
-      
+
    END FUNCTION INTERP_BL
 
 
 
 
-   SUBROUTINE MAPPING_BL(k_ew_per, lon_in, lat_in, lon_out, lat_out, cf_w)
+   SUBROUTINE MAPPING_BL(k_ew_per, lon_in, lat_in, lon_out, lat_out, cf_w,  mask_out)
 
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
@@ -339,7 +348,8 @@ CONTAINS
       !!   ** Purpose:  Write file of position, weight need by interpolation
       !!   *  Extract of CDFTOOLS cdfweight.f90 writen by Jean Marc Molines
       !!
-      !!
+      !! OPTIONAL:
+      !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
       !!----------------------------------------------------------------------------
 
       USE io_ezcdf
@@ -350,7 +360,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_in, lat_in
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_out, lat_out
       CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
-
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_out
 
       INTEGER :: &
          &     nxi, nyi, nxo, nyo, &
@@ -378,166 +388,176 @@ CONTAINS
       REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
       INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iquadran at each point
       INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: mask_metrics
+      INTEGER(1), DIMENSION(:,:), ALLOCATABLE   :: mask_ignore_out
 
       REAL(8) :: alpha, beta
-
 
       nxi = size(lon_in,1)
       nyi = size(lon_in,2)
 
       nxo = size(lon_out,1)
       nyo = size(lon_out,2)
-
-
+      
       ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3) )
 
       ALLOCATE ( mask_metrics(nxo,nyo) )
       mask_metrics(:,:) = 0
-      
+
       ALLOCATE ( i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
+
+
+      ALLOCATE ( mask_ignore_out(nxo,nyo) )
+      mask_ignore_out(:,:) = 1
+      IF ( PRESENT(mask_out) ) mask_ignore_out(:,:) = mask_out(:,:)
+
       
-      CALL FIND_NEAREST_POINT( lon_out, lat_out, lon_in, lat_in, i_nrst_in, j_nrst_in )
+      !CALL PRTMASK(REAL(mask_ignore_out,4), 'ignored_in_MAPPING_BL.nc', 'ign')  !#lolo
       
+      CALL FIND_NEAREST_POINT( lon_out, lat_out, lon_in, lat_in, i_nrst_in, j_nrst_in,   mask_out=mask_ignore_out )
+
       DO jj = 1, nyo
          DO ji = 1, nxo
 
-            !IF ( (ji == 1).AND.(MOD(jj,10)==0) ) PRINT *, ' *** j index =>',jj,'/',nyo
+            IF ( mask_ignore_out(ji,jj)==1 ) THEN
 
-            !! Now deal with horizontal interpolation
-            !! set longitude of input point in accordance with lon ( [lon0, 360+lon0 [ )
-            xP = lon_out(ji,jj)
-            yP = lat_out(ji,jj)
+               !IF ( (ji == 1).AND.(MOD(jj,10)==0) ) PRINT *, ' *** j index =>',jj,'/',nyo
 
-            iP = i_nrst_in(ji,jj)
-            jP = j_nrst_in(ji,jj)
+               !! Now deal with horizontal interpolation
+               !! set longitude of input point in accordance with lon ( [lon0, 360+lon0 [ )
+               xP = lon_out(ji,jj)
+               yP = lat_out(ji,jj)
 
-            IF ( (ip /= INT(rflg)).AND.(jp /= INT(rflg)) ) THEN
+               iP = i_nrst_in(ji,jj)
+               jP = j_nrst_in(ji,jj)
 
-               iPm1 = iP-1
-               iPp1 = iP+1
+               IF ( (ip /= INT(rflg)).AND.(jp /= INT(rflg)) ) THEN
 
-               IF ( iPm1 == 0 ) THEN
-                  !! We are in the extended case !!!
-                  IF ( k_ew_per>=0 ) iPm1 = nxi - k_ew_per
-               END IF
+                  iPm1 = iP-1
+                  iPp1 = iP+1
 
-               IF ( iPp1 == nxi+1 ) THEN
-                  IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
-               END IF
-
-               IF ((iPm1 < 1).OR.(jP-1 < 1).OR.(iPp1 > nxi).OR.(jP+1 > nyi)) THEN !lulu
-                  PRINT *, 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
-                  PRINT *, '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
-                  PRINT *, ''
-               ELSE
-
-                  lonP = MOD(lon_in(iP,jP)  , 360._8) ; latP = lat_in(iP,jP)   ! nearest point
-                  lonN = MOD(lon_in(iP,jP+1), 360._8) ; latN = lat_in(iP,jP+1) ! N (grid)
-                  lonE = MOD(lon_in(iPp1,jP), 360._8) ; latE = lat_in(iPp1,jP) ! E (grid)
-                  lonS = MOD(lon_in(iP,jP-1), 360._8) ; latS = lat_in(iP,jP-1) ! S (grid)
-                  lonW = MOD(lon_in(iPm1,jP), 360._8) ; latW = lat_in(iPm1,jP) ! W (grid)
-
-                  !! Restore target point longitude between 0 and 360
-                  xP = MOD(xP,360._8)
-
-
-                  !!LB:
-                  !! All this HEADING stuf is aimed at finding in which source grid cell
-                  !! the target point is comprised with regards to the nearest point
-                  !! (there is actually 4 possible adjacent cells NE, SE, SW and NW)
-
-                  !! Compute heading of target point and neighbours from the nearest point
-                  hP = heading(lonP,  xP,latP,  yP)  ! target point
-                  hN = heading(lonP,lonN,latP,latN)  ! 'north' on the grid
-                  hE = heading(lonP,lonE,latP,latE)  ! 'east' on the grid
-                  hS = heading(lonP,lonS,latP,latS)  ! 'south' on the grid
-                  hW = heading(lonP,lonW,latP,latW)  ! 'west' on the grid
-                  !!  => returns an angle !
-
-                  !! determine the sector in wich the target point is located:
-                  !!  ( from 1, to 4 resp. adjacent cells NE, SE, SW, NW  of the grid)
-                  !!  which mesh from the nearest point point-of-view !
-                  !!
-                  !!   o--o        x--o         o--x         o--o
-                  !! 1 |  | NE   2 |  | SE    3 |  | SW    4 |  | NW
-                  !!   x--o        o--o         o--o         o--x
-
-                  iquadran = 4
-
-                  ! to avoid problem with the GW meridian, pass to -180, 180 when working around GW
-                  IF ( hP > 180. ) THEN
-                     hPp = hP - 360._8
-                  ELSE
-                     hPp = hP
-                  ENDIF
-
-                  IF ( hN > hE ) hN = hN -360._8
-                  IF ( hPp > hN .AND. hPp <= hE ) iquadran=1
-                  IF ( hP > hE  .AND. hP <= hS )  iquadran=2
-                  IF ( hP > hS  .AND. hP <= hW )  iquadran=3
-                  IF ( hP > hW  .AND. hPp <= hN)  iquadran=4
-
-                  loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
-                  loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
-
-                  SELECT CASE ( iquadran ) ! point 2 3 4 are counter clockwise in the respective sector
-                  CASE ( 1 )
-                     loni(2) = lonE ; lati(2) = latE
-                     loni(3) = MOD(lon_in(iPp1,jP+1), 360._8) ; lati(3) = lat_in(iPp1,jP+1)
-                     loni(4) = lonN ; lati(4) = latN
-                  CASE ( 2 )
-                     loni(2) = lonS ; lati(2) = latS
-                     loni(3) = MOD(lon_in(iPp1,jP-1), 360._8) ; lati(3) = lat_in(iPp1,jP-1)
-                     loni(4) = lonE ; lati(4) = latE
-                  CASE ( 3 )
-                     loni(2) = lonW ; lati(2) = latW
-                     loni(3) = MOD(lon_in(iPm1,jP-1), 360._8) ; lati(3) = lat_in(iPm1,jP-1)
-                     loni(4) = lonS ; lati(4) = latS
-                  CASE ( 4 )
-                     loni(2) = lonN ; lati(2) = latN
-                     loni(3) = MOD(lon_in(iPm1,jP+1), 360._8) ; lati(3) = lat_in(iPm1,jP+1)
-                     loni(4) = lonW ; lati(4) = latW
-                  END SELECT
-
-                  WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
-
-                  !! resolve a non linear system of equation for alpha and beta
-                  !! ( the non dimensional coordinates of target point)
-                  CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
-                  mask_metrics(ji,jj) = iproblem
-
-                  !ELSE   ! point is outside the domaine, put dummy values
-                  !   alpha = rflg
-                  !   beta  = rflg
-                  !   mask_metrics(ji,jj) = 1
-                  !ENDIF
-
-
-                  IF (ldebug) THEN
-                     PRINT *, 'Nearest point :',lonP,  latP,  hP, hPp
-                     PRINT *, 'North point :',  lonN , latN , hN
-                     PRINT *, 'East  point :',  lonE , latE , hE
-                     PRINT *, 'South point :',  lonS , latS , hS
-                     PRINT *, 'West  point :',  lonW , latW , hW
-                     PRINT *, 'iquadran =',iquadran
-                     PRINT *, ''
-                     PRINT *, ' Nearest 4 points :'
-                     PRINT *, 'Pt 1 :',loni(1), lati(1)
-                     PRINT *, 'Pt 2 :',loni(2), lati(2)
-                     PRINT *, 'Pt 3 :',loni(3), lati(3)
-                     PRINT *, 'Pt 4 :',loni(4), lati(4)
-                     PRINT *, ''
+                  IF ( iPm1 == 0 ) THEN
+                     !! We are in the extended case !!!
+                     IF ( k_ew_per>=0 ) iPm1 = nxi - k_ew_per
                   END IF
 
-                  !! Saving into arrays to be written at the end:
-                  !MTRCS(ji,jj,:) = (/ iP, jP, iquadran /)
-                  MTRCS(ji,jj,3) = iquadran
-                  ZAB(ji,jj,:)   = (/ alpha, beta /)
+                  IF ( iPp1 == nxi+1 ) THEN
+                     IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
+                  END IF
 
-               END IF !lulu
+                  IF ((iPm1 < 1).OR.(jP-1 < 1).OR.(iPp1 > nxi).OR.(jP+1 > nyi)) THEN !lulu
+                     PRINT *, 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
+                     PRINT *, '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
+                     PRINT *, ''
+                  ELSE
+
+                     lonP = MOD(lon_in(iP,jP)  , 360._8) ; latP = lat_in(iP,jP)   ! nearest point
+                     lonN = MOD(lon_in(iP,jP+1), 360._8) ; latN = lat_in(iP,jP+1) ! N (grid)
+                     lonE = MOD(lon_in(iPp1,jP), 360._8) ; latE = lat_in(iPp1,jP) ! E (grid)
+                     lonS = MOD(lon_in(iP,jP-1), 360._8) ; latS = lat_in(iP,jP-1) ! S (grid)
+                     lonW = MOD(lon_in(iPm1,jP), 360._8) ; latW = lat_in(iPm1,jP) ! W (grid)
+
+                     !! Restore target point longitude between 0 and 360
+                     xP = MOD(xP,360._8)
+
+
+                     !!LB:
+                     !! All this HEADING stuf is aimed at finding in which source grid cell
+                     !! the target point is comprised with regards to the nearest point
+                     !! (there is actually 4 possible adjacent cells NE, SE, SW and NW)
+
+                     !! Compute heading of target point and neighbours from the nearest point
+                     hP = heading(lonP,  xP,latP,  yP)  ! target point
+                     hN = heading(lonP,lonN,latP,latN)  ! 'north' on the grid
+                     hE = heading(lonP,lonE,latP,latE)  ! 'east' on the grid
+                     hS = heading(lonP,lonS,latP,latS)  ! 'south' on the grid
+                     hW = heading(lonP,lonW,latP,latW)  ! 'west' on the grid
+                     !!  => returns an angle !
+
+                     !! determine the sector in wich the target point is located:
+                     !!  ( from 1, to 4 resp. adjacent cells NE, SE, SW, NW  of the grid)
+                     !!  which mesh from the nearest point point-of-view !
+                     !!
+                     !!   o--o        x--o         o--x         o--o
+                     !! 1 |  | NE   2 |  | SE    3 |  | SW    4 |  | NW
+                     !!   x--o        o--o         o--o         o--x
+
+                     iquadran = 4
+
+                     ! to avoid problem with the GW meridian, pass to -180, 180 when working around GW
+                     IF ( hP > 180. ) THEN
+                        hPp = hP - 360._8
+                     ELSE
+                        hPp = hP
+                     ENDIF
+
+                     IF ( hN > hE ) hN = hN -360._8
+                     IF ( hPp > hN .AND. hPp <= hE ) iquadran=1
+                     IF ( hP > hE  .AND. hP <= hS )  iquadran=2
+                     IF ( hP > hS  .AND. hP <= hW )  iquadran=3
+                     IF ( hP > hW  .AND. hPp <= hN)  iquadran=4
+
+                     loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
+                     loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
+
+                     SELECT CASE ( iquadran ) ! point 2 3 4 are counter clockwise in the respective sector
+                     CASE ( 1 )
+                        loni(2) = lonE ; lati(2) = latE
+                        loni(3) = MOD(lon_in(iPp1,jP+1), 360._8) ; lati(3) = lat_in(iPp1,jP+1)
+                        loni(4) = lonN ; lati(4) = latN
+                     CASE ( 2 )
+                        loni(2) = lonS ; lati(2) = latS
+                        loni(3) = MOD(lon_in(iPp1,jP-1), 360._8) ; lati(3) = lat_in(iPp1,jP-1)
+                        loni(4) = lonE ; lati(4) = latE
+                     CASE ( 3 )
+                        loni(2) = lonW ; lati(2) = latW
+                        loni(3) = MOD(lon_in(iPm1,jP-1), 360._8) ; lati(3) = lat_in(iPm1,jP-1)
+                        loni(4) = lonS ; lati(4) = latS
+                     CASE ( 4 )
+                        loni(2) = lonN ; lati(2) = latN
+                        loni(3) = MOD(lon_in(iPm1,jP+1), 360._8) ; lati(3) = lat_in(iPm1,jP+1)
+                        loni(4) = lonW ; lati(4) = latW
+                     END SELECT
+
+                     WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
+
+                     !! resolve a non linear system of equation for alpha and beta
+                     !! ( the non dimensional coordinates of target point)
+                     CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
+                     mask_metrics(ji,jj) = iproblem
+
+                     !ELSE   ! point is outside the domaine, put dummy values
+                     !   alpha = rflg
+                     !   beta  = rflg
+                     !   mask_metrics(ji,jj) = 1
+                     !ENDIF
+
+
+                     IF (ldebug) THEN
+                        PRINT *, 'Nearest point :',lonP,  latP,  hP, hPp
+                        PRINT *, 'North point :',  lonN , latN , hN
+                        PRINT *, 'East  point :',  lonE , latE , hE
+                        PRINT *, 'South point :',  lonS , latS , hS
+                        PRINT *, 'West  point :',  lonW , latW , hW
+                        PRINT *, 'iquadran =',iquadran
+                        PRINT *, ''
+                        PRINT *, ' Nearest 4 points :'
+                        PRINT *, 'Pt 1 :',loni(1), lati(1)
+                        PRINT *, 'Pt 2 :',loni(2), lati(2)
+                        PRINT *, 'Pt 3 :',loni(3), lati(3)
+                        PRINT *, 'Pt 4 :',loni(4), lati(4)
+                        PRINT *, ''
+                     END IF
+
+                     !! Saving into arrays to be written at the end:
+                     !MTRCS(ji,jj,:) = (/ iP, jP, iquadran /)
+                     MTRCS(ji,jj,3) = iquadran
+                     ZAB(ji,jj,:)   = (/ alpha, beta /)
+
+                  END IF !lulu
+
+               END IF
 
             END IF
-
          ENDDO
       ENDDO
 

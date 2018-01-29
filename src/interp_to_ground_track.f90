@@ -32,7 +32,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER :: Nte, Nten, io, idx, iP, jP, iquadran
    !!
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xtar, Ytar, Ztar
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xgt, Ygt, Fgt, xlon_gt, xlat_gt, xdum
    !!
    !! Coupe stuff:
    REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack, Fmask, Ftrack_np, Ftrack_ephem
@@ -43,7 +43,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
    INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
    INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
-
 
    !! Grid, default name :
    CHARACTER(len=80) :: &
@@ -105,17 +104,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
 
-
+   REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max
+   
    TYPE(t_unit_t0) :: tut_epoch, tut_ephem, tut_model
 
    INTEGER :: it1, it2
-
-   !TYPE(datetime) :: dt_r0
-
-   !dt_r0 = datetime(1977,4,19,0,0,0)
-
-   !PRINT *, ' T epoch for 1977-04-19 =>', dt_r0%secondsSinceEpoch()
-
 
    CHARACTER(80), PARAMETER :: cunit_time_out = 'seconds since 1970-01-01 00:00:00'
 
@@ -128,16 +121,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
    tut_epoch%minute = 0
    tut_epoch%second = 0
 
-
    PRINT *, ''
 
-   !tut_ephem  = GET_TIME_UNIT_T0('days since 1950-01-01 00:00:00')
-   !PRINT *, ' tut_ephem =', tut_ephem
-   !tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01 00:00:00')
-   !PRINT *, ' tut_model =', tut_model
-   !STOP
-
-
+   
    !! Getting string arguments :
    !! --------------------------
 
@@ -350,10 +336,47 @@ PROGRAM INTERP_TO_GROUND_TRACK
    ! Longitude array:
    CALL GETVAR_2D   (i0, j0, cf_mm, cv_lon, 0, 0, 0, xdum2d)
    xlont(:,:) = xdum2d(:,:) ; i0=0 ; j0=0
+   !!
+   
+
+   !! Min an max lon:
+   lon_min_1 = MINVAL(xlont)
+   lon_max_1 = MAXVAL(xlont)
+   PRINT *, ' *** Minimum longitude on source domain before : ', lon_min_1
+   PRINT *, ' *** Maximum longitude on source domain before : ', lon_max_1
+   !!
    WHERE ( xdum2d < 0. ) xlont = xlont + 360.0_8
+   !!
+   lon_min_2 = MINVAL(xlont)
+   lon_max_2 = MAXVAL(xlont)
+   PRINT *, ' *** Minimum longitude on source domain: ', lon_min_2
+   PRINT *, ' *** Maximum longitude on source domain: ', lon_max_2
+
+   IF ( (lon_min_2 >= 0.).AND.(lon_min_2<2.5).AND.(lon_max_2>357.5).AND.(lon_max_2<=360.) ) THEN
+      l_glob_lon_wize = .TRUE.
+      PRINT *, 'Looks like global setup (longitude-wise at least...)'
+   ELSE
+      PRINT *, 'Looks like regional setup (longitude-wise at least...)'
+      l_glob_lon_wize = .FALSE.
+      !!
+      WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
+   END IF
+   PRINT *, ''
+   
    ! Latitude array:
    CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xdum2d)
    xlatt(:,:) = xdum2d(:,:) ; i0=0 ; j0=0
+
+   !! Min an max lat:
+   lat_min = MINVAL(xlatt)
+   lat_max = MAXVAL(xlatt)
+   PRINT *, ' *** Minimum latitude on source domain : ', lat_min
+   PRINT *, ' *** Maximum latitude on source domain : ', lat_max
+         WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), lat_min,lat_max
+   PRINT *, ''
+
+
+
    !! 3D LSM
    CALL GETMASK_2D(cf_mm, cv_mt, mask, jlev=1)
 
@@ -375,11 +398,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
          Nte = Nte + 1
       END DO
       PRINT*, Nte, ' points in '//TRIM(cf_track)//'...'
-      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte), Ztar(1,Nte) )
+      ALLOCATE ( Xgt(1,Nte), Ygt(1,Nte), vt_ephem(Nte), Fgt(1,Nte) )
       !!
       REWIND(13)
       DO jte = 1, Nte
-         READ(13,*) vt_ephem(jte), Xtar(1,jte), Ytar(1,jte)
+         READ(13,*) vt_ephem(jte), Xgt(1,jte), Ygt(1,jte)
       END DO
       CLOSE(13)
 
@@ -388,11 +411,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, 'NetCDF orbit ephem!'
       CALL DIMS(cf_track, 'time', Nte, nj1, nk, ni1)
       PRINT *, ' *** Nb. time records in NetCDF ephem file:', Nte
-      ALLOCATE ( Xtar(1,Nte), Ytar(1,Nte), vt_ephem(Nte), Ztar(1,Nte))
+      ALLOCATE ( Xgt(1,Nte), Ygt(1,Nte), vt_ephem(Nte), Fgt(1,Nte))
       CALL GETVAR_1D(cf_track, 'time', vt_ephem)
-      CALL GETVAR_1D(cf_track, 'longitude', Xtar(1,:))
-      CALL GETVAR_1D(cf_track, 'latitude',  Ytar(1,:))
-      CALL GETVAR_1D(cf_track, cv_ephem,  Ztar(1,:))
+      CALL GETVAR_1D(cf_track, 'longitude', Xgt(1,:))
+      CALL GETVAR_1D(cf_track, 'latitude',  Ygt(1,:))
+      CALL GETVAR_1D(cf_track, cv_ephem,  Fgt(1,:))
       PRINT *, 'Done!'; PRINT *, ''
    END IF
 
@@ -511,8 +534,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, ''
    END IF ! IF ( .NOT. l_debug_mapping )
 
-   ALLOCATE ( IMETRICS(1,Nten,3), RAB(1,Nten,2), IPB(1,Nten) )
+   ALLOCATE ( IMETRICS(1,Nten,3), RAB(1,Nten,2), IPB(1,Nten), IGNORE(1,Nten), xlon_gt(1,Nten), xlat_gt(1,Nten) )
 
+   IGNORE(:,:) = 1 !lolo
 
    !! Main time loop is on time vector in ephem file!
 
@@ -520,12 +544,29 @@ PROGRAM INTERP_TO_GROUND_TRACK
    cf_mapping = 'MAPPING__'//TRIM(cconf)//'.nc'
 
 
+   !! 
+   xlon_gt(:,:) = Xgt(:,it1:it2)
+   xlat_gt(:,:) = Ygt(:,it1:it2)
+
+   DEALLOCATE ( Xgt, Ygt )
+   
+   IF ( .NOT. l_glob_lon_wize ) THEN
+      ALLOCATE ( xdum(1,Nten) )
+      xdum = SIGN(1.,180.-xlon_gt)*MIN(xlon_gt,ABS(xlon_gt-360.)) ! like xlon_gt but between -180 and +180 !
+      WHERE ( xdum < lon_min_1 ) IGNORE=0
+      WHERE ( xdum > lon_max_1 ) IGNORE=0
+      DEALLOCATE ( xdum )
+   END IF
+
+   WHERE ( xlat_gt < lat_min ) IGNORE=0
+   WHERE ( xlat_gt > lat_max ) IGNORE=0
 
 
+   
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...'
-      CALL MAPPING_BL(-1, xlont, xlatt, Xtar(:,it1:it2), Ytar(:,it1:it2), cf_mapping)
+      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt, xlat_gt, cf_mapping,  mask_out=IGNORE)
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
       PRINT *, ' *** File "',trim(cf_mapping),'" found in current directory, using it!'
@@ -543,7 +584,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    IF ( l_debug ) THEN
       ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) )
       !! Finding and storing the nearest points of NEMO grid to ephem points:
-      !CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont, xlatt,  JIidx, JJidx)
+      !CALL FIND_NEAREST_POINT(Xgt, Ygt, xlont, xlatt,  JIidx, JJidx)
       JIidx(1,:) = IMETRICS(1,:,1)
       JJidx(1,:) = IMETRICS(1,:,2)
       ALLOCATE ( show_track(nib,njb) )
@@ -553,6 +594,15 @@ PROGRAM INTERP_TO_GROUND_TRACK
       END DO
       WHERE (mask == 0) show_track = -9999.
       CALL PRTMASK(REAL(show_track(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
+      !lolo:
+      !CALL PRTMASK(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
+      !show_track = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
+      !CALL PRTMASK(REAL(show_track(:,:),4), 'lon_-180-180.nc', 'lon')
+      !WHERE ( (show_track > 10.).OR.(show_track < -90.) ) show_track = -800.
+      !CALL PRTMASK(REAL(show_track(:,:),4), 'lon_masked.nc', 'lon')
+      !STOP 'interp_to_ground_track.f90'
+      !lolo.
+      
       DEALLOCATE ( show_track )
    END IF
 
@@ -570,7 +620,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    Ftrack_np(:) = -9999.
    Ftrack_ephem(:) = -9999.
    Ftrack(:) = -9999.
-   Fmask(:) = -9999.
+   Fmask(:) = 0.
 
    jt_s = 1 ; ! time step model!
 
@@ -593,19 +643,19 @@ PROGRAM INTERP_TO_GROUND_TRACK
          jtm_2 = jt+1
          IF (jte==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
 
-         PRINT *, ' rt, vt_model(jtm_1), vt_model(jtm_2) =>', rt, vt_model(jtm_1), vt_model(jtm_2)
+         !PRINT *, ' rt, vt_model(jtm_1), vt_model(jtm_2) =>', rt, vt_model(jtm_1), vt_model(jtm_2)
          !!
          !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
          IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
             IF ( jtm_1_o == -100 ) THEN
-               PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_1=', jtm_1
-               PRINT *, 'LOLO: id_f1, id_v1, jtm_1 =>', id_f1, id_v1, jtm_1
+               !PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_1=', jtm_1
+               !PRINT *, 'LOLO: id_f1, id_v1, jtm_1 =>', id_f1, id_v1, jtm_1
                CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_1, xvar1, jt1=jt_s)
             ELSE
-               PRINT *, 'Getting field '//TRIM(cv_model)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
+               !PRINT *, 'Getting field '//TRIM(cv_model)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
             END IF
-            PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_2=', jtm_2
+            !PRINT *, 'Reading field '//TRIM(cv_model)//' in '//TRIM(cf_model)//' at jtm_2=', jtm_2
             CALL GETVAR_2D(id_f1, id_v1, cf_model, cv_model, Ntm, 0, jtm_2, xvar2, jt1=jt_s)
             xslp = (xvar2 - xvar1) / (vt_model(jtm_2) - vt_model(jtm_1)) ! slope...
 
@@ -629,9 +679,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
          ELSE
             !! INTERPOLATION !
             Ftrack(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
-            Fmask(jte)  = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(mask,8))
             !!
-            Ftrack_ephem(jte) = Ztar(1,it1+jte-1) ! Input ephem data
+            Ftrack_ephem(jte) = Fgt(1,it1+jte-1) ! Input ephem data
             !!
          END IF
 
@@ -648,13 +697,15 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Masking
    WHERE ( Ftrack > 1.E9 ) Ftrack = -9999.
-   WHERE ( Fmask < 1.    ) Ftrack = -9999.
+   !WHERE ( Fmask < 1.    ) Ftrack = -9999.
+   WHERE ( IGNORE(1,:)==0    ) Ftrack = -9999.
 
    WHERE ( Ftrack_np > 1.E9 ) Ftrack_np = -9999.
-   WHERE ( Fmask < 1.    )    Ftrack_np = -9999.
+   !WHERE ( Fmask < 1.    )    Ftrack_np = -9999.
+   WHERE ( IGNORE(1,:)==0    )    Ftrack_np = -9999.
 
    WHERE ( Ftrack_ephem > 1.E9 )  Ftrack_ephem = -9999.
-
+   WHERE ( IGNORE(1,:)==0    )    Ftrack_ephem = -9999.
 
    PRINT *, ''
    !WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_model), TRIM(cf_track)
@@ -670,12 +721,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &           ct_unit=TRIM(cunit_time_out), lpack=.TRUE., &
       &           vdt2=REAL(Ftrack_np,4),    cv_dt2=TRIM(cv_model)//'_np', cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_ephem,4), cv_dt3=cv_ephem,              cln3='Original data as in ephem file...',   &
-      &           vdt4=REAL(Xtar(1,it1:it2),4), cv_dt4='longitude',        cln4='Longitude (as in ephem file)',  &
-      &           vdt5=REAL(Ytar(1,it1:it2),4), cv_dt5='latitude',         cln5='Latitude (as in ephem file)' ,  &
-      &           vdt6=REAL(Fmask,4),           cv_dt6='mask',             cln6='Mask' )
+      &           vdt4=REAL(xlon_gt(1,:),4), cv_dt4='longitude',           cln4='Longitude (as in ephem file)',  &
+      &           vdt5=REAL(xlat_gt(1,:),4), cv_dt5='latitude',            cln5='Latitude (as in ephem file)' ,  &
+      &           vdt6=REAL(Fmask,4),        cv_dt6='mask',                cln6='Mask', &
+      &           vdt7=REAL(IGNORE(1,:),4),  cv_dt7='ignore_out',          cln7='Ignore mask on target track (ignored where ignore_out==0)')
 
    IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
-   DEALLOCATE ( Xtar, Ytar, Ztar )
+   DEALLOCATE ( Fgt )
    DEALLOCATE ( Ftrack, Ftrack_ephem )
    DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xslp, mask )
 

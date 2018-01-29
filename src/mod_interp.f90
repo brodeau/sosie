@@ -24,6 +24,9 @@ CONTAINS
       !! 2D INTERPOLATION
       !! ================
 
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
+
+      
       !! lon-aranging or lat-flipping field
       IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data_in)
       IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_in)
@@ -57,9 +60,9 @@ CONTAINS
 
       CASE('akima')
          CALL akima_2d(ewper, lon_in, lat_in, data_in, lon_out, lat_out, data_out)
-
+         
       CASE('bilin')
-         CALL bilin_2d(ewper, lon_in, lat_in, data_in, lon_out, lat_out, data_out, cpat)
+         CALL bilin_2d(ewper, lon_in, lat_in, data_in, lon_out, lat_out, data_out, cpat,  mask_out=IGNORE)
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'

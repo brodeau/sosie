@@ -1636,8 +1636,6 @@ CONTAINS
       CALL sherr( NF90_PUT_VAR(id_f, id_lo, xlon),     crtn,cf_out,'lon')
       CALL sherr( NF90_PUT_VAR(id_f, id_la, xlat),     crtn,cf_out,'lat')
 
-      PRINT *, 'imtrcs =>', imtrcs
-      
       CALL sherr( NF90_PUT_VAR(id_f, id_v1,  imtrcs),  crtn,cf_out,'metrics')
       CALL sherr( NF90_PUT_VAR(id_f, id_v2, ralfbet),  crtn,cf_out,'alphabeta')
       CALL sherr( NF90_PUT_VAR(id_f, id_v3, mproblem), crtn,cf_out,'iproblem')

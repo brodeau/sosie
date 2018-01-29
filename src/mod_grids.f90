@@ -90,6 +90,8 @@ CONTAINS
       !lolo: remettre: USE io_ezcdf, ONLY: getvar_attributes
       USE io_ezcdf
 
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
+      
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
          lregout = lregin
          !! Geting them from source file:
@@ -102,8 +104,8 @@ CONTAINS
       CALL know_dim_out()
 
       !! Allocate output arrays with output dimensions :
-      ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out) )
-
+      ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out), IGNORE(ni_out,nj_out) )
+      
       IF ( .NOT. lmout ) mask_out(:,:,:) = 1 ; !lolo
 
       IF ( lregout ) THEN
@@ -122,7 +124,7 @@ CONTAINS
       IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) ALLOCATE ( Cs_rho(nk_out), Sc_rho(nk_out) )
 
       IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) CALL compute_scoord_2_4(ssig_out,nk_out,Cs_rho,Sc_rho)
-      
+
       jj_ex_top = 0 ; jj_ex_btm = 0
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
@@ -161,6 +163,45 @@ CONTAINS
          WRITE(6,*) 'Latitude min on output grid =', min_lat_out
          PRINT*,''
 
+         !! Building IGNORE mask:
+         IGNORE = 1
+         ALLOCATE ( xdum(ni_out,nj_out) )
+         
+         IF ( .NOT. l_glob_lon_wize ) THEN
+            WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
+            IF ( lregout ) THEN
+               DO jj=1,nj_out
+                  xdum(:,jj) = lon_out(:,1)
+               END DO
+            ELSE
+               xdum = lon_out
+            END IF
+            xdum = SIGN(1.,180.-xdum)*MIN(xdum,ABS(xdum-360.)) ! like lon_out but between -180 and +180 !
+            !CALL PRTMASK(REAL(xdum,4), 'lon_out_180-180.nc', 'lon') ; !#lolo
+            WHERE ( xdum < lon_min_1 ) IGNORE=0
+            WHERE ( xdum > lon_max_1 ) IGNORE=0
+         END IF
+         
+         WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), min_lat_in, max_lat_in
+         PRINT *, ' size(lat_out,1),size(lat_out,2) =>', SIZE(lat_out,1),SIZE(lat_out,2)
+         
+         IF ( lregout ) THEN
+            DO ji=1,ni_out
+               xdum(ji,:) = lat_out(:,1)
+            END DO
+         ELSE
+            xdum = lat_out
+         END IF
+         !CALL PRTMASK(REAL(xdum,4), 'lat_out.nc', 'lat') ; !#lolo
+         WHERE ( xdum < min_lat_in ) IGNORE=0
+         WHERE ( xdum > max_lat_in ) IGNORE=0
+         PRINT *, ''
+
+         DEALLOCATE ( xdum )
+         !CALL PRTMASK(REAL(IGNORE,4), 'ignored1.nc', 'ign') ; !#lolo
+         !! Ignore mask built...
+         
+         
          !! Is target latitude increasing with j : 1 = yes | -1 = no
          nlat_inc_out = 1
 
@@ -260,44 +301,51 @@ CONTAINS
       USE mod_scoord
       !! Local :
       INTEGER :: ji, jj, jk
-      REAL    :: rval_thrshld
+      REAL    :: rval_thrshld, lon_min_2, lon_max_2
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
       !! Getting grid on source domain:
       CALL rd_grid(-1, lregin, cf_x_in, cv_lon_in, cv_lat_in, lon_in, lat_in)
 
       IF ( l_int_3d ) THEN
-          IF ( trim(ctype_z_in) == 'sigma' ) THEN
-              !! read input bathymetry
-              CALL GETVAR_2D(if0,iv0,cf_bathy_in, cv_bathy_in, 0, 0, 0, bathy_in(:,:))
-              !! compute 3D depth_in for input variable from bathy and sigma parameters
-              CALL depth_from_scoord(ssig_in, bathy_in, ni_in, nj_in, nk_in, depth_in)
-          ELSEIF ( trim(ctype_z_in) == 'z' ) THEN
-              !! in z case, the depth vector is copied at each grid-point
-              CALL rd_vgrid(nk_in, cf_z_in, cv_z_in, depth_in(1,1,:))
-              WRITE(6,*) ''; WRITE(6,*) 'Input Depths ='; PRINT *, depth_in(1,1,:) ; WRITE(6,*) ''
-              DO ji=1,ni_in
-                  DO jj=1,nj_in
-                      depth_in(ji,jj,:) = depth_in(1,1,:)
-                  ENDDO
-              ENDDO
-          ELSE
-              PRINT*,''; PRINT *, 'Not a valid input vertical coordinate' ; PRINT*,''
-          ENDIF
+         IF ( trim(ctype_z_in) == 'sigma' ) THEN
+            !! read input bathymetry
+            CALL GETVAR_2D(if0,iv0,cf_bathy_in, cv_bathy_in, 0, 0, 0, bathy_in(:,:))
+            !! compute 3D depth_in for input variable from bathy and sigma parameters
+            CALL depth_from_scoord(ssig_in, bathy_in, ni_in, nj_in, nk_in, depth_in)
+         ELSEIF ( trim(ctype_z_in) == 'z' ) THEN
+            !! in z case, the depth vector is copied at each grid-point
+            CALL rd_vgrid(nk_in, cf_z_in, cv_z_in, depth_in(1,1,:))
+            WRITE(6,*) ''; WRITE(6,*) 'Input Depths ='; PRINT *, depth_in(1,1,:) ; WRITE(6,*) ''
+            DO ji=1,ni_in
+               DO jj=1,nj_in
+                  depth_in(ji,jj,:) = depth_in(1,1,:)
+               ENDDO
+            ENDDO
+         ELSE
+            PRINT*,''; PRINT *, 'Not a valid input vertical coordinate' ; PRINT*,''
+         ENDIF
 
-          IF ( trim(ctype_z_in) == 'z' ) THEN
-              PRINT*,''; WRITE(6,*) 'Input has z coordinates and depth vector is =', depth_in(1,1,:); PRINT*,''
-          ELSEIF ( trim(ctype_z_in) == 'sigma' ) THEN
-              PRINT*,''; WRITE(6,*) 'Input has sigma coordinates and depth range is ', MINVAL(depth_in), &
-  &                           ' to ', MAXVAL(depth_in) ; PRINT*,''
-          ELSE
-              PRINT*,''; WRITE(6,*) 'You should not see this' ; STOP
-          ENDIF
+         IF ( trim(ctype_z_in) == 'z' ) THEN
+            PRINT*,''; WRITE(6,*) 'Input has z coordinates and depth vector is =', depth_in(1,1,:); PRINT*,''
+         ELSEIF ( trim(ctype_z_in) == 'sigma' ) THEN
+            PRINT*,''; WRITE(6,*) 'Input has sigma coordinates and depth range is ', MINVAL(depth_in), &
+               &                           ' to ', MAXVAL(depth_in) ; PRINT*,''
+         ELSE
+            PRINT*,''; WRITE(6,*) 'You should not see this' ; STOP
+         ENDIF
       END IF
 
       !! What about scale_factor / add_offset
       CALL GET_SF_AO(cf_in, cv_in, rsf, rao)
       WRITE(6,*) 'Scale factor =', rsf; WRITE(6,*) 'Add   offset =', rao; PRINT*,''
+
+
+      !lulu
+      lon_min_1 = MINVAL(lon_in)
+      lon_max_1 = MAXVAL(lon_in)
+      PRINT *, ' *** Minimum longitude on source domain before reorg. : ', lon_min_1
+      PRINT *, ' *** Maximum longitude on source domain before reorg. : ', lon_max_1
 
       IF ( lregin ) THEN
          !! Fixing input 1D longitude:
@@ -307,6 +355,24 @@ CONTAINS
       ELSE
          WHERE ( lon_in < 0. )  lon_in = lon_in + 360.
       END IF
+
+      lon_min_2 = MINVAL(lon_in)
+      lon_max_2 = MAXVAL(lon_in)
+      PRINT *, ' *** Minimum longitude on source domain now: ', lon_min_2
+      PRINT *, ' *** Maximum longitude on source domain now: ', lon_max_2
+
+      IF ( (lon_min_2 >= 0.).AND.(lon_min_2<2.5).AND.(lon_max_2>357.5).AND.(lon_max_2<=360.) ) THEN
+         l_glob_lon_wize = .TRUE.
+         PRINT *, 'Looks like global setup (longitude-wise at least...)'
+      ELSE
+         PRINT *, 'Looks like regional setup (longitude-wise at least...)'
+         l_glob_lon_wize = .FALSE.
+         !!
+         !WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
+      END IF
+      PRINT *, ''
+
+
 
 
 
@@ -395,11 +461,11 @@ CONTAINS
                   PRINT *, trim(cv_lsm_in)
                   !! if terrain-following, open the 2d mask, not sure interp one single level works
                   IF (trim(ctype_z_in) == 'sigma' ) THEN
-                      CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
+                     CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
                   ELSEIF (trim(ctype_z_in) == 'z' ) THEN
-                      CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1), jlev=jplev)
+                     CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1), jlev=jplev)
                   ELSE
-                      STOP
+                     STOP
                   ENDIF
                ELSE
                   WRITE(6,*) 'PROBLEM! You want to interpolate level', jplev
@@ -415,18 +481,18 @@ CONTAINS
                IF (trim(ctype_z_in) == 'sigma' ) n3 = ssig_in%Nlevels
                IF ( n3 == nk_in ) THEN
                   !! if terrain-following, read 2D mask and copy it on all levels
-                   IF (trim(ctype_z_in) == 'sigma' ) THEN
-                       WRITE(6,*) 'Opening 2D land-sea mask file on source grid: ', trim(cf_lsm_in)
-                       CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
-                       DO jz0=2,nk_in
-                           mask_in(:,:,jz0) = mask_in(:,:,1)
-                       ENDDO
-                   ELSEIF (trim(ctype_z_in) == 'z' ) THEN
-                      WRITE(6,*) 'Opening 3D land-sea mask file on source grid, ', trim(cv_lsm_in)
-                      CALL GETMASK_3D(cf_lsm_in, cv_lsm_in, mask_in)
-                   ELSE
-                      STOP
-                   ENDIF
+                  IF (trim(ctype_z_in) == 'sigma' ) THEN
+                     WRITE(6,*) 'Opening 2D land-sea mask file on source grid: ', trim(cf_lsm_in)
+                     CALL GETMASK_2D(cf_lsm_in, cv_lsm_in, mask_in(:,:,1))
+                     DO jz0=2,nk_in
+                        mask_in(:,:,jz0) = mask_in(:,:,1)
+                     ENDDO
+                  ELSEIF (trim(ctype_z_in) == 'z' ) THEN
+                     WRITE(6,*) 'Opening 3D land-sea mask file on source grid, ', trim(cv_lsm_in)
+                     CALL GETMASK_3D(cf_lsm_in, cv_lsm_in, mask_in)
+                  ELSE
+                     STOP
+                  ENDIF
                ELSE
                   WRITE(6,*) 'We need to open the 3D source land-sea mask,'
                   WRITE(6,*) 'but the vertical dimension of it does not match!'
@@ -532,22 +598,22 @@ CONTAINS
             ENDDO
          ELSE
             PRINT*,''; WRITE(6,*) 'Not a valid output vertical coordinate' ; STOP
-         !!
+            !!
          ENDIF
 
-!RD fix this
-!         IF (trim(ctype_z_out) == 'z' ) THEN
-!            PRINT*,''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; PRINT*,''
-!         ELSEIF ( trim(ctype_z_out) == 'sigma' ) THEN
-!            PRINT*,''; WRITE(6,*) 'Output on sigma coordinates' ; PRINT*,''
-!         ENDIF
+         !RD fix this
+         !         IF (trim(ctype_z_out) == 'z' ) THEN
+         !            PRINT*,''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; PRINT*,''
+         !         ELSEIF ( trim(ctype_z_out) == 'sigma' ) THEN
+         !            PRINT*,''; WRITE(6,*) 'Output on sigma coordinates' ; PRINT*,''
+         !         ENDIF
 
       END IF
 
-!RD fix this
-!         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
-!         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
-!         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
+      !RD fix this
+      !         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
+      !         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+      !         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
 
       !!  Getting target mask (mandatory doing 3D interpolation!)
       IF ( lmout .OR. l_int_3d ) THEN
