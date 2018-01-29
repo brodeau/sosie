@@ -576,17 +576,18 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CALL RD_MAPPING_AB(cf_mapping, IMETRICS, RAB, IPB)
    PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mapping),'"'; PRINT *, ''
 
-
+   ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) )
+   JIidx(1,:) = IMETRICS(1,:,1)
+   JJidx(1,:) = IMETRICS(1,:,2)
+      
+   
 
    !PRINT *, 'LOLO IMETRICS(1,:,1) =>', IMETRICS(1,:,1)
 
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
-      ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) )
       !! Finding and storing the nearest points of NEMO grid to ephem points:
       !CALL FIND_NEAREST_POINT(Xgt, Ygt, xlont, xlatt,  JIidx, JJidx)
-      JIidx(1,:) = IMETRICS(1,:,1)
-      JJidx(1,:) = IMETRICS(1,:,2)
       ALLOCATE ( show_track(nib,njb) )
       show_track(:,:) = 0.
       DO jte = 1, Nten
@@ -684,7 +685,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
             !!
          END IF
 
-         Ftrack_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
+         IF ( (JIidx(1,jte)>0).AND.(JJidx(1,jte)>0) ) &
+            &  Ftrack_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
+            
 
          jtm_1_o = jtm_1
          jtm_2_o = jtm_2
