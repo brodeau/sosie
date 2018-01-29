@@ -321,15 +321,15 @@ PROGRAM INTERP_TO_GROUND_TRACK
       CALL GETVAR_1D(cf_model, cv_t, vt_model)
    END IF
 
-   IF ( l_debug ) THEN
-      PRINT *, ''
-      !PRINT *, 'Time vector in NEMO input file is (s), (h), (d):'
-      DO jt=1, Ntm
-         PRINT *, vt_model(jt), vt_model(jt)/3600., vt_model(jt)/(3600.*24.)
-      END DO
-      PRINT *, ''
-      PRINT *, ''
-   END IF
+   !IF ( l_debug ) THEN
+   !   PRINT *, ''
+   !   PRINT *, 'Time vector in NEMO input file is (s), (h), (d):'
+   !   DO jt=1, Ntm
+   !      PRINT *, vt_model(jt), vt_model(jt)/3600., vt_model(jt)/(3600.*24.)
+   !   END DO
+   !   PRINT *, ''
+   !   PRINT *, ''
+   !END IF
 
 
 
