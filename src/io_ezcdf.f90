@@ -1575,7 +1575,8 @@ CONTAINS
       INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
       CHARACTER(len=*),          INTENT(in) :: cf_out
       REAL(8),    DIMENSION(:,:),   INTENT(in) :: xlon, xlat
-      INTEGER(8), DIMENSION(:,:,:), INTENT(in) :: imtrcs
+      !INTEGER(8), DIMENSION(:,:,:), INTENT(in) :: imtrcs
+      INTEGER(4), DIMENSION(:,:,:), INTENT(in) :: imtrcs
       REAL(8),    DIMENSION(:,:,:), INTENT(in) :: ralfbet
       REAL(8),                   INTENT(in) :: vflag
       INTEGER, DIMENSION(:,:),   INTENT(in) :: mproblem
@@ -1613,6 +1614,7 @@ CONTAINS
          &        crtn,cf_out,cdum)
       CALL sherr( NF90_DEF_VAR(id_f, 'lat',       NF90_DOUBLE, (/id_x,id_y/),       id_la, deflate_level=9), &
          &        crtn,cf_out,cdum)
+      !CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT64,    (/id_x,id_y,id_n3/), id_v1, deflate_level=9), &
       CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT,    (/id_x,id_y,id_n3/), id_v1, deflate_level=9), &
          &        crtn,cf_out,cdum)
       CALL sherr( NF90_DEF_VAR(id_f, 'alphabeta', NF90_DOUBLE, (/id_x,id_y,id_n2/), id_v2, deflate_level=9), &
@@ -1621,8 +1623,8 @@ CONTAINS
          &        crtn,cf_out,cdum)
 
       IF ( vflag /= 0. ) THEN
-         CALL sherr( NF90_PUT_ATT(id_f, id_v1,'_FillValue',INT(vflag)),  crtn,cf_out,cdum)
-         CALL sherr( NF90_PUT_ATT(id_f, id_v2,'_FillValue',vflag),       crtn,cf_out,cdum)
+         CALL sherr( NF90_PUT_ATT(id_f, id_v1,'_FillValue',INT8(vflag)), crtn,cf_out,'metrics (masking)')
+         CALL sherr( NF90_PUT_ATT(id_f, id_v2,'_FillValue',vflag),       crtn,cf_out,'alphabeta (masking)')
       END IF
 
       CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear interpolation with SOSIE.'), &
@@ -1631,11 +1633,14 @@ CONTAINS
 
       CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_out,cdum) ! END OF DEFINITION
 
-      CALL sherr( NF90_PUT_VAR(id_f, id_lo, xlon),     crtn,cf_out,cdum)
-      CALL sherr( NF90_PUT_VAR(id_f, id_la, xlat),     crtn,cf_out,cdum)
-      CALL sherr( NF90_PUT_VAR(id_f, id_v1,  imtrcs),  crtn,cf_out,cdum)
-      CALL sherr( NF90_PUT_VAR(id_f, id_v2, ralfbet),  crtn,cf_out,cdum)
-      CALL sherr( NF90_PUT_VAR(id_f, id_v3, mproblem), crtn,cf_out,cdum)
+      CALL sherr( NF90_PUT_VAR(id_f, id_lo, xlon),     crtn,cf_out,'lon')
+      CALL sherr( NF90_PUT_VAR(id_f, id_la, xlat),     crtn,cf_out,'lat')
+
+      PRINT *, 'imtrcs =>', imtrcs
+      
+      CALL sherr( NF90_PUT_VAR(id_f, id_v1,  imtrcs),  crtn,cf_out,'metrics')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v2, ralfbet),  crtn,cf_out,'alphabeta')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v3, mproblem), crtn,cf_out,'iproblem')
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_out,cdum)
 
@@ -1647,7 +1652,8 @@ CONTAINS
 
    SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet, mproblem)
       CHARACTER(len=*),          INTENT(in)  :: cf_in
-      INTEGER(8), DIMENSION(:,:,:), INTENT(out) :: imtrcs
+      !INTEGER(8), DIMENSION(:,:,:), INTENT(out) :: imtrcs
+      INTEGER(4), DIMENSION(:,:,:), INTENT(out) :: imtrcs
       REAL(8),    DIMENSION(:,:,:), INTENT(out) :: ralfbet
       INTEGER, DIMENSION(:,:),   INTENT(out) :: mproblem
 

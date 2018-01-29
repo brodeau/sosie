@@ -4,7 +4,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    USE mod_conf
    USE mod_bilin_2d
    USE mod_manip
-   
+
    !!========================================================================
    !! Purpose :
    !!
@@ -41,7 +41,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    REAL(8), DIMENSION(:),     ALLOCATABLE :: vte, vt_model, vt_ephem   ! in seconds
 
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
-   INTEGER(8), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
+   INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
    INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
 
 
@@ -131,11 +131,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    PRINT *, ''
 
-
-   !LOLO: add to command line option:
-   cv_ephem = 'sla_unfiltered' !lolo
-
-   
    !tut_ephem  = GET_TIME_UNIT_T0('days since 1950-01-01 00:00:00')
    !PRINT *, ' tut_ephem =', tut_ephem
    !tut_model  = GET_TIME_UNIT_T0('seconds since 1950-01-01 00:00:00')
@@ -162,7 +157,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          CALL GET_MY_ARG('input file', cf_model)
 
       CASE('-v')
-         CALL GET_MY_ARG('input variable', cv_model)
+         CALL GET_MY_ARG('model input variable', cv_model)
 
       CASE('-x')
          CALL GET_MY_ARG('longitude', cv_lon)
@@ -190,6 +185,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
       CASE('-n')
          l_orbit_file_is_nc = .TRUE.
+         CALL GET_MY_ARG('ground track input variable', cv_ephem)
 
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
@@ -228,7 +224,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    idot = SCAN(cdum, '.', back=.TRUE.)
    cconf = TRIM(cconf)//'__to__'//cdum(:idot-1)
 
-   
+
    PRINT *, ' *** CONFIG: cconf ='//TRIM(cconf)
 
 
@@ -422,10 +418,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_model), TRIM(cf_track)
-   PRINT *, ' * Output file = ', trim(cf_out)
-
-
 
 
 
@@ -470,9 +462,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Defaults:
    Nten = Nte
-   it1  = 1 
+   it1  = 1
    it2  = Nte
-   
+
    IF ( .NOT. l_debug_mapping ) THEN
       PRINT *, ' Time vector in model file:'
       CALL to_epoch_time_vect( tut_model, vt_model, l_dt_below_sec=.FALSE. )
@@ -527,7 +519,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    cf_mapping = 'MAPPING__'//TRIM(cconf)//'.nc'
 
-   
+
 
 
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist )
@@ -563,7 +555,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       CALL PRTMASK(REAL(show_track(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
       DEALLOCATE ( show_track )
    END IF
-   
+
    IF ( l_debug_mapping ) STOP'l_debug_mapping'
 
 
@@ -574,7 +566,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    vte(:) = vt_ephem(it1:it2)
-   
+
    Ftrack_np(:) = -9999.
    Ftrack_ephem(:) = -9999.
    Ftrack(:) = -9999.
@@ -600,7 +592,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          jtm_1 = jt
          jtm_2 = jt+1
          IF (jte==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
-         
+
          PRINT *, ' rt, vt_model(jtm_1), vt_model(jtm_2) =>', rt, vt_model(jtm_1), vt_model(jtm_2)
          !!
          !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
@@ -663,20 +655,37 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    WHERE ( Ftrack_ephem > 1.E9 )  Ftrack_ephem = -9999.
 
-   
-   
-   CALL PT_SERIES(vte(:), REAL(Ftrack,4), 'result__'//TRIM(cconf)//'.nc4', 'time', cv_model, 'm', 'Model data, bi-linear interpolation', -9999., &
+
+   PRINT *, ''
+   !WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_model), TRIM(cf_track)
+   cf_out = 'result__'//TRIM(cconf)//'.nc4'
+   PRINT *, ' * Output file = ', trim(cf_out)
+   PRINT *, ''
+
+
+
+
+
+   CALL PT_SERIES(vte(:), REAL(Ftrack,4), cf_out, 'time', cv_model, 'm', 'Model data, bi-linear interpolation', -9999., &
       &           ct_unit=TRIM(cunit_time_out), lpack=.TRUE., &
       &           vdt2=REAL(Ftrack_np,4),    cv_dt2=TRIM(cv_model)//'_np', cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_ephem,4), cv_dt3=cv_ephem,              cln3='Original data as in ephem file...',   &
       &           vdt4=REAL(Xtar(1,it1:it2),4), cv_dt4='longitude',        cln4='Longitude (as in ephem file)',  &
       &           vdt5=REAL(Ytar(1,it1:it2),4), cv_dt5='latitude',         cln5='Latitude (as in ephem file)' ,  &
       &           vdt6=REAL(Fmask,4),           cv_dt6='mask',             cln6='Mask' )
-   
+
    IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
    DEALLOCATE ( Xtar, Ytar, Ztar )
    DEALLOCATE ( Ftrack, Ftrack_ephem )
    DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xslp, mask )
+
+
+   PRINT *, ''
+   PRINT *, 'Written!'
+   PRINT *, ' => check:'
+   PRINT *, TRIM(cf_out)
+   PRINT *, ''
+
 
 CONTAINS
 
@@ -721,7 +730,7 @@ SUBROUTINE usage()
    WRITE(6,*) ''
    WRITE(6,*) ' -p  <track_file>     => Specify name of file containing orbit tack (columns: time, lon, lat)'
    WRITE(6,*) ''
-   WRITE(6,*) ' -n                   => file containing orbit ephem is in NetCDF'
+   WRITE(6,*) ' -n  <name>           => file containing orbit ephem is in NetCDF, and this is the name of var'
    WRITE(6,*) '                         (default is columns in ASCII file <time> <lon> <lat>'
    WRITE(6,*) ''
    !!

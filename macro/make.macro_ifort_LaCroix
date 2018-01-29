@@ -18,8 +18,7 @@ L_NCDF = -lnetcdff
 FF = -O3 -i4 -xHOST -traceback -module mod/
 
 # -- Debugging
-#FF = -O0 -i4 -traceback -fpe0 -CB -heap-arrays -module mod/
-#FF = -O0 -i4 -traceback -fpe0 -CB -module mod/
+#FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C
 
 # Directory to install binaries:
 INSTALL_DIR = /usr/local

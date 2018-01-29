@@ -97,8 +97,6 @@ PROGRAM CORR_VECT
 
    REAL(4), PARAMETER :: zrmv = -9999.
 
-   REAL(8) :: rsgn
-
    CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
       &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-t','-1' /)
    !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)

@@ -19,7 +19,7 @@ MODULE MOD_BILIN_2D
 
    !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
-   INTEGER(8), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iquadran at each point
+   INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iquadran at each point
    INTEGER, DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
 
 
@@ -359,7 +359,7 @@ CONTAINS
          &     iPm1, iPp1,  &
          &     iproblem
 
-      INTEGER(8), DIMENSION(:,:), ALLOCATABLE :: i_nrst_in, j_nrst_in
+      INTEGER(4), DIMENSION(:,:), ALLOCATABLE :: i_nrst_in, j_nrst_in
 
       REAL(8) ::  &
          &  xP, yP, &
@@ -376,7 +376,7 @@ CONTAINS
 
       !! To save in the netcdf file:
       REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
-      INTEGER(8), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iquadran at each point
+      INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iquadran at each point
       INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: mask_metrics
 
       REAL(8) :: alpha, beta
