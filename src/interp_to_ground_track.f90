@@ -26,7 +26,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &   l_bilin = .false.
    !!
    LOGICAL :: &
-      &      l_orbit_file_is_nc    = .FALSE.
+      &      l_orbit_file_is_nc    = .FALSE., &
+      &      l_loc1, l_loc2
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
@@ -352,9 +353,16 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' *** Minimum longitude on source domain: ', lon_min_2
    PRINT *, ' *** Maximum longitude on source domain: ', lon_max_2
 
-   IF ( (lon_min_2 >= 0.).AND.(lon_min_2<2.5).AND.(lon_max_2>357.5).AND.(lon_max_2<=360.) ) THEN
-      l_glob_lon_wize = .TRUE.
-      PRINT *, 'Looks like global setup (longitude-wise at least...)'
+   ! lolo: disgusting!:
+   l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -170.).AND.(lon_max_1 >  0. ).AND.(lon_min_1 <  170.) 
+   l_loc2 = (lon_min_2 >= 0.).AND.(lon_min_2 <   2.5).AND.(lon_max_2 >357.5).AND.(lon_max_2 <= 360.)
+   IF (.NOT. l_loc1) THEN
+      IF ( l_loc2 ) THEN
+         l_glob_lon_wize = .TRUE.
+         PRINT *, 'Looks like global setup (longitude-wise at least...)'
+      ELSE
+         PRINT *, 'ERROR: cannot find if regional or global source domain...'; STOP
+      END IF
    ELSE
       PRINT *, 'Looks like regional setup (longitude-wise at least...)'
       l_glob_lon_wize = .FALSE.

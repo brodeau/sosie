@@ -91,7 +91,7 @@ CONTAINS
       USE io_ezcdf
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
-      
+
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
          lregout = lregin
          !! Geting them from source file:
@@ -105,7 +105,7 @@ CONTAINS
 
       !! Allocate output arrays with output dimensions :
       ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out), IGNORE(ni_out,nj_out) )
-      
+
       IF ( .NOT. lmout ) mask_out(:,:,:) = 1 ; !lolo
 
       IF ( lregout ) THEN
@@ -166,7 +166,7 @@ CONTAINS
          !! Building IGNORE mask:
          IGNORE = 1
          ALLOCATE ( xdum(ni_out,nj_out) )
-         
+
          IF ( .NOT. l_glob_lon_wize ) THEN
             WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
             IF ( lregout ) THEN
@@ -181,10 +181,10 @@ CONTAINS
             WHERE ( xdum < lon_min_1 ) IGNORE=0
             WHERE ( xdum > lon_max_1 ) IGNORE=0
          END IF
-         
+
          WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), min_lat_in, max_lat_in
          PRINT *, ' size(lat_out,1),size(lat_out,2) =>', SIZE(lat_out,1),SIZE(lat_out,2)
-         
+
          IF ( lregout ) THEN
             DO ji=1,ni_out
                xdum(ji,:) = lat_out(:,1)
@@ -200,8 +200,8 @@ CONTAINS
          DEALLOCATE ( xdum )
          !CALL PRTMASK(REAL(IGNORE,4), 'ignored1.nc', 'ign') ; !#lolo
          !! Ignore mask built...
-         
-         
+
+
          !! Is target latitude increasing with j : 1 = yes | -1 = no
          nlat_inc_out = 1
 
@@ -302,6 +302,7 @@ CONTAINS
       !! Local :
       INTEGER :: ji, jj, jk
       REAL    :: rval_thrshld, lon_min_2, lon_max_2
+      LOGICAL :: l_loc1, l_loc2
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
       !! Getting grid on source domain:
@@ -361,20 +362,24 @@ CONTAINS
       PRINT *, ' *** Minimum longitude on source domain now: ', lon_min_2
       PRINT *, ' *** Maximum longitude on source domain now: ', lon_max_2
 
-      IF ( (lon_min_2 >= 0.).AND.(lon_min_2<2.5).AND.(lon_max_2>357.5).AND.(lon_max_2<=360.) ) THEN
-         l_glob_lon_wize = .TRUE.
-         PRINT *, 'Looks like global setup (longitude-wise at least...)'
+      ! lolo: disgusting!:
+      l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -170.).AND.(lon_max_1 >  0. ).AND.(lon_min_1 <  170.)
+      l_loc2 = (lon_min_2 >= 0.).AND.(lon_min_2 <   2.5).AND.(lon_max_2 >357.5).AND.(lon_max_2 <= 360.)
+      IF (.NOT. l_loc1) THEN
+         IF ( l_loc2 ) THEN
+            l_glob_lon_wize = .TRUE.
+            PRINT *, 'Looks like global setup (longitude-wise at least...)'
+         ELSE
+            PRINT *, 'ERROR (get_src_conf of mod_grids.f90) : cannot find if regional or global source domain...'; STOP
+         END IF
       ELSE
          PRINT *, 'Looks like regional setup (longitude-wise at least...)'
          l_glob_lon_wize = .FALSE.
          !!
-         !WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
+         WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
       END IF
       PRINT *, ''
-
-
-
-
+      
 
       !! Getting land-sea mask on source domain
 
