@@ -787,7 +787,7 @@ CONTAINS
          &                                    e1_in, e2_in, &    !: grid layout and metrics
          &                                    ztmp_out
       REAL(8),DIMENSION(:), ALLOCATABLE :: vlat, vlon
-      LOGICAL :: l_is_reg_in, l_is_reg_out, lagain, lbluff, l_lon_here
+      LOGICAL :: l_is_reg_in, l_is_reg_out, lagain, lbluff
 
 
       nx_in  = SIZE(Xin,1)
@@ -1187,8 +1187,8 @@ CONTAINS
                         IF (niter > Nlat_split/3) THEN
                            !! => increasing max. distance
                            niter = 1
-                           frac_emax = 1.25*frac_emax    !lolo
-                           IF ( frac_emax > 10. ) THEN   !lolo
+                           frac_emax = 1.25*frac_emax   !lolo making it grow by 25% each time... i.e. becoming more tolerant..
+                           IF ( frac_emax > 3. ) THEN   !lolo: not going further than 3 times
                               PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
                               PRINT *, '     => did not find nearest point for target coordinates:', &
                                  &              REAL(rlon,4), REAL(rlat,4)
