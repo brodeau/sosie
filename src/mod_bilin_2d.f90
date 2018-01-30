@@ -185,7 +185,7 @@ CONTAINS
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
       END IF
 
-      Z2 = -777.0      ! Flagging non-interpolated output points
+      Z2 = -9999.0      ! Flagging non-interpolated output points
 
       cpt = 0
 
@@ -328,9 +328,9 @@ CONTAINS
       ! interpolate with non-masked  values, above target point
 
       IF ( wup == 0. ) THEN
-         INTERP_BL = -666.
+         INTERP_BL = -9999.
       ELSEIF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
-         INTERP_BL = -777.
+         INTERP_BL = -9999.
       ELSE
          INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
