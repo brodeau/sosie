@@ -777,7 +777,7 @@ CONTAINS
          &       y_max_in, y_min_in ! , x_max_out, x_min_out, x_max_in, x_min_in
       REAL(8), DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out
+      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out, mspot_lon, mspot_lat
 
       INTEGER :: jlat_inc    ! 1 if lat increases with j, -1 if decreases with j
       INTEGER, DIMENSION(2) :: jmax_loc, jmin_loc
@@ -833,8 +833,7 @@ CONTAINS
       mask_ignore_out(:,:) = 1
       IF ( PRESENT( mask_out ) ) mask_ignore_out(:,:) = mask_out(:,:)
 
-
-      ALLOCATE ( Xdist(nx_in,ny_in) )
+      ALLOCATE ( Xdist(nx_in,ny_in) , mspot_lon(nx_in,ny_in) , mspot_lat(nx_in,ny_in) )
 
 
       IF (ldebug) THEN
@@ -916,7 +915,7 @@ CONTAINS
 
 
       !! ---------------------------------------------------------------------------------------
-      IF ( l_is_reg_in .and. (.NOT. l_force_use_of_advanced) ) THEN
+      IF ( l_is_reg_in .AND. (.NOT. l_force_use_of_advanced) ) THEN
 
          PRINT *, '                        => going for simple algorithm !'
 
@@ -1184,6 +1183,20 @@ CONTAINS
                            PRINT *, ' jmin_in, jmax_in =>', jmin_in, jmax_in
                         END IF
 
+                        IF (niter == 1) THEN
+                           !! After all the lon,lat we are looking for is maybe not part of source domain
+                           !! => could do a test and break the iteration if so...
+                           mspot_lon = 0 ; mspot_lat = 0
+                           WHERE( (Xin>rlon-0.1).AND.(Xin<rlon+0.1) ) mspot_lon = 1
+                           WHERE( (Yin>rlat-0.1).AND.(Yin<rlat+0.1) ) mspot_lat = 1
+                           IF ( SUM(mspot_lon*mspot_lat) == 0 ) THEN
+                              lagain = .FALSE.
+                              !      PRINT *, ' *** WARNING: FIND_NEAREST_POINT: SHORT leave test worked! Giving up!!!'
+                              !   ELSE
+                              !      PRINT *, 'SHORT leave test failed! Continuing!!!'
+                           END IF
+                        END IF
+
                         IF (niter > Nlat_split/3) THEN
                            !! => increasing max. distance
                            niter = 1
@@ -1208,23 +1221,20 @@ CONTAINS
                   END DO
                   rlat_old = rlat
 
-                  !lolo   END IF !IF (l_lon_here)
-                  !loloEND IF !IF ( (rlat >= y_min_in).OR.(rlat <= y_max_in) )
                END IF
             END DO
          END DO
 
-         DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, ztmp_out )
+         DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, ztmp_out , mspot_lon , mspot_lat )
 
       END IF
-
 
       IF ( ldebug ) THEN
          CALL PRTMASK(REAL(JIpos,4), 'JIpos.nc', 'ji')
          CALL PRTMASK(REAL(JJpos,4), 'JJpos.nc', 'jj')
       END IF
 
-      DEALLOCATE ( Xdist )
+      DEALLOCATE ( Xdist , mask_ignore_out )
 
    END SUBROUTINE FIND_NEAREST_POINT
 
