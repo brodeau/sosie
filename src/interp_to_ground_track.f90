@@ -685,7 +685,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    DO jte = 1, Nten
       !!
       rt = vte(jte)
-      PRINT *, 'Treating track time =>', rt
       !!
       IF ( (rt >= t_min_m).AND.(rt < t_max_m) ) THEN
          !!
@@ -698,20 +697,23 @@ PROGRAM INTERP_TO_GROUND_TRACK
          jtm_2 = jt+1
          IF (jte==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
 
+         PRINT *, 'Treating track time =>', rt, '     model jtm_1 =', jtm_1
+         
          !PRINT *, ' rt, vt_mod(jtm_1), vt_mod(jtm_2) =>', rt, vt_mod(jtm_1), vt_mod(jtm_2)
          !!
          !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
          IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
             IF ( jtm_1_o == -100 ) THEN
-               !PRINT *, 'Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)//' at jtm_1=', jtm_1
-               !PRINT *, 'LOLO: id_f1, id_v1, jtm_1 =>', id_f1, id_v1, jtm_1
+               PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
+               PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt_s,')'
                CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt_s)
                IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
             ELSE
                !PRINT *, 'Getting field '//TRIM(cv_mod)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
             END IF
-            !PRINT *, 'Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)//' at jtm_2=', jtm_2
+            PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
+            PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt_s,')'
             CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt_s)
             IF ( l_use_anomaly ) xvar2 = xvar2 - xmean
 
