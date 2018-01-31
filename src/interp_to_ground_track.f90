@@ -395,7 +395,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    l_glob_lat_wize = .TRUE.
-   IF ( lat_max < 77.5 ) THEN
+   IF ( lat_max < 88. ) THEN
       l_glob_lat_wize =.FALSE.
       WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), lat_min,lat_max
    END IF

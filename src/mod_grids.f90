@@ -375,7 +375,7 @@ CONTAINS
       PRINT *, ''
 
       l_glob_lat_wize = .TRUE.
-      IF ( MAXVAL(lat_in) < 77.5 ) l_glob_lat_wize =.FALSE.
+      IF ( MAXVAL(lat_in) < 88. ) l_glob_lat_wize =.FALSE.
       
       
       !! Getting land-sea mask on source domain

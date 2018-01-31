@@ -2,16 +2,16 @@
 &ninput
 ivect     = 0
 lregin    = F
-cf_in     = '/home/laurent/Dropbox/tmp/NACHOS12/NACHOS12_mean_sossheig.nc4'
+cf_in     = '/home/users/brodeau/DATA/SOSIE/NACHOS12.L75-MAA13_y2017m04d02.1h_SSH.nc4'
 cv_in     = 'sossheig'
 cv_t_in   = 'time_counter'
 jt1       = 0
 jt2       = 0
 jplev     = 1
-cf_x_in   = '/home/laurent/Dropbox/tmp/NACHOS12/mesh_mask_20171028.nc4'
+cf_x_in   = '/home/users/brodeau/DATA/SOSIE/mesh_mask_1st_level_NACHOS12.nc4'
 cv_lon_in = 'glamt'
 cv_lat_in = 'gphit'
-cf_lsm_in = '/home/laurent/Dropbox/tmp/NACHOS12/mesh_mask_20171028.nc4'
+cf_lsm_in = '/home/users/brodeau/DATA/SOSIE/mesh_mask_1st_level_NACHOS12.nc4'
 cv_lsm_in = 'tmask'
 ldrown    = T
 ewper     = 2
