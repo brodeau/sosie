@@ -730,7 +730,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT(Xout, Yout, Xin, Yin, JIpos, JJpos,  mask_out)
+   SUBROUTINE FIND_NEAREST_POINT(Xout, Yout, Xin, Yin, JIpos, JJpos,  mask_domain_out)
       !!
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
@@ -744,7 +744,7 @@ CONTAINS
       !!
       !!
       !! OPTIONAL:
-      !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
+      !!      * mask_domain_out: ignore (dont't treat) regions of the target domain where mask_domain_out==0 !
       !!---------------------------------------------------------------
 
       !debug: USE io_ezcdf
@@ -761,7 +761,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
 
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_out
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
 
 
       INTEGER :: &
@@ -831,8 +831,8 @@ CONTAINS
 
       ALLOCATE ( mask_ignore_out(nx_out,ny_out) )
       mask_ignore_out(:,:) = 1
-      IF ( PRESENT( mask_out ) ) mask_ignore_out(:,:) = mask_out(:,:)
-
+      IF ( PRESENT( mask_domain_out ) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
+      
       ALLOCATE ( Xdist(nx_in,ny_in) , mspot_lon(nx_in,ny_in) , mspot_lat(nx_in,ny_in) )
 
 
@@ -1184,11 +1184,11 @@ CONTAINS
                         END IF
 
                         IF (niter == 1) THEN
-                           !! After all the lon,lat we are looking for is maybe not part of source domain
+                           !! After all the lon,lat couple we are looking for is maybe not part of source domain
                            !! => could do a test and break the iteration if so...
                            mspot_lon = 0 ; mspot_lat = 0
-                           WHERE( (Xin>rlon-0.1).AND.(Xin<rlon+0.1) ) mspot_lon = 1
-                           WHERE( (Yin>rlat-0.1).AND.(Yin<rlat+0.1) ) mspot_lat = 1
+                           WHERE( (Xin > MAX(rlon-0.5,  0.)).AND.(Xin < MIN(rlon+0.5,360.)) ) mspot_lon = 1
+                           WHERE( (Yin > MAX(rlat-0.5,-90.)).AND.(Yin < MIN(rlat+0.5, 90.)) ) mspot_lat = 1
                            IF ( SUM(mspot_lon*mspot_lat) == 0 ) THEN
                               lagain = .FALSE.
                               !      PRINT *, ' *** WARNING: FIND_NEAREST_POINT: SHORT leave test worked! Giving up!!!'
@@ -1201,7 +1201,7 @@ CONTAINS
                            !! => increasing max. distance
                            niter = 1
                            frac_emax = 1.25*frac_emax   !lolo making it grow by 25% each time... i.e. becoming more tolerant..
-                           IF ( frac_emax > 3. ) THEN   !lolo: not going further than 3 times
+                           IF ( frac_emax > 2. ) THEN   !lolo: not going further than 3 times
                               PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
                               PRINT *, '     => did not find nearest point for target coordinates:', &
                                  &              REAL(rlon,4), REAL(rlat,4)

@@ -379,7 +379,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
       WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
    END IF
    PRINT *, ''
+   
+   
 
+   
    ! Latitude array:
    CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xdum_r4)
    xlatt(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
@@ -389,7 +392,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
    lat_max = MAXVAL(xlatt)
    PRINT *, ' *** Minimum latitude on source domain : ', lat_min
    PRINT *, ' *** Maximum latitude on source domain : ', lat_max
-   WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), lat_min,lat_max
+
+
+   l_glob_lat_wize = .TRUE.
+   IF ( lat_max < 77.5 ) THEN
+      l_glob_lat_wize =.FALSE.
+      WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), lat_min,lat_max
+   END IF
    PRINT *, ''
 
 
@@ -602,16 +611,16 @@ PROGRAM INTERP_TO_GROUND_TRACK
       WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
       DEALLOCATE ( xdum_r8 )
    END IF
-
-   WHERE ( xlat_gt < lat_min ) IGNORE=0
-   WHERE ( xlat_gt > lat_max ) IGNORE=0
-
-
-
+   
+   IF ( .NOT. l_glob_lat_wize ) THEN
+      WHERE ( xlat_gt < lat_min ) IGNORE=0
+      WHERE ( xlat_gt > lat_max ) IGNORE=0
+   END IF
+      
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...'
-      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt, xlat_gt, cf_mapping,  mask_out=IGNORE)
+      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt, xlat_gt, cf_mapping,  mask_domain_out=IGNORE)
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
       PRINT *, ' *** File "',trim(cf_mapping),'" found in current directory, using it!'

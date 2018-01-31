@@ -165,9 +165,8 @@ CONTAINS
 
          !! Building IGNORE mask:
          IGNORE = 1
-         ALLOCATE ( xdum(ni_out,nj_out) )
-
-         IF ( .NOT. l_glob_lon_wize ) THEN
+         IF ( (.NOT.l_glob_lon_wize).OR.(.NOT.l_glob_lat_wize) ) ALLOCATE ( xdum(ni_out,nj_out) )
+         IF ( .NOT.l_glob_lon_wize ) THEN
             WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
             IF ( lregout ) THEN
                DO jj=1,nj_out
@@ -181,26 +180,21 @@ CONTAINS
             WHERE ( xdum < lon_min_1 ) IGNORE=0
             WHERE ( xdum > lon_max_1 ) IGNORE=0
          END IF
-
-         WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), min_lat_in, max_lat_in
-         PRINT *, ' size(lat_out,1),size(lat_out,2) =>', SIZE(lat_out,1),SIZE(lat_out,2)
-
-         IF ( lregout ) THEN
-            DO ji=1,ni_out
-               xdum(ji,:) = lat_out(:,1)
-            END DO
-         ELSE
-            xdum = lat_out
+         IF ( .NOT.l_glob_lat_wize ) THEN
+            WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), min_lat_in, max_lat_in
+            IF ( lregout ) THEN
+               DO ji=1,ni_out
+                  xdum(ji,:) = lat_out(:,1)
+               END DO
+            ELSE
+               xdum = lat_out
+            END IF
+            WHERE ( xdum < min_lat_in ) IGNORE=0
+            WHERE ( xdum > max_lat_in ) IGNORE=0
+            PRINT *, ''            
          END IF
-         !CALL PRTMASK(REAL(xdum,4), 'lat_out.nc', 'lat') ; !#lolo
-         WHERE ( xdum < min_lat_in ) IGNORE=0
-         WHERE ( xdum > max_lat_in ) IGNORE=0
-         PRINT *, ''
-
-         DEALLOCATE ( xdum )
-         !CALL PRTMASK(REAL(IGNORE,4), 'ignored1.nc', 'ign') ; !#lolo
-         !! Ignore mask built...
-
+         IF ( (.NOT.l_glob_lon_wize).OR.(.NOT.l_glob_lat_wize) ) DEALLOCATE ( xdum )
+         
 
          !! Is target latitude increasing with j : 1 = yes | -1 = no
          nlat_inc_out = 1
@@ -301,7 +295,7 @@ CONTAINS
       USE mod_scoord
       !! Local :
       INTEGER :: ji, jj, jk
-      REAL    :: rval_thrshld, lon_min_2, lon_max_2
+      REAL    :: rval_thrshld, lon_min_2, lon_max_2, lat_min_2, lat_max_2
       LOGICAL :: l_loc1, l_loc2
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
@@ -379,8 +373,11 @@ CONTAINS
          WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
       END IF
       PRINT *, ''
-      
 
+      l_glob_lat_wize = .TRUE.
+      IF ( MAXVAL(lat_in) < 77.5 ) l_glob_lat_wize =.FALSE.
+      
+      
       !! Getting land-sea mask on source domain
 
       mask_in(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)

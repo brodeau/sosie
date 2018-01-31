@@ -40,7 +40,7 @@ MODULE MOD_BILIN_2D
 CONTAINS
 
 
-   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat,  mask_out)
+   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat,  mask_domain_out)
 
       !!================================================================
       !!
@@ -62,7 +62,7 @@ CONTAINS
       !!
       !!
       !! OPTIONAL IN:
-      !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
+      !!      * mask_domain_out: ignore (dont't treat) regions of the target domain where mask_domain_out==0 !
       !!
       !!================================================================
 
@@ -75,7 +75,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       CHARACTER(len=*),      INTENT(in)  :: cnpat
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_out
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
 
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
@@ -119,7 +119,7 @@ CONTAINS
 
       ALLOCATE ( mask_ignore_out(nx2,ny2) )
       mask_ignore_out(:,:) = 1
-      IF ( PRESENT(mask_out) ) mask_ignore_out(:,:) = mask_out(:,:)
+      IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
       IF ( ctype == '1d' ) THEN
          DO jj=1, ny2
@@ -178,7 +178,7 @@ CONTAINS
             PRINT *, 'using the same "source-target" setup'
 
             !CALL PRTMASK(REAL(mask_ignore_out,4), 'ignored2.nc', 'ign')  !#lolo            
-            CALL MAPPING_BL(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght, mask_out=mask_ignore_out)
+            CALL MAPPING_BL(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght, mask_domain_out=mask_ignore_out)
 
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
@@ -340,7 +340,7 @@ CONTAINS
 
 
 
-   SUBROUTINE MAPPING_BL(k_ew_per, lon_in, lat_in, lon_out, lat_out, cf_w,  mask_out)
+   SUBROUTINE MAPPING_BL(k_ew_per, lon_in, lat_in, lon_out, lat_out, cf_w,  mask_domain_out)
 
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
@@ -349,7 +349,7 @@ CONTAINS
       !!   *  Extract of CDFTOOLS cdfweight.f90 writen by Jean Marc Molines
       !!
       !! OPTIONAL:
-      !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
+      !!      * mask_domain_out: ignore (dont't treat) regions of the target domain where mask_domain_out==0 !
       !!----------------------------------------------------------------------------
 
       USE io_ezcdf
@@ -360,7 +360,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_in, lat_in
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_out, lat_out
       CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_out
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
 
       INTEGER :: &
          &     nxi, nyi, nxo, nyo, &
@@ -408,12 +408,12 @@ CONTAINS
 
       ALLOCATE ( mask_ignore_out(nxo,nyo) )
       mask_ignore_out(:,:) = 1
-      IF ( PRESENT(mask_out) ) mask_ignore_out(:,:) = mask_out(:,:)
+      IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
       
       !CALL PRTMASK(REAL(mask_ignore_out,4), 'ignored_in_MAPPING_BL.nc', 'ign')  !#lolo
       
-      CALL FIND_NEAREST_POINT( lon_out, lat_out, lon_in, lat_in, i_nrst_in, j_nrst_in,   mask_out=mask_ignore_out )
+      CALL FIND_NEAREST_POINT( lon_out, lat_out, lon_in, lat_in, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
 
       DO jj = 1, nyo
          DO ji = 1, nxo

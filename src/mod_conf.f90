@@ -10,7 +10,7 @@ MODULE MOD_CONF
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
    LOGICAL, SAVE :: l_first_call_interp_routine, &
-      &             l_glob_lon_wize !lolo
+      &             l_glob_lon_wize, l_glob_lat_wize
    
 
    LOGICAL, DIMENSION(2) :: l_2d_grid_yet_regular = (/ .FALSE. , .FALSE. /) !: in case input (i=1) and/or output (i=2) domains are
