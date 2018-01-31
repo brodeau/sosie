@@ -710,7 +710,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
                PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt_s,')'
                CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt_s)
                IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
-               IF ( l_drown_in ) CALL DROWN(-1, xvar1, mask, 5, 2)
+               IF ( l_drown_in ) CALL DROWN(-1, xvar1, mask, nb_inc=5, nb_smooth=2)
             ELSE
                !PRINT *, 'Getting field '//TRIM(cv_mod)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
@@ -719,7 +719,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
             PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt_s,')'
             CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt_s)
             IF ( l_use_anomaly ) xvar2 = xvar2 - xmean
-            IF ( l_drown_in ) CALL DROWN(-1, xvar2, mask, 5, 2)
+            IF ( l_drown_in ) CALL DROWN(-1, xvar2, mask, nb_inc=5, nb_smooth=2)
 
             xdum_r4 = (xvar2 - xvar1) / (vt_mod(jtm_2) - vt_mod(jtm_1)) ! xdum_r4 is the slope here !!!
          END IF
