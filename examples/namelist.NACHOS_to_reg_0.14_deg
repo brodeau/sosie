@@ -1,0 +1,53 @@
+!!
+&ninput
+ivect     = 0
+lregin    = F
+cf_in     = '/home/laurent/Dropbox/tmp/NACHOS12/NACHOS12_mean_sossheig.nc4'
+cv_in     = 'sossheig'
+cv_t_in   = 'time_counter'
+jt1       = 0
+jt2       = 0
+jplev     = 1
+cf_x_in   = '/home/laurent/Dropbox/tmp/NACHOS12/mesh_mask_20171028.nc4'
+cv_lon_in = 'glamt'
+cv_lat_in = 'gphit'
+cf_lsm_in = '/home/laurent/Dropbox/tmp/NACHOS12/mesh_mask_20171028.nc4'
+cv_lsm_in = 'tmask'
+ldrown    = T
+ewper     = 2
+vmax      =  1.E6
+vmin      = -1.E6
+ismooth   = 0
+/
+!!
+!!
+&nhtarget
+lregout    = T
+cf_x_out   = 'data/lsm_t1279_rglr_fits_NATL60.nc4'
+cv_lon_out = 'lon'
+cv_lat_out = 'lat'
+cf_lsm_out = 'data/lsm_t1279_rglr_fits_NATL60.nc4'
+cv_lsm_out = 'lsm'
+lmout      = T
+rmaskvalue = -9999.
+lct        = F
+t0         = 0.
+t_stp      = 0.
+ewper_out  = 0
+/
+!!
+!!
+&noutput
+cmethod  = 'bilin'
+cv_t_out = 'time_counter'
+cv_out   = 'ssh'
+cu_out   = ''
+cln_out  = ''
+cd_out   = '.'
+!!
+csource  = 'NACHOS12'
+ctarget  = '1degx1deg'
+cextra   = 'bilin'
+lpcknc4  = .true.
+/
+!!
