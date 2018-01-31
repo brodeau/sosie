@@ -4,6 +4,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    USE mod_conf
    USE mod_bilin_2d
    USE mod_manip
+   USE mod_drown
 
    !!========================================================================
    !! Purpose :
@@ -21,7 +22,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    LOGICAL, PARAMETER :: &
       &   l_debug = .TRUE., &
-      &   l_debug_mapping = .false., &
+      &   l_debug_mapping = .FALSE., &
+      &   l_drown_in = .TRUE., & ! drown the field to avoid spurious values right at the coast!
       &   l_akima = .true., &
       &   l_bilin = .false.
    !!
@@ -66,7 +68,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    LOGICAL ::  &
       &     l_exist   = .FALSE., &
-      &     l_use_anomaly = .TRUE.  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
+      &     l_use_anomaly = .FALSE.  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
    !!
    !!
    CHARACTER(len=400)  :: &
@@ -708,6 +710,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
                PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt_s,')'
                CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt_s)
                IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
+               IF ( l_drown_in ) CALL DROWN(-1, xvar1, mask, 5, 2)
             ELSE
                !PRINT *, 'Getting field '//TRIM(cv_mod)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
@@ -716,6 +719,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
             PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt_s,')'
             CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt_s)
             IF ( l_use_anomaly ) xvar2 = xvar2 - xmean
+            IF ( l_drown_in ) CALL DROWN(-1, xvar2, mask, 5, 2)
 
             xdum_r4 = (xvar2 - xvar1) / (vt_mod(jtm_2) - vt_mod(jtm_1)) ! xdum_r4 is the slope here !!!
          END IF

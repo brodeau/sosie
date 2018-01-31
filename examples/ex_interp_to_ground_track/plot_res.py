@@ -48,9 +48,11 @@ color_continents    = '0.75'
 rDPI=100.
 
 
+title_satellite = 'SARAL/Altika'
+title_model     = 'NATL60-CJM165'
 
-fig_ext='png'
-#fig_ext='svg'
+#fig_ext='png'
+fig_ext='svg'
 
 jt1=0 ; jt2=0
 
@@ -112,7 +114,7 @@ for jt in range(nbr): vtime[jt] = mdates.epoch2num(vt_epoch[jt])
 
 ii=nbr/300
 ib=max(ii-ii%10,1)
-print ' ii , ib =', ii, ib
+#print ' ii , ib =', ii, ib
 
 xticks_d=30.*ib
 
@@ -124,9 +126,9 @@ ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
 plt.xticks(rotation='60')
 
 
-plt.plot(vtime, vephem, '-', color=color_dark_blue, linewidth=2, label='Satellite ("'+cv_eph+'")', zorder=10)
-plt.plot(vtime, vmodel, '-', color=b_org, linewidth=2,  label='Model ("'+cv_mdl+'")', zorder=15)
-ax1.set_ylim(-0.68,0.68) ; ax1.set_xlim(vtime[0],vtime[nbr-1])
+plt.plot(vtime, vephem, '-', color=color_dark_blue, linewidth=2, label=title_satellite+' ("'+cv_eph+'")', zorder=10)
+plt.plot(vtime, vmodel, '-', color=b_org, linewidth=2,  label=title_model+' ("'+cv_mdl+'")', zorder=15)
+ax1.set_ylim(-0.8,0.8) ; ax1.set_xlim(vtime[0],vtime[nbr-1])
 plt.xlabel('Time [seconds since 1970]')
 plt.ylabel('SSH [m]')
 #cstep = '%5.5i'%(jpnij)
@@ -172,13 +174,13 @@ idx_seq_stop  = [] ; # index of last  valid point of the sequence
 jr=0
 while jr < nbr:
     # Ignoring masked values and zeros...        
-    if (not vmask[jr]) and (vmodel[jr]!=0.0):
+    if (not vmask[jr]) and (vmodel[jr]!=0.0) and (vmodel[jr]<100.):
         nb_seq = nb_seq + 1
         print '\n --- found seq #'+str(nb_seq)+' !'
         np_s = 1
         idx_seq_start.append(jr)
         print ' => starting at jt='+str(jr)
-        while (not vmask[jr+1]) and (vmodel[jr+1]!=0.0) :
+        while (not vmask[jr+1]) and (vmodel[jr+1]!=0.0) and (vmodel[jr]<100.):
             jr = jr+1
             np_s = np_s+1
         idx_seq_stop.append(jr)
@@ -200,49 +202,53 @@ for js in range(nb_seq):
     #print vmodel[it1:it2+1]
     nbp = it2-it1+1
 
-    print ' *** Considering '+str(nbp)+' points!\n'
 
-    # Create Matplotlib time array:
-    vtime = nmp.zeros(nbp)
-    for jt in range(nbp): vtime[jt] = mdates.epoch2num(vt_epoch[it1+jt])
+    # Only doing if more than 100 points !
+    if nbp >= 100:
+        print ' *** Considering '+str(nbp)+' points!\n'
 
-
-
-
-    ii=nbp/300
-    ib=max(ii-ii%10,1)
-    print ' ii , ib =', ii, ib
-
-    xticks_d=30.*ib
-
-    fig = plt.figure(num = 1, figsize=(12,7), facecolor='w', edgecolor='k')
-    ax1 = plt.axes([0.07, 0.24, 0.9, 0.75])
-
-    ax1.set_xticks(vtime[::xticks_d])
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
-    plt.xticks(rotation='60')
-
-
-    plt.plot(vtime, vephem[it1:it2+1], '-', color=color_dark_blue, linewidth=2, label='Satellite ("'+cv_eph+'")', zorder=10)
-    plt.plot(vtime, vmodel[it1:it2+1], '-', color=b_org, linewidth=2,  label='Model ("'+cv_mdl+'")', zorder=15)
-    ax1.set_ylim(-0.68,0.68) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
-    plt.xlabel('Time [seconds since 1970]')
-    plt.ylabel('SSH [m]')
-    #cstep = '%5.5i'%(jpnij)
-    ax1.grid(color='k', linestyle='-', linewidth=0.3)
-    
-    plt.legend(bbox_to_anchor=(0.55, 0.98), ncol=1, shadow=True, fancybox=True)
-
-
-    #ax2 = ax1.twinx()
-    #ax2.set_ylim(25.,68.)
-    #plt.plot(vtime, vlat, '--', color='0.4', linewidth=1.5, label='latitude', zorder=0.1)
-    #ax2.set_ylabel(r'Latitude [$^\circ$North]', color='0.4')
-    #[t.set_color('0.4') for t in ax2.yaxis.get_ticklabels()]
-
-    plt.savefig('fig_seq_'+str(js+1)+'.'+fig_ext, dpi=120, transparent=True)
-    plt.close(1)
+        # Create Matplotlib time array:
+        vtime = nmp.zeros(nbp)
+        for jt in range(nbp): vtime[jt] = mdates.epoch2num(vt_epoch[it1+jt])
 
 
 
 
+        ii=nbp/300
+        ib=max(ii-ii%10,1)
+        print ' ii , ib =', ii, ib
+
+        xticks_d=30.*ib
+
+        fig = plt.figure(num = 1, figsize=(12,7), facecolor='w', edgecolor='k')
+        ax1 = plt.axes([0.07, 0.24, 0.9, 0.75])
+
+        ax1.set_xticks(vtime[::xticks_d])
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
+        plt.xticks(rotation='60')
+        
+        
+        plt.plot(vtime, vephem[it1:it2+1], '-', color=color_dark_blue, linewidth=2, label=title_satellite+' ("'+cv_eph+'")', zorder=10)
+        plt.plot(vtime, vmodel[it1:it2+1], '-', color=b_org, linewidth=2,  label=title_model+' ("'+cv_mdl+'")', zorder=15)
+        ax1.set_ylim(-0.8,0.8) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
+        plt.xlabel('Time [seconds since 1970]')
+        plt.ylabel('SSH [m]')
+        #cstep = '%5.5i'%(jpnij)
+        ax1.grid(color='k', linestyle='-', linewidth=0.3)
+        
+        plt.legend(bbox_to_anchor=(0.55, 0.98), ncol=1, shadow=True, fancybox=True)
+        
+        
+        #ax2 = ax1.twinx()
+        #ax2.set_ylim(25.,68.)
+        #plt.plot(vtime, vlat, '--', color='0.4', linewidth=1.5, label='latitude', zorder=0.1)
+        #ax2.set_ylabel(r'Latitude [$^\circ$North]', color='0.4')
+        #[t.set_color('0.4') for t in ax2.yaxis.get_ticklabels()]
+        
+        plt.savefig('fig_seq_'+str(js+1)+'.'+fig_ext, dpi=120, transparent=False)
+        plt.close(1)
+
+
+    else:
+
+        print ' Not enough points !!!'

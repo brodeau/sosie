@@ -7,4 +7,5 @@ F_M="${HOME}/DATA/SOSIE/NATL60-CJM165_y2017m04d02.1h_SSH.nc4"
 ../../bin/interp_to_ground_track.x \
     -i ${F_M} -v sossheig \
     -m ${HOME}/Dropbox/tmp/NATL60/mesh_t_minimum_NATL60.nc4 \
-    -p ${F_E} -n sla_unfiltered
+    -p ${F_E} -n adt_unfiltered
+#    -p ${F_E} -n sla_unfiltered

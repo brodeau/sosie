@@ -42,6 +42,7 @@ OBJ = obj/io_ezcdf.o \
 OBJ_I2GT = obj/io_ezcdf.o \
            obj/mod_conf.o \
            obj/mod_manip.o \
+           obj/mod_drown.o \
            obj/mod_bilin_2d.o
 
 
