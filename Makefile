@@ -35,7 +35,8 @@ OBJ = obj/io_ezcdf.o \
       obj/mod_akima_1d.o \
       obj/mod_scoord.o \
       obj/mod_interp.o \
-      obj/mod_nemotools.o
+      obj/mod_nemotools.o \
+      obj/mod_strftime.o
 
 
 OBJ_I2GT = obj/io_ezcdf.o \
@@ -127,6 +128,9 @@ obj/mod_scoord.o: src/mod_scoord.f90
 
 obj/mod_nemotools.o: src/mod_nemotools.f90
 	$(FC) $(FF) -c src/mod_nemotools.f90 -o obj/mod_nemotools.o
+
+obj/mod_strftime.o: src/mod_strftime.f90
+	$(FC) $(FF) -c src/mod_strftime.f90 -o obj/mod_strftime.o
 
 
 
