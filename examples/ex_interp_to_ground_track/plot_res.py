@@ -71,35 +71,15 @@ id_in    = Dataset(cf_in)
 vt_epoch = id_in.variables['time'][:]
 vmodel   = id_in.variables[cv_mdl][:]
 vephem   = id_in.variables[cv_eph][:]
+vlat     = id_in.variables['latitude'][:]
 id_in.close()
 print "  => READ!"
 
 
-nbr = len(vt_epoch)
-
-if jt2 == 0: jt2 = nbr-1
-
-if jt1 >= nbr or jt2 >= nbr:
-    print 'ERROR: the file contains only '+str(nbr)+' time records!' ; sys.exit(0)
-if jt1 >= jt2:
-    print 'ERROR: jt2 must be > jt1!' ; sys.exit(0)
-
-
-
-
-nbp = jt2-jt1+1
-
-print ' *** Considering '+str(nbp)+' points!\n'
-
-# Create Matplotlib time array:
-vtime = nmp.zeros(nbp)
-for jt in range(nbp): vtime[jt] = mdates.epoch2num(vt_epoch[jt1+jt])
 
 
 
 font_corr = 1.2
-
-
 params = { 'font.family':'Ubuntu',
            'font.weight':    'normal',
            'font.size':       int(12*font_corr),
@@ -113,7 +93,24 @@ params = { 'font.family':'Ubuntu',
 #           'figure.facecolor': 'w' }
 mpl.rcParams.update(params)
 
-ii=nbp/300
+
+
+
+nbr = len(vt_epoch)
+
+
+
+
+# Initial raw plot:
+# Create Matplotlib time array:
+
+vtime = nmp.zeros(nbr)
+for jt in range(nbr): vtime[jt] = mdates.epoch2num(vt_epoch[jt])
+
+
+
+
+ii=nbr/300
 ib=max(ii-ii%10,1)
 print ' ii , ib =', ii, ib
 
@@ -127,9 +124,9 @@ ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
 plt.xticks(rotation='60')
 
 
-plt.plot(vtime, vephem[jt1:jt2+1], '-', color=color_dark_blue, linewidth=2, label='Satellite ("'+cv_eph+'")', zorder=10)
-plt.plot(vtime, vmodel[jt1:jt2+1], '-', color=b_org, linewidth=2,  label='Model ("'+cv_mdl+'")', zorder=15)
-ax1.set_ylim(-0.68,0.68) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
+plt.plot(vtime, vephem, '-', color=color_dark_blue, linewidth=2, label='Satellite ("'+cv_eph+'")', zorder=10)
+plt.plot(vtime, vmodel, '-', color=b_org, linewidth=2,  label='Model ("'+cv_mdl+'")', zorder=15)
+ax1.set_ylim(-0.68,0.68) ; ax1.set_xlim(vtime[0],vtime[nbr-1])
 plt.xlabel('Time [seconds since 1970]')
 plt.ylabel('SSH [m]')
 #cstep = '%5.5i'%(jpnij)
@@ -139,10 +136,113 @@ plt.legend(bbox_to_anchor=(0.55, 0.98), ncol=1, shadow=True, fancybox=True)
 
 
 #ax2 = ax1.twinx()
-#ax2.set_ylim(25.,68.) ; ax2.set_xlim(0.,13.2)
+#ax2.set_ylim(25.,68.)
 #plt.plot(vtime, vlat, '--', color='0.4', linewidth=1.5, label='latitude', zorder=0.1)
 #ax2.set_ylabel(r'Latitude [$^\circ$North]', color='0.4')
 #[t.set_color('0.4') for t in ax2.yaxis.get_ticklabels()]
 
-plt.savefig('fig.'+fig_ext, dpi=120, transparent=True)
+plt.savefig('fig_raw_data.'+fig_ext, dpi=120, transparent=True)
 plt.close(1)
+
+
+
+
+
+
+# Now 1 figure per sequence !
+
+vmask = vmodel.mask
+
+(idx_ok,) = nmp.where(vmask==False) # indexes with valid values!
+
+
+print idx_ok
+
+nbr_v = len(idx_ok)
+
+print ' *** '+str(nbr_v)+' valid points out of '+str(nbr)+' !'
+
+print vmask
+
+# Will extract the N valid data sequences:
+nb_seq=0
+idx_seq_start = [] ; # index of first valid point of the sequence
+idx_seq_stop  = [] ; # index of last  valid point of the sequence
+
+jr=0
+while jr < nbr:
+    # Ignoring masked values and zeros...        
+    if (not vmask[jr]) and (vmodel[jr]!=0.0):
+        nb_seq = nb_seq + 1
+        print '\n --- found seq #'+str(nb_seq)+' !'
+        np_s = 1
+        idx_seq_start.append(jr)
+        print ' => starting at jt='+str(jr)
+        while (not vmask[jr+1]) and (vmodel[jr+1]!=0.0) :
+            jr = jr+1
+            np_s = np_s+1
+        idx_seq_stop.append(jr)
+        print ' => and stoping at jt='+str(jr)
+        
+    jr = jr+1
+
+
+if len(idx_seq_start) != nb_seq: print ' ERROR #1!'; sys.exit(1)
+
+print '\n idx_seq_start =', idx_seq_start
+print '\n idx_seq_stop =', idx_seq_stop
+
+for js in range(nb_seq):
+    print '\n\n ###################################'
+    print '  *** Seq #'+str(js+1)+':'
+    it1 = idx_seq_start[js]
+    it2 = idx_seq_stop[js]
+    #print vmodel[it1:it2+1]
+    nbp = it2-it1+1
+
+    print ' *** Considering '+str(nbp)+' points!\n'
+
+    # Create Matplotlib time array:
+    vtime = nmp.zeros(nbp)
+    for jt in range(nbp): vtime[jt] = mdates.epoch2num(vt_epoch[it1+jt])
+
+
+
+
+    ii=nbp/300
+    ib=max(ii-ii%10,1)
+    print ' ii , ib =', ii, ib
+
+    xticks_d=30.*ib
+
+    fig = plt.figure(num = 1, figsize=(12,7), facecolor='w', edgecolor='k')
+    ax1 = plt.axes([0.07, 0.24, 0.9, 0.75])
+
+    ax1.set_xticks(vtime[::xticks_d])
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
+    plt.xticks(rotation='60')
+
+
+    plt.plot(vtime, vephem[it1:it2+1], '-', color=color_dark_blue, linewidth=2, label='Satellite ("'+cv_eph+'")', zorder=10)
+    plt.plot(vtime, vmodel[it1:it2+1], '-', color=b_org, linewidth=2,  label='Model ("'+cv_mdl+'")', zorder=15)
+    ax1.set_ylim(-0.68,0.68) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
+    plt.xlabel('Time [seconds since 1970]')
+    plt.ylabel('SSH [m]')
+    #cstep = '%5.5i'%(jpnij)
+    ax1.grid(color='k', linestyle='-', linewidth=0.3)
+    
+    plt.legend(bbox_to_anchor=(0.55, 0.98), ncol=1, shadow=True, fancybox=True)
+
+
+    #ax2 = ax1.twinx()
+    #ax2.set_ylim(25.,68.)
+    #plt.plot(vtime, vlat, '--', color='0.4', linewidth=1.5, label='latitude', zorder=0.1)
+    #ax2.set_ylabel(r'Latitude [$^\circ$North]', color='0.4')
+    #[t.set_color('0.4') for t in ax2.yaxis.get_ticklabels()]
+
+    plt.savefig('fig_seq_'+str(js+1)+'.'+fig_ext, dpi=120, transparent=True)
+    plt.close(1)
+
+
+
+
