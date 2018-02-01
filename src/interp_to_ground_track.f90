@@ -11,7 +11,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    !! ---------
    !!
-   !! Author :   Laurent Brodeau
+   !! Author :   Laurent Brodeau, 2018
    !! --------
    !!
    !!========================================================================
@@ -23,13 +23,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
    LOGICAL, PARAMETER :: &
       &   l_debug = .TRUE., &
       &   l_debug_mapping = .FALSE., &
-      &   l_drown_in = .TRUE., & ! drown the field to avoid spurious values right at the coast!
-      &   l_akima = .true., &
-      &   l_bilin = .false.
+      &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
+      &   l_akima = .TRUE., &
+      &   l_bilin = .FALSE.
    !!
    LOGICAL :: &
-      &      l_orbit_file_is_nc    = .FALSE., &
-      &      l_loc1, l_loc2
+      &      l_orbit_file_is_nc    = .FALSE.
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
@@ -38,7 +37,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xgt, Ygt, Fgt, xlon_gt, xlat_gt, xdum_r8
    !!
    !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Fmask, Ftrack_mod_np, Ftrack_obs
+   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs
 
    REAL(8), DIMENSION(:),     ALLOCATABLE :: vte, vt_mod, vt_obs   ! in seconds
 
@@ -68,11 +67,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    LOGICAL ::  &
       &     l_exist   = .FALSE., &
-      &     l_use_anomaly = .FALSE.  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
+      &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
+      &     l_loc1, l_loc2, &
+      &     l_obs_ok
    !!
    !!
    CHARACTER(len=400)  :: &
-      &    cf_obs   = 'track.dat', &
+      &    cf_obs   = 'ground_track.nc', &
       &    cf_mod, &
       &    cf_mm='mesh_mask.nc', &
       &    cf_mapping, &
@@ -81,7 +82,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER      :: &
       &    jarg,   &
-      &    idot,   &
+      &    idot, ip1, jp1, im1, jm1, &
       &    i0, j0,  &
       &    ni, nj, nk=0, Ntm=0, &
       &    ni1, nj1, ni2, nj2, &
@@ -99,6 +100,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
    INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: mask
+   INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask
    !!
    INTEGER :: jt, jte, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
@@ -109,7 +111,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
 
-   REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max
+   REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
 
    TYPE(t_unit_t0) :: tut_epoch, tut_obs, tut_mod
 
@@ -332,17 +334,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
       CALL GETVAR_1D(cf_mod, cv_t, vt_mod)
    END IF
 
-   !IF ( l_debug ) THEN
-   !   PRINT *, ''
-   !   PRINT *, 'Time vector in NEMO input file is (s), (h), (d):'
-   !   DO jt=1, Ntm
-   !      PRINT *, vt_mod(jt), vt_mod(jt)/3600., vt_mod(jt)/(3600.*24.)
-   !   END DO
-   !   PRINT *, ''
-   !   PRINT *, ''
-   !END IF
-
-
 
    !! Getting longitude, latitude and mask in mesh_mask file:
    ! Longitude array:
@@ -381,10 +372,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
       WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
    END IF
    PRINT *, ''
-   
-   
 
-   
+
+
+
    ! Latitude array:
    CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xdum_r4)
    xlatt(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
@@ -480,44 +471,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   !PRINT *, ''
-   !PRINT *, 'First time record for model:', vt_mod(1)
-   !itime = to_epoch_time_scalar( tut_mod, vt_mod(1) )
-   !PRINT *, '     ==> in epoch time =>',  itime
-   !PRINT *, ''
-   !PRINT *, 'Last time record for model:', vt_mod(Ntm)
-   !itime = to_epoch_time_scalar( tut_mod, vt_mod(Ntm) )
-   !PRINT *, '     ==> in epoch time =>',  itime
-
-   !PRINT *, '' ; PRINT *, ''
-
-   !PRINT *, 'First time record for track:', vt_obs(1)
-   !itime = to_epoch_time_scalar( tut_obs, vt_obs(1), dt=0.1_8 )
-   !PRINT *, '     ==> in epoch time =>',  itime
-   !PRINT *, ''
-   !PRINT *, 'Last time record for track:', vt_obs(Nte)
-   !itime = to_epoch_time_scalar( tut_obs, vt_obs(Nte), dt=0.1_8 )
-   !PRINT *, '     ==> in epoch time =>',  itime
-
-   !PRINT *, ''
-
-   !!
-   !! Converting time vectors to epoch:
-   !CALL time_vector_to_epoch_time( tut_obs, vt_obs )
-   !CALL time_vector_to_epoch_time( tut_mod, vt_mod )
-
-
-   !CALL to_epoch_time_vect( tut_mod, vt_mod )
-   !PRINT *, vt_mod(:)
-   !PRINT *, ''
 
 
    PRINT *, ''
    PRINT *, ' Time vector in track file:'
    CALL to_epoch_time_vect( tut_obs, vt_obs, l_dt_below_sec=.true. )
-   !PRINT *, vt_obs(:)
-   PRINT *, ''
-   PRINT *, ''
+   PRINT *, '' ;  PRINT *, ''
 
    !! Defaults:
    Nten = Nte
@@ -525,13 +484,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
    it2  = Nte
 
    IF ( .NOT. l_debug_mapping ) THEN
+
       PRINT *, ' Time vector in model file:'
       CALL to_epoch_time_vect( tut_mod, vt_mod, l_dt_below_sec=.FALSE. )
       !PRINT *, vt_mod(:)
       PRINT *, ''
-
-
-
 
       IF ( l_use_anomaly ) THEN
          PRINT *, ''
@@ -547,11 +504,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
          CALL PRTMASK(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
          !STOP'lolo'
       END IF
-
-
-
-
-
 
       t_min_e = MINVAL(vt_obs)
       t_max_e = MAXVAL(vt_obs)
@@ -613,12 +565,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
       WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
       DEALLOCATE ( xdum_r8 )
    END IF
-   
+
    IF ( .NOT. l_glob_lat_wize ) THEN
       WHERE ( xlat_gt < lat_min ) IGNORE=0
       WHERE ( xlat_gt > lat_max ) IGNORE=0
    END IF
-      
+
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...'
@@ -637,8 +589,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    JJidx(1,:) = IMETRICS(1,:,2)
 
 
-
-   !PRINT *, 'LOLO IMETRICS(1,:,1) =>', IMETRICS(1,:,1)
 
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
@@ -675,9 +625,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
    vte(:) = vt_obs(it1:it2)
 
    Ftrack_mod_np(:) = -9999.
-   Ftrack_obs(:) = -9999.
-   Ftrack_mod(:) = -9999.
-   Fmask(:) = 0.
+   Ftrack_obs(:)    = -9999.
+   Ftrack_mod(:)    = -9999.
+   Fmask(:)         = 0
 
    jt_s = 1 ; ! time step model!
 
@@ -685,11 +635,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
    jtm_2_o = -100
 
    DO jte = 1, Nten
-      !!
+
       rt = vte(jte)
-      !!
+
       IF ( (rt >= t_min_m).AND.(rt < t_max_m) ) THEN
-         !!
+
          !! Two surrounding time records in model file => jtm_1 & jtm_2
          DO jt=jt_s, Ntm-1
             IF ( (rt >= vt_mod(jt)).AND.(rt < vt_mod(jt+1)) ) EXIT
@@ -700,9 +650,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          IF (jte==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
 
          PRINT *, 'Treating track time =>', rt, '     model jtm_1 =', jtm_1
-         
-         !PRINT *, ' rt, vt_mod(jtm_1), vt_mod(jtm_2) =>', rt, vt_mod(jtm_1), vt_mod(jtm_2)
-         !!
+
          !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
          IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
             IF ( jtm_1_o == -100 ) THEN
@@ -712,7 +660,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
                IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
                IF ( l_drown_in ) CALL DROWN(-1, xvar1, mask, nb_inc=5, nb_smooth=2)
             ELSE
-               !PRINT *, 'Getting field '//TRIM(cv_mod)//' at jtm_1=', jtm_1,' from previous jtm_2 !'
                xvar1(:,:) = xvar2(:,:)
             END IF
             PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
@@ -722,6 +669,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
             IF ( l_drown_in ) CALL DROWN(-1, xvar2, mask, nb_inc=5, nb_smooth=2)
 
             xdum_r4 = (xvar2 - xvar1) / (vt_mod(jtm_2) - vt_mod(jtm_1)) ! xdum_r4 is the slope here !!!
+
          END IF
 
          !! Linear interpolation of field at time rt:
@@ -731,28 +679,45 @@ PROGRAM INTERP_TO_GROUND_TRACK
          iP       = IMETRICS(1,jte,1)
          jP       = IMETRICS(1,jte,2)
          iquadran = IMETRICS(1,jte,3)
-
          alpha    = RAB(1,jte,1)
          beta     = RAB(1,jte,2)
 
-         IF ( (iP == INT(rflg)).OR.(jP == INT(rflg)) ) THEN
-            Ftrack_mod(jte) = -9999. ; ! masking
-            Ftrack_obs(jte) = -9999. ; ! masking
-            Fmask(jte) = -9999. ; ! masking
-         ELSE
-            !! INTERPOLATION !
-            Ftrack_mod(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
-            !!
-            Ftrack_obs(jte) = Fgt(1,it1+jte-1) ! Input track data
-            !!
-            RES_2D_MOD(iP,jP) = Ftrack_mod(jte)
-            RES_2D_OBS(iP,jP) = Ftrack_obs(jte)
-            !!
+
+
+
+
+         IF ( mask(iP,jP)==1 ) THEN
+
+            r_obs    = Fgt(1,it1+jte-1)
+            l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
+            
+            IF ( l_obs_ok .AND. (mask(iP,jP)==1).AND.(iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
+               
+               !! Ignore points that are just 1 point away from land:
+               ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
+               im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
+               idot = mask(ip1,jP) + mask(ip1,jp1) + mask(iP,jp1) + mask(im1,jp1) &
+                  & + mask(im1,jP) + mask(im1,jm1) + mask(iP,jm1) + mask(ip1,jm1)
+               !! => idot == 8 if in that case...
+               IF (idot==8) THEN
+                  !! Model, nearest point:
+                  Ftrack_mod_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
+                  !! Model, 2D bilinear interpolation:
+                  Ftrack_mod(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
+                  !! Observations as on their original point:
+                  Ftrack_obs(jte) = r_obs
+                  !! On the model grid for info:
+                  RES_2D_MOD(iP,jP) = Ftrack_mod(jte)
+                  RES_2D_OBS(iP,jP) = Ftrack_obs(jte)
+                  !!
+                  Fmask(jte) = 1 ! That was a valid point!
+                  !!
+               END IF
+            END IF
          END IF
-
-         IF ( (JIidx(1,jte)>0).AND.(JJidx(1,jte)>0) ) &
-            &  Ftrack_mod_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
-
+         
+         !IF ( (JIidx(1,jte)>0).AND.(JJidx(1,jte)>0) ) &
+         !   &
 
          jtm_1_o = jtm_1
          jtm_2_o = jtm_2
@@ -762,18 +727,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    END DO
 
+   WHERE ( Fmask == 0 )
+      Ftrack_mod    = -9999.
+      Ftrack_mod_np = -9999.
+      Ftrack_obs    = -9999.
+   END WHERE
 
-   !! Masking
-   WHERE ( Ftrack_mod > 1.E9 ) Ftrack_mod = -9999.
-   !WHERE ( Fmask < 1.    ) Ftrack_mod = -9999.
-   WHERE ( IGNORE(1,:)==0    ) Ftrack_mod = -9999.
-
-   WHERE ( Ftrack_mod_np > 1.E9 ) Ftrack_mod_np = -9999.
-   !WHERE ( Fmask < 1.    )    Ftrack_mod_np = -9999.
-   WHERE ( IGNORE(1,:)==0    )    Ftrack_mod_np = -9999.
-
-   WHERE ( Ftrack_obs > 1.E9 )  Ftrack_obs = -9999.
-   WHERE ( IGNORE(1,:)==0    )    Ftrack_obs = -9999.
 
    PRINT *, ''
    !WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_mod), TRIM(cf_obs)
@@ -781,20 +740,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' * Output file = ', trim(cf_out)
    PRINT *, ''
 
-
-
-
-
    CALL PT_SERIES(vte(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
       &           ct_unit=TRIM(cunit_time_out), lpack=.TRUE., &
-      &           vdt2=REAL(Ftrack_mod_np,4),    cv_dt2=TRIM(cv_mod)//'_np', cln2='Model data, nearest-point interpolation', &
-      &           vdt3=REAL(Ftrack_obs,4), cv_dt3=cv_obs,              cln3='Original data as in track file...',   &
-      &           vdt4=REAL(xlon_gt(1,:),4), cv_dt4='longitude',           cln4='Longitude (as in track file)',  &
-      &           vdt5=REAL(xlat_gt(1,:),4), cv_dt5='latitude',            cln5='Latitude (as in track file)' ,  &
-      &           vdt6=REAL(Fmask,4),        cv_dt6='mask',                cln6='Mask', &
-      &           vdt7=REAL(IGNORE(1,:),4),  cv_dt7='ignore_out',          cln7='Ignore mask on target track (ignored where ignore_out==0)')
-
-
+      &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
+      &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
+      &           vdt4=REAL(xlon_gt(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
+      &           vdt5=REAL(xlat_gt(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
+      &           vdt6=REAL(Fmask,4),        cv_dt6='mask',             cln6='Mask', &
+      &           vdt7=REAL(IGNORE(1,:),4),  cv_dt7='ignore_out',       cln7='Ignore mask on target track (ignored where ignore_out==0)')
 
    WHERE ( mask == 0 )
       RES_2D_MOD = -9999.

@@ -933,13 +933,17 @@ CONTAINS
       ELSE
          CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idf), crtn,cf_in,cv_dt1)
       END IF
-
+      
       !! Time
-      CALL sherr( NF90_DEF_DIM(idf, TRIM(cv_t), NF90_UNLIMITED, idtd),      crtn,cf_in,cv_dt1)
-      CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE,    idtd, idt), crtn,cf_in,cv_dt1)
-      IF ( PRESENT(ct_unit) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'units', TRIM(ct_unit)), crtn,cf_in,cv_dt1)
-      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),       crtn,cf_in,cv_dt1)
-      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),       crtn,cf_in,cv_dt1)
+      CALL sherr( NF90_DEF_DIM(idf, TRIM(cv_t), NF90_UNLIMITED, idtd),                       crtn,cf_in,cv_t)
+      IF ( lp ) THEN
+         CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=9), crtn,cf_in,cv_t)
+      ELSE
+         CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt),                  crtn,cf_in,cv_t)
+      END IF
+      IF ( PRESENT(ct_unit) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'units', TRIM(ct_unit)),    crtn,cf_in,cv_t)
+      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),                        crtn,cf_in,cv_t)
+      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),                        crtn,cf_in,cv_t)
 
       !! Variable(s):
       IF ( lp ) THEN

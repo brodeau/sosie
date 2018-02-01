@@ -30,6 +30,11 @@ import matplotlib.dates as mdates
 
 import barakuda_tool as bt
 
+r_max_amp_ssh = 1.5 # in meters
+
+rcut_by_time = 5. # specify in seconds the time gap between two obs that means a discontinuity and therefore
+#                 # should be considered as a cut!
+nvalid_seq = 1000  # specify the minimum number of values a sequence should contain to be considered and kept!
 
 color_dark_blue = '#091459'
 color_red = '#AD0000'
@@ -128,7 +133,7 @@ plt.xticks(rotation='60')
 
 plt.plot(vtime, vephem, '-', color=color_dark_blue, linewidth=2, label=title_satellite+' ("'+cv_eph+'")', zorder=10)
 plt.plot(vtime, vmodel, '-', color=b_org, linewidth=2,  label=title_model+' ("'+cv_mdl+'")', zorder=15)
-ax1.set_ylim(-0.8,0.8) ; ax1.set_xlim(vtime[0],vtime[nbr-1])
+ax1.set_ylim(-r_max_amp_ssh,r_max_amp_ssh) ; ax1.set_xlim(vtime[0],vtime[nbr-1])
 plt.xlabel('Time [seconds since 1970]')
 plt.ylabel('SSH [m]')
 #cstep = '%5.5i'%(jpnij)
@@ -171,18 +176,24 @@ nb_seq=0
 idx_seq_start = [] ; # index of first valid point of the sequence
 idx_seq_stop  = [] ; # index of last  valid point of the sequence
 
+
+
+print "len(vmask), len(vmodel), nbr =", len(vmask), nbr, len(vmodel)
+
 jr=0
 while jr < nbr:
     # Ignoring masked values and zeros...        
     if (not vmask[jr]) and (vmodel[jr]!=0.0) and (vmodel[jr]<100.):
         nb_seq = nb_seq + 1
         print '\n --- found seq #'+str(nb_seq)+' !'
-        np_s = 1
+        #np_s = 1
         idx_seq_start.append(jr)
         print ' => starting at jt='+str(jr)
-        while (not vmask[jr+1]) and (vmodel[jr+1]!=0.0) and (vmodel[jr]<100.):
+        while (not vmask[jr+1]) and (vmodel[jr+1]!=0.0) and (vt_epoch[jr+1]-vt_epoch[jr] < rcut_by_time) and (vmodel[jr]<100.) :
+            if nb_seq==25: print vt_epoch[jr+1]-vt_epoch[jr], vt_epoch[jr]
             jr = jr+1
-            np_s = np_s+1
+            if jr==nbr-1: break
+            #np_s = np_s+1
         idx_seq_stop.append(jr)
         print ' => and stoping at jt='+str(jr)
         
@@ -195,16 +206,18 @@ print '\n idx_seq_start =', idx_seq_start
 print '\n idx_seq_stop =', idx_seq_stop
 
 for js in range(nb_seq):
-    print '\n\n ###################################'
-    print '  *** Seq #'+str(js+1)+':'
     it1 = idx_seq_start[js]
     it2 = idx_seq_stop[js]
     #print vmodel[it1:it2+1]
     nbp = it2-it1+1
 
+    cseq = '%2.2i'%(js+1)
 
-    # Only doing if more than 100 points !
-    if nbp >= 100:
+    # Only doing if more than nvalid_seq points !
+    if nbp >= nvalid_seq:
+
+        print '\n\n ###################################'
+        print '  *** Seq #'+cseq+':'        
         print ' *** Considering '+str(nbp)+' points!\n'
 
         # Create Matplotlib time array:
@@ -230,7 +243,7 @@ for js in range(nb_seq):
         
         plt.plot(vtime, vephem[it1:it2+1], '-', color=color_dark_blue, linewidth=2, label=title_satellite+' ("'+cv_eph+'")', zorder=10)
         plt.plot(vtime, vmodel[it1:it2+1], '-', color=b_org, linewidth=2,  label=title_model+' ("'+cv_mdl+'")', zorder=15)
-        ax1.set_ylim(-0.8,0.8) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
+        ax1.set_ylim(-r_max_amp_ssh,r_max_amp_ssh) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
         plt.xlabel('Time [seconds since 1970]')
         plt.ylabel('SSH [m]')
         #cstep = '%5.5i'%(jpnij)
@@ -245,10 +258,10 @@ for js in range(nb_seq):
         #ax2.set_ylabel(r'Latitude [$^\circ$North]', color='0.4')
         #[t.set_color('0.4') for t in ax2.yaxis.get_ticklabels()]
         
-        plt.savefig('fig_seq_'+str(js+1)+'.'+fig_ext, dpi=120, transparent=False)
+        plt.savefig('fig_seq_'+cseq+'.'+fig_ext, dpi=120, transparent=False)
         plt.close(1)
 
 
     else:
 
-        print ' Not enough points !!!'
+        print '\n  *** Seq #'+cseq+' => Not enough points ! ('+str(nbp)+')\n'        
