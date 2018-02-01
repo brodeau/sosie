@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 #import matplotlib.font_manager as font_manager
 import matplotlib.patches as patches
+from mpl_toolkits.basemap import Basemap
+
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -34,7 +36,7 @@ r_max_amp_ssh = 1.5 # in meters
 
 rcut_by_time = 5. # specify in seconds the time gap between two obs that means a discontinuity and therefore
 #                 # should be considered as a cut!
-nvalid_seq = 1000  # specify the minimum number of values a sequence should contain to be considered and kept!
+nvalid_seq = 100  # specify the minimum number of values a sequence should contain to be considered and kept!
 
 color_dark_blue = '#091459'
 color_red = '#AD0000'
@@ -78,6 +80,7 @@ id_in    = Dataset(cf_in)
 vt_epoch = id_in.variables['time'][:]
 vmodel   = id_in.variables[cv_mdl][:]
 vephem   = id_in.variables[cv_eph][:]
+vlon     = id_in.variables['longitude'][:]
 vlat     = id_in.variables['latitude'][:]
 id_in.close()
 print "  => READ!"
@@ -98,7 +101,16 @@ params = { 'font.family':'Ubuntu',
            'lines.linewidth' : 8,
            'lines.markersize' : 10 }
 #           'figure.facecolor': 'w' }
+font_ttl= { 'fontname':'Helvetica Neue', 'fontweight':'light', 'fontsize':int(15.*font_corr) }
 mpl.rcParams.update(params)
+
+
+
+
+
+
+
+
 
 
 
@@ -226,6 +238,27 @@ for js in range(nb_seq):
 
 
 
+        # Maps:
+        fig = plt.figure(num = 1, figsize=(12,8.3), facecolor='w', edgecolor='k')
+        ax1 = plt.axes([0.01, 0.01, 0.98, 0.98])
+        m = Basemap(projection='lcc', llcrnrlat=18, urcrnrlat=60, llcrnrlon=-77, urcrnrlon=+25, \
+                    lat_0=45.,lon_0=-40., resolution='c', area_thresh=1000.)        
+        m.bluemarble()
+        m.drawcoastlines(linewidth=0.5)
+        m.drawcountries(linewidth=0.5)
+        m.drawstates(linewidth=0.5)
+
+        x, y = m(vlon[it1:it2+1], vlat[it1:it2+1])
+
+        plt.plot(x, y, 'r-')        
+        plt.savefig('map_'+cseq+'.'+fig_ext, dpi=120, transparent=True)
+        plt.close(1)
+        #sys.exit(0)
+        
+
+
+        
+
 
         ii=nbp/300
         ib=max(ii-ii%10,1)
@@ -233,24 +266,45 @@ for js in range(nb_seq):
 
         xticks_d=30.*ib
 
-        fig = plt.figure(num = 1, figsize=(12,7), facecolor='w', edgecolor='k')
-        ax1 = plt.axes([0.07, 0.24, 0.9, 0.75])
+        # Finding appropriate amplitude as a multiple of 0.25:
+
+        rmult = 0.2
+        rmax    = max( nmp.max(vmodel[it1:it2+1]) , nmp.max(vephem[it1:it2+1])  )
+        r_ssh_p = bt.round_to_multiple_of(rmax, prec=1, base=rmult)
+        if rmax > r_ssh_p: r_ssh_p = r_ssh_p + rmult/2.
+
+        rmin    = min( nmp.min(vmodel[it1:it2+1]) , nmp.min(vephem[it1:it2+1])  )
+        r_ssh_m = bt.round_to_multiple_of(rmin, prec=1, base=rmult)
+        if rmin < r_ssh_m: r_ssh_m = r_ssh_m - rmult/2.
+        
+        fig = plt.figure(num = 1, figsize=(12,7.4), facecolor='w', edgecolor='k')
+        ax1 = plt.axes([0.07, 0.22, 0.88, 0.73])
 
         ax1.set_xticks(vtime[::xticks_d])
         ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M:%S'))
         plt.xticks(rotation='60')
         
-        
+        plt.plot(vtime, vtime*0., '-', color='k', linewidth=2, label=None)
+
         plt.plot(vtime, vephem[it1:it2+1], '-', color=color_dark_blue, linewidth=2, label=title_satellite+' ("'+cv_eph+'")', zorder=10)
         plt.plot(vtime, vmodel[it1:it2+1], '-', color=b_org, linewidth=2,  label=title_model+' ("'+cv_mdl+'")', zorder=15)
-        ax1.set_ylim(-r_max_amp_ssh,r_max_amp_ssh) ; ax1.set_xlim(vtime[0],vtime[nbp-1])
-        plt.xlabel('Time [seconds since 1970]')
+
+        plt.yticks( nmp.arange(r_ssh_m, r_ssh_p+0.1, 0.1) )
+        ax1.set_ylim(r_ssh_m*1.05,r_ssh_p*1.05)
         plt.ylabel('SSH [m]')
+
+        ax1.set_xlim(vtime[0],vtime[nbp-1])
+        #plt.xlabel('Time [seconds since 1970]')
+
         #cstep = '%5.5i'%(jpnij)
         ax1.grid(color='k', linestyle='-', linewidth=0.3)
         
-        plt.legend(bbox_to_anchor=(0.55, 0.98), ncol=1, shadow=True, fancybox=True)
-        
+        #plt.legend(bbox_to_anchor=(0.55, 0.98), ncol=1, shadow=True, fancybox=True)
+        plt.legend(loc="best", ncol=1, shadow=True, fancybox=True)
+
+        cstart = str(round(bt.lon_180_180(vlon[it1]),2))+"$^{\circ}$E, "+str(round(vlat[it1],2))+"$^{\circ}$N"
+        cstop  = str(round(bt.lon_180_180(vlon[it2]),2))+"$^{\circ}$E, "+str(round(vlat[it2],2))+"$^{\circ}$N"
+        plt.title(r""+cstart+"  $\longrightarrow$ "+cstop, **font_ttl)
         
         #ax2 = ax1.twinx()
         #ax2.set_ylim(25.,68.)
