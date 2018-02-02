@@ -45,6 +45,5 @@ cd_out   = '.'
 csource  = '400x225'
 ctarget  = '0.25degx0.25deg'
 cextra   = 'bilin'
-lpcknc4  = .true.
 /
 !!

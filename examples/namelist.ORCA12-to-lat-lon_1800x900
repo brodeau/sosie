@@ -49,6 +49,5 @@ cd_out   = '.'
 csource  = 'ORCA12'
 ctarget  = '1800x900'
 cextra   = 'bilin'
-lpcknc4  = .true.
 /
 !!

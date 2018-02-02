@@ -69,8 +69,8 @@ MODULE MOD_CONF
       &    lregout, & ! whether target grid is regular or not
       &    ldrown,  & ! whether to use the DROWN procedure to extrapolate sea values on earth
       &    lmout,   & ! masking output or not
-      &    lct,     & ! time control
-      &  lpcknc4 = .FALSE.       !: do we compress output data in netcdf4 format?
+      &    lct        ! time control
+
 
    ! &    ldrown_out ! drowning out put (only if lmout=FALSE and cv_lsm_out /= ''
 

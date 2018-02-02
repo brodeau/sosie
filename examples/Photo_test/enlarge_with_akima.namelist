@@ -45,6 +45,5 @@ cd_out   = '.'
 csource  = '400x225'
 ctarget  = '0.25degx0.25deg'
 cextra   = 'akima'
-lpcknc4  = .true.
 /
 !!

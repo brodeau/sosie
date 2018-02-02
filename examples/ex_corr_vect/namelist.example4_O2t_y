@@ -47,6 +47,5 @@ cd_out   = '.'
 csource  = '1x1-deg'
 ctarget  = 'ORCA2'
 cextra   = 'grid_T'
-lpcknc4  = .true.
 /
 !!

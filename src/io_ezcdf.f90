@@ -863,7 +863,7 @@ CONTAINS
 
 
    SUBROUTINE PT_SERIES(vtime, vdt1, cf_in, cv_t, cv_dt1, cunit, cln1, vflag, &
-      &                 ct_unit, lpack, &
+      &                 ct_unit,             &
       &                 vdt2, cv_dt2, cln2,  &
       &                 vdt3, cv_dt3, cln3,  &
       &                 vdt4, cv_dt4, cln4,  &
@@ -883,7 +883,6 @@ CONTAINS
       !!        vflag = flag value or "0."                        [real]
       !!
       !!        ct_unit = time unit
-      !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
       !!
       !!--------------------------------------------------------------------------
 
@@ -892,13 +891,11 @@ CONTAINS
       CHARACTER(len=*),           INTENT(in)  :: cf_in, cv_t, cv_dt1, cunit, cln1
       REAL(4),                    INTENT(in)  :: vflag
       CHARACTER(len=*), OPTIONAL, INTENT(in)  :: ct_unit
-      LOGICAL,          OPTIONAL, INTENT(in)  :: lpack
       REAL(4), DIMENSION(:), OPTIONAL, INTENT(in)  :: vdt2, vdt3, vdt4, vdt5, vdt6, vdt7
       CHARACTER(len=*),      OPTIONAL, INTENT(in)  :: cv_dt2, cv_dt3, cv_dt4, cv_dt5, cv_dt6, cv_dt7, &
          &                                            cln2, cln3, cln4, cln5, cln6, cln7
       !!
       INTEGER          :: idf, idv1, idv2, idv3, idv4, idv5, idv6, idv7, idtd, idt, nbt, jt
-      LOGICAL          :: lp = .FALSE.
       REAL(4)          :: rmin, rmax
 
       CHARACTER(len=80), PARAMETER :: crtn = 'PT_SERIES'
@@ -906,11 +903,6 @@ CONTAINS
       nbt = size(vdt1,1)
 
       IF ( nbt /= size(vtime,1) ) CALL print_err(crtn, 'Time array and series array dont agree in size!!!')
-
-      IF ( present(lpack) ) THEN
-         IF ( lpack ) lp = .TRUE.
-      END IF
-
 
       IF ( vflag /= 0.) THEN
          rmin =  1.E6 ; rmax = -1.E6
@@ -927,43 +919,24 @@ CONTAINS
 
 
       !!           CREATE NETCDF OUTPUT FILE :
-
-      IF ( lp ) THEN
-         CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idf), crtn,cf_in,cv_dt1)
-      ELSE
-         CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idf), crtn,cf_in,cv_dt1)
-      END IF
+      CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idf), crtn,cf_in,cv_dt1)
       
       !! Time
       CALL sherr( NF90_DEF_DIM(idf, TRIM(cv_t), NF90_UNLIMITED, idtd),                       crtn,cf_in,cv_t)
-      IF ( lp ) THEN
-         CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=9), crtn,cf_in,cv_t)
-      ELSE
-         CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt),                  crtn,cf_in,cv_t)
-      END IF
+      CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=9), crtn,cf_in,cv_t)
       IF ( PRESENT(ct_unit) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'units', TRIM(ct_unit)),    crtn,cf_in,cv_t)
       CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),                        crtn,cf_in,cv_t)
       CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),                        crtn,cf_in,cv_t)
 
       !! Variable(s):
-      IF ( lp ) THEN
-         CALL                      sherr( NF90_DEF_VAR(idf, TRIM(cv_dt1), NF90_FLOAT, idtd, idv1, deflate_level=9), crtn,cf_in,cv_dt1 )
-         IF (PRESENT(cv_dt2)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt2), NF90_FLOAT, idtd, idv2, deflate_level=9), crtn,cf_in,cv_dt2 )
-         IF (PRESENT(cv_dt3)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt3), NF90_FLOAT, idtd, idv3, deflate_level=9), crtn,cf_in,cv_dt3 )
-         IF (PRESENT(cv_dt4)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt4), NF90_FLOAT, idtd, idv4, deflate_level=9), crtn,cf_in,cv_dt4 )
-         IF (PRESENT(cv_dt5)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt5), NF90_FLOAT, idtd, idv5, deflate_level=9), crtn,cf_in,cv_dt5 )
-         IF (PRESENT(cv_dt6)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt6), NF90_FLOAT, idtd, idv6, deflate_level=9), crtn,cf_in,cv_dt6 )
-         IF (PRESENT(cv_dt7)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt7), NF90_FLOAT, idtd, idv7, deflate_level=9), crtn,cf_in,cv_dt7 )
-      ELSE
-         CALL                      sherr( NF90_DEF_VAR(idf, TRIM(cv_dt1), NF90_FLOAT, idtd, idv1), crtn,cf_in,cv_dt1 )
-         IF (PRESENT(cv_dt2)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt2), NF90_FLOAT, idtd, idv2), crtn,cf_in,cv_dt2 )
-         IF (PRESENT(cv_dt3)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt3), NF90_FLOAT, idtd, idv3), crtn,cf_in,cv_dt3 )
-         IF (PRESENT(cv_dt4)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt4), NF90_FLOAT, idtd, idv4), crtn,cf_in,cv_dt4 )
-         IF (PRESENT(cv_dt5)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt5), NF90_FLOAT, idtd, idv5), crtn,cf_in,cv_dt5 )
-         IF (PRESENT(cv_dt6)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt6), NF90_FLOAT, idtd, idv6), crtn,cf_in,cv_dt6 )
-         IF (PRESENT(cv_dt7)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt7), NF90_FLOAT, idtd, idv7), crtn,cf_in,cv_dt7 )
-      END IF
-
+      CALL                      sherr( NF90_DEF_VAR(idf, TRIM(cv_dt1), NF90_FLOAT, idtd, idv1, deflate_level=9), crtn,cf_in,cv_dt1 )
+      IF (PRESENT(cv_dt2)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt2), NF90_FLOAT, idtd, idv2, deflate_level=9), crtn,cf_in,cv_dt2 )
+      IF (PRESENT(cv_dt3)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt3), NF90_FLOAT, idtd, idv3, deflate_level=9), crtn,cf_in,cv_dt3 )
+      IF (PRESENT(cv_dt4)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt4), NF90_FLOAT, idtd, idv4, deflate_level=9), crtn,cf_in,cv_dt4 )
+      IF (PRESENT(cv_dt5)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt5), NF90_FLOAT, idtd, idv5, deflate_level=9), crtn,cf_in,cv_dt5 )
+      IF (PRESENT(cv_dt6)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt6), NF90_FLOAT, idtd, idv6, deflate_level=9), crtn,cf_in,cv_dt6 )
+      IF (PRESENT(cv_dt7)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt7), NF90_FLOAT, idtd, idv7, deflate_level=9), crtn,cf_in,cv_dt7 )
+      
       !! V1:
       CALL sherr( NF90_PUT_ATT(idf, idv1, 'long_name', trim(cln1)),  crtn,cf_in,cv_dt1)
       CALL sherr( NF90_PUT_ATT(idf, idv1, 'units', trim(cunit) ),   crtn,cf_in,cv_dt1)
@@ -1024,7 +997,7 @@ CONTAINS
    SUBROUTINE P2D_T(idx_f, idx_v, lt, lct, xlon, xlat, vtime, x2d, cf_in, &
       &             cv_lo, cv_la, cv_t, cv_in, vflag, &
       &             attr_lon, attr_lat, attr_time, attr_F, &
-      &             lpack, cextrainfo)
+      &             cextrainfo)
       !!
       !! INPUT :
       !! -------
@@ -1043,7 +1016,6 @@ CONTAINS
       !!        cv_in  = name of the variable                     [character]
       !!        vflag = flag value or "0."                        [real]
       !!
-      !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!
       !!--------------------------------------------------------------------------
@@ -1057,14 +1029,12 @@ CONTAINS
       REAL(4),                    INTENT(in)    :: vflag
       !! Optional:
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_time, attr_F
-      LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
 
       INTEGER  :: id_x, id_y, id_t
       INTEGER  :: id_lo, id_la
       INTEGER  :: id_tim
       INTEGER  :: lx, ly
-      LOGICAL  :: lp = .FALSE.
       REAL(4)  :: rmin, rmax
       LOGICAL  :: lcopy_att_F = .FALSE.
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
@@ -1076,10 +1046,6 @@ CONTAINS
       !! About dimensions of xlon, xlat and x2d:
       CALL ctest_coor(xlon, xlat, x2d, cdt)
       lx = size(x2d,1) ; ly = size(x2d,2)
-
-      IF ( present(lpack) ) THEN
-         IF ( lpack ) lp = .TRUE.
-      END IF
 
       IF ( lct == 1 ) THEN
 
@@ -1107,12 +1073,7 @@ CONTAINS
          !!
          !!           CREATE NETCDF OUTPUT FILE :
 
-         IF ( lp ) THEN
-            CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f), crtn,cf_in,cv_in)
-         ELSE
-            CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idx_f), crtn,cf_in,cv_in)
-         END IF
-         !!
+         CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f), crtn,cf_in,cv_in)
          !PRINT *, 'cdt = ', TRIM(cdt),'---'
          !PRINT *, 'cv_lo = ', TRIM(cv_lo),'---'
          !PRINT *, 'cv_la = ', TRIM(cv_la),'---'
@@ -1135,13 +1096,8 @@ CONTAINS
             ALLOCATE (vidim(2))
             vidim = (/id_x,id_y/)
          END IF
-         IF ( lp ) THEN
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
-               &      crtn,cf_in,cv_in )
-         ELSE
-            CALL sherr( NF90_DEF_VAR(idx_f, trim(cv_in), NF90_FLOAT, vidim, idx_v                 ), &
-               &      crtn,cf_in,cv_in )
-         END IF
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
+            &      crtn,cf_in,cv_in )
          DEALLOCATE ( vidim )
 
          !!  VARIABLE ATTRIBUTES
@@ -1185,7 +1141,7 @@ CONTAINS
    SUBROUTINE P3D_T(idx_f, idx_v, lt, lct, xlon, xlat, vdpth, vtime, x3d, cf_in, &
       &             cv_lo, cv_la, cv_dpth, cv_t, cv_in, vflag, &
       &             attr_lon, attr_lat, attr_z, attr_time, attr_F, &
-      &             lpack, cextrainfo)
+      &             cextrainfo)
 
       !! INPUT :
       !! -------
@@ -1206,7 +1162,6 @@ CONTAINS
       !!        cv_in  = name of the variable                     [character]
       !!        vflag = flag value or "0."                        [real]
       !!
-      !!        lpack = pack/compress data (netcdf4)  |OPTIONAL|  [logical]
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!
       !!--------------------------------------------------------------------------
@@ -1223,12 +1178,10 @@ CONTAINS
       !! Optional:
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_z, &
          &                                                          attr_time, attr_F
-      LOGICAL,          OPTIONAL, INTENT(in)    :: lpack
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       INTEGER          :: id_z
       INTEGER          :: id_x, id_y, id_t, id_lo, id_la, id_tim
       INTEGER          :: lx, ly, lz
-      LOGICAL          :: lp = .FALSE.
       REAL(4)          :: dr, rmin, rmax
       LOGICAL :: lcopy_att_F = .FALSE., &
          &       lcopy_att_z = .FALSE.
@@ -1243,11 +1196,6 @@ CONTAINS
       CALL ctest_coor(xlon, xlat, x3d(:,:,1), cdt)
       lx = size(x3d,1) ; ly = size(x3d,2) ; lz = size(vdpth)
       IF ( size(x3d,3) /= lz ) CALL print_err(crtn, 'depth array do not match data')
-      !!
-      IF ( present(lpack) ) THEN
-         IF ( lpack ) lp = .TRUE.
-      END IF
-      !!
       !!
       IF ( lct == 1 ) THEN
          !!
@@ -1279,11 +1227,7 @@ CONTAINS
          !! ----------------------------------
          !!
          !!           CREATE NETCDF OUTPUT FILE :
-         IF ( lp ) THEN
-            CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f),  crtn,cf_in,cv_in)
-         ELSE
-            CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, idx_f),  crtn,cf_in,cv_in)
-         END IF
+         CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f),  crtn,cf_in,cv_in)
          !!
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
@@ -1295,7 +1239,7 @@ CONTAINS
          ELSE
             CALL sherr( NF90_DEF_DIM(idx_f, 'z', lz, id_z),  crtn,cf_in,cv_in)
          END IF
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z,id_dpt),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z,id_dpt, deflate_level=9),  crtn,cf_in,cv_in)
          IF ( lcopy_att_z )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_dpt, attr_z, crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_min', MINVAL(vdpth)),  crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_max', MAXVAL(vdpth)),  crtn,cf_in,cv_in)
@@ -1308,13 +1252,8 @@ CONTAINS
             ALLOCATE (vidim(3))
             vidim = (/id_x,id_y,id_z/)
          END IF
-         IF ( lp ) THEN
-            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
                &       crtn,cf_in,cv_in)
-         ELSE
-            CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v),  &
-               &       crtn,cf_in,cv_in)
-         END IF
          DEALLOCATE ( vidim )
 
          !!  VARIABLE ATTRIBUTES
@@ -1535,7 +1474,6 @@ CONTAINS
       !!
       !!           CREATE NETCDF OUTPUT FILE :
       !!           ---------------------------
-      !CALL sherr( NF90_CREATE(CF_IN, NF90_CLOBBER, id_f), crtn,cf_in,cv_in)
       CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, id_f), crtn,cf_in,cv_in)
       !!
       !!
@@ -1607,7 +1545,6 @@ CONTAINS
 
       !!           CREATE NETCDF OUTPUT FILE :
       !!           ---------------------------
-      !CALL sherr( NF90_CREATE(cf_out, NF90_CLOBBER, id_f),  crtn,cf_out,cdum)
       CALL sherr( NF90_CREATE(cf_out, NF90_NETCDF4, id_f),  crtn,cf_out,cdum)
 
       CALL sherr( NF90_DEF_DIM(id_f, 'x',  lx, id_x), crtn,cf_out,cdum)
@@ -1731,12 +1668,12 @@ CONTAINS
       vextrema(1,:) = (/minval(vx),maxval(vx)/); vextrema(2,:) = (/minval(vy),maxval(vy)/)
 
       !!           CREATE NETCDF OUTPUT FILE :
-      CALL sherr( NF90_CREATE(CF_IN, NF90_CLOBBER, id_f),  crtn,cf_in,cv_in)
+      CALL sherr( NF90_CREATE(CF_IN, NF90_NETCDF4, id_f),  crtn,cf_in,cv_in)
 
       CALL prepare_nc(id_f, '1d', lx, ly, cv_x, cv_y, '', vextrema, &
          &            id_x, id_y, i01, id_lo, id_la, i02, crtn,cf_in,cv_in)
 
-      CALL sherr( NF90_DEF_VAR(id_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v),       crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=9), crtn,cf_in,cv_in)
 
       CALL sherr( NF90_PUT_ATT(id_f, id_v, 'long_name', trim(cln)),  crtn,cf_in,cv_in)
       CALL sherr( NF90_PUT_ATT(id_f, id_v, 'units',  trim(cunit) ),  crtn,cf_in,cv_in)
@@ -1962,14 +1899,14 @@ CONTAINS
          IF ( cdt0 == '2d' ) THEN
             CALL sherr( NF90_DEF_DIM(id_file, 'x', nx, id_ji), cri,cfi,cvi)
             CALL sherr( NF90_DEF_DIM(id_file, 'y', ny, id_jj), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, trim(cv_lon), NF90_DOUBLE, (/id_ji,id_jj/), id_lon), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, trim(cv_lat), NF90_DOUBLE, (/id_ji,id_jj/), id_lat), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, (/id_ji,id_jj/), id_lon, deflate_level=9), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, (/id_ji,id_jj/), id_lat, deflate_level=9), cri,cfi,cvi)
             !!
          ELSE IF ( cdt0 == '1d' ) THEN
-            CALL sherr( NF90_DEF_DIM(id_file, trim(cv_lon), nx, id_ji), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_DIM(id_file, trim(cv_lat), ny, id_jj), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, trim(cv_lon), NF90_DOUBLE, id_ji, id_lon), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, trim(cv_lat), NF90_DOUBLE, id_jj, id_lat), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_lon), nx, id_ji), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_lat), ny, id_jj), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, id_ji, id_lon, deflate_level=9), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, id_jj, id_lat, deflate_level=9), cri,cfi,cvi)
          END IF
          !!
          IF ( lcopy_att_lon )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_lon, attr_lon,  cri,cfi,cvi)
@@ -1988,7 +1925,7 @@ CONTAINS
       !!  TIME
       IF ( TRIM(cv_time) /= '' ) THEN
          CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_time), NF90_UNLIMITED, id_jt), cri,cfi,cvi)
-         CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time), cri,cfi,cvi)
+         CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time, deflate_level=9), cri,cfi,cvi)
          IF ( lcopy_att_time )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_time, attr_time,  cri,cfi,cvi)
          CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)
          CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_max',vxtrm(3,2)), cri,cfi,cvi)

@@ -48,6 +48,5 @@ cd_out   = '.'
 csource  = 'NACHOS12'
 ctarget  = 't1279_regular'
 cextra   = 'bilin'
-lpcknc4  = .true.
 /
 !!

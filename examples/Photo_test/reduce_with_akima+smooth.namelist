@@ -46,6 +46,5 @@ cd_out   = '.'
 csource  = '1600x900'
 ctarget  = '1degx1deg'
 cextra   = 'smooth+akima'
-lpcknc4  = .true.
 /
 !!

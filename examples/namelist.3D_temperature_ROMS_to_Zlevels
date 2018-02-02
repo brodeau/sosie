@@ -270,7 +270,6 @@ ewper_out  = -1
 !! csource  : short string to describe the origin grid         [char]
 !! ctarget  : short string to describe the target grid         [char]
 !! cextra   : short extra indication about the file            [char]
-!! lpcknc4  : pack data (netcdf4 with deflate level set to 9!) [boolean]
 !!
 &noutput
 cmethod  = 'no_xy'
@@ -283,6 +282,5 @@ cd_out   = '.'
 csource  = 'ROMS'
 ctarget  = 'zlevels'
 cextra   = 'example'
-lpcknc4  = .true.
 /
 !!

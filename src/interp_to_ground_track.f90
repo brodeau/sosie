@@ -741,7 +741,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ''
 
    CALL PT_SERIES(vte(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
-      &           ct_unit=TRIM(cunit_time_out), lpack=.TRUE., &
+      &           ct_unit=TRIM(cunit_time_out), &
       &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
       &           vdt4=REAL(xlon_gt(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &

@@ -155,7 +155,7 @@ PROGRAM SOSIE
             &      cf_out, cv_lon_out, cv_lat_out, cv_t_out,    &
             &      cv_out, rfct_miss*REAL(rmaskvalue,4), &
             &      attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_time=vatt_info_t, attr_F=vatt_info_F, &
-            &      lpack=lpcknc4, cextrainfo=cextinf)
+            &      cextrainfo=cextinf)
 
 
       ELSE
@@ -197,7 +197,7 @@ PROGRAM SOSIE
              &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
              &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
              &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
-             &       lpack=lpcknc4, cextrainfo=cextinf)
+             &       cextrainfo=cextinf)
         ELSEIF (trim(ctype_z_out) == 'sigma' ) THEN
           CALL P3D_T(idf_o, idv_o, Ntr, jt, &
              &       lon_out_b, lat_out, Sc_rho(:), vt, data3d_out,                &
@@ -205,7 +205,7 @@ PROGRAM SOSIE
              &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
              &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
              &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
-             &       lpack=lpcknc4, cextrainfo=cextinf)
+             &       cextrainfo=cextinf)
         ELSE
           PRINT *, 'Unknown vertical coordinate' ; STOP
         ENDIF

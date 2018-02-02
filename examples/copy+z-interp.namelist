@@ -54,6 +54,5 @@ cd_out   = '.'
 csource  = '360x180'
 ctarget  = 'L19_to_L46'
 cextra   = 'march'
-lpcknc4  = .true.
 / 
 !!

@@ -270,7 +270,6 @@ ewper_out  = 2
 !! csource  : short string to describe the origin grid         [char]
 !! ctarget  : short string to describe the target grid         [char]
 !! cextra   : short extra indication about the file            [char]
-!! lpcknc4  : pack data (netcdf4 with deflate level set to 9!) [boolean]
 !!
 &noutput
 cmethod  = 'akima'
@@ -283,6 +282,5 @@ cd_out   = '.'
 csource  = 'WOA09'
 ctarget  = 'ROMS'
 cextra   = 'example'
-lpcknc4  = .true.
 /
 !!

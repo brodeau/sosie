@@ -196,7 +196,6 @@ ewper_out  = 0
 !! csource  : short string to describe the origin grid         [char]
 !! ctarget  : short string to describe the target grid         [char]
 !! cextra   : short extra indication about the file            [char]
-!! lpcknc4  : pack data (netcdf4 with deflate level set to 9!) [boolean]
 !!
 &noutput
 cmethod  = 'bilin'
@@ -209,6 +208,5 @@ cd_out   = '.'
 csource  = '2560x480'
 ctarget  = 'polar-stereo'
 cextra   = 'Arctic_bilin'
-lpcknc4  = .true.
 /
 !!

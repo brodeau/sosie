@@ -37,7 +37,7 @@ PROGRAM CORR_VECT
 
    CHARACTER(len=3)    :: cdum
    CHARACTER(len=1)    :: cgrid_out='0'
-   CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
+   CHARACTER(len=80)   :: cv_time_0 = 'none'
    CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
 
    CHARACTER(len=80) :: &
@@ -277,7 +277,6 @@ PROGRAM CORR_VECT
       !PRINT *, ' * Name for corrected vector components = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
    END IF
 
-   !PRINT *, ' * Packing output : ', lpack
    PRINT *, ' * mesh_mask file to use = ', TRIM(cf_mm)
 
    cnmlst_x = TRIM(cf_nml_sosie)//'_x'
@@ -337,20 +336,18 @@ PROGRAM CORR_VECT
       END IF
 
 
-      IF ( lpcknc4 ) cfext='nc4'
-
       cf_raw_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cn_xtr_x)//'.'//trim(cfext)
+         &   //trim(ctarget)//'_'//trim(cn_xtr_x)//'.nc'
       cf_raw_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cn_xtr_y)//'.'//trim(cfext)
+         &   //trim(ctarget)//'_'//trim(cn_xtr_y)//'.nc'
 
       PRINT *, 'The two input pre-interpolated needed files are :'
       PRINT *, trim(cf_raw_U) ;   PRINT *, trim(cf_raw_V) ;
 
       cf_out_U = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
-         &   //TRIM(ctarget)//'_'//TRIM(cextra_x)//'.'//TRIM(cfext)
+         &   //TRIM(ctarget)//'_'//TRIM(cextra_x)//'.nc'
       cf_out_V = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
-         &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'.'//TRIM(cfext)
+         &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'.nc'
 
       PRINT *, '' ;   PRINT *, 'output files :'
       PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ; PRINT *, '' ; PRINT *, ''
@@ -571,17 +568,17 @@ PROGRAM CORR_VECT
             IF ( cgrid_out == 'U' ) THEN
                CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,      &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
                CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
                   &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,      &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
             ELSE
                CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, U_c(:,:,:),  &
                   &    cf_out_U, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_U,      &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
                CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, V_c(:,:,:),  &
                   &    cf_out_V, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_V,      &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
             END IF
 
          ELSE
@@ -590,17 +587,17 @@ PROGRAM CORR_VECT
             IF ( cgrid_out == 'U' ) THEN
                CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1), &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
                CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, V_c(:,:,1), &
                   &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
             ELSE
                CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t,         vtime, U_c(:,:,1), &
                   &    cf_out_U, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_U,       &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
                CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t,         vtime, V_c(:,:,1), &
                   &    cf_out_V, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
-                  &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+                  &    rmaskvalue, attr_time=vatt_info_t)
             END IF
 
          END IF
@@ -652,9 +649,6 @@ PROGRAM CORR_VECT
    ELSE
       !! !!     I N V E R S E   C O R R E C T I O N
 
-      !! nc4 lolo
-
-
       PRINT *, 'Will unrotate vector fields given on an irregular grid!'
       !!
       IF ( lregin ) THEN
@@ -665,9 +659,9 @@ PROGRAM CORR_VECT
       !!
       !!
       cf_raw_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
+         &   //trim(ctarget)//'_'//trim(cextra)//'.nc'
       cf_raw_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
-         &   //trim(ctarget)//'_'//trim(cextra)//'.'//trim(cfext)
+         &   //trim(ctarget)//'_'//trim(cextra)//'.nc'
       !!
       PRINT *, 'The two unrotated raw files will be produced :'
       PRINT *, trim(cf_raw_U) ;   PRINT *, trim(cf_raw_V) ;
@@ -683,21 +677,20 @@ PROGRAM CORR_VECT
       nbc = LEN_TRIM(cufilin)
       cdum = cufilin(nbc-2:nbc)
       IF ( cdum /= '.nc' ) THEN
-         IF ( cdum == 'nc4' ) THEN
-            cfext = 'nc4'
-            nlext = 4
-            lpcknc4 = .TRUE.
-         ELSE
-            PRINT *, 'Unknow file extension for ',TRIM(cufilin) ; STOP
-         END IF
+         !IF ( cdum == 'nc4' ) THEN
+         !   cfext = 'nc4'
+         !   nlext = 4
+         !ELSE
+         PRINT *, 'Unknow file extension for ',TRIM(cufilin) ; STOP
+         !END IF
       END IF
 
       cf_raw_U = cufilin(1:nbc-nlext)
-      cf_raw_U = trim(cf_raw_U)//'_unrotated.'//trim(cfext)
+      cf_raw_U = trim(cf_raw_U)//'_unrotated.nc'
 
       nbc = LEN_TRIM(cvfilin)
       cf_raw_V = cvfilin(1:nbc-nlext)
-      cf_raw_V = TRIM(cf_raw_V)//'_unrotated.'//trim(cfext)
+      cf_raw_V = TRIM(cf_raw_V)//'_unrotated.nc'
 
       cv_out_U = trim(cv_rot_U)//'_unrotated'
       cv_out_V = trim(cv_rot_V)//'_unrotated'
@@ -862,21 +855,21 @@ PROGRAM CORR_VECT
 
             CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
                &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U,       &
-               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    zrmv, attr_time=vatt_info_t)
 
             CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
                &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V,       &
-               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    zrmv, attr_time=vatt_info_t)
 
          ELSE
 
             CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, U_c(:,:,1),     &
                &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U,       &
-               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    zrmv, attr_time=vatt_info_t)
 
             CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, V_c(:,:,1), &
                &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V,   &
-               &    zrmv, attr_time=vatt_info_t, lpack=lpcknc4)
+               &    zrmv, attr_time=vatt_info_t)
 
          END IF
 

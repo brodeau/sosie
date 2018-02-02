@@ -22,7 +22,7 @@ MODULE MOD_INIT
       &                cv_lsm_out, lmout, rmaskvalue, lct, t0, t_stp, ewper_out
 
    NAMELIST /noutput/  cmethod, cv_t_out, cv_out, cu_out, cln_out, cd_out,  &
-      &                csource, ctarget, cextra, lpcknc4
+      &                csource, ctarget, cextra
 
    PRIVATE usage
 
@@ -148,13 +148,8 @@ CONTAINS
          !! Output file name:
          !! -----------------
 
-         IF ( lpcknc4 ) THEN
-            cf_short= TRIM(cv_out)//'_'//TRIM(csource)//'-'//TRIM(ctarget)//   &
-               &    '_'//TRIM(cextra)//'.nc4'
-         ELSE
-            cf_short= TRIM(cv_out)//'_'//TRIM(csource)//'-'//TRIM(ctarget)//   &
-               &    '_'//TRIM(cextra)//'.nc'
-         END IF
+         cf_short= TRIM(cv_out)//'_'//TRIM(csource)//'-'//TRIM(ctarget)//   &
+            &    '_'//TRIM(cextra)//'.nc'
 
          cf_out = trim(cd_out)//'/'//trim(cf_short)
 
@@ -277,11 +272,6 @@ CONTAINS
          ELSE
             WRITE(6,*)'Time is not controlled and will be the same than in input file! '
          END IF
-
-
-         WRITE(6,*)''
-         WRITE(6,*)' * Output file to compressed netcdf4 : ', lpcknc4
-
 
          WRITE(6,*)''
          WRITE(6,*)'                ---------------------'

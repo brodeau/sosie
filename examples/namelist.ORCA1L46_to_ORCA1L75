@@ -85,7 +85,6 @@ cv_z_out_name = 'deptht'
 !! csource  : short string to describe the origin grid         [char]
 !! ctarget  : short string to describe the target grid         [char]
 !! cextra   : short extra indication about the file            [char]
-!! lpcknc4  : pack data (netcdf4 with deflate level set to 9!) [boolean]
 !!
 &noutput
 cmethod  = 'no_xy'
@@ -98,6 +97,5 @@ cd_out   = '.'
 csource  = 'ORCA1.L46'
 ctarget  = 'ORCA1.L75'
 cextra   = 'only_vert_interp'
-lpcknc4  = .true.
 /
 !!

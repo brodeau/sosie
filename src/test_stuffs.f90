@@ -254,7 +254,6 @@ PROGRAM TEST_STUFFS
    !   !PRINT *, ' * Name for corrected vector components = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
    !END IF
 
-   !PRINT *, ' * Packing output : ', lpack
    PRINT *, ' * mesh_mask file to use = ', TRIM(cf_mm)
 
    !cnmlst_x = TRIM(cf_nml_sosie)//'_x'
@@ -378,7 +377,7 @@ PROGRAM TEST_STUFFS
       
       !CALL P2D_T(id_f1, id_v1, Ntr, jt, xlamu, xphiu,         vtime, Uu_c(:,:,1), &
       !   &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-      !   &    rmaskvalue, attr_time=vatt_info_t, lpack=lpcknc4)
+      !   &    rmaskvalue, attr_time=vatt_info_t)
 
 
    PRINT *, 'Done!'
