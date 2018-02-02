@@ -1535,7 +1535,8 @@ CONTAINS
       !!
       !!           CREATE NETCDF OUTPUT FILE :
       !!           ---------------------------
-      CALL sherr( NF90_CREATE(CF_IN, NF90_CLOBBER, id_f),  crtn,cf_in,cv_in)
+      !CALL sherr( NF90_CREATE(CF_IN, NF90_CLOBBER, id_f), crtn,cf_in,cv_in)
+      CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, id_f), crtn,cf_in,cv_in)
       !!
       !!
       IF ( lzcoord ) THEN
@@ -1548,7 +1549,7 @@ CONTAINS
             &            crtn,cf_in,cv_in)
       END IF
       !!
-      CALL sherr( NF90_DEF_VAR(id_f, trim(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v), crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=9), crtn,cf_in,cv_in)
       IF (l_mask) CALL sherr( NF90_PUT_ATT(id_f, id_v,'_FillValue',         rfill), crtn,cf_in,cv_in)
       !!
       CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in) ! END OF DEFINITION
