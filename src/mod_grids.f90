@@ -295,7 +295,7 @@ CONTAINS
       USE mod_scoord
       !! Local :
       INTEGER :: ji, jj, jk
-      REAL    :: rval_thrshld, lon_min_2, lon_max_2, lat_min_2, lat_max_2
+      REAL    :: rval_thrshld, lon_min_2, lon_max_2
       LOGICAL :: l_loc1, l_loc2
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 

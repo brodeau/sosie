@@ -682,43 +682,36 @@ PROGRAM INTERP_TO_GROUND_TRACK
          alpha    = RAB(1,jte,1)
          beta     = RAB(1,jte,2)
 
-
-
-
-
-         IF ( mask(iP,jP)==1 ) THEN
-
-            r_obs    = Fgt(1,it1+jte-1)
-            l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
-            
-            IF ( l_obs_ok .AND. (mask(iP,jP)==1).AND.(iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
-               
-               !! Ignore points that are just 1 point away from land:
-               ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
-               im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
-               idot = mask(ip1,jP) + mask(ip1,jp1) + mask(iP,jp1) + mask(im1,jp1) &
-                  & + mask(im1,jP) + mask(im1,jm1) + mask(iP,jm1) + mask(ip1,jm1)
-               !! => idot == 8 if in that case...
-               IF (idot==8) THEN
-                  !! Model, nearest point:
-                  Ftrack_mod_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
-                  !! Model, 2D bilinear interpolation:
-                  Ftrack_mod(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
-                  !! Observations as on their original point:
-                  Ftrack_obs(jte) = r_obs
-                  !! On the model grid for info:
-                  RES_2D_MOD(iP,jP) = Ftrack_mod(jte)
-                  RES_2D_OBS(iP,jP) = Ftrack_obs(jte)
+         IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
+            IF ( mask(iP,jP)==1 ) THEN
+               r_obs    = Fgt(1,it1+jte-1)
+               l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
+               IF ( l_obs_ok ) THEN
+                  !! Ignore points that are just 1 point away from land:
+                  ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
+                  im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
+                  idot = mask(ip1,jP) + mask(ip1,jp1) + mask(iP,jp1) + mask(im1,jp1) &
+                     & + mask(im1,jP) + mask(im1,jm1) + mask(iP,jm1) + mask(ip1,jm1)
+                  !! => idot == 8 if in that case...
                   !!
-                  Fmask(jte) = 1 ! That was a valid point!
-                  !!
+                  IF (idot==8) THEN
+                     !! Model, nearest point:
+                     Ftrack_mod_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
+                     !! Model, 2D bilinear interpolation:
+                     Ftrack_mod(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
+                     !! Observations as on their original point:
+                     Ftrack_obs(jte) = r_obs
+                     !! On the model grid for info:
+                     RES_2D_MOD(iP,jP) = Ftrack_mod(jte)
+                     RES_2D_OBS(iP,jP) = Ftrack_obs(jte)
+                     !!
+                     Fmask(jte) = 1 ! That was a valid point!
+                     !!
+                  END IF
                END IF
             END IF
          END IF
          
-         !IF ( (JIidx(1,jte)>0).AND.(JJidx(1,jte)>0) ) &
-         !   &
-
          jtm_1_o = jtm_1
          jtm_2_o = jtm_2
          jt_s    = jtm_1 ! so we do not rescan from begining...
@@ -736,7 +729,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    PRINT *, ''
    !WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_mod), TRIM(cf_obs)
-   cf_out = 'result__'//TRIM(cconf)//'.nc4'
+   cf_out = 'result__'//TRIM(cconf)//'.nc'
    PRINT *, ' * Output file = ', trim(cf_out)
    PRINT *, ''
 
