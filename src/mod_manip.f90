@@ -1025,7 +1025,7 @@ CONTAINS
          y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
          PRINT *, '   => binning from ', y_min_bnd, ' to ', y_max_bnd
          !!
-         nsplit = INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. )
+         nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
          !!
          ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), IJ_VLAT_IN(nsplit,2) )
          dy = (y_max_bnd - y_min_bnd)/REAL(nsplit)
