@@ -353,7 +353,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' *** Maximum longitude on source domain: ', lon_max_2
 
    ! lolo: disgusting!:
-   l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -170.).AND.(lon_max_1 >  0. ).AND.(lon_min_1 <  170.)
+   !l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -170.).AND.(lon_max_1 >  0. ).AND.(lon_min_1 <  170.)
+   l_loc1 = ((lon_min_1 <  0.).AND.(lon_min_1 > -170.)).OR.((lon_max_1 >  0. ).AND.(lon_min_1 <  170.))
    l_loc2 = (lon_min_2 >= 0.).AND.(lon_min_2 <   2.5).AND.(lon_max_2 >357.5).AND.(lon_max_2 <= 360.)
    IF (.NOT. l_loc1) THEN
       IF ( l_loc2 ) THEN
@@ -634,10 +635,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
    Fmask(:)         = 0
    rcycle_obs(:)    = -9999.       
 
-   jt_s = 1 ; ! time step model!
-
    jtm_1_o = -100
    jtm_2_o = -100
+   jt_s    = 1
 
    DO jtf = 1, Ntf
 
@@ -652,29 +652,30 @@ PROGRAM INTERP_TO_GROUND_TRACK
          !!
          jtm_1 = jt
          jtm_2 = jt+1
-         IF (jtf==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
+         IF (jtf==1) jt0 = jtm_1 ! Saving the actual first useful time step of the model!
 
-         PRINT *, 'Treating track time =>', rt, '     model jtm_1 =', jtm_1
+         PRINT *, ' * Track time =>', rt, '/ model jtm_1,jtm_2 =', INT2(jtm_1), INT2(jtm_2)
 
          !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
          IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
-            IF ( jtm_1_o == -100 ) THEN
+            IF ( (jtm_1_o == -100).OR.(jtm_1 > jtm_2_o) ) THEN
                PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
-               PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt_s,')'
-               CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt_s)
+               PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt0,')'
+               CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt0)
                IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
                IF ( l_drown_in ) CALL DROWN(-1, xvar1, mask, nb_inc=5, nb_smooth=2)
             ELSE
                xvar1(:,:) = xvar2(:,:)
             END IF
             PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
-            PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt_s,')'
-            CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt_s)
+            PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt0,')'
+            CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt0)
             IF ( l_use_anomaly ) xvar2 = xvar2 - xmean
             IF ( l_drown_in ) CALL DROWN(-1, xvar2, mask, nb_inc=5, nb_smooth=2)
 
             xdum_r4 = (xvar2 - xvar1) / (vt_mod(jtm_2) - vt_mod(jtm_1)) ! xdum_r4 is the slope here !!!
-
+            
+            PRINT *, ''
          END IF
 
          !! Linear interpolation of field at time rt:
