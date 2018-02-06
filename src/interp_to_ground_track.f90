@@ -32,14 +32,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: Nte, Nten, io, idx, iP, jP, iquadran
+   INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, iquadran
    !!
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xgt, Ygt, Fgt, xlon_gt, xlat_gt, xdum_r8
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_gt_0, xlat_gt_0, xlon_gt_i, xlat_gt_i, xlon_gt_f, xlat_gt_f, xdum_r8
    !!
    !! Coupe stuff:
    REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs
 
-   REAL(8), DIMENSION(:),     ALLOCATABLE :: vte, vt_mod, vt_obs   ! in seconds
+   REAL(8), DIMENSION(:),     ALLOCATABLE :: vtf, vt_mod, vt_obs, F_gt_0, F_gt_f
 
    REAL(4), DIMENSION(:,:),   ALLOCATABLE :: RES_2D_MOD, RES_2D_OBS
 
@@ -47,6 +47,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
    INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
 
+   
    !! Grid, default name :
    CHARACTER(len=80) :: &
       &    cv_mod, &
@@ -102,7 +103,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: mask
    INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask
    !!
-   INTEGER :: jt, jte, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
+   INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
    REAL(8) :: rt, rt0, rdt, &
       &       t_min_e, t_max_e, t_min_m, t_max_m, &
@@ -418,31 +419,31 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    IF ( .NOT. l_orbit_file_is_nc ) THEN
       !! Getting number of lines:
-      Nte = -1 ; io = 0
+      Nt0 = -1 ; io = 0
       OPEN (UNIT=13, FILE=TRIM(cf_obs))
       DO WHILE (io==0)
          READ(13,*,iostat=io)
-         Nte = Nte + 1
+         Nt0 = Nt0 + 1
       END DO
-      PRINT*, Nte, ' points in '//TRIM(cf_obs)//'...'
-      ALLOCATE ( Xgt(1,Nte), Ygt(1,Nte), vt_obs(Nte), Fgt(1,Nte) )
+      PRINT*, Nt0, ' points in '//TRIM(cf_obs)//'...'
+      ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0) )
       !!
       REWIND(13)
-      DO jte = 1, Nte
-         READ(13,*) vt_obs(jte), Xgt(1,jte), Ygt(1,jte)
+      DO jt0 = 1, Nt0
+         READ(13,*) vt_obs(jt0), xlon_gt_0(1,jt0), xlat_gt_0(1,jt0)
       END DO
       CLOSE(13)
 
    ELSE
       PRINT *, ''
       PRINT *, 'NetCDF orbit track!'
-      CALL DIMS(cf_obs, 'time', Nte, nj1, nk, ni1)
-      PRINT *, ' *** Nb. time records in NetCDF track file:', Nte
-      ALLOCATE ( Xgt(1,Nte), Ygt(1,Nte), vt_obs(Nte), Fgt(1,Nte))
+      CALL DIMS(cf_obs, 'time', Nt0, nj1, nk, ni1)
+      PRINT *, ' *** Nb. time records in NetCDF track file:', Nt0
+      ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0))
       CALL GETVAR_1D(cf_obs, 'time', vt_obs)
-      CALL GETVAR_1D(cf_obs, 'longitude', Xgt(1,:))
-      CALL GETVAR_1D(cf_obs, 'latitude',  Ygt(1,:))
-      CALL GETVAR_1D(cf_obs, cv_obs,  Fgt(1,:))
+      CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
+      CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
+      CALL GETVAR_1D(cf_obs, cv_obs,  F_gt_0)
       PRINT *, 'Done!'; PRINT *, ''
    END IF
 
@@ -455,9 +456,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
       cdum = cs_force_tv_e(idx+1:)
       READ(cdum,'(f)') rdt
       PRINT *, ' *** TRACK: OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
-      DO jt=1, Nte
-         vt_obs(jt) = rt0 + REAL(jt-1)*rdt
-         !PRINT *, ' vt_obs(jt)= ', vt_obs(jt)
+      DO jt0=1, Nt0
+         vt_obs(jt0) = rt0 + REAL(jt0-1)*rdt
+         !PRINT *, ' vt_obs(jt0)= ', vt_obs(jt0)
       END DO
    END IF
 
@@ -479,9 +480,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, '' ;  PRINT *, ''
 
    !! Defaults:
-   Nten = Nte
+   Nti = Nt0
    it1  = 1
-   it2  = Nte
+   it2  = Nt0
 
    IF ( .NOT. l_debug_mapping ) THEN
 
@@ -527,22 +528,22 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
       !! Findin when we can start and stop when scanning the track file:
       !! it1, it2
-      DO it1 = 1, Nte-1
+      DO it1 = 1, Nt0-1
          IF ( (vt_obs(it1) <= t_min).AND.(vt_obs(it1+1) > t_min) ) EXIT
       END DO
-      DO it2 = it1, Nte-1
+      DO it2 = it1, Nt0-1
          IF ( (vt_obs(it2) <= t_max).AND.(vt_obs(it2+1) > t_max) ) EXIT
       END DO
 
-      Nten = it2 - it1 + 1
+      Nti = it2 - it1 + 1
 
       PRINT *, ' it1, it2 =',it1, it2
-      PRINT *, Nten, '  out of ', Nte
+      PRINT *, Nti, '  out of ', Nt0
       PRINT *, ' => ', vt_obs(it1), vt_obs(it2)
       PRINT *, ''
    END IF ! IF ( .NOT. l_debug_mapping )
 
-   ALLOCATE ( IMETRICS(1,Nten,3), RAB(1,Nten,2), IPB(1,Nten), IGNORE(1,Nten), xlon_gt(1,Nten), xlat_gt(1,Nten) )
+   ALLOCATE ( IGNORE(1,Nti), xlon_gt_i(1,Nti), xlat_gt_i(1,Nti) )
 
    IGNORE(:,:) = 1 !lolo
 
@@ -553,28 +554,54 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    !!
-   xlon_gt(:,:) = Xgt(:,it1:it2)
-   xlat_gt(:,:) = Ygt(:,it1:it2)
+   xlon_gt_i(:,:) = xlon_gt_0(:,it1:it2)
+   xlat_gt_i(:,:) = xlat_gt_0(:,it1:it2)
 
-   DEALLOCATE ( Xgt, Ygt )
+   DEALLOCATE ( xlon_gt_0, xlat_gt_0 )
 
    IF ( .NOT. l_glob_lon_wize ) THEN
-      ALLOCATE ( xdum_r8(1,Nten) )
-      xdum_r8 = SIGN(1.,180.-xlon_gt)*MIN(xlon_gt,ABS(xlon_gt-360.)) ! like xlon_gt but between -180 and +180 !
+      ALLOCATE ( xdum_r8(1,Nti) )
+      xdum_r8 = SIGN(1.,180.-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360.)) ! like xlon_gt_i but between -180 and +180 !
       WHERE ( xdum_r8 < lon_min_1 ) IGNORE=0
       WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
       DEALLOCATE ( xdum_r8 )
    END IF
 
    IF ( .NOT. l_glob_lat_wize ) THEN
-      WHERE ( xlat_gt < lat_min ) IGNORE=0
-      WHERE ( xlat_gt > lat_max ) IGNORE=0
+      WHERE ( xlat_gt_i < lat_min ) IGNORE=0
+      WHERE ( xlat_gt_i > lat_max ) IGNORE=0
    END IF
 
-   INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist )
+
+   !! We are going to shorten our 1D input arrays, only keeping values included
+   !! in target domain (i.e. where IGNORE==1):
+
+   PRINT *, ''
+   PRINT *, ' Intially we had Nt0 ', Nt0, ' points'
+   PRINT *, ' - excluding non relevant time led to Nti', Nti, ' points', SIZE(IGNORE(1,:),1)
+
+   Ntf = SUM(INT4(IGNORE))
+   PRINT *, ' - and in the end we only retain Ntf ', Ntf , ' points!'
+   
+
+   
+
+
+
+   !! Allocate arrays on the final retained size
+   ALLOCATE ( IMETRICS(1,Ntf,3), RAB(1,Ntf,2), IPB(1,Ntf), xlon_gt_f(1,Ntf), xlat_gt_f(1,Ntf), vtf(Ntf), F_gt_f(Ntf) )
+
+   xlon_gt_f(1,:) = SHRINK_VECTOR(xlon_gt_i(1,:),  IGNORE(1,:), Ntf)
+   xlat_gt_f(1,:) = SHRINK_VECTOR(xlat_gt_i(1,:),  IGNORE(1,:), Ntf)
+   vtf(:)         = SHRINK_VECTOR(vt_obs(it1:it2), IGNORE(1,:), Ntf)
+   F_gt_f(:)      = SHRINK_VECTOR(F_gt_0(it1:it2), IGNORE(1,:), Ntf)
+
+   DEALLOCATE ( xlon_gt_i , xlat_gt_i , vt_obs , F_gt_0 )
+
+   INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist ) !
    IF ( .NOT. l_exist ) THEN
-      PRINT *, ' *** Creating mapping file...'
-      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt, xlat_gt, cf_mapping,  mask_domain_out=IGNORE)
+      PRINT *, ' *** Creating mapping file...' !
+      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mapping ) !,  mask_domain_out=IGNORE) don't need ignore, points have been removed!
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
       PRINT *, ' *** File "',trim(cf_mapping),'" found in current directory, using it!'
@@ -584,7 +611,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CALL RD_MAPPING_AB(cf_mapping, IMETRICS, RAB, IPB)
    PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mapping),'"'; PRINT *, ''
 
-   ALLOCATE (JIidx(1,Nten) , JJidx(1,Nten) )
+   ALLOCATE (JIidx(1,Ntf) , JJidx(1,Ntf) )
    JIidx(1,:) = IMETRICS(1,:,1)
    JJidx(1,:) = IMETRICS(1,:,2)
 
@@ -593,11 +620,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! Showing iy in file mask_+_nearest_points.nc:
    IF ( l_debug ) THEN
       !! Finding and storing the nearest points of NEMO grid to track points:
-      !CALL FIND_NEAREST_POINT(Xgt, Ygt, xlont, xlatt,  JIidx, JJidx)
+      !CALL FIND_NEAREST_POINT(xlon_gt_0, xlat_gt_0, xlont, xlatt,  JIidx, JJidx)
       ALLOCATE ( show_obs(nib,njb) )
       show_obs(:,:) = 0.
-      DO jte = 1, Nten
-         IF ( (JIidx(1,jte)>0).AND.(JJidx(1,jte)>0) )  show_obs(JIidx(1,jte), JJidx(1,jte)) = REAL(jte,4)
+      DO jtf = 1, Ntf
+         IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
       WHERE (mask == 0) show_obs = -9999.
       CALL PRTMASK(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
@@ -619,10 +646,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !STOP 'mapping done!'
 
-   ALLOCATE ( vte(Nten), Ftrack_mod(Nten), Ftrack_obs(Nten), Fmask(Nten), Ftrack_mod_np(Nten) )
-
-
-   vte(:) = vt_obs(it1:it2)
+   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf) )
 
    Ftrack_mod_np(:) = -9999.
    Ftrack_obs(:)    = -9999.
@@ -634,9 +658,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
    jtm_1_o = -100
    jtm_2_o = -100
 
-   DO jte = 1, Nten
+   DO jtf = 1, Ntf
 
-      rt = vte(jte)
+      rt = vtf(jtf)
 
       IF ( (rt >= t_min_m).AND.(rt < t_max_m) ) THEN
 
@@ -647,7 +671,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          !!
          jtm_1 = jt
          jtm_2 = jt+1
-         IF (jte==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
+         IF (jtf==1) jt_s = jtm_1 ! Saving the actual first useful time step of the model!
 
          PRINT *, 'Treating track time =>', rt, '     model jtm_1 =', jtm_1
 
@@ -676,15 +700,15 @@ PROGRAM INTERP_TO_GROUND_TRACK
          xvar(:,:) = xvar1(:,:) + xdum_r4(:,:)*(rt - vt_mod(jtm_1))
 
          !! Performing bilinear interpolation:
-         iP       = IMETRICS(1,jte,1)
-         jP       = IMETRICS(1,jte,2)
-         iquadran = IMETRICS(1,jte,3)
-         alpha    = RAB(1,jte,1)
-         beta     = RAB(1,jte,2)
+         iP       = IMETRICS(1,jtf,1)
+         jP       = IMETRICS(1,jtf,2)
+         iquadran = IMETRICS(1,jtf,3)
+         alpha    = RAB(1,jtf,1)
+         beta     = RAB(1,jtf,2)
 
          IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
             IF ( mask(iP,jP)==1 ) THEN
-               r_obs    = Fgt(1,it1+jte-1)
+               r_obs    = F_gt_f(jtf)
                l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
                IF ( l_obs_ok ) THEN
                   !! Ignore points that are just 1 point away from land:
@@ -696,16 +720,16 @@ PROGRAM INTERP_TO_GROUND_TRACK
                   !!
                   IF (idot==8) THEN
                      !! Model, nearest point:
-                     Ftrack_mod_np(jte) =  xvar(JIidx(1,jte),JJidx(1,jte)) ! NEAREST POINT interpolation
+                     Ftrack_mod_np(jtf) =  xvar(JIidx(1,jtf),JJidx(1,jtf)) ! NEAREST POINT interpolation
                      !! Model, 2D bilinear interpolation:
-                     Ftrack_mod(jte) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
+                     Ftrack_mod(jtf) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
                      !! Observations as on their original point:
-                     Ftrack_obs(jte) = r_obs
+                     Ftrack_obs(jtf) = r_obs
                      !! On the model grid for info:
-                     RES_2D_MOD(iP,jP) = Ftrack_mod(jte)
-                     RES_2D_OBS(iP,jP) = Ftrack_obs(jte)
+                     RES_2D_MOD(iP,jP) = Ftrack_mod(jtf)
+                     RES_2D_OBS(iP,jP) = Ftrack_obs(jtf)
                      !!
-                     Fmask(jte) = 1 ! That was a valid point!
+                     Fmask(jtf) = 1 ! That was a valid point!
                      !!
                   END IF
                END IF
@@ -733,12 +757,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' * Output file = ', trim(cf_out)
    PRINT *, ''
 
-   CALL PT_SERIES(vte(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
+   CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
       &           ct_unit=TRIM(cunit_time_out), &
       &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
-      &           vdt4=REAL(xlon_gt(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
-      &           vdt5=REAL(xlat_gt(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
+      &           vdt4=REAL(xlon_gt_f(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
+      &           vdt5=REAL(xlat_gt_f(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
       &           vdt6=REAL(Fmask,4),        cv_dt6='mask',             cln6='Mask', &
       &           vdt7=REAL(IGNORE(1,:),4),  cv_dt7='ignore_out',       cln7='Ignore mask on target track (ignored where ignore_out==0)')
 
@@ -753,7 +777,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
-   !DEALLOCATE ( Fgt )
+   !DEALLOCATE ( F_gt_0 )
    !DEALLOCATE ( Ftrack_mod, Ftrack_mod_np, Ftrack_obs )
    !DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xdum_r4, mask, xdum_r8 )
 

@@ -11,7 +11,7 @@ MODULE MOD_MANIP
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, test_xyz, partial_deriv, &
       &      flip_ud_1d, flip_ud_1d_double, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
-      &      distance, find_nearest_point
+      &      distance, find_nearest_point, SHRINK_VECTOR
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
@@ -1429,6 +1429,45 @@ CONTAINS
 
    END FUNCTION L_IS_GRID_REGULAR
 
+
+
+
+
+   FUNCTION SHRINK_VECTOR(vect, vmask_ignore, new_size)      
+      !!----------------------------------------------------------
+      !!           ***  FUNCTION  DIST  ***
+      !!
+      !!  ** Purpose :
+      !!
+      !!   vect (DATA) and vmask_ignore (points to remove in vect are where
+      !!         vmask_ignore == 0) have the same size !
+      !!
+      !!----------------------------------------------------------
+      REAL(8),    DIMENSION(:), INTENT(in) :: vect
+      INTEGER(1), DIMENSION(:), INTENT(in) :: vmask_ignore
+      INTEGER,                  INTENT(in) :: new_size
+      REAL(8), DIMENSION(new_size)         :: SHRINK_VECTOR
+      !!
+      INTEGER :: jo, jn, nold
+      nold = SIZE(vect,1)
+      IF ( nold /= SIZE(vmask_ignore,1) ) THEN
+         PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): data vector and mask vector do not agree in length!'
+         STOP
+      END IF
+      IF ( (new_size >= nold).OR.(new_size<=0) ) THEN
+         PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): your new_size does not make sense!'
+         STOP
+      END IF      
+      jn = 0
+      DO jo = 1, nold
+         IF ( vmask_ignore(jo) == 1 ) THEN
+            jn = jn + 1
+            SHRINK_VECTOR(jn) = vect(jo)
+         END IF
+      END DO
+   END FUNCTION SHRINK_VECTOR
+
+   
 
    !! ROUTINE degree 0 -- 360 East to -180 -- +180 East :
    !! xdum = SIGN(1.,180.-xlon_gt)*MIN(xlon_gt,ABS(xlon_gt-360.)) ! like xlon_gt but between -180 and +180 !
