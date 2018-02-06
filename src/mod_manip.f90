@@ -751,15 +751,13 @@ CONTAINS
       USE io_ezcdf
       USE mod_conf,  ONLY: i_orca_out
 
-      IMPLICIT NONE
-
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
 
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
 
-      
+
       !! Important parameters:
       INTEGER, PARAMETER :: &
          &                   Nlat_split = 30, &  ! number of latitude bands to split the search work (for 180. degree south->north)
@@ -1068,9 +1066,8 @@ CONTAINS
 
          DO jj_out = j_strt_out, j_stop_out, jlat_inc
             DO ji_out = 1, nx_out
-
                IF ( mask_ignore_out(ji_out,jj_out) == 1 ) THEN
-                  
+
                   rlon = Xout(ji_out,jj_out)
                   rlat = Yout(ji_out,jj_out)
 
@@ -1092,10 +1089,10 @@ CONTAINS
                   END IF
 
                   lagain    = .TRUE.
-                  niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...                 
-                  
+                  niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...
+
                   DO WHILE ( lagain )
-                     
+
                      IF ( niter == -1 ) THEN
                         !! Bluff !
                         !! It's not stupid to assume that the next point to locate is
@@ -1119,7 +1116,7 @@ CONTAINS
                      Xdist = 1.E12
                      Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
                      !CALL PRTMASK(REAL(Xdist,4), 'distance_last.nc', 'dist')
-                     
+
                      !! Nearest point is where distance is smallest:
                      jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
                      ji_in = jmin_loc(1) + imin_in - 1
@@ -1171,18 +1168,18 @@ CONTAINS
                               &              REAL(rlon,4), REAL(rlat,4)
                            lagain = .FALSE.
                         END IF
-                        
+
                      END IF    ! IF (Xdist(ji_in,jj_in) <= frac_emax*emax)
-                     
+
                      niter  = niter + 1
-                     
+
                   END DO
                   rlat_old = rlat
-                  
-               END IF
-            END DO
-         END DO
-         
+
+               END IF ! IF ( mask_ignore_out(ji_out,jj_out) == 1 )
+            END DO    ! DO ji_out = 1, nx_out
+         END DO       ! DO jj_out = j_strt_out, j_stop_out, jlat_inc
+
          DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, ztmp_out , mspot_lon , mspot_lat )
 
       END IF
@@ -1211,7 +1208,6 @@ CONTAINS
       !! * history : J.M. Molines in CHART, f90, may 2007
       !!----------------------------------------------------------
 
-      IMPLICIT NONE
       ! Argument
       REAL(8), INTENT(in) :: plata, plona, platb, plonb
       REAL(8)             :: distance
@@ -1279,7 +1275,6 @@ CONTAINS
       !! * history : J.M. Molines in CHART, f90, may 2007
       !!----------------------------------------------------------
 
-      IMPLICIT NONE
       ! Argument
       REAL(8),                 INTENT(in) :: plona, plata
       REAL(8), DIMENSION(:,:), INTENT(in) :: Xlonb, Xlatb
@@ -1292,15 +1287,14 @@ CONTAINS
       REAL(8) :: zlatar, zlatbr, zlonar, zlonbr
       REAL(8) :: zpds
       REAL(8) :: zux, zuy, zuz
-      REAL(8) :: zr, zpi, zconv, zvx, zvy, zvz
+      REAL(8) :: zr, zconv, zvx, zvy, zvz
 
       nx = SIZE(Xlonb,1)
       ny = SIZE(Xlonb,2)
 
       !! Initialise some values at first call
       ! constants
-      zpi = ACOS(-1._8)
-      zconv = zpi/180.  ! for degree to radian conversion
+      zconv = ACOS(-1._8)/180._8  ! for degree to radian conversion
       ! Earth radius
       zr = (6378.137 + 6356.7523)/2.0 ! km
 
@@ -1324,7 +1318,9 @@ CONTAINS
 
             zpds = zux*zvx + zuy*zvy + zuz*zvz
 
-            IF ( zpds < 1.) distance_2d(ji,jj) = zr*ACOS(zpds)
+            !IF ( zpds < 1.) distance_2d(ji,jj) = zr*ACOS(zpds)
+
+            distance_2d(ji,jj) = zr*ACOS(MIN(zpds,1.))
 
          END DO
       END DO
@@ -1338,7 +1334,6 @@ CONTAINS
 
    SUBROUTINE locate_point(rlon_P, rlat_P, Xlon, Xlat, jxfnd, jyfnd)
 
-      IMPLICIT none
 
       !!===========================================================
       !!
@@ -1395,7 +1390,6 @@ CONTAINS
       !! Tell if a grid (1 longitude 2D array and 1 latitude 2D array) is regular
       !!----------------------------------------------------------
 
-      IMPLICIT NONE
       ! Argument
       REAL(8), DIMENSION(:,:), INTENT(in) :: Xlon, Xlat
       LOGICAL                             :: l_is_grid_regular
@@ -1433,7 +1427,7 @@ CONTAINS
 
 
 
-   FUNCTION SHRINK_VECTOR(vect, vmask_ignore, new_size)      
+   FUNCTION SHRINK_VECTOR(vect, vmask_ignore, new_size)
       !!----------------------------------------------------------
       !!           ***  FUNCTION  DIST  ***
       !!
@@ -1454,10 +1448,10 @@ CONTAINS
          PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): data vector and mask vector do not agree in length!'
          STOP
       END IF
-      IF ( (new_size >= nold).OR.(new_size<=0) ) THEN
+      IF ( (new_size > nold).OR.(new_size<=0) ) THEN
          PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): your new_size does not make sense!'
          STOP
-      END IF      
+      END IF
       jn = 0
       DO jo = 1, nold
          IF ( vmask_ignore(jo) == 1 ) THEN
@@ -1467,7 +1461,7 @@ CONTAINS
       END DO
    END FUNCTION SHRINK_VECTOR
 
-   
+
 
    !! ROUTINE degree 0 -- 360 East to -180 -- +180 East :
    !! xdum = SIGN(1.,180.-xlon_gt)*MIN(xlon_gt,ABS(xlon_gt-360.)) ! like xlon_gt but between -180 and +180 !
