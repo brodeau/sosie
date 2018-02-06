@@ -27,19 +27,18 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &   l_akima = .TRUE., &
       &   l_bilin = .FALSE.
    !!
-   LOGICAL :: &
-      &      l_orbit_file_is_nc    = .FALSE.
-   !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
    INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, iquadran
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_gt_0, xlat_gt_0, xlon_gt_i, xlat_gt_i, xlon_gt_f, xlat_gt_f, xdum_r8
    !!
-   !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs
+   
 
-   REAL(8), DIMENSION(:),     ALLOCATABLE :: vtf, vt_mod, vt_obs, F_gt_0, F_gt_f
+   !! Coupe stuff:
+   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs
+
+   REAL(8), DIMENSION(:),     ALLOCATABLE :: vtf, vt_mod, vt_obs, F_gt_0, F_gt_f, rcycle
 
    REAL(4), DIMENSION(:,:),   ALLOCATABLE :: RES_2D_MOD, RES_2D_OBS
 
@@ -101,7 +100,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
    INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: mask
-   INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask
+   INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
    !!
    INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
@@ -178,7 +177,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
          CALL GET_MY_ARG('forced time vector construction for track', cs_force_tv_e)
 
       CASE('-n')
-         l_orbit_file_is_nc = .TRUE.
          CALL GET_MY_ARG('ground track input variable', cv_obs)
 
       CASE DEFAULT
@@ -301,12 +299,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' *** Unit and reference time in model file:'
    PRINT *, tut_mod
 
-   IF ( l_orbit_file_is_nc ) THEN
-      CALL GET_VAR_INFO(cf_obs, 'time', cunit, cdum)
-      tut_obs  = GET_TIME_UNIT_T0(TRIM(cunit))
-      PRINT *, ' *** Unit and reference time in track file:'
-      PRINT *, tut_obs
-   END IF
+   CALL GET_VAR_INFO(cf_obs, 'time', cunit, cdum)
+   tut_obs  = GET_TIME_UNIT_T0(TRIM(cunit))
+   PRINT *, ' *** Unit and reference time in track file:'
+   PRINT *, tut_obs
    PRINT *, ''
 
 
@@ -417,35 +413,16 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, 'ERROR: please provide the file containing definition of orbit track'; STOP
    END IF
 
-   IF ( .NOT. l_orbit_file_is_nc ) THEN
-      !! Getting number of lines:
-      Nt0 = -1 ; io = 0
-      OPEN (UNIT=13, FILE=TRIM(cf_obs))
-      DO WHILE (io==0)
-         READ(13,*,iostat=io)
-         Nt0 = Nt0 + 1
-      END DO
-      PRINT*, Nt0, ' points in '//TRIM(cf_obs)//'...'
-      ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0) )
-      !!
-      REWIND(13)
-      DO jt0 = 1, Nt0
-         READ(13,*) vt_obs(jt0), xlon_gt_0(1,jt0), xlat_gt_0(1,jt0)
-      END DO
-      CLOSE(13)
+   CALL DIMS(cf_obs, 'time', Nt0, nj1, nk, ni1)
+   PRINT *, ' *** Nb. time records in NetCDF track file:', Nt0
+   ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0), rcycle(Nt0) )
+   CALL GETVAR_1D(cf_obs, 'time', vt_obs)
+   CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
+   CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
+   CALL GETVAR_1D(cf_obs, 'cycle',     rcycle)
+   CALL GETVAR_1D(cf_obs, cv_obs,      F_gt_0)
+   PRINT *, 'Done!'; PRINT *, ''
 
-   ELSE
-      PRINT *, ''
-      PRINT *, 'NetCDF orbit track!'
-      CALL DIMS(cf_obs, 'time', Nt0, nj1, nk, ni1)
-      PRINT *, ' *** Nb. time records in NetCDF track file:', Nt0
-      ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0))
-      CALL GETVAR_1D(cf_obs, 'time', vt_obs)
-      CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
-      CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
-      CALL GETVAR_1D(cf_obs, cv_obs,  F_gt_0)
-      PRINT *, 'Done!'; PRINT *, ''
-   END IF
 
 
    IF ( TRIM(cs_force_tv_e) /= '' ) THEN
@@ -582,21 +559,24 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    Ntf = SUM(INT4(IGNORE))
    PRINT *, ' - and in the end we only retain Ntf ', Ntf , ' points!'
-   
+   PRINT *, ''
 
    
 
 
 
    !! Allocate arrays on the final retained size
-   ALLOCATE ( IMETRICS(1,Ntf,3), RAB(1,Ntf,2), IPB(1,Ntf), xlon_gt_f(1,Ntf), xlat_gt_f(1,Ntf), vtf(Ntf), F_gt_f(Ntf) )
+   ALLOCATE ( IMETRICS(1,Ntf,3), RAB(1,Ntf,2), IPB(1,Ntf), xlon_gt_f(1,Ntf), xlat_gt_f(1,Ntf), vtf(Ntf), F_gt_f(Ntf), icycle(Ntf) )
 
    xlon_gt_f(1,:) = SHRINK_VECTOR(xlon_gt_i(1,:),  IGNORE(1,:), Ntf)
    xlat_gt_f(1,:) = SHRINK_VECTOR(xlat_gt_i(1,:),  IGNORE(1,:), Ntf)
+   vtf(:)         = SHRINK_VECTOR(rcycle(it1:it2), IGNORE(1,:), Ntf)
+   icycle = INT2(vtf)
    vtf(:)         = SHRINK_VECTOR(vt_obs(it1:it2), IGNORE(1,:), Ntf)
    F_gt_f(:)      = SHRINK_VECTOR(F_gt_0(it1:it2), IGNORE(1,:), Ntf)
 
-   DEALLOCATE ( xlon_gt_i , xlat_gt_i , vt_obs , F_gt_0 )
+
+   DEALLOCATE ( xlon_gt_i , xlat_gt_i , vt_obs , F_gt_0 , rcycle )
 
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist ) !
    IF ( .NOT. l_exist ) THEN
@@ -646,12 +626,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !STOP 'mapping done!'
 
-   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf) )
+   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf), rcycle_obs(Ntf) )
 
    Ftrack_mod_np(:) = -9999.
    Ftrack_obs(:)    = -9999.
    Ftrack_mod(:)    = -9999.
    Fmask(:)         = 0
+   rcycle_obs(:)    = -9999.       
 
    jt_s = 1 ; ! time step model!
 
@@ -731,6 +712,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
                      !!
                      Fmask(jtf) = 1 ! That was a valid point!
                      !!
+                     rcycle_obs(jtf) = REAL( icycle(jtf), 8 )
+                     !!
                   END IF
                END IF
             END IF
@@ -748,6 +731,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       Ftrack_mod    = -9999.
       Ftrack_mod_np = -9999.
       Ftrack_obs    = -9999.
+      rcycle_obs    = -9999.
    END WHERE
 
 
@@ -763,8 +747,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
       &           vdt4=REAL(xlon_gt_f(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
       &           vdt5=REAL(xlat_gt_f(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
-      &           vdt6=REAL(Fmask,4),        cv_dt6='mask',             cln6='Mask', &
-      &           vdt7=REAL(IGNORE(1,:),4),  cv_dt7='ignore_out',       cln7='Ignore mask on target track (ignored where ignore_out==0)')
+      &           vdt6=REAL(Fmask,4),          cv_dt6='mask',             cln6='Mask', &
+      &           vdt7=REAL(rcycle_obs,4),     cv_dt7='cycle',            cln7='cycle')
 
    WHERE ( mask == 0 )
       RES_2D_MOD = -9999.
@@ -830,10 +814,9 @@ SUBROUTINE usage()
    WRITE(6,*) ''
    WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
    WRITE(6,*) ''
-   WRITE(6,*) ' -p  <track_file>     => Specify name of file containing orbit tack (columns: time, lon, lat)'
+   WRITE(6,*) ' -p  <track_file>     => Specify name of NetCDF file containing orbit tack'
    WRITE(6,*) ''
-   WRITE(6,*) ' -n  <name>           => file containing orbit track is in NetCDF, and this is the name of var'
-   WRITE(6,*) '                         (default is columns in ASCII file <time> <lon> <lat>'
+   WRITE(6,*) ' -n  <name>           => name of variable of interest in orbit tack file'
    WRITE(6,*) ''
    !!
    WRITE(6,*) ''
