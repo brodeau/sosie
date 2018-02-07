@@ -11,7 +11,7 @@ MODULE MOD_MANIP
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, test_xyz, partial_deriv, &
       &      flip_ud_1d, flip_ud_1d_double, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
-      &      distance, find_nearest_point, SHRINK_VECTOR
+      &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 

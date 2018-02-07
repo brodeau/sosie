@@ -36,7 +36,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    
 
    !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs
+   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs, vdistance
 
    REAL(8), DIMENSION(:),     ALLOCATABLE :: vtf, vt_mod, vt_obs, F_gt_0, F_gt_f, rcycle
 
@@ -130,6 +130,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    PRINT *, ''
 
+
+
+
+         
+   
+   !PRINT *, 'Distance Paris - New-York =', DISTANCE(2.35_8, 360._8-74._8, 48.83_8, 40.69_8)
+   
 
    !! Getting string arguments :
    !! --------------------------
@@ -627,7 +634,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !STOP 'mapping done!'
 
-   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf), rcycle_obs(Ntf) )
+   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf), rcycle_obs(Ntf), vdistance(Ntf) )
 
    Ftrack_mod_np(:) = -9999.
    Ftrack_obs(:)    = -9999.
@@ -728,11 +735,19 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    END DO
 
+   
+   !! Vector distance (in km)
+   vdistance(:) = 0.
+   DO jt = 2, Ntf
+      IF ( (Fmask(jt)==1).AND.(Fmask(jt-1)==1) ) vdistance(jt) = vdistance(jt-1) + DISTANCE( xlon_gt_f(1,jt), xlon_gt_f(1,jt-1), xlat_gt_f(1,jt), xlat_gt_f(1,jt-1) )
+   END DO
+   
    WHERE ( Fmask == 0 )
       Ftrack_mod    = -9999.
       Ftrack_mod_np = -9999.
       Ftrack_obs    = -9999.
       rcycle_obs    = -9999.
+      vdistance     = -9999.
    END WHERE
 
 
@@ -749,7 +764,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &           vdt4=REAL(xlon_gt_f(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
       &           vdt5=REAL(xlat_gt_f(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
       &           vdt6=REAL(Fmask,4),          cv_dt6='mask',             cln6='Mask', &
-      &           vdt7=REAL(rcycle_obs,4),     cv_dt7='cycle',            cln7='cycle')
+      &           vdt7=REAL(rcycle_obs,4),     cv_dt7='cycle',            cln7='cycle', &
+      &           vdt8=REAL(vdistance,4),      cv_dt8='distance',         cln8='Distance (in km) from first point of segment' )
 
    WHERE ( mask == 0 )
       RES_2D_MOD = -9999.
@@ -757,7 +773,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    END WHERE
 
    CALL PRTMASK(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-   CALL PRTMASK(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+   !CALL PRTMASK(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
 
 
 

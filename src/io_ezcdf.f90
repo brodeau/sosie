@@ -869,7 +869,8 @@ CONTAINS
       &                 vdt4, cv_dt4, cln4,  &
       &                 vdt5, cv_dt5, cln5,  &
       &                 vdt6, cv_dt6, cln6,  &
-      &                 vdt7, cv_dt7, cln7 )
+      &                 vdt7, cv_dt7, cln7,  &
+      &                 vdt8, cv_dt8, cln8 )
 
       !! INPUT :
       !! -------
@@ -891,11 +892,11 @@ CONTAINS
       CHARACTER(len=*),           INTENT(in)  :: cf_in, cv_t, cv_dt1, cunit, cln1
       REAL(4),                    INTENT(in)  :: vflag
       CHARACTER(len=*), OPTIONAL, INTENT(in)  :: ct_unit
-      REAL(4), DIMENSION(:), OPTIONAL, INTENT(in)  :: vdt2, vdt3, vdt4, vdt5, vdt6, vdt7
-      CHARACTER(len=*),      OPTIONAL, INTENT(in)  :: cv_dt2, cv_dt3, cv_dt4, cv_dt5, cv_dt6, cv_dt7, &
-         &                                            cln2, cln3, cln4, cln5, cln6, cln7
+      REAL(4), DIMENSION(:), OPTIONAL, INTENT(in)  :: vdt2, vdt3, vdt4, vdt5, vdt6, vdt7, vdt8
+      CHARACTER(len=*),      OPTIONAL, INTENT(in)  :: cv_dt2, cv_dt3, cv_dt4, cv_dt5, cv_dt6, cv_dt7, cv_dt8, &
+         &                                            cln2, cln3, cln4, cln5, cln6, cln7, cln8
       !!
-      INTEGER          :: idf, idv1, idv2, idv3, idv4, idv5, idv6, idv7, idtd, idt, nbt, jt
+      INTEGER          :: idf, idv1, idv2, idv3, idv4, idv5, idv6, idv7, idv8, idtd, idt, nbt, jt
       REAL(4)          :: rmin, rmax
 
       CHARACTER(len=80), PARAMETER :: crtn = 'PT_SERIES'
@@ -936,6 +937,7 @@ CONTAINS
       IF (PRESENT(cv_dt5)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt5), NF90_FLOAT, idtd, idv5, deflate_level=9), crtn,cf_in,cv_dt5 )
       IF (PRESENT(cv_dt6)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt6), NF90_FLOAT, idtd, idv6, deflate_level=9), crtn,cf_in,cv_dt6 )
       IF (PRESENT(cv_dt7)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt7), NF90_FLOAT, idtd, idv7, deflate_level=9), crtn,cf_in,cv_dt7 )
+      IF (PRESENT(cv_dt8)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt8), NF90_FLOAT, idtd, idv8, deflate_level=9), crtn,cf_in,cv_dt8 )
       
       !! V1:
       CALL sherr( NF90_PUT_ATT(idf, idv1, 'long_name', trim(cln1)),  crtn,cf_in,cv_dt1)
@@ -974,6 +976,11 @@ CONTAINS
          CALL sherr( NF90_PUT_ATT(idf, idv7, 'long_name', TRIM(cln7)),  crtn,cf_in,cv_dt7)
          IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv7,'_FillValue',vflag),  crtn,cf_in,cv_dt7)
       END IF
+      !! V8:
+      IF (PRESENT(cv_dt8)) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv8, 'long_name', TRIM(cln8)),  crtn,cf_in,cv_dt8)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv8,'_FillValue',vflag),  crtn,cf_in,cv_dt8)
+      END IF
 
       CALL sherr( NF90_ENDDEF(idf),  crtn,cf_in,cv_dt1)
 
@@ -988,6 +995,7 @@ CONTAINS
       IF (PRESENT(cv_dt5)) CALL sherr( NF90_PUT_VAR(idf, idv5, vdt5),  crtn,cf_in,cv_dt5)
       IF (PRESENT(cv_dt6)) CALL sherr( NF90_PUT_VAR(idf, idv6, vdt6),  crtn,cf_in,cv_dt6)
       IF (PRESENT(cv_dt7)) CALL sherr( NF90_PUT_VAR(idf, idv7, vdt7),  crtn,cf_in,cv_dt7)
+      IF (PRESENT(cv_dt8)) CALL sherr( NF90_PUT_VAR(idf, idv8, vdt8),  crtn,cf_in,cv_dt8)
 
       CALL sherr( NF90_CLOSE(idf),  crtn,cf_in,cv_dt1)
 
