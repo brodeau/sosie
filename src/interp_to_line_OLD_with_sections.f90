@@ -282,7 +282,7 @@ PROGRAM INTERP_TO_LINE
       PRINT *, ' *** Reading record', jt
       CALL GETVAR_3D(id_f1, id_v1, cf_in, cv_in, nt, jt, xvar(:,:,1:nk,jt), jz1=1, jz2=nk)
       !!
-      CALL PRTMASK(xvar(:,:,1,jt), TRIM(cv_in)//'_stage_1.nc', cv_in,   xlont, xlatt, 'lon0', 'lat0')
+      CALL DUMP_2D_FIELD(xvar(:,:,1,jt), TRIM(cv_in)//'_stage_1.nc', cv_in,   xlont, xlatt, 'lon0', 'lat0')
       !!
    END DO
    !!
@@ -390,14 +390,14 @@ PROGRAM INTERP_TO_LINE
       !DO jd = 1, nval
       !   PRINT *, ' point, X, Y =', jd, Xtar(1,jd), Ytar(1,jd)
       !END DO
-      CALL PRTMASK(REAL(mask_b(:,:,1),4), 'mask_stage_2.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+      CALL DUMP_2D_FIELD(REAL(mask_b(:,:,1),4), 'mask_stage_2.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
       ALLOCATE ( JIidx(1,nval) , JJidx(1,nval) , mask_show_section(nib,njb) )
       CALL FIND_NEAREST_POINT(Xtar, Ytar, xlont_b, xlatt_b,  JIidx, JJidx)
       mask_show_section(:,:) = mask_b(:,:,1)
       DO jd = 1, nval
          mask_show_section(JIidx(1,jd), JJidx(1,jd)) = -5
       END DO
-      CALL PRTMASK(REAL(mask_show_section(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+      CALL DUMP_2D_FIELD(REAL(mask_show_section(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
    END IF
 
    !

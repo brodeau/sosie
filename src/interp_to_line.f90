@@ -348,7 +348,7 @@ PROGRAM INTERP_TO_LINE
       DO jd = 1, nval
          mask_show_track(JIidx(1,jd), JJidx(1,jd)) = -5
       END DO
-      CALL PRTMASK(REAL(mask_show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
+      CALL DUMP_2D_FIELD(REAL(mask_show_track(:,:),4), 'mask_+_nearest_points.nc', 'mask', xlont_b, xlatt_b, 'lon0', 'lat0')
       DEALLOCATE ( mask_show_track )
    END IF
 
@@ -373,7 +373,7 @@ PROGRAM INTERP_TO_LINE
       PRINT *, ' *** Reading record', jt
       CALL GETVAR_3D(id_f1, id_v1, cf_in, cv_in, nt, jt, xvar(:,:,1:nk,jt), jz1=1, jz2=nk)
       !!
-      !CALL PRTMASK(xvar(:,:,1,jt), TRIM(cv_in)//'_stage_1.nc', cv_in,   xlont, xlatt, 'lon0', 'lat0')
+      !CALL DUMP_2D_FIELD(xvar(:,:,1,jt), TRIM(cv_in)//'_stage_1.nc', cv_in,   xlont, xlatt, 'lon0', 'lat0')
       !!
    END DO
    !!

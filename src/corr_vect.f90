@@ -467,14 +467,14 @@ PROGRAM CORR_VECT
          &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
       IF ( ldebug ) THEN
-         CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cost')
-         CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sint')
-         CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cosu')
-         CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sinu')
-         CALL PRTMASK(REAL(XCOSV8,4), 'cosv_angle.nc', 'cosv')
-         CALL PRTMASK(REAL(XSINV8,4), 'sinv_angle.nc', 'sinv')
-         CALL PRTMASK(REAL(XCOSF8,4), 'cosf_angle.nc', 'cosf')
-         CALL PRTMASK(REAL(XSINF8,4), 'sinf_angle.nc', 'sinf')         
+         CALL DUMP_2D_FIELD(REAL(XCOST8,4), 'cost_angle.nc', 'cost')
+         CALL DUMP_2D_FIELD(REAL(XSINT8,4), 'sint_angle.nc', 'sint')
+         CALL DUMP_2D_FIELD(REAL(XCOSU8,4), 'cosu_angle.nc', 'cosu')
+         CALL DUMP_2D_FIELD(REAL(XSINU8,4), 'sinu_angle.nc', 'sinu')
+         CALL DUMP_2D_FIELD(REAL(XCOSV8,4), 'cosv_angle.nc', 'cosv')
+         CALL DUMP_2D_FIELD(REAL(XSINV8,4), 'sinv_angle.nc', 'sinv')
+         CALL DUMP_2D_FIELD(REAL(XCOSF8,4), 'cosf_angle.nc', 'cosf')
+         CALL DUMP_2D_FIELD(REAL(XSINF8,4), 'sinf_angle.nc', 'sinf')         
       END IF
 
       !!  Getting time from the u_raw file or the namelist :

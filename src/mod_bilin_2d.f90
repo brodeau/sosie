@@ -151,9 +151,9 @@ CONTAINS
       DEALLOCATE (X1, Y1)
 
       IF (ldebug) THEN
-         CALL PRTMASK(REAL(lon_in,4), 'lon_in_extended.nc', 'lon')
-         CALL PRTMASK(REAL(lat_in,4), 'lat_in_extended.nc', 'lat')
-         CALL PRTMASK(REAL(Z_in,4),     'Z_in_extended.nc',  'Z' )
+         CALL DUMP_2D_FIELD(REAL(lon_in,4), 'lon_in_extended.nc', 'lon')
+         CALL DUMP_2D_FIELD(REAL(lat_in,4), 'lat_in_extended.nc', 'lat')
+         CALL DUMP_2D_FIELD(REAL(Z_in,4),     'Z_in_extended.nc',  'Z' )
       END IF
       !STOP 'LOLO! after FILL_EXTRA_NORTH_SOUTH in mod_bilin_2d.f90' ! for only testing what FILL_EXTRA_NORTH_SOUTH actually does...
 
@@ -177,7 +177,7 @@ CONTAINS
             PRINT *, 'Therefore, you should keep this file for any future interpolation'
             PRINT *, 'using the same "source-target" setup'
 
-            !CALL PRTMASK(REAL(mask_ignore_out,4), 'ignored2.nc', 'ign')  !#lolo            
+            !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'ignored2.nc', 'ign')  !#lolo            
             CALL MAPPING_BL(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght, mask_domain_out=mask_ignore_out)
 
          END IF
@@ -411,7 +411,7 @@ CONTAINS
       IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
       
-      !CALL PRTMASK(REAL(mask_ignore_out,4), 'ignored_in_MAPPING_BL.nc', 'ign')  !#lolo
+      !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'ignored_in_MAPPING_BL.nc', 'ign')  !#lolo
       
       CALL FIND_NEAREST_POINT( lon_out, lat_out, lon_in, lat_in, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
 

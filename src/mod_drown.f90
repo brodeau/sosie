@@ -194,9 +194,9 @@ CONTAINS
          END WHERE
 
 
-         !IF ( jinc == jinc_debg) CALL PRTMASK(REAL(maskv,4), 'maskv.nc', 'lsm')
-         !IF ( jinc == jinc_debg) CALL PRTMASK(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
-         !IF ( jinc == jinc_debg) CALL PRTMASK(X, 'data_X_before.nc', 'lsm')
+         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
+         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
+         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(X, 'data_X_before.nc', 'lsm')
          !STOP
 
 
@@ -394,7 +394,7 @@ CONTAINS
 
 
          !IF ( jinc == jinc_debg) THEN
-         !   CALL PRTMASK(X, 'data_X_after.nc', 'lsm')
+         !   CALL DUMP_2D_FIELD(X, 'data_X_after.nc', 'lsm')
          !   STOP 'after lolo'
          !END IF
 
@@ -405,7 +405,7 @@ CONTAINS
       mtmp = 1 - mask ! 1 over continents, 0 over seas!
       CALL SMOOTH(k_ew, X,  nb_smooth=nsmooth_max, mask_apply=mtmp)
 
-      !CALL PRTMASK(X, 'drowned_final.nc', 'lsm') ;     !     STOP 'lolo'
+      !CALL DUMP_2D_FIELD(X, 'drowned_final.nc', 'lsm') ;     !     STOP 'lolo'
 
       DEALLOCATE ( maskv, mtmp, xtmp, dold, mask_coast )
 

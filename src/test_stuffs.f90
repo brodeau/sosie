@@ -345,7 +345,7 @@ PROGRAM TEST_STUFFS
       
       CALL lbc_lnk_2d( iorca, Xdum8, 'T', 1.0_8 )
       
-      CALL PRTMASK(REAL(Xdum8,4), 'test.nc', 'test',  xlamt, xphit, cv_glamt, cv_gphit)
+      CALL DUMP_2D_FIELD(REAL(Xdum8,4), 'test.nc', 'test',  xlamt, xphit, cv_glamt, cv_gphit)
 
       
       
@@ -367,12 +367,12 @@ PROGRAM TEST_STUFFS
       CALL lbc_lnk_2d( iorca, XSINV8, 'V', -1.0_8 )
 
       
-      CALL PRTMASK(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XCOSV8,4), 'cosv_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL PRTMASK(REAL(XSINV8,4), 'sinv_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
+      CALL DUMP_2D_FIELD(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
+      CALL DUMP_2D_FIELD(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
+      CALL DUMP_2D_FIELD(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
+      CALL DUMP_2D_FIELD(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
+      CALL DUMP_2D_FIELD(REAL(XCOSV8,4), 'cosv_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
+      CALL DUMP_2D_FIELD(REAL(XSINV8,4), 'sinv_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
       !STOP
       
       !CALL P2D_T(id_f1, id_v1, Ntr, jt, xlamu, xphiu,         vtime, Uu_c(:,:,1), &

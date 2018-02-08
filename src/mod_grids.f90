@@ -176,7 +176,7 @@ CONTAINS
                xdum = lon_out
             END IF
             xdum = SIGN(1.,180.-xdum)*MIN(xdum,ABS(xdum-360.)) ! like lon_out but between -180 and +180 !
-            !CALL PRTMASK(REAL(xdum,4), 'lon_out_180-180.nc', 'lon') ; !#lolo
+            !CALL DUMP_2D_FIELD(REAL(xdum,4), 'lon_out_180-180.nc', 'lon') ; !#lolo
             WHERE ( xdum < lon_min_1 ) IGNORE=0
             WHERE ( xdum > lon_max_1 ) IGNORE=0
          END IF
@@ -240,7 +240,7 @@ CONTAINS
          DO jj=(nlat_inc_out + 1)/2+(1 - nlat_inc_out)/2*nj_out,jj_ex_btm,nlat_inc_out
             mask_out(:,jj,:) = 0
          END DO
-         !debug: CALL PRTMASK(REAL(mask_out(:,:,1),4), 'mask_out.nc', 'lsm')
+         !debug: CALL DUMP_2D_FIELD(REAL(mask_out(:,:,1),4), 'mask_out.nc', 'lsm')
       END IF
 
       ! Type of target grid (only matters if ORCA grid...)
@@ -447,7 +447,7 @@ CONTAINS
                   END DO
                END DO
             END DO
-            !debug: CALL PRTMASK(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
+            !debug: CALL DUMP_2D_FIELD(REAL(mask_in(:,:,1),4), 'mask_in.nc', 'mask')
             DEALLOCATE ( z3d_tmp )
 
          ELSE

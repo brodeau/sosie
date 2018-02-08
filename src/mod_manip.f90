@@ -841,7 +841,7 @@ CONTAINS
       !IF (ldebug) THEN
       !   !! Testing the field "distance from point at lon=2./lat=45."
       !   Xdist(:,:) = DISTANCE_2D(2.0_8, Xin(:,:), 45.0_8, Yin(:,:))
-      !   CALL PRTMASK(REAL(Xdist,4), 'distance_fron_2_45_in.nc', 'dist')
+      !   CALL DUMP_2D_FIELD(REAL(Xdist,4), 'distance_fron_2_45_in.nc', 'dist')
       !END IF
 
       !! Going to scan target grid through increasing  (or decreasing) j (latitude)
@@ -877,7 +877,7 @@ CONTAINS
 
       rtmp = SUM(ztmp_out(:,ny_out/2)) ! know if increasing (>0) or decreasing (<0)
       ztmp_out = SIGN(1.0_8 , rtmp)*ztmp_out
-      !IF (ldebug) CALL PRTMASK(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
+      !IF (ldebug) CALL DUMP_2D_FIELD(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
       rmin_dlat_dj = MINVAL(ztmp_out(:,2:))
       IF (ldebug) PRINT *, ' Minimum dlat_dj_out =>', rmin_dlat_dj
 
@@ -1001,8 +1001,8 @@ CONTAINS
          IF (nx_in>1) e1_in(nx_in,:) = e1_in(nx_in-1,:)
          IF (ny_in>1) e2_in(:,ny_in) = e2_in(:,ny_in-1)
          !IF (ldebug) THEN
-         !   CALL PRTMASK(REAL(e1_in,4), 'e1_in.nc', 'e1')
-         !   CALL PRTMASK(REAL(e2_in,4), 'e2_in.nc', 'e2')
+         !   CALL DUMP_2D_FIELD(REAL(e1_in,4), 'e1_in.nc', 'e1')
+         !   CALL DUMP_2D_FIELD(REAL(e2_in,4), 'e2_in.nc', 'e2')
          !END IF
 
          !! Min and Max latitude to use for binning :
@@ -1115,7 +1115,7 @@ CONTAINS
 
                      Xdist = 1.E12
                      Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
-                     !CALL PRTMASK(REAL(Xdist,4), 'distance_last.nc', 'dist')
+                     !CALL DUMP_2D_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
 
                      !! Nearest point is where distance is smallest:
                      jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
@@ -1185,8 +1185,8 @@ CONTAINS
       END IF
 
       IF ( ldebug ) THEN
-         CALL PRTMASK(REAL(JIpos,4), 'JIpos.nc', 'ji')
-         CALL PRTMASK(REAL(JJpos,4), 'JJpos.nc', 'jj')
+         CALL DUMP_2D_FIELD(REAL(JIpos,4), 'JIpos.nc', 'ji')
+         CALL DUMP_2D_FIELD(REAL(JJpos,4), 'JJpos.nc', 'jj')
       END IF
 
       DEALLOCATE ( Xdist , mask_ignore_out )

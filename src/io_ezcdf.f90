@@ -50,7 +50,7 @@ MODULE io_ezcdf
       &    p3d_t,            &
       &    check_4_miss,     &
       &    get_var_info,     &
-      &    prtmask,          &
+      &    dump_2d_field,    &
       &    p2d_mapping_ab,   &
       &    rd_mapping_ab,    &
       &    phovmoller,       &
@@ -1425,95 +1425,74 @@ CONTAINS
 
 
 
-   SUBROUTINE PRTMASK(xmsk, cf_in, cv_in,   xlon, xlat, cv_lo, cv_la,  rfill)
+   SUBROUTINE DUMP_2D_FIELD(xfld, cf_in, cv_in,   xlon, xlat, cv_lo, cv_la,  rfill)
       !!
       !!-----------------------------------------------------------------------------
-      !! This routine prints an integer array of a 2D mask into a netcdf file
-      !! ( healthy minds usually agree for earth == 0, sea == 1 )
+      !! This routine prints an 2D array into a netcdf file
       !!
       !! INPUT :
       !! -------
-      !!        xmsk  = 2D array (lx,ly) contening mask            [real4]
+      !!        xfld  = 2D array (lx,ly) contening mask            [real4]
       !!        cf_in  = name of the output file                   [character]
       !!        cv_in  = name of the mask variable                 [character]
       !! OPTIONAL :
       !! ----------
-      !!        xlon    = longitude array
-      !!        xlat    = latitude array
+      !!        xlon  = longitude array
+      !!        xlat  = latitude array
       !!        cv_lo = longitude name
       !!        cv_la = latitude name
-      !!        rfill = values of xmsk to mask i netcdf file
+      !!        rfill = values of xfld to be masked in netcdf file
       !!
       !!------------------------------------------------------------------------------
-      !!
-      !!
       INTEGER                                :: id_f, id_v
       INTEGER                                :: id_x, id_y, id_lo, id_la
-      REAL(4),    DIMENSION(:,:), INTENT(in) :: xmsk
+      REAL(4),    DIMENSION(:,:), INTENT(in) :: xfld
       CHARACTER(len=*),           INTENT(in) :: cf_in, cv_in
-      !!
       REAL(8), DIMENSION(:,:), INTENT(in), OPTIONAL :: xlon, xlat
       CHARACTER(len=*),        INTENT(in), OPTIONAL :: cv_lo, cv_la
       REAL(4),                 INTENT(in), OPTIONAL :: rfill
       !!
       INTEGER     :: lx, ly, i01, i02
-      !!
       LOGICAL :: lzcoord, l_mask
-      !!
-      CHARACTER(len=80), PARAMETER :: crtn = 'PRTMASK'
-      !!
-      lx = size(xmsk,1) ; ly = size(xmsk,2)
-      !!
+      CHARACTER(len=80), PARAMETER :: crtn = 'DUMP_2D_FIELD'
+      
+      lx = size(xfld,1) ; ly = size(xfld,2)
       lzcoord = .FALSE.
-      l_mask = .FALSE.
-      !!
-      IF ( present(xlon).AND.present(xlat) ) THEN
-         IF ( present(cv_lo).AND.present(cv_la) ) THEN
+      l_mask  = .FALSE.
+
+      IF ( PRESENT(xlon).AND.PRESENT(xlat) ) THEN
+         IF ( PRESENT(cv_lo).AND.PRESENT(cv_la) ) THEN
             lzcoord = .TRUE.
-            CALL ctest_coor(xlon, xlat, xmsk, cdt)
+            CALL ctest_coor(xlon, xlat, xfld, cdt)
          ELSE
             CALL print_err(crtn, 'if you specify xlon and xlat, you must also specify cv_lo and cv_la')
          END IF
-         vextrema(1,:) = (/minval(xlon),maxval(xlon)/); vextrema(2,:) = (/minval(xlat),maxval(xlat)/)
+         vextrema(1,:) = (/MINVAL(xlon),MAXVAL(xlon)/); vextrema(2,:) = (/MINVAL(xlat),MAXVAL(xlat)/)
       END IF
-      !!
       IF ( PRESENT(rfill) ) l_mask = .TRUE.
 
-      !!
-      !!           CREATE NETCDF OUTPUT FILE :
-      !!           ---------------------------
       CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, id_f), crtn,cf_in,cv_in)
-      !!
-      !!
       IF ( lzcoord ) THEN
          CALL prepare_nc(id_f, cdt, lx, ly, cv_lo, cv_la, '',  vextrema, &
             &            id_x, id_y, i01, id_lo, id_la, i02, &
-            &            crtn,cf_in,cv_in)
+            &            crtn,cf_in,trim(cv_lo)//'+'//trim(cv_la))
       ELSE
          CALL prepare_nc(id_f, cdt, lx, ly, '', '', '',        vextrema, &
             &            id_x, id_y, i01, id_lo, id_la, i02, &
             &            crtn,cf_in,cv_in)
       END IF
-      !!
       CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=9), crtn,cf_in,cv_in)
       IF (l_mask) CALL sherr( NF90_PUT_ATT(id_f, id_v,'_FillValue',         rfill), crtn,cf_in,cv_in)
-      !!
-      CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in) ! END OF DEFINITION
-      !!
-      !!
-      !!          WRITE COORDINATES
+      CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in)
+      
       IF ( lzcoord ) THEN
-         CALL sherr( NF90_PUT_VAR(id_f, id_lo, xlon),  crtn,cf_in,cv_in)
-         CALL sherr( NF90_PUT_VAR(id_f, id_la, xlat),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_PUT_VAR(id_f, id_lo, xlon),  crtn,cf_in,cv_lo)
+         CALL sherr( NF90_PUT_VAR(id_f, id_la, xlat),  crtn,cf_in,cv_la)
       END IF
-      !!
-      !!          WRITE VARIABLE
-      CALL sherr( NF90_PUT_VAR(id_f, id_v, xmsk),  crtn,cf_in,cv_in)
-      !!
+      CALL sherr( NF90_PUT_VAR(id_f, id_v, xfld),  crtn,cf_in,cv_in)
+      
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
-      !!
-      !!
-   END SUBROUTINE PRTMASK
+   END SUBROUTINE DUMP_2D_FIELD
 
 
 

@@ -139,8 +139,8 @@ CONTAINS
             !LOLOdebug:
             !WRITE(cfdbg,'("data_in_drowned_lev",i2.2,".nc")') jk
             !IF ( jk == 17 ) THEN
-            !   !CALL PRTMASK(data3d_in(:,:,jk), trim(cfdbg), 'data')
-            !   CALL PRTMASK(real(mask_in(:,:,jk),4), 'lolo.nc', 'data')
+            !   !CALL DUMP_2D_FIELD(data3d_in(:,:,jk), trim(cfdbg), 'data')
+            !   CALL DUMP_2D_FIELD(real(mask_in(:,:,jk),4), 'lolo.nc', 'data')
             !   STOP
             !END IF
             !LOLOdebug.
