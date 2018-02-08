@@ -771,7 +771,7 @@ CONTAINS
          &    nx_in, ny_in, nx_out, ny_out, &
          &    jlat, ji_out, jj_out, ji_in, jj_in, jj_out_old, &
          &    jmin_in, jmax_in, imin_in, imax_in, niter, &
-         &    j_strt_out, j_stop_out, nsplit
+         &    j_strt_out, j_stop_out, nsplit, jmax_band, jmin_band
 
       REAL(8) :: rmin_dlat_dj, emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old, rtmp
 
@@ -782,7 +782,7 @@ CONTAINS
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out, mspot_lon, mspot_lat
 
       INTEGER :: jlat_inc    ! 1 if lat increases with j, -1 if decreases with j
-      INTEGER, DIMENSION(2) :: jmax_loc, jmin_loc
+      INTEGER, DIMENSION(2) :: ij_max_loc, ij_min_loc
       INTEGER, DIMENSION(1) :: ip, jp
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xdist, &
@@ -892,10 +892,11 @@ CONTAINS
          !!
          !! *** Will ignore regions of the TARGET domain that
          !!     are not covered by source domain:
-         jmin_loc = MINLOC(Yout, mask=(Yout>=y_min_in))
-         jmax_loc = MAXLOC(Yout, mask=(Yout<=y_max_in))
-         j_strt_out = jmin_loc(2)  ! smallest j on target source that covers smallest source latitude
-         j_stop_out = jmax_loc(2)  ! largest j on target source that covers largest source latitude
+         !ij_min_loc = MINLOC(Yout, mask=(Yout>=y_min_in))  ! possible bug identified by Max (aka MB)
+         !ij_max_loc = MAXLOC(Yout, mask=(Yout<=y_max_in))
+         j_strt_out = MINVAL(MINLOC(Yout, mask=(Yout>=y_min_in), dim=2))  ! smallest j on target source that covers smallest source latitude
+         j_stop_out = MAXVAL(MAXLOC(Yout, mask=(Yout<=y_max_in), dim=2))  ! largest j on target source that covers largest source latitude
+         !!!!    ....        MAXLOC(Yin, ..., dim=2) returns ni_in values (the max in each column)
          IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
          IF (ldebug) THEN
             PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
@@ -946,9 +947,9 @@ CONTAINS
                   ! Nearest point (in terms of distance):
                   Xdist = 1.E12
                   Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
-                  jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
-                  ji_in = jmin_loc(1) + imin_in - 1
-                  jj_in = jmin_loc(2) + jmin_in - 1
+                  ij_min_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
+                  ji_in = ij_min_loc(1) + imin_in - 1
+                  jj_in = ij_min_loc(2) + jmin_in - 1
                   JIpos(ji_out,jj_out) = ji_in
                   JJpos(ji_out,jj_out) = jj_in
                   IF ((ji_in==0).OR.(jj_in==0)) THEN
@@ -1046,15 +1047,15 @@ CONTAINS
             rlat_low = VLAT_SPLIT_BOUNDS(jlat)
             rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
             !! MB Comment: The two line below can lead to error when working on on small domain ...
-            jmax_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh))
-            jmin_loc = MINLOC(Yin, mask=(Yin>=rlat_low))
+            !ij_max_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh))
+            !ij_min_loc = MINLOC(Yin, mask=(Yin>=rlat_low))
 	    !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_low:rlat_hgh]
-            jmax_loc(2) = MAXVAL(MAXLOC(Yin, mask=(Yin<=rlat_hgh), dim=2))
-            jmin_loc(2) = MINVAL(MINLOC(Yin, mask=(Yin>=rlat_low), dim=2))
+            jmax_band = MAXVAL(MAXLOC(Yin, mask=(Yin<=rlat_hgh), dim=2))  ! MAXLOC(Yin, ..., dim=2) returns ni_in values (the max in each column)
+            jmin_band = MINVAL(MINLOC(Yin, mask=(Yin>=rlat_low), dim=2))
             !!          
             !! To be sure to include everything, adding 2 extra points below and above:
-            IJ_VLAT_IN(jlat,1) = MAX(jmin_loc(2) - 2,   1  )
-            IJ_VLAT_IN(jlat,2) = MIN(jmax_loc(2) + 2, ny_in)
+            IJ_VLAT_IN(jlat,1) = MAX(jmin_band - 2,   1  )
+            IJ_VLAT_IN(jlat,2) = MIN(jmax_band + 2, ny_in)
             !!
             IF ( ldebug ) THEN
                PRINT *, ' Latitude bin #', jlat
@@ -1122,9 +1123,9 @@ CONTAINS
                      !CALL DUMP_2D_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
 
                      !! Nearest point is where distance is smallest:
-                     jmin_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
-                     ji_in = jmin_loc(1) + imin_in - 1
-                     jj_in = jmin_loc(2) + jmin_in - 1
+                     ij_min_loc = MINLOC(Xdist(imin_in:imax_in,jmin_in:jmax_in))
+                     ji_in = ij_min_loc(1) + imin_in - 1
+                     jj_in = ij_min_loc(2) + jmin_in - 1
 
                      IF ((ji_in==0).OR.(jj_in==0)) THEN
                         PRINT *, ''
