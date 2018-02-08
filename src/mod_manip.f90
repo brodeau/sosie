@@ -1045,9 +1045,13 @@ CONTAINS
          DO jlat = 1, nsplit
             rlat_low = VLAT_SPLIT_BOUNDS(jlat)
             rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
+            !! MB Comment: The two line below can lead to error when working on on small domain ...
             jmax_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh))
             jmin_loc = MINLOC(Yin, mask=(Yin>=rlat_low))
-            !!
+	    !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_low:rlat_hgh]
+            jmax_loc(2) = MAXVAL(MAXLOC(Yin, mask=(Yin<=rlat_hgh), dim=2))
+            jmin_loc(2) = MINVAL(MINLOC(Yin, mask=(Yin>=rlat_low), dim=2))
+            !!          
             !! To be sure to include everything, adding 2 extra points below and above:
             IJ_VLAT_IN(jlat,1) = MAX(jmin_loc(2) - 2,   1  )
             IJ_VLAT_IN(jlat,2) = MIN(jmax_loc(2) + 2, ny_in)
@@ -1104,8 +1108,8 @@ CONTAINS
                      ELSE
                         imin_in = 1
                         imax_in = nx_in
-                        jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)
-                        jmax_in = IJ_VLAT_IN(MIN(jlat+niter,nsplit), 2)
+                        jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
+                        jmax_in = IJ_VLAT_IN(MIN(jlat+niter,nsplit), 2)      !! MB Comment: Force to ny_in if necessary when nearest point not found whereas it exist really
                         IF ( ldebug ) THEN
                            PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
                            PRINT *, '     => bin #', jlat
