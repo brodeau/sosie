@@ -854,13 +854,6 @@ CONTAINS
       jlat_inc   = 1
 
 
-      !! We need to know if the target latitude ONLY keeps on systematically
-      !! increasing (or decreasing) as j increases:
-      !!
-      ALLOCATE ( ztmp_out(nx_out, ny_out) )
-      DO jj = 2, ny_out
-         ztmp_out(:,jj) = Yout(:,jj) - Yout(:,jj-1)
-      END DO
 
       y_min_in = MINVAL(Yin) ; ! Min and Max latitude of source domain
       y_max_in = MAXVAL(Yin)
@@ -874,16 +867,23 @@ CONTAINS
 
 
 
-
-      rtmp = SUM(ztmp_out(:,ny_out/2)) ! know if increasing (>0) or decreasing (<0)
-      ztmp_out = SIGN(1.0_8 , rtmp)*ztmp_out
-      !IF (ldebug) CALL DUMP_2D_FIELD(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
-      rmin_dlat_dj = MINVAL(ztmp_out(:,2:))
-      IF (ldebug) PRINT *, ' Minimum dlat_dj_out =>', rmin_dlat_dj
-
-
-
-
+      !! We need to know if the target latitude ONLY keeps on systematically
+      !! increasing (or decreasing) as j increases:
+      rmin_dlat_dj = -100.
+      !IF ( REAL(nx_out)/REAL(ny_out) > 0.15  ) THEN
+      IF ( nx_out > 2 ) THEN !! We can reasonably say it's a map and not a vector or almost a vectot...
+         ALLOCATE ( ztmp_out(nx_out, ny_out) )
+         DO jj = 2, ny_out
+            ztmp_out(:,jj) = Yout(:,jj) - Yout(:,jj-1)
+         END DO
+         rtmp = SUM(ztmp_out(:,ny_out/2)) ! know if increasing (>0) or decreasing (<0)
+         ztmp_out = SIGN(1.0_8 , rtmp)*ztmp_out
+         !IF (ldebug) CALL DUMP_2D_FIELD(REAL(ztmp_out,4), 'dlat_dj_out.nc', 'dist')
+         rmin_dlat_dj = MINVAL(ztmp_out(:,2:))
+         IF (ldebug) PRINT *, ' Minimum dlat_dj_out =>', rmin_dlat_dj
+         DEALLOCATE ( ztmp_out )
+      END IF
+         
 
       !!  Simplif when [d lat / d j] always has the same sign:
       IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) ) THEN
@@ -1185,7 +1185,7 @@ CONTAINS
             END DO    ! DO ji_out = 1, nx_out
          END DO       ! DO jj_out = j_strt_out, j_stop_out, jlat_inc
 
-         DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, ztmp_out , mspot_lon , mspot_lat )
+         DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, mspot_lon , mspot_lat )
 
       END IF
 
