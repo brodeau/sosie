@@ -175,7 +175,7 @@ CONTAINS
             ELSE
                xdum = lon_out
             END IF
-            xdum = SIGN(1.,180.-xdum)*MIN(xdum,ABS(xdum-360.)) ! like lon_out but between -180 and +180 !
+            xdum = SIGN(1._8,180._8-xdum)*MIN(xdum,ABS(xdum-360._8)) ! like lon_out but between -180 and +180 !
             !CALL DUMP_2D_FIELD(REAL(xdum,4), 'lon_out_180-180.nc', 'lon') ; !#lolo
             WHERE ( xdum < lon_min_1 ) IGNORE=0
             WHERE ( xdum > lon_max_1 ) IGNORE=0

@@ -1986,15 +1986,15 @@ CONTAINS
       cday = cdum(:is)
       ncday = len(TRIM(cday))
       IF ( i1 == 5 ) THEN
-         READ(cdum(1:4),'(i)')  GET_TIME_UNIT_T0%year
+         READ(cdum(1:4),'(i4)')  GET_TIME_UNIT_T0%year
          IF ( i2 == 8 ) THEN
-            READ(cdum(6:7),'(i)')  GET_TIME_UNIT_T0%month
-            IF ( ncday == 10 ) READ(cdum(9:10),'(i)') GET_TIME_UNIT_T0%day
-            IF ( ncday ==  9 ) READ(cdum(9:9) ,'(i)') GET_TIME_UNIT_T0%day
+            READ(cdum(6:7),'(i2)')  GET_TIME_UNIT_T0%month
+            IF ( ncday == 10 ) READ(cdum(9:10),'(i2)') GET_TIME_UNIT_T0%day
+            IF ( ncday ==  9 ) READ(cdum(9:9) ,'(i2)') GET_TIME_UNIT_T0%day
          ELSEIF ( i2 == 7 ) THEN
-            READ(cdum(6:6),'(i)')  GET_TIME_UNIT_T0%month
-            IF ( ncday == 8 ) READ(cdum(8:8),'(i)') GET_TIME_UNIT_T0%day
-            IF ( ncday == 9 ) READ(cdum(8:9),'(i)') GET_TIME_UNIT_T0%day
+            READ(cdum(6:6),'(i2)')  GET_TIME_UNIT_T0%month
+            IF ( ncday == 8 ) READ(cdum(8:8),'(i2)') GET_TIME_UNIT_T0%day
+            IF ( ncday == 9 ) READ(cdum(8:9),'(i2)') GET_TIME_UNIT_T0%day
          ELSE
             CALL print_err(crtn, 'origin date not recognized, must be "yyyy-mm-dd"')
          END IF
@@ -2006,9 +2006,9 @@ CONTAINS
       i1 = SCAN(chour, ':')
       i2 = SCAN(chour, ':', back=.TRUE.)
       IF ( (i1 /= 3).OR.(i2 /= 6) ) CALL print_err(crtn, 'hour of origin date not recognized, must be "hh:mm:ss"')
-      READ(chour(1:2),'(i)')  GET_TIME_UNIT_T0%hour
-      READ(chour(4:5),'(i)')  GET_TIME_UNIT_T0%minute
-      READ(chour(7:8),'(i)') GET_TIME_UNIT_T0%second
+      READ(chour(1:2),'(i2)')  GET_TIME_UNIT_T0%hour
+      READ(chour(4:5),'(i2)')  GET_TIME_UNIT_T0%minute
+      READ(chour(7:8),'(i2)') GET_TIME_UNIT_T0%second
       !!
    END FUNCTION GET_TIME_UNIT_T0
 

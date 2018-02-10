@@ -76,9 +76,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &    cf_obs   = 'ground_track.nc', &
       &    cf_mod, &
       &    cf_mm='mesh_mask.nc', &
-      &    cf_mapping, &
-      &    cs_force_tv_m='', &
-      &    cs_force_tv_e=''
+      &    cf_mapping
    !!
    INTEGER      :: &
       &    jarg,   &
@@ -108,8 +106,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &       t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta, t_min, t_max
    !!
-   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-f','-g' /)
+   CHARACTER(LEN=2), DIMENSION(10), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
 
@@ -176,12 +174,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
       CASE('-m')
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
-
-      CASE('-f')
-         CALL GET_MY_ARG('forced time vector construction for model', cs_force_tv_m)
-
-      CASE('-g')
-         CALL GET_MY_ARG('forced time vector construction for track', cs_force_tv_e)
 
       CASE('-n')
          CALL GET_MY_ARG('ground track input variable', cv_obs)
@@ -322,21 +314,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!IF ( nk > 1 ) CALL GETVAR_1D(cf_mod, cv_z, vdepth(:,1))
 
 
-   IF ( TRIM(cs_force_tv_m) /= '' ) THEN
-      !! Building new time vector!
-      idx = SCAN(TRIM(cs_force_tv_m),',')
-      cdum = cs_force_tv_m(1:idx-1)
-      READ(cdum,'(f)') rt0
-      cdum = cs_force_tv_m(idx+1:)
-      READ(cdum,'(f)') rdt
-      PRINT *, ' *** MODEL: OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
-      DO jt=1, Ntm
-         vt_mod(jt) = rt0 + REAL(jt-1)*rdt
-      END DO
-   ELSE
-      !! Reading it in input file:
-      CALL GETVAR_1D(cf_mod, cv_t, vt_mod)
-   END IF
+   !! Reading it in input file:
+   CALL GETVAR_1D(cf_mod, cv_t, vt_mod)
 
 
    !! Getting longitude, latitude and mask in mesh_mask file:
@@ -433,31 +412,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   IF ( TRIM(cs_force_tv_e) /= '' ) THEN
-      !! Building new time vector!
-      idx = SCAN(TRIM(cs_force_tv_e),',')
-      cdum = cs_force_tv_e(1:idx-1)
-      READ(cdum,'(f)') rt0
-      cdum = cs_force_tv_e(idx+1:)
-      READ(cdum,'(f)') rdt
-      PRINT *, ' *** TRACK: OVERIDING time vector with t0 and dt =', REAL(rt0,4), REAL(rdt,4)
-      DO jt0=1, Nt0
-         vt_obs(jt0) = rt0 + REAL(jt0-1)*rdt
-         !PRINT *, ' vt_obs(jt0)= ', vt_obs(jt0)
-      END DO
-   END IF
-
-
-
-
+   
    nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
-
-
-
-
-
-
-
 
    PRINT *, ''
    PRINT *, ' Time vector in track file:'
@@ -546,7 +502,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    IF ( .NOT. l_glob_lon_wize ) THEN
       ALLOCATE ( xdum_r8(1,Nti) )
-      xdum_r8 = SIGN(1.,180.-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360.)) ! like xlon_gt_i but between -180 and +180 !
+      xdum_r8 = SIGN(1._8, 180._8-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360._8)) ! like xlon_gt_i but between -180 and +180 !
       WHERE ( xdum_r8 < lon_min_1 ) IGNORE=0
       WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
       DEALLOCATE ( xdum_r8 )
@@ -565,7 +521,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' Intially we had Nt0 ', Nt0, ' points'
    PRINT *, ' - excluding non relevant time led to Nti', Nti, ' points', SIZE(IGNORE(1,:),1)
 
-   Ntf = SUM(INT4(IGNORE))
+   !Ntf = SUM(INT4(IGNORE)) !lolo wtf Gfortran ???
+   Ntf = SUM(INT(IGNORE))
    PRINT *, ' - and in the end we only retain Ntf ', Ntf , ' points!'
    PRINT *, ''
 
@@ -848,12 +805,6 @@ SUBROUTINE usage()
    WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
    WRITE(6,*) ''
    WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -f  <t0,dt>          => overide time vector in input NEMO file with one of same length'
-   WRITE(6,*) '                         based on t0 and dt (in seconds!) (ex: " ... -f 0.,3600.")'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -g  <t0,dt>          => overide time vector in track file with one of same length'
-   WRITE(6,*) '                         based on t0 and dt (in seconds!) (ex: " ... -f 0.,3600.")'
    WRITE(6,*) ''
    WRITE(6,*) ' -h                   => Show this message'
    WRITE(6,*) ''
