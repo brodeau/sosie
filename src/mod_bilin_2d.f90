@@ -146,7 +146,7 @@ CONTAINS
       ni1 = nx1  ;   nj1 = ny1 + n_extd
 
       ALLOCATE ( Z_in(ni1,nj1), lon_in(ni1,nj1), lat_in(ni1,nj1) )
-      CALL FILL_EXTRA_NORTH_SOUTH(X1, Y1, REAL(Z1,8), lon_in, lat_in, Z_in)
+      CALL FILL_EXTRA_NORTH_SOUTH(X1, Y1, REAL(Z1,8), lon_in, lat_in, Z_in,  is_orca_grid=i_orca_in)
 
       DEALLOCATE (X1, Y1)
 

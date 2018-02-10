@@ -16,6 +16,7 @@ MODULE MOD_MANIP
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
    !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_advanced = .TRUE.
+   !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .TRUE.
    LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .FALSE.
 
    LOGICAL  :: lfirst_dist = .TRUE.
@@ -27,7 +28,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FILL_EXTRA_BANDS(k_ew, XX, YY, XF, XP4, YP4, FP4)
+   SUBROUTINE FILL_EXTRA_BANDS(k_ew, XX, YY, XF, XP4, YP4, FP4,  is_orca_grid)
 
       !!============================================================================
       !! Extending input arrays with an extraband of two points at north,south,east
@@ -45,16 +46,17 @@ CONTAINS
       !!
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
-
-      USE mod_conf, ONLY: i_orca_in
-
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
+      INTEGER ,   OPTIONAL,    INTENT(in)  :: is_orca_grid
 
-      !! Local
       INTEGER :: nx, ny, nxp4, nyp4
-      INTEGER :: ji, jj
+      INTEGER :: ji, jj, iorca
+
+      iorca = 0
+      IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
+      
 
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
@@ -124,7 +126,7 @@ CONTAINS
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
       !! Top side :
-      SELECT CASE( i_orca_in )
+      SELECT CASE( iorca )
          !
       CASE (4)
          XP4(2:nxp4/2             ,nyp4-1) = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
@@ -147,7 +149,7 @@ CONTAINS
       !! ---------
 
       !! Top side :
-      SELECT CASE( i_orca_in )
+      SELECT CASE( iorca )
 
       CASE (4)
          YP4(2:nxp4/2             ,nyp4-1) = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
@@ -218,7 +220,7 @@ CONTAINS
       END IF
 
       !! Top side :
-      SELECT CASE( i_orca_in )
+      SELECT CASE( iorca )
 
       CASE (4)
          PRINT *, 'ORCA north pole T-point folding type of extrapolation at northern boundary!'
@@ -256,7 +258,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FILL_EXTRA_NORTH_SOUTH(XX, YY, XF, XP4, YP4, FP4)
+   SUBROUTINE FILL_EXTRA_NORTH_SOUTH(XX, YY, XF, XP4, YP4, FP4,  is_orca_grid)
 
       !!============================================================================
       !! Extending input arrays with an extraband of two points at northern and
@@ -266,16 +268,17 @@ CONTAINS
       !!  / ORCA knowledge...
       !!
       !!============================================================================
-
-      USE mod_conf, ONLY: i_orca_in
-
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
+      INTEGER ,   OPTIONAL,    INTENT(in)  :: is_orca_grid
 
       !! Local
       INTEGER :: nx, ny, nxp4, nyp4
-      INTEGER :: ji
+      INTEGER :: ji, iorca
 
+      iorca = 0
+      IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
+      
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : size of input coor. and data do not match!!!'; STOP
@@ -323,7 +326,7 @@ CONTAINS
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
       !! Top side :
-      SELECT CASE( i_orca_in )
+      SELECT CASE( iorca )
          !
       CASE (4)
          XP4(2:nx/2             ,nyp4-1) = XP4(nx:nx-nx/2-2:-1,nyp4-5)
@@ -346,7 +349,7 @@ CONTAINS
       !! ---------
 
       !! Top side :
-      SELECT CASE( i_orca_in )
+      SELECT CASE( iorca )
 
       CASE (4)
          YP4(2:nx/2             ,nyp4-1) = YP4(nx:nx-nx/2-2:-1,nyp4-5)
@@ -374,7 +377,7 @@ CONTAINS
       !! ------------
 
       !! Top side :
-      SELECT CASE( i_orca_in )
+      SELECT CASE( iorca )
 
       CASE (4)
          PRINT *, 'ORCA2 type of extrapolation at northern boundary!'
@@ -746,10 +749,8 @@ CONTAINS
       !! OPTIONAL:
       !!      * mask_domain_out: ignore (dont't treat) regions of the target domain where mask_domain_out==0 !
       !!---------------------------------------------------------------
-
       !debug: USE io_ezcdf
-      USE io_ezcdf
-      USE mod_conf,  ONLY: i_orca_out
+      !USE io_ezcdf
 
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
@@ -884,9 +885,8 @@ CONTAINS
          DEALLOCATE ( ztmp_out )
       END IF
          
-
       !!  Simplif when [d lat / d j] always has the same sign:
-      IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) ) THEN
+      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_out ) THEN    !!!.OR. (i_orca_out > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
          !!

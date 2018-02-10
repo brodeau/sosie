@@ -170,7 +170,7 @@ CONTAINS
          &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
          &       poly(ni1-1,nj1-1,nsys)    )
       
-      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_in, lat_in, Z_in)
+      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_in, lat_in, Z_in,  is_orca_grid=i_orca_in)
 
       DEALLOCATE (X1, Y1)
 
@@ -571,7 +571,7 @@ CONTAINS
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
 
-      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF)
+      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF,  is_orca_grid=i_orca_in)
 
 
       !! Treating middle of array ( at least 2 points away from the bordures ) :
