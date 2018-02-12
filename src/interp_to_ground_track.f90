@@ -21,7 +21,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! ************************ Configurable part ****************************
    !!
    LOGICAL, PARAMETER :: &
-      &   l_get_mask_metrics_from_meshmask = .FALSE., & ! if false => get it from model file (mask is _FillValue region...)
       &   l_debug = .TRUE., &
       &   l_debug_mapping = .FALSE., &
       &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
@@ -67,6 +66,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!               ** don't change anything below **
    !!
    LOGICAL ::  &
+      &     l_get_mask_metrics_from_meshmask = .FALSE., &
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
       &     l_loc1, l_loc2, &
@@ -90,9 +90,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xvar, xvar1, xvar2, xmean
-
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs, xvar, xvar1, xvar2, xmean
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
       &    xlont, xlatt
    !!
@@ -139,7 +137,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Getting string arguments :
    !! --------------------------
-
+   
+   l_get_mask_metrics_from_meshmask = .FALSE.
    jarg = 0
 
    DO WHILE ( jarg < iargc() )
@@ -174,6 +173,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          CALL GET_MY_ARG('orbit track file', cf_obs)
 
       CASE('-m')
+         l_get_mask_metrics_from_meshmask = .TRUE.
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
 
       CASE('-n')
@@ -243,7 +243,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
       END IF
    END IF
 
-   ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj) )
    PRINT *, ''
 
 
@@ -269,12 +268,19 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ''
 
 
+   PRINT *, ''
+   PRINT *, ' *** Allocating ni x nj arrays...'
+   ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj), &
+      &       xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj),    &
+      &       imask(ni,nj), vt_mod(Ntm) )
+   IF ( l_debug ) THEN
+      ALLOCATE ( RES_2D_MOD(ni,nj), RES_2D_OBS(ni,nj) )
+      RES_2D_MOD(:,:) = 0.
+      RES_2D_OBS(:,:) = 0.
+   END IF
+   PRINT *, ' *** Done!'; PRINT *, ''
 
-   ALLOCATE ( xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj), imask(ni,nj), vt_mod(Ntm) )
 
-   ALLOCATE ( RES_2D_MOD(ni,nj), RES_2D_OBS(ni,nj) )
-   RES_2D_MOD(:,:) = 0.
-   RES_2D_OBS(:,:) = 0.
 
 
    IF ( lregin ) THEN
@@ -685,9 +691,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
                      Ftrack_mod(jtf) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
                      !! Observations as on their original point:
                      Ftrack_obs(jtf) = r_obs
-                     !! On the model grid for info:
-                     RES_2D_MOD(iP,jP) = Ftrack_mod(jtf)
-                     RES_2D_OBS(iP,jP) = Ftrack_obs(jtf)
+                     IF ( l_debug ) THEN
+                        !! On the model grid for info:
+                        RES_2D_MOD(iP,jP) = Ftrack_mod(jtf)
+                        RES_2D_OBS(iP,jP) = Ftrack_obs(jtf)
+                     END IF
                      !!
                      Fmask(jtf) = 1 ! That was a valid point!
                      !!
@@ -738,15 +746,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &           vdt7=REAL(rcycle_obs,4),     cv_dt7='cycle',            cln7='cycle', &
       &           vdt8=REAL(vdistance,4),      cv_dt8='distance',         cln8='Distance (in km) from first point of segment' )
 
-   WHERE ( imask == 0 )
-      RES_2D_MOD = -9999.
-      RES_2D_OBS = -9999.
-   END WHERE
-
-   CALL DUMP_2D_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-   !CALL DUMP_2D_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-
-
+   IF ( l_debug ) THEN
+      WHERE ( imask == 0 )
+         RES_2D_MOD = -9999.
+         RES_2D_OBS = -9999.
+      END WHERE
+      CALL DUMP_2D_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_2D_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+   END IF
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
    !DEALLOCATE ( F_gt_0 )
