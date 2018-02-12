@@ -21,6 +21,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! ************************ Configurable part ****************************
    !!
    LOGICAL, PARAMETER :: &
+      &   l_get_mask_metrics_from_meshmask = .FALSE., & ! if false => get it from model file (mask is _FillValue region...)
       &   l_debug = .TRUE., &
       &   l_debug_mapping = .FALSE., &
       &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
@@ -33,7 +34,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_gt_0, xlat_gt_0, xlon_gt_i, xlat_gt_i, xlon_gt_f, xlat_gt_f, xdum_r8
    !!
-   
+
 
    !! Coupe stuff:
    REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs, vdistance
@@ -46,7 +47,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
    INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
 
-   
+
    !! Grid, default name :
    CHARACTER(len=80) :: &
       &    cv_mod, &
@@ -69,7 +70,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
       &     l_loc1, l_loc2, &
-      &     l_obs_ok
+      &     l_obs_ok, lfillval
    !!
    !!
    CHARACTER(len=400)  :: &
@@ -97,7 +98,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
-   INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: mask
+   INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: imask
    INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
    !!
    INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
@@ -110,7 +111,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
-
+   REAL(4) :: rfillval_mod
    TYPE(t_unit_t0) :: tut_epoch, tut_obs, tut_mod
 
    INTEGER :: it1, it2
@@ -131,10 +132,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-         
-   
+
+
    !PRINT *, 'Distance Paris - New-York =', DISTANCE(2.35_8, 360._8-74._8, 48.83_8, 40.69_8)
-   
+
 
    !! Getting string arguments :
    !! --------------------------
@@ -198,8 +199,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    PRINT *, ' * Input file = ', trim(cf_mod)
    PRINT *, '   => associated variable names = ', trim(cv_mod)
-   PRINT *, '   => associated longitude/latitude/time = ', trim(cv_lon), ', ', trim(cv_lat), ', ', trim(cv_t)
-   PRINT *, '   => mesh_mask file = ', trim(cf_mm)
+   PRINT *, '   => associated longitude/latitude/time = ', TRIM(cv_lon), ', ', TRIM(cv_lat), ', ', TRIM(cv_t)
+   IF (l_get_mask_metrics_from_meshmask) PRINT *, '   => mesh_mask file = ', TRIM(cf_mm)
 
 
    PRINT *, ''
@@ -217,6 +218,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    PRINT *, ' *** CONFIG: cconf ='//TRIM(cconf)
+
+
+
+   IF (.NOT.l_get_mask_metrics_from_meshmask) cf_mm = cf_mod
 
 
    !! testing longitude and latitude
@@ -265,7 +270,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   ALLOCATE ( xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj), mask(ni,nj), vt_mod(Ntm) )
+   ALLOCATE ( xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj), imask(ni,nj), vt_mod(Ntm) )
 
    ALLOCATE ( RES_2D_MOD(ni,nj), RES_2D_OBS(ni,nj) )
    RES_2D_MOD(:,:) = 0.
@@ -320,7 +325,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Getting longitude, latitude and mask in mesh_mask file:
    ! Longitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm, cv_lon, 0, 0, 0, xdum_r4)
+   CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xdum_r4)
    xlont(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
    !!
 
@@ -361,7 +366,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    ! Latitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xdum_r4)
+   CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lat, 0, 0, 0, xdum_r4)
    xlatt(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
 
    !! Min an max lat:
@@ -380,10 +385,19 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   !! 3D LSM
-   CALL GETMASK_2D(cf_mm, cv_mt, mask, jlev=1)
+   !! 2D land-sea mask on model grid:
+   IF (l_get_mask_metrics_from_meshmask) THEN
+      CALL GETMASK_2D(cf_mm, cv_mt, imask, jlev=1)
+   ELSE
+      !! getting mask from _FillValue on first field of file:
+      CALL CHECK_4_MISS(cf_mod, cv_mod, lfillval, rfillval_mod)
+      CALL GETVAR_2D(i0, j0, cf_mod, cv_mod, Ntm, 0, 1, xdum_r4, jt1=1, jt2=1)
+      imask(:,:) = 1
+      WHERE ( xdum_r4 == rfillval_mod ) imask = 0
+      i0=0 ; j0=0
+   END IF
 
-
+   !CALL DUMP_2D_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
 
 
 
@@ -412,7 +426,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   
+
    nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
 
    PRINT *, ''
@@ -442,7 +456,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
             xmean = xmean + xdum_r4/REAL(Ntm,4)
          END DO
          id_f1=0 ;  id_v1=0
-         !WHERE ( mask == 0 ) xmean = -9999.
+         !WHERE ( imask == 0 ) xmean = -9999.
          CALL DUMP_2D_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
          !STOP'lolo'
       END IF
@@ -526,7 +540,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' - and in the end we only retain Ntf ', Ntf , ' points!'
    PRINT *, ''
 
-   
+
 
 
 
@@ -571,8 +585,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
       DO jtf = 1, Ntf
          IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
-      WHERE (mask == 0) show_obs = -100.
-      CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, 'lon0', 'lat0', rfill=-9999.)
+      WHERE (imask == 0) show_obs = -100.
+      CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
       !lolo:
       !CALL DUMP_2D_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
       !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
@@ -597,7 +611,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    Ftrack_obs(:)    = -9999.
    Ftrack_mod(:)    = -9999.
    Fmask(:)         = 0
-   rcycle_obs(:)    = -9999.       
+   rcycle_obs(:)    = -9999.
 
    jtm_1_o = -100
    jtm_2_o = -100
@@ -627,7 +641,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
                PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt0,')'
                CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt0)
                IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
-               IF ( l_drown_in ) CALL DROWN(-1, xvar1, mask, nb_inc=5, nb_smooth=2)
+               IF ( l_drown_in ) CALL DROWN(-1, xvar1, imask, nb_inc=5, nb_smooth=2)
             ELSE
                xvar1(:,:) = xvar2(:,:)
             END IF
@@ -635,10 +649,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
             PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt0,')'
             CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt0)
             IF ( l_use_anomaly ) xvar2 = xvar2 - xmean
-            IF ( l_drown_in ) CALL DROWN(-1, xvar2, mask, nb_inc=5, nb_smooth=2)
+            IF ( l_drown_in ) CALL DROWN(-1, xvar2, imask, nb_inc=5, nb_smooth=2)
 
             xdum_r4 = (xvar2 - xvar1) / (vt_mod(jtm_2) - vt_mod(jtm_1)) ! xdum_r4 is the slope here !!!
-            
+
             PRINT *, ''
          END IF
 
@@ -653,15 +667,15 @@ PROGRAM INTERP_TO_GROUND_TRACK
          beta     = RAB(1,jtf,2)
 
          IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
-            IF ( mask(iP,jP)==1 ) THEN
+            IF ( imask(iP,jP)==1 ) THEN
                r_obs    = F_gt_f(jtf)
                l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
                IF ( l_obs_ok ) THEN
                   !! Ignore points that are just 1 point away from land:
                   ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
                   im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
-                  idot = mask(ip1,jP) + mask(ip1,jp1) + mask(iP,jp1) + mask(im1,jp1) &
-                     & + mask(im1,jP) + mask(im1,jm1) + mask(iP,jm1) + mask(ip1,jm1)
+                  idot = imask(ip1,jP) + imask(ip1,jp1) + imask(iP,jp1) + imask(im1,jp1) &
+                     & + imask(im1,jP) + imask(im1,jm1) + imask(iP,jm1) + imask(ip1,jm1)
                   !! => idot == 8 if in that case...
                   !!
                   IF (idot==8) THEN
@@ -683,7 +697,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
                END IF
             END IF
          END IF
-         
+
          jtm_1_o = jtm_1
          jtm_2_o = jtm_2
          jt_s    = jtm_1 ! so we do not rescan from begining...
@@ -692,13 +706,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    END DO
 
-   
+
    !! Vector distance (in km)
    vdistance(:) = 0.
    DO jt = 2, Ntf
       IF ( (Fmask(jt)==1).AND.(Fmask(jt-1)==1) ) vdistance(jt) = vdistance(jt-1) + DISTANCE( xlon_gt_f(1,jt), xlon_gt_f(1,jt-1), xlat_gt_f(1,jt), xlat_gt_f(1,jt-1) )
    END DO
-   
+
    WHERE ( Fmask == 0 )
       Ftrack_mod    = -9999.
       Ftrack_mod_np = -9999.
@@ -724,7 +738,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &           vdt7=REAL(rcycle_obs,4),     cv_dt7='cycle',            cln7='cycle', &
       &           vdt8=REAL(vdistance,4),      cv_dt8='distance',         cln8='Distance (in km) from first point of segment' )
 
-   WHERE ( mask == 0 )
+   WHERE ( imask == 0 )
       RES_2D_MOD = -9999.
       RES_2D_OBS = -9999.
    END WHERE
@@ -737,7 +751,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
    !DEALLOCATE ( F_gt_0 )
    !DEALLOCATE ( Ftrack_mod, Ftrack_mod_np, Ftrack_obs )
-   !DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xdum_r4, mask, xdum_r8 )
+   !DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xdum_r4, imask, xdum_r8 )
 
 
    PRINT *, ''
@@ -771,46 +785,47 @@ CONTAINS
    END SUBROUTINE GET_MY_ARG
 
 
+
+
+   SUBROUTINE usage()
+      !!
+      !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
+      !!
+      WRITE(6,*) ''
+      WRITE(6,*) '   List of command line options:'
+      WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -p  <track_file>     => Specify name of NetCDF file containing orbit tack'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -n  <name>           => name of variable of interest in orbit tack file'
+      WRITE(6,*) ''
+      !!
+      WRITE(6,*) ''
+      WRITE(6,*) '    Optional:'
+      WRITE(6,*)  ''
+      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: lat)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
+      WRITE(6,*) ''
+      IF (l_get_mask_metrics_from_meshmask) THEN
+         WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
+         WRITE(6,*) ''
+      END IF
+      WRITE(6,*) ' -h                   => Show this message'
+      WRITE(6,*) ''
+      !!
+      !CLOSE(6)
+      STOP
+      !!
+   END SUBROUTINE usage
+
+
 END PROGRAM INTERP_TO_GROUND_TRACK
-
-
-
-
-SUBROUTINE usage()
-   !!
-   !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
-   !!
-   WRITE(6,*) ''
-   WRITE(6,*) '   List of command line options:'
-   WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -p  <track_file>     => Specify name of NetCDF file containing orbit tack'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -n  <name>           => name of variable of interest in orbit tack file'
-   WRITE(6,*) ''
-   !!
-   WRITE(6,*) ''
-   WRITE(6,*) '    Optional:'
-   WRITE(6,*)  ''
-   WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: lat)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -h                   => Show this message'
-   WRITE(6,*) ''
-   !!
-   !CLOSE(6)
-   STOP
-   !!
-END SUBROUTINE usage
-!!

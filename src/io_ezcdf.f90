@@ -78,9 +78,9 @@ MODULE io_ezcdf
 
    INTEGER :: ji, jj, jk
 
-   INTEGER, PARAMETER :: nmval = 3
+   INTEGER, PARAMETER :: nmval = 4
    CHARACTER(len=80), DIMENSION(nmval), PARAMETER :: &
-      &     c_nm_missing_val = (/ 'FillValue ', '_FillValue', '_Fillvalue' /)
+      &     c_nm_missing_val = (/  '_FillValue', 'missing_value', 'FillValue', '_Fillvalue' /)
 
 
    INTEGER, DIMENSION(12), PARAMETER :: &
@@ -405,8 +405,10 @@ CONTAINS
       IF ( PRESENT(jt2) ) ite = jt2
 
       IF ( present(lz) ) kz_stop = lz
-
+      
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
+         PRINT *, ''
+         PRINT *, '  *** GETVAR_2D: opening file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
@@ -448,11 +450,13 @@ CONTAINS
          END IF
 
       END DO
-
+      
       ! Closing when needed:
       IF ( (( kt == ite ).OR.( kt == 0 )).AND.(jlev == kz_stop) )  THEN
+         PRINT *, '  *** GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
+         PRINT *, ''
       END IF
 
    END SUBROUTINE GETVAR_2D
@@ -1330,14 +1334,12 @@ CONTAINS
       !!
       INTEGER                       :: id_f, id_v
       CHARACTER(len=*), INTENT(in)  :: cf_in, cv_in
-      !!
       LOGICAL,            INTENT(out) :: lmv
       REAL(4),         INTENT(out) :: rmissval
-      !!
       CHARACTER(len=*) , OPTIONAL, INTENT(in)  :: cmiss
       !!
-      INTEGER :: ierr
-      !!
+      INTEGER :: ierr, jm
+      CHARACTER(len=32) :: cmv
       CHARACTER(len=80), PARAMETER :: crtn = 'CHECK_4_MISS'
       !!
       !!
@@ -1348,11 +1350,16 @@ CONTAINS
       CALL sherr( NF90_INQ_VARID(id_f, cv_in, id_v),  crtn,cf_in,cv_in)
       !!
       !!
-      IF ( present(cmiss) ) THEN
+      IF ( PRESENT(cmiss) ) THEN
          ierr = NF90_GET_ATT(id_f, id_v, cmiss, rmissval)
       ELSE
          !! Default name for a missing value is "missing_value" :
-         ierr = NF90_GET_ATT(id_f, id_v, 'missing_value', rmissval)
+         !ierr = NF90_GET_ATT(id_f, id_v, 'missing_value', rmissval)
+         DO jm=1, nmval
+            cmv = c_nm_missing_val(jm)
+            ierr = NF90_GET_ATT(id_f, id_v, TRIM(cmv), rmissval)
+            IF ( ierr == NF90_NOERR ) EXIT
+         END DO
       END IF
       !!
       IF ( ierr == -43 ) THEN
@@ -1362,6 +1369,11 @@ CONTAINS
          !!
          IF (ierr ==  NF90_NOERR) THEN
             lmv = .TRUE.
+            PRINT *, ''
+            PRINT *, '  *** CHECK_4_MISS: found missing value argument '//TRIM(c_nm_missing_val(jm))//' for '//TRIM(cv_in)//' !'
+            PRINT *, '      ( into '//TRIM(cf_in)//')'
+            PRINT *, '      => value =', rmissval
+            PRINT *, ''
          ELSE
             CALL print_err(crtn, 'problem getting missing_value attribute')
          END IF
