@@ -15,7 +15,7 @@ MODULE MOD_MANIP
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
-   !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_advanced = .TRUE.
+   !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_advanced = .FALSE.
    !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .TRUE.
    LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .FALSE.
 
@@ -764,7 +764,8 @@ CONTAINS
          &                   Nlat_split = 30, &  ! number of latitude bands to split the search work (for 180. degree south->north)
          &                   nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
 
-      REAL(8), PARAMETER :: frac_emax = 0.5 ! fraction of emax to test if found!
+      REAL(8), PARAMETER :: frac_emax = 0.6 ! fraction of emax to test if found!
+      !!                                      => 0.5 seems to be too small, for example on ORCA1 grid at around 20 deg N... ???
 
 
       INTEGER :: &
@@ -791,7 +792,6 @@ CONTAINS
          &                                    ztmp_out
       REAL(8),DIMENSION(:), ALLOCATABLE :: vlat, vlon
       LOGICAL :: l_is_reg_in, l_is_reg_out, lagain
-
 
       nx_in  = SIZE(Xin,1)
       ny_in  = SIZE(Xin,2)
@@ -1046,13 +1046,13 @@ CONTAINS
          DO jlat = 1, nsplit
             rlat_low = VLAT_SPLIT_BOUNDS(jlat)
             rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
-            !! MB Comment: The two line below can lead to error when working on on small domain ...
-            !ij_max_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh))
-            !ij_min_loc = MINLOC(Yin, mask=(Yin>=rlat_low))
+            !! @mbalaro Comment: The two line below can lead to error when working on on small domain ...
+            !ij_max_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh)) ; jmax_band = ij_max_loc(2)
+            !ij_min_loc = MINLOC(Yin, mask=(Yin>=rlat_low)) ; jmin_band = ij_min_loc(2)                        
 	    !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_low:rlat_hgh]
             jmax_band = MAXVAL(MAXLOC(Yin, mask=(Yin<=rlat_hgh), dim=2))  ! MAXLOC(Yin, ..., dim=2) returns ni_in values (the max in each column)
             jmin_band = MINVAL(MINLOC(Yin, mask=(Yin>=rlat_low), dim=2))
-            !!          
+            !!
             !! To be sure to include everything, adding 2 extra points below and above:
             IJ_VLAT_IN(jlat,1) = MAX(jmin_band - 2,   1  )
             IJ_VLAT_IN(jlat,2) = MIN(jmax_band + 2, ny_in)
@@ -1112,7 +1112,7 @@ CONTAINS
                         jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
                         jmax_in = IJ_VLAT_IN(MIN(jlat+niter,nsplit), 2)      !! MB Comment: Force to ny_in if necessary when nearest point not found whereas it exist really
                         IF ( ldebug ) THEN
-                           PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4)
+                           PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter
                            PRINT *, '     => bin #', jlat
                            PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
                         END IF
@@ -1160,6 +1160,11 @@ CONTAINS
                            mspot_lon = 0 ; mspot_lat = 0
                            WHERE( (Xin > MAX(rlon-0.5,  0.)).AND.(Xin < MIN(rlon+0.5,360.)) ) mspot_lon = 1
                            WHERE( (Yin > MAX(rlat-0.5,-90.)).AND.(Yin < MIN(rlat+0.5, 90.)) ) mspot_lat = 1
+                           !lolo:
+                           !CALL DUMP_2D_FIELD(REAL(Xin,4), 'Xin_2.nc',      'dist')
+                           !CALL DUMP_2D_FIELD(REAL(mspot_lon,4), 'mspot_lon.nc', 'dist')
+                           !CALL DUMP_2D_FIELD(REAL(mspot_lat,4), 'mspot_lat.nc', 'dist')
+                           !lolo.
                            IF ( SUM(mspot_lon*mspot_lat) == 0 ) THEN
                               lagain = .FALSE.
                               IF ( ldebug ) PRINT *, ' *** FIND_NEAREST_POINT: SHORT leave test worked! Aborting search!'

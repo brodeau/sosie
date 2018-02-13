@@ -5,7 +5,7 @@ MODULE MOD_BILIN_2D
    !!         Method of interpolation : "bilinear 2D"
    !!         =======================================
    !!
-   !!    L. Brodeau, September 2017
+   !!    L. Brodeau, February 2018
    !!    P. Mathiot, August 2010
    !!    L. BRODEAU, fall 2008
    !!    J.-M. MOLINES, P. MATHIOT , 2007
@@ -20,7 +20,7 @@ MODULE MOD_BILIN_2D
    !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
    INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iquadran at each point
-   INTEGER, DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
+   INTEGER, DIMENSION(:,:),      ALLOCATABLE, SAVE :: IPB       !: problem ID
 
 
    PRIVATE
@@ -80,15 +80,13 @@ CONTAINS
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
 
-      INTEGER, PARAMETER :: n_extd = 4    ! total source grid extension (2 points south, 2 points north)
-
       REAL(8) :: alpha, beta, rmeanv
       LOGICAL :: lefw
-      INTEGER :: cpt, ji, jj, ni1, nj1
+      INTEGER :: cpt, ji, jj
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
          &    X1, Y1, X2, Y2,   &
-         &    lon_in , lat_in, Z_in
+         &    Z_in
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE   :: mask_ignore_out
 
       CHARACTER(len=2)   :: ctype
@@ -143,16 +141,12 @@ CONTAINS
       !!    dimension This is really needed specially for preserving good east-west
       !!    perdiodicity...
 
-      ni1 = nx1  ;   nj1 = ny1 + n_extd
-
-      ALLOCATE ( Z_in(ni1,nj1), lon_in(ni1,nj1), lat_in(ni1,nj1) )
-      CALL FILL_EXTRA_NORTH_SOUTH(X1, Y1, REAL(Z1,8), lon_in, lat_in, Z_in,  is_orca_grid=i_orca_in)
-
-      DEALLOCATE (X1, Y1)
+      ALLOCATE ( Z_in(nx1,ny1) )
+      Z_in = REAL(Z1,8)
 
       IF (ldebug) THEN
-         CALL DUMP_2D_FIELD(REAL(lon_in,4), 'lon_in_extended.nc', 'lon')
-         CALL DUMP_2D_FIELD(REAL(lat_in,4), 'lat_in_extended.nc', 'lat')
+         CALL DUMP_2D_FIELD(REAL(X1,4), 'X1_extended.nc', 'lon')
+         CALL DUMP_2D_FIELD(REAL(Y1,4), 'Y1_extended.nc', 'lat')
          CALL DUMP_2D_FIELD(REAL(Z_in,4),     'Z_in_extended.nc',  'Z' )
       END IF
       !STOP 'LOLO! after FILL_EXTRA_NORTH_SOUTH in mod_bilin_2d.f90' ! for only testing what FILL_EXTRA_NORTH_SOUTH actually does...
@@ -178,7 +172,7 @@ CONTAINS
             PRINT *, 'using the same "source-target" setup'
 
             !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'ignored2.nc', 'ign')  !#lolo            
-            CALL MAPPING_BL(k_ew_per, lon_in, lat_in, X2, Y2, cf_wght, mask_domain_out=mask_ignore_out)
+            CALL MAPPING_BL(k_ew_per, X1, Y1, X2, Y2, cf_wght, mask_domain_out=mask_ignore_out)
 
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
@@ -244,7 +238,7 @@ CONTAINS
       END IF
 
       !! Deallocation :
-      DEALLOCATE ( Z_in, lon_in, lat_in, X2, Y2)
+      DEALLOCATE ( Z_in, X1, Y1, X2, Y2, mask_ignore_out )
 
       l_first_call_interp_routine = .FALSE.
 
@@ -340,7 +334,7 @@ CONTAINS
 
 
 
-   SUBROUTINE MAPPING_BL(k_ew_per, lon_in, lat_in, lon_out, lat_out, cf_w,  mask_domain_out)
+   SUBROUTINE MAPPING_BL(k_ew_per, X1, Y1, lon_out, lat_out, cf_w,  mask_domain_out)
 
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
@@ -357,7 +351,7 @@ CONTAINS
       IMPLICIT NONE
 
       INTEGER,                 INTENT(in) :: k_ew_per
-      REAL(8), DIMENSION(:,:), INTENT(in) :: lon_in, lat_in
+      REAL(8), DIMENSION(:,:), INTENT(in) :: X1, Y1
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_out, lat_out
       CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
@@ -392,8 +386,8 @@ CONTAINS
 
       REAL(8) :: alpha, beta
 
-      nxi = size(lon_in,1)
-      nyi = size(lon_in,2)
+      nxi = size(X1,1)
+      nyi = size(X1,2)
 
       nxo = size(lon_out,1)
       nyo = size(lon_out,2)
@@ -413,7 +407,7 @@ CONTAINS
       
       !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'ignored_in_MAPPING_BL.nc', 'ign')  !#lolo
       
-      CALL FIND_NEAREST_POINT( lon_out, lat_out, lon_in, lat_in, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
+      CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
 
       DO jj = 1, nyo
          DO ji = 1, nxo
@@ -450,11 +444,11 @@ CONTAINS
                      PRINT *, ''
                   ELSE
 
-                     lonP = MOD(lon_in(iP,jP)  , 360._8) ; latP = lat_in(iP,jP)   ! nearest point
-                     lonN = MOD(lon_in(iP,jP+1), 360._8) ; latN = lat_in(iP,jP+1) ! N (grid)
-                     lonE = MOD(lon_in(iPp1,jP), 360._8) ; latE = lat_in(iPp1,jP) ! E (grid)
-                     lonS = MOD(lon_in(iP,jP-1), 360._8) ; latS = lat_in(iP,jP-1) ! S (grid)
-                     lonW = MOD(lon_in(iPm1,jP), 360._8) ; latW = lat_in(iPm1,jP) ! W (grid)
+                     lonP = MOD(X1(iP,jP)  , 360._8) ; latP = Y1(iP,jP)   ! nearest point
+                     lonN = MOD(X1(iP,jP+1), 360._8) ; latN = Y1(iP,jP+1) ! N (grid)
+                     lonE = MOD(X1(iPp1,jP), 360._8) ; latE = Y1(iPp1,jP) ! E (grid)
+                     lonS = MOD(X1(iP,jP-1), 360._8) ; latS = Y1(iP,jP-1) ! S (grid)
+                     lonW = MOD(X1(iPm1,jP), 360._8) ; latW = Y1(iPm1,jP) ! W (grid)
 
                      !! Restore target point longitude between 0 and 360
                      xP = MOD(xP,360._8)
@@ -502,19 +496,19 @@ CONTAINS
                      SELECT CASE ( iquadran ) ! point 2 3 4 are counter clockwise in the respective sector
                      CASE ( 1 )
                         loni(2) = lonE ; lati(2) = latE
-                        loni(3) = MOD(lon_in(iPp1,jP+1), 360._8) ; lati(3) = lat_in(iPp1,jP+1)
+                        loni(3) = MOD(X1(iPp1,jP+1), 360._8) ; lati(3) = Y1(iPp1,jP+1)
                         loni(4) = lonN ; lati(4) = latN
                      CASE ( 2 )
                         loni(2) = lonS ; lati(2) = latS
-                        loni(3) = MOD(lon_in(iPp1,jP-1), 360._8) ; lati(3) = lat_in(iPp1,jP-1)
+                        loni(3) = MOD(X1(iPp1,jP-1), 360._8) ; lati(3) = Y1(iPp1,jP-1)
                         loni(4) = lonE ; lati(4) = latE
                      CASE ( 3 )
                         loni(2) = lonW ; lati(2) = latW
-                        loni(3) = MOD(lon_in(iPm1,jP-1), 360._8) ; lati(3) = lat_in(iPm1,jP-1)
+                        loni(3) = MOD(X1(iPm1,jP-1), 360._8) ; lati(3) = Y1(iPm1,jP-1)
                         loni(4) = lonS ; lati(4) = latS
                      CASE ( 4 )
                         loni(2) = lonN ; lati(2) = latN
-                        loni(3) = MOD(lon_in(iPm1,jP+1), 360._8) ; lati(3) = lat_in(iPm1,jP+1)
+                        loni(3) = MOD(X1(iPm1,jP+1), 360._8) ; lati(3) = Y1(iPm1,jP+1)
                         loni(4) = lonW ; lati(4) = latW
                      END SELECT
 

@@ -211,6 +211,7 @@ PROGRAM IJ_FROM_LON_LAT
    PRINT *, ' *** Minimum longitude on model grid before : ', lon_min_1
    PRINT *, ' *** Maximum longitude on model grid before : ', lon_max_1
    !!
+   xlont_tmp = xlont
    WHERE ( xdum_r4 < 0. ) xlont_tmp = xlont + 360.0_8
    !!
    lon_min_2 = MINVAL(xlont_tmp)
@@ -284,10 +285,10 @@ PROGRAM IJ_FROM_LON_LAT
       STOP
    END IF
 
-   IF ( (lon_min_trg<lon_min_1).OR.(lon_max_trg>lon_max_1)) THEN
-      PRINT *, 'ERROR: based on longitude, 1 of your points might be outside of model grid domain!'
-      STOP
-   END IF
+   !IF ( (lon_min_trg<lon_min_1).OR.(lon_max_trg>lon_max_1)) THEN
+   !   PRINT *, 'ERROR: based on longitude, 1 of your points might be outside of model grid domain!'
+   !   STOP
+   !END IF
 
 
    ALLOCATE (JIidx(1,npoints) , JJidx(1,npoints) )
@@ -375,9 +376,9 @@ CONTAINS
       WRITE(6,*) '    Optional:'
       WRITE(6,*) ' -h                   => Show this message'
       WRITE(6,*) ''
-      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
+      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: '//TRIM(cv_lon)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: lat)'
+      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: '//TRIM(cv_lat)//')'
       WRITE(6,*) ''
       WRITE(6,*) ''
       !!
