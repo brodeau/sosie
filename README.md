@@ -47,9 +47,10 @@ A few working examples / test cases:
 First download the two archives containing the NetCDF files for the example:
 
 For generic examples:
-* data.tar.gz      => https://drive.google.com/uc?id=1SuebC7OxqSFZ6cWylISk4pgW7tMYcoAy&export=download
+* data.tar.gz      &rarr; https://drive.google.com/uc?id=1SuebC7OxqSFZ6cWylISk4pgW7tMYcoAy&export=download
+
 For ROMS examples:
-* data_roms.tar.gz => https://drive.google.com/uc?authuser=0&id=1ljE3KZu1fqQlKSumm3CtaR0Uf2I9yps3&export=download
+* data_roms.tar.gz &rarr; https://drive.google.com/uc?authuser=0&id=1ljE3KZu1fqQlKSumm3CtaR0Uf2I9yps3&export=download
 Download them and save them into the examples/ directory.
 
 Into the "examples" directory you will find various namelists and scripts to
