@@ -1189,11 +1189,6 @@ CONTAINS
 
       END IF
 
-      IF ( ldebug ) THEN
-         CALL DUMP_2D_FIELD(REAL(JIpos,4), 'JIpos.nc', 'ji')
-         CALL DUMP_2D_FIELD(REAL(JJpos,4), 'JJpos.nc', 'jj')
-      END IF
-
       DEALLOCATE ( Xdist , mask_ignore_out )
 
    END SUBROUTINE FIND_NEAREST_POINT

@@ -51,7 +51,7 @@ MOD_INST= mod/io_ezcdf.mod \
           mod/mod_akima_2d.mod \
           mod/mod_drown.mod
 
-all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x
+all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x bin/ij_from_lon_lat.x
 
 gt: bin/interp_to_ground_track.x
 
@@ -72,6 +72,10 @@ bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 $(OBJ_I2GT)
 	@mkdir -p bin
 	$(FC) $(FF) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB_CDF)
+
+bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_manip.o
+	@mkdir -p bin
+	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
 
 
 
@@ -148,7 +152,6 @@ install: all
 
 uninstall:
 	rm -f $(INSTALL_DIR)/bin/*.x
-	rm -f $(INSTALL_DIR)/bin/interp_to_ground_track.x
 	rm -f $(INSTALL_DIR)/lib/$(LIB_SOSIE) $(INSTALL_DIR)/bin/apply_zon_corr.x
 	rm -f $(INSTALL_DIR)/include/io_ezcdf.mod
 
