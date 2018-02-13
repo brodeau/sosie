@@ -21,7 +21,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! ************************ Configurable part ****************************
    !!
    LOGICAL, PARAMETER :: &
-      &   l_debug = .TRUE., &
+      &   l_debug = .FALSE., &
       &   l_debug_mapping = .FALSE., &
       &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
       &   l_akima = .TRUE., &
