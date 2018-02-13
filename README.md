@@ -44,21 +44,23 @@ Compiling the executables:
 A few working examples / test cases:
 --
 
-First download the two archives containing the NetCDF files for the example:
+First download the two archives containing the NetCDF files for the examples:
 
 For generic examples:
 * data.tar.gz      &rarr; https://drive.google.com/uc?id=1SuebC7OxqSFZ6cWylISk4pgW7tMYcoAy&export=download
 
 For ROMS examples:
 * data_roms.tar.gz &rarr; https://drive.google.com/uc?authuser=0&id=1ljE3KZu1fqQlKSumm3CtaR0Uf2I9yps3&export=download
-Download them and save them into the examples/ directory.
 
-Into the "examples" directory you will find various namelists and scripts to
-test sosie on working configurations.  For each example you will find a
-commented and working namelist (namelist.exampleX) explaining the relevant
-namelist tuning.  We encourage you to use a software like ncview to visualize
-files to be interpolated and interpolated files.  The common approach to test a
-given example (# X):
+Save them into the "examples" sub-directory of SOSIE.
+
+Into this "examples" sub-directory you will find various namelists and scripts
+to test SOSIE on working configurations.  For each example you will find a
+commented and working namelist (usually namelist.exampleX, sometimes a more
+explicit name ) explaining the relevant namelist tuning.  We encourage you to
+use a software like ncview to visualize fields to be interpolated and fields
+that have been interpolated.
+The common approach to test a given example (# X):
 
      >> cd examples/
      >> gunzip data/*.gz
