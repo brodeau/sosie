@@ -24,9 +24,6 @@ CONTAINS
       !! 2D INTERPOLATION
       !! ================
 
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
-
-      
       !! lon-aranging or lat-flipping field
       IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data_in)
       IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_in)

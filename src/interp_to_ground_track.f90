@@ -29,7 +29,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, iquadran
+   INTEGER :: Nt0, Nti, Ntf, iP, jP, iquadran
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_gt_0, xlat_gt_0, xlon_gt_i, xlat_gt_i, xlon_gt_f, xlat_gt_f, xdum_r8
    !!
@@ -67,6 +67,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    LOGICAL ::  &
       &     l_get_mask_metrics_from_meshmask = .FALSE., &
+      &   l_write_nc_show_track = .FALSE., &
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
       &     l_loc1, l_loc2, &
@@ -101,12 +102,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
-   REAL(8) :: rt, rt0, rdt, &
-      &       t_min_e, t_max_e, t_min_m, t_max_m, &
+   REAL(8) :: rt, t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta, t_min, t_max
    !!
-   CHARACTER(LEN=2), DIMENSION(10), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m' /)
+   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
    REAL(4) :: rfillval_mod
@@ -176,8 +176,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
          l_get_mask_metrics_from_meshmask = .TRUE.
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
 
+      CASE('-S')
+         l_write_nc_show_track = .TRUE.
+
       CASE('-n')
          CALL GET_MY_ARG('ground track input variable', cv_obs)
+
+
 
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
@@ -583,7 +588,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    !! Showing iy in file mask_+_nearest_points.nc:
-   IF ( l_debug ) THEN
+   IF ( l_write_nc_show_track ) THEN
       !! Finding and storing the nearest points of NEMO grid to track points:
       !CALL FIND_NEAREST_POINT(xlon_gt_0, xlat_gt_0, xlont, xlatt,  JIidx, JJidx)
       ALLOCATE ( show_obs(nib,njb) )
@@ -826,6 +831,9 @@ CONTAINS
          WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
          WRITE(6,*) ''
       END IF
+      WRITE(6,*) ' -S                => dump boxes on 2D output field "mask_+_nearest_points.nc" '
+      WRITE(6,*) ''
+
       WRITE(6,*) ' -h                   => Show this message'
       WRITE(6,*) ''
       !!
