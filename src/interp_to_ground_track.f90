@@ -693,7 +693,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
                      !! Model, nearest point:
                      Ftrack_mod_np(jtf) =  xvar(JIidx(1,jtf),JJidx(1,jtf)) ! NEAREST POINT interpolation
                      !! Model, 2D bilinear interpolation:
-                     Ftrack_mod(jtf) = INTERP_BL(-1, iP, jP, iquadran, alpha, beta, REAL(xvar,8))
+                     Ftrack_mod(jtf) = REAL( INTERP_BL(-1, iP, jP, iquadran, alpha, beta, xvar) , 8)
                      !! Observations as on their original point:
                      Ftrack_obs(jtf) = r_obs
                      IF ( l_debug ) THEN

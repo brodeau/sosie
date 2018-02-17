@@ -19,8 +19,8 @@ MODULE MOD_BILIN_2D
 
    !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
-   INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iquadran at each point
-   INTEGER, DIMENSION(:,:),      ALLOCATABLE, SAVE :: IPB       !: problem ID
+   INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iqdrn at each point
+   INTEGER,    DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
 
 
    PRIVATE
@@ -29,7 +29,7 @@ MODULE MOD_BILIN_2D
 
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
-   INTEGER  :: iquadran !: grid sector from 1 to 4 (clockwise, 1=NE) in wich target point
+   INTEGER  :: iqdrn !: grid sector from 1 to 4 (clockwise, 1=NE) in wich target point
    INTEGER  :: iP, jP   !: location of nearest point on input grid
 
    LOGICAL, SAVE :: l_last_y_row_missing
@@ -66,7 +66,7 @@ CONTAINS
       !!
       !!================================================================
 
-      USE io_ezcdf ; !lolo?
+      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB
 
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
@@ -74,7 +74,7 @@ CONTAINS
       REAL(4), DIMENSION(:,:), INTENT(in)  :: Z1
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
-      CHARACTER(len=*),      INTENT(in)  :: cnpat
+      CHARACTER(len=*),        INTENT(in)  :: cnpat
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
 
       !! Local variables
@@ -84,14 +84,11 @@ CONTAINS
       LOGICAL :: lefw
       INTEGER :: cpt, ji, jj
 
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
-         &    X1, Y1, X2, Y2,   &
-         &    Z_in
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE   :: mask_ignore_out
+      REAL(8),    DIMENSION(:,:), ALLOCATABLE ::  X1, Y1, X2, Y2
+      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out !, msk_res
 
       CHARACTER(len=2)   :: ctype
-
-      CHARACTER(LEN=400) :: cf_wght
+      CHARACTER(len=400) :: cf_wght
 
       ctype = TEST_XYZ(X10,Y10,Z1)
       nx1 = SIZE(Z1,1)
@@ -112,10 +109,11 @@ CONTAINS
 
       ctype = '00'
       ctype = TEST_XYZ(X20, Y20, Z2)
-      nx2 = size(Z2,1) ; ny2 = size(Z2,2)
-      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) )
+      nx2 = SIZE(Z2,1)
+      ny2 = SIZE(Z2,2)
 
-      ALLOCATE ( mask_ignore_out(nx2,ny2) )
+      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) , mask_ignore_out(nx2,ny2) ) !, msk_res(nx2,ny2) )
+
       mask_ignore_out(:,:) = 1
       IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
@@ -130,26 +128,7 @@ CONTAINS
          X2 = X20 ; Y2 = Y20
       END IF
 
-
-      !!                       S T A R T
-
-      WRITE(cf_wght,'("sosie_mapping_",a,".nc")') trim(cnpat)
-
-
-      !! Extending the source 2D domain with a frame of 2 points:
-      !!    We extend initial 2D array with a frame, adding n_extd points in each
-      !!    dimension This is really needed specially for preserving good east-west
-      !!    perdiodicity...
-
-      ALLOCATE ( Z_in(nx1,ny1) )
-      Z_in = REAL(Z1,8)
-
-      IF (ldebug) THEN
-         CALL DUMP_2D_FIELD(REAL(X1,4), 'X1_extended.nc', 'lon')
-         CALL DUMP_2D_FIELD(REAL(Y1,4), 'Y1_extended.nc', 'lat')
-         CALL DUMP_2D_FIELD(REAL(Z_in,4),     'Z_in_extended.nc',  'Z' )
-      END IF
-      !STOP 'LOLO! after FILL_EXTRA_NORTH_SOUTH in mod_bilin_2d.f90' ! for only testing what FILL_EXTRA_NORTH_SOUTH actually does...
+      WRITE(cf_wght,'("sosie_mapping_",a,".nc")') TRIM(cnpat)
 
 
       IF ( l_first_call_interp_routine ) THEN
@@ -157,7 +136,7 @@ CONTAINS
          l_last_y_row_missing = .FALSE.
 
          !! Testing if the file containing weights exists or if we need to create it
-         !! (the latter is very time consuming!!!
+         !! (2nd option might be pretty time-consuming!!!
          PRINT*,'';PRINT*,'********************************************************'
          INQUIRE(FILE=cf_wght, EXIST=lefw )
          IF ( lefw ) THEN
@@ -166,53 +145,50 @@ CONTAINS
             PRINT *, 'No need to build it, skipping routine MAPPING_BL !'
          ELSE
             PRINT *, 'No mapping file found in the current directory!'
-            PRINT *, 'We are going to build it: ', trim(cf_wght)
+            PRINT *, 'We are going to build it: ', TRIM(cf_wght)
             PRINT *, 'This is very time consuming, but only needs to be done once...'
             PRINT *, 'Therefore, you should keep this file for any future interpolation'
             PRINT *, 'using the same "source-target" setup'
-
-            !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'ignored2.nc', 'ign')  !#lolo            
-            CALL MAPPING_BL(k_ew_per, X1, Y1, X2, Y2, cf_wght, mask_domain_out=mask_ignore_out)
-
+            CALL MAPPING_BL(k_ew_per, X1, Y1, X2, Y2, cf_wght,  mask_domain_out=mask_ignore_out)
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
       END IF
 
-      Z2 = -9999.0      ! Flagging non-interpolated output points
-
-      cpt = 0
-
       IF ( l_first_call_interp_routine ) THEN
-
+         !! We read the mapping metrics in the netcdf file (regardless of
+         !! whether the mapping file was just created or not) => maybe not that
+         !! smart but ensure that we saved the right stuff in the netcdf mapping
+         !! file...
          ALLOCATE ( IMETRICS(nx2,ny2,3), RAB(nx2,ny2,2), IPB(nx2,ny2) )
-
          CALL RD_MAPPING_AB(cf_wght, IMETRICS, RAB, IPB)
-         PRINT *, ''; PRINT *, 'Mapping and weights read into ', trim(cf_wght); PRINT *, ''
-
+         PRINT *, ''; PRINT *, 'Mapping and weights read into ', TRIM(cf_wght); PRINT *, ''
       END IF
 
+      Z2(:,:) = rflg ! Flagging non-interpolated output points
+      cpt = 0
+
+      mask_ignore_out(:,:) = 1
+      WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_out = 0
+      WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_out = 0
+      !WHERE ( (IMETRICS(:,:,3) < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
+      IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
+      
       DO jj=1, ny2
          DO ji=1, nx2
-
-            iP       = IMETRICS(ji,jj,1)
-            jP       = IMETRICS(ji,jj,2)
-            iquadran = IMETRICS(ji,jj,3)
-
-            alpha    = RAB(ji,jj,1)
-            beta     = RAB(ji,jj,2)
-
-            IF ( (iP == INT(rflg)).OR.(jP == INT(rflg)) ) THEN
-               Z2(ji,jj) = rflg ; ! masking
-            ELSE
-               !! INTERPOLATION !
-               Z2(ji,jj) = REAL(INTERP_BL(k_ew_per, iP, jP, iquadran, alpha, beta, Z_in), 4)
-               !!
-            END IF
-
+            iP    = IMETRICS(ji,jj,1)
+            jP    = IMETRICS(ji,jj,2)
+            iqdrn = IMETRICS(ji,jj,3)
+            alpha = RAB(ji,jj,1)
+            beta  = RAB(ji,jj,2)
+            !! INTERPOLATION:
+            Z2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqdrn, alpha, beta, Z1)            
          END DO
       END DO
+      
+      Z2 = Z2*REAL(mask_ignore_out, 4) + REAL(1-mask_ignore_out, 4)*rflg ! masking problem points as in mask_ignore_out
 
+      
       IF ( l_first_call_interp_routine ) THEN
          !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
          IF ( i_orca_out >= 4 ) THEN
@@ -237,12 +213,9 @@ CONTAINS
          END IF
       END IF
 
-      !! Deallocation :
-      DEALLOCATE ( Z_in, X1, Y1, X2, Y2, mask_ignore_out )
+      DEALLOCATE ( X1, Y1, X2, Y2, mask_ignore_out )
 
       l_first_call_interp_routine = .FALSE.
-
-      !!DEALLOCATE ( IMETRICS, RAB )
 
    END SUBROUTINE BILIN_2D
 
@@ -251,16 +224,17 @@ CONTAINS
 
 
 
-   FUNCTION INTERP_BL(k_ew_per, iP, jP, iquadran, xa, xb, Z_in)
+   FUNCTION INTERP_BL(k_ew_per, iP, jP, iqdrn, xa, xb, Z_in)
 
       IMPLICIT none
 
       INTEGER,                 INTENT(in) :: k_ew_per
-      INTEGER,                 INTENT(in) :: iP, jP, iquadran
+      INTEGER,                 INTENT(in) :: iP, jP, iqdrn
       REAL(8),                 INTENT(in) :: xa, xb
-      REAL(8), DIMENSION(:,:), INTENT(in) :: Z_in
+      REAL(4), DIMENSION(:,:), INTENT(in) :: Z_in
 
-      REAL(8) :: INTERP_BL, wup, w1, w2, w3, w4
+      REAL(4) :: INTERP_BL
+      REAL(8) ::  wup, w1, w2, w3, w4
       INTEGER  :: nxi, iPm1, iPp1, &
          &        i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
 
@@ -279,7 +253,7 @@ CONTAINS
       IF ( (iPp1 == nxi+1).AND.(k_ew_per>=0) )  iPp1 = 1   + k_ew_per
 
 
-      SELECT CASE (iquadran)
+      SELECT CASE (iqdrn)
 
       CASE (1)  ! nearest point is the bottom left corner point of local mesh
          i1=iP   ; j1 = jP  ! local mesh is located NE of nearest point
@@ -320,13 +294,13 @@ CONTAINS
       END IF
 
       ! interpolate with non-masked  values, above target point
-
+      
       IF ( wup == 0. ) THEN
          INTERP_BL = -9999.
       ELSEIF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
          INTERP_BL = -9999.
       ELSE
-         INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
+         INTERP_BL = REAL( ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup , 4 )
       ENDIF
 
    END FUNCTION INTERP_BL
@@ -380,9 +354,9 @@ CONTAINS
 
       !! To save in the netcdf file:
       REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
-      INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iquadran at each point
+      INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iqdrn at each point
       INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: mask_metrics
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE   :: mask_ignore_out
+      INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_out
 
       REAL(8) :: alpha, beta
 
@@ -391,7 +365,7 @@ CONTAINS
 
       nxo = size(lon_out,1)
       nyo = size(lon_out,2)
-      
+
       ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3) )
 
       ALLOCATE ( mask_metrics(nxo,nyo) )
@@ -404,9 +378,6 @@ CONTAINS
       mask_ignore_out(:,:) = 1
       IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
-      
-      !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'ignored_in_MAPPING_BL.nc', 'ign')  !#lolo
-      
       CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
 
       DO jj = 1, nyo
@@ -475,7 +446,7 @@ CONTAINS
                      !! 1 |  | NE   2 |  | SE    3 |  | SW    4 |  | NW
                      !!   x--o        o--o         o--o         o--x
 
-                     iquadran = 4
+                     iqdrn = 4
 
                      ! to avoid problem with the GW meridian, pass to -180, 180 when working around GW
                      IF ( hP > 180. ) THEN
@@ -485,15 +456,15 @@ CONTAINS
                      ENDIF
 
                      IF ( hN > hE ) hN = hN -360._8
-                     IF ( hPp > hN .AND. hPp <= hE ) iquadran=1
-                     IF ( hP > hE  .AND. hP <= hS )  iquadran=2
-                     IF ( hP > hS  .AND. hP <= hW )  iquadran=3
-                     IF ( hP > hW  .AND. hPp <= hN)  iquadran=4
+                     IF ( hPp > hN .AND. hPp <= hE ) iqdrn=1
+                     IF ( hP > hE  .AND. hP <= hS )  iqdrn=2
+                     IF ( hP > hS  .AND. hP <= hW )  iqdrn=3
+                     IF ( hP > hW  .AND. hPp <= hN)  iqdrn=4
 
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
-                     SELECT CASE ( iquadran ) ! point 2 3 4 are counter clockwise in the respective sector
+                     SELECT CASE ( iqdrn ) ! point 2 3 4 are counter clockwise in the respective sector
                      CASE ( 1 )
                         loni(2) = lonE ; lati(2) = latE
                         loni(3) = MOD(X1(iPp1,jP+1), 360._8) ; lati(3) = Y1(iPp1,jP+1)
@@ -532,7 +503,7 @@ CONTAINS
                         PRINT *, 'East  point :',  lonE , latE , hE
                         PRINT *, 'South point :',  lonS , latS , hS
                         PRINT *, 'West  point :',  lonW , latW , hW
-                        PRINT *, 'iquadran =',iquadran
+                        PRINT *, 'iqdrn =',iqdrn
                         PRINT *, ''
                         PRINT *, ' Nearest 4 points :'
                         PRINT *, 'Pt 1 :',loni(1), lati(1)
@@ -543,8 +514,8 @@ CONTAINS
                      END IF
 
                      !! Saving into arrays to be written at the end:
-                     !MTRCS(ji,jj,:) = (/ iP, jP, iquadran /)
-                     MTRCS(ji,jj,3) = iquadran
+                     !MTRCS(ji,jj,:) = (/ iP, jP, iqdrn /)
+                     MTRCS(ji,jj,3) = iqdrn
                      ZAB(ji,jj,:)   = (/ alpha, beta /)
 
                   END IF !lulu
