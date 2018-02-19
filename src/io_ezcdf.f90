@@ -54,7 +54,6 @@ MODULE io_ezcdf
       &    p2d_mapping_ab,   &
       &    rd_mapping_ab,    &
       &    phovmoller,       &
-      &    who_is_mv,        &
       &    get_time_unit_t0, &
       &    l_is_leap_year,   &
       &    to_epoch_time_scalar, to_epoch_time_vect
@@ -78,10 +77,11 @@ MODULE io_ezcdf
 
    INTEGER :: ji, jj, jk
 
+   !! About missing value attribute name:
    INTEGER, PARAMETER :: nmval = 4
-   CHARACTER(len=80), DIMENSION(nmval), PARAMETER :: &
-      &     c_nm_missing_val = (/  '_FillValue', 'missing_value', 'FillValue', '_Fillvalue' /)
-
+   CHARACTER(len=14), DIMENSION(nmval), PARAMETER :: &
+      &     c_nm_miss_val = (/  '_FillValue    ', 'missing_value ', 'FillValue     ', '_Fillvalue    ' /)
+   CHARACTER(LEN=14), PARAMETER :: cmv0 = '_FillValue' ! Default name for Missing/Fill value ...
 
    INTEGER, DIMENSION(12), PARAMETER :: &
       &   tdmn = (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /),        &
@@ -405,7 +405,7 @@ CONTAINS
       IF ( PRESENT(jt2) ) ite = jt2
 
       IF ( present(lz) ) kz_stop = lz
-      
+
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
          PRINT *, ''
          PRINT *, '  *** GETVAR_2D: opening file '//TRIM(cf_in)//' !'
@@ -450,7 +450,7 @@ CONTAINS
          END IF
 
       END DO
-      
+
       ! Closing when needed:
       IF ( (( kt == ite ).OR.( kt == 0 )).AND.(jlev == kz_stop) )  THEN
          PRINT *, '  *** GETVAR_2D: closing file '//TRIM(cf_in)//' !'
@@ -661,7 +661,7 @@ CONTAINS
       END IF
 
       IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
-      
+
       IF ( kt == 0 ) THEN
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs/), count=(/lx,ly,ize/)), &
             &      crtn,cf_in,cv_in)
@@ -925,7 +925,7 @@ CONTAINS
 
       !!           CREATE NETCDF OUTPUT FILE :
       CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idf), crtn,cf_in,cv_dt1)
-      
+
       !! Time
       CALL sherr( NF90_DEF_DIM(idf, TRIM(cv_t), NF90_UNLIMITED, idtd),                       crtn,cf_in,cv_t)
       CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=9), crtn,cf_in,cv_t)
@@ -942,48 +942,48 @@ CONTAINS
       IF (PRESENT(cv_dt6)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt6), NF90_FLOAT, idtd, idv6, deflate_level=9), crtn,cf_in,cv_dt6 )
       IF (PRESENT(cv_dt7)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt7), NF90_FLOAT, idtd, idv7, deflate_level=9), crtn,cf_in,cv_dt7 )
       IF (PRESENT(cv_dt8)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt8), NF90_FLOAT, idtd, idv8, deflate_level=9), crtn,cf_in,cv_dt8 )
-      
+
       !! V1:
       CALL sherr( NF90_PUT_ATT(idf, idv1, 'long_name', trim(cln1)),  crtn,cf_in,cv_dt1)
       CALL sherr( NF90_PUT_ATT(idf, idv1, 'units', trim(cunit) ),   crtn,cf_in,cv_dt1)
-      IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv1,'_FillValue',vflag),  crtn,cf_in,cv_dt1)
+      IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv1,trim(cmv0),vflag),  crtn,cf_in,cv_dt1)
       CALL sherr( NF90_PUT_ATT(idf, idv1,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_dt1)
       CALL sherr( NF90_PUT_ATT(idf, NF90_GLOBAL, 'About', trim(cabout)),  crtn,cf_in,cv_dt1)
 
       !! V2:
       IF (PRESENT(cv_dt2)) THEN
          CALL sherr( NF90_PUT_ATT(idf, idv2, 'long_name', TRIM(cln2)),  crtn,cf_in,cv_dt2)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv2,'_FillValue',vflag),  crtn,cf_in,cv_dt2)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv2,trim(cmv0),vflag),  crtn,cf_in,cv_dt2)
       END IF
       !! V3:
       IF (PRESENT(cv_dt3)) THEN
          CALL sherr( NF90_PUT_ATT(idf, idv3, 'long_name', TRIM(cln3)),  crtn,cf_in,cv_dt3)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv3,'_FillValue',vflag),  crtn,cf_in,cv_dt3)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv3,trim(cmv0),vflag),  crtn,cf_in,cv_dt3)
       END IF
       !! V4:
       IF (PRESENT(cv_dt4)) THEN
          CALL sherr( NF90_PUT_ATT(idf, idv4, 'long_name', TRIM(cln4)),  crtn,cf_in,cv_dt4)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv4,'_FillValue',vflag),  crtn,cf_in,cv_dt4)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv4,trim(cmv0),vflag),  crtn,cf_in,cv_dt4)
       END IF
       !! V5:
       IF (PRESENT(cv_dt5)) THEN
          CALL sherr( NF90_PUT_ATT(idf, idv5, 'long_name', TRIM(cln5)),  crtn,cf_in,cv_dt5)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv5,'_FillValue',vflag),  crtn,cf_in,cv_dt5)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv5,trim(cmv0),vflag),  crtn,cf_in,cv_dt5)
       END IF
       !! V6:
       IF (PRESENT(cv_dt6)) THEN
          CALL sherr( NF90_PUT_ATT(idf, idv6, 'long_name', TRIM(cln6)),  crtn,cf_in,cv_dt6)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv6,'_FillValue',vflag),  crtn,cf_in,cv_dt6)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv6,trim(cmv0),vflag),  crtn,cf_in,cv_dt6)
       END IF
       !! V7:
       IF (PRESENT(cv_dt7)) THEN
          CALL sherr( NF90_PUT_ATT(idf, idv7, 'long_name', TRIM(cln7)),  crtn,cf_in,cv_dt7)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv7,'_FillValue',vflag),  crtn,cf_in,cv_dt7)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv7,trim(cmv0),vflag),  crtn,cf_in,cv_dt7)
       END IF
       !! V8:
       IF (PRESENT(cv_dt8)) THEN
          CALL sherr( NF90_PUT_ATT(idf, idv8, 'long_name', TRIM(cln8)),  crtn,cf_in,cv_dt8)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv8,'_FillValue',vflag),  crtn,cf_in,cv_dt8)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv8,trim(cmv0),vflag),  crtn,cf_in,cv_dt8)
       END IF
 
       CALL sherr( NF90_ENDDEF(idf),  crtn,cf_in,cv_dt1)
@@ -1115,7 +1115,7 @@ CONTAINS
          !!  VARIABLE ATTRIBUTES
          IF ( lcopy_att_F ) CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes (given in namelist):
-         IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',           vflag),  crtn,cf_in,cv_in)
+         IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,trim(cmv0),           vflag),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
             &                                TRIM(cv_t)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
@@ -1265,13 +1265,13 @@ CONTAINS
             vidim = (/id_x,id_y,id_z/)
          END IF
          CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
-               &       crtn,cf_in,cv_in)
+            &       crtn,cf_in,cv_in)
          DEALLOCATE ( vidim )
 
          !!  VARIABLE ATTRIBUTES
          IF ( lcopy_att_F )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes:
-         IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,'_FillValue',           vflag),  crtn,cf_in,cv_in)
+         IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,trim(cmv0),           vflag),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
             &                                TRIM(cv_t)//" "//TRIM(cv_dpth)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
@@ -1312,10 +1312,13 @@ CONTAINS
 
 
 
-   SUBROUTINE CHECK_4_MISS(cf_in, cv_in, lmv, rmissval, cmiss)
-      !!
-      !! o This routine looks for the presence of a missing value attribute
-      !!   of variable cv_in into file cf_in
+   SUBROUTINE CHECK_4_MISS(cf_in, cv_in, lmv, rmissval, cmissval)
+      !!-
+      !! o This routine looks for the presence of a missing value attribute for
+      !!   variable "cv_in" in file "cf_in"
+      !!          => returns "lmv" (true/false)
+      !!          => returns the value in "rmissval" if "lmv==true"
+      !!          => returns its attribute name: "cmissval"
       !!
       !! INPUT :
       !! -------
@@ -1324,53 +1327,38 @@ CONTAINS
       !!
       !! OUTPUT :
       !! --------
-      !!         * imiss    = 0 -> no missing value, 1 -> missing value found   [integer]
-      !!         * rmissval = value of missing value                          [real]
-      !!         * [cmiss]  = name of the missing value arg. |OPTIONAL|  [character]
-      !!
-      !! Author : L. BRODEAU, december 2008
-      !!
+      !!         * imiss    = 0 -> no missing value, 1 -> missing value found [integer]
+      !!         * rmissval = value of missing value                             [real]
+      !!         * cmissval = name of the missing value attribute           [character]
       !!----------------------------------------------------------------------------
       !!
       INTEGER                       :: id_f, id_v
       CHARACTER(len=*), INTENT(in)  :: cf_in, cv_in
-      LOGICAL,            INTENT(out) :: lmv
-      REAL(4),         INTENT(out) :: rmissval
-      CHARACTER(len=*) , OPTIONAL, INTENT(in)  :: cmiss
+      LOGICAL,          INTENT(out) :: lmv
+      REAL(4),          INTENT(out) :: rmissval
+      CHARACTER(len=*), INTENT(out) :: cmissval
       !!
       INTEGER :: ierr, jm
-      CHARACTER(len=32) :: cmv
       CHARACTER(len=80), PARAMETER :: crtn = 'CHECK_4_MISS'
-      !!
-      !!
-      !! Opening file :
-      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in)
-      !!
-      !! Chosing variable :
-      CALL sherr( NF90_INQ_VARID(id_f, cv_in, id_v),  crtn,cf_in,cv_in)
-      !!
-      !!
-      IF ( PRESENT(cmiss) ) THEN
-         ierr = NF90_GET_ATT(id_f, id_v, cmiss, rmissval)
-      ELSE
-         !! Default name for a missing value is "missing_value" :
-         !ierr = NF90_GET_ATT(id_f, id_v, 'missing_value', rmissval)
-         DO jm=1, nmval
-            cmv = c_nm_missing_val(jm)
-            ierr = NF90_GET_ATT(id_f, id_v, TRIM(cmv), rmissval)
-            IF ( ierr == NF90_NOERR ) EXIT
-         END DO
-      END IF
-      !!
+      !!---------------------------------------------------------------------
+      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in) ! Opening file
+      CALL sherr( NF90_INQ_VARID(id_f, cv_in, id_v),  crtn,cf_in,cv_in)    ! looking up variable
+      !! Scanning possible values until found:
+      cmissval = '0'
+      DO jm=1, nmval
+         ierr = NF90_GET_ATT(id_f, id_v, TRIM(c_nm_miss_val(jm)), rmissval)
+         IF ( ierr == NF90_NOERR ) THEN
+            cmissval = TRIM(c_nm_miss_val(jm))
+            EXIT
+         END IF
+      END DO
       IF ( ierr == -43 ) THEN
          lmv = .FALSE.
-         !!
       ELSE
-         !!
          IF (ierr ==  NF90_NOERR) THEN
             lmv = .TRUE.
             PRINT *, ''
-            PRINT *, '  *** CHECK_4_MISS: found missing value argument '//TRIM(c_nm_missing_val(jm))//' for '//TRIM(cv_in)//' !'
+            PRINT *, '  *** CHECK_4_MISS: found missing value attribute '//TRIM(cmissval)//' for '//TRIM(cv_in)//' !'
             PRINT *, '      ( into '//TRIM(cf_in)//')'
             PRINT *, '      => value =', rmissval
             PRINT *, ''
@@ -1378,12 +1366,11 @@ CONTAINS
             CALL print_err(crtn, 'problem getting missing_value attribute')
          END IF
       END IF
-      !!
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
-      !!
    END SUBROUTINE CHECK_4_MISS
-   !!
-   !!
+
+
+
    SUBROUTINE GET_VAR_INFO(cf_in, cv_in, cunit, clnm)
       !!
       !! o This routine returns the unit and longname of variable if they exist!
@@ -1490,7 +1477,7 @@ CONTAINS
             &            crtn,cf_in,cv_in)
       END IF
       CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=9), crtn,cf_in,cv_in)
-      IF (l_mask)  CALL sherr( NF90_PUT_ATT(id_f, id_v,'_FillValue',        rfill                 ), crtn,cf_in,cv_in)
+      IF (l_mask)  CALL sherr( NF90_PUT_ATT(id_f, id_v,trim(cmv0),        rfill                 ), crtn,cf_in,cv_in)
       IF (lzcoord) CALL sherr( NF90_PUT_ATT(id_f, id_v,'coordinates',TRIM(cv_la)//" "//TRIM(cv_lo)), crtn,cf_in,cv_in)
       CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in)
       IF ( lzcoord ) THEN
@@ -1554,8 +1541,8 @@ CONTAINS
          &        crtn,cf_out,cdum)
 
       IF ( vflag /= 0. ) THEN
-         CALL sherr( NF90_PUT_ATT(id_f, id_v1,'_FillValue',INT8(vflag)), crtn,cf_out,'metrics (masking)')
-         CALL sherr( NF90_PUT_ATT(id_f, id_v2,'_FillValue',vflag),       crtn,cf_out,'alphabeta (masking)')
+         CALL sherr( NF90_PUT_ATT(id_f, id_v1,trim(cmv0),INT8(vflag)), crtn,cf_out,'metrics (masking)')
+         CALL sherr( NF90_PUT_ATT(id_f, id_v2,trim(cmv0),vflag),       crtn,cf_out,'alphabeta (masking)')
       END IF
 
       CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear interpolation with SOSIE.'), &
@@ -1739,54 +1726,8 @@ CONTAINS
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
       !!
    END SUBROUTINE GET_SF_AO
-   !!
-   !!
-   !!
-   SUBROUTINE WHO_IS_MV(cf_in, cv_in, cmv_name, rmissval)
-      !!
-      !! Who is missing value???
-      !!
-      !!
-      CHARACTER(len=*),  INTENT(in)  :: cf_in, cv_in
-      CHARACTER(len=80), INTENT(out) :: cmv_name     !: real name of missing value
-      REAL(4),        INTENT(out) :: rmissval  !: value of the missing value
-      !!
-      LOGICAL    :: lmval
-      INTEGER    :: jmval
-      !!
-      !!
-      CALL CHECK_4_MISS(cf_in, cv_in, lmval, rmissval)
-      !!
-      cmv_name = 'missing_value'
-      !!
-      !! Maybe the name of missing value is different:
-      jmval = 0
-      DO WHILE ( .NOT. lmval )
-         !!
-         jmval = jmval + 1
-         cmv_name = trim(c_nm_missing_val(jmval))
-         WRITE(6,*) 'Trying "',trim(cmv_name),'"! instead of "missing_value..."'
-         CALL CHECK_4_MISS(cf_in, cv_in, lmval, rmissval, cmiss=cmv_name)
-         !!
-         IF ( ( jmval == nmval ) .AND. ( .NOT. lmval ) ) THEN
-            WRITE(6,*) 'Your input file does not contain a missing value!'
-            WRITE(6,*) 'Impossible to build a land sea mask array...'
-            WRITE(6,*) ' -> you should maybe specify the name of the "missing value"'
-            WRITE(6,*) '    found in the netcdf file into module "inter.f90"'
-            STOP
-         END IF
-         !!
-      END DO
-      !!
-      PRINT *, ''; WRITE(6,*) 'Missing value is called "',trim(cmv_name),'" !'
-      WRITE(6,*) 'and has the value', rmissval; PRINT *, ''
-      !!
-      !!
-      !!
-   END SUBROUTINE WHO_IS_MV
-   !!
-   !!
-   !!
+
+
    SUBROUTINE sherr(ierr, croutine, ctf, ctv)
       !!
       !! To handle and display error messages
@@ -1935,7 +1876,7 @@ CONTAINS
       DO jat = 1, nbatt_max
          cat = vattr(jat)%cname
          IF ( TRIM(cat) == 'null' ) EXIT
-         IF ( (TRIM(cat)/='grid_type').AND.(TRIM(cat)/='_FillValue').AND.(TRIM(cat)/='missing_value') &
+         IF ( (TRIM(cat)/='grid_type').AND.(TRIM(cat)/=trim(cmv0)).AND.(TRIM(cat)/='missing_value') &
             & .AND.(TRIM(cat)/='scale_factor').AND.(TRIM(cat)/='add_offset') ) THEN
             IF ( vattr(jat)%itype == 2 ) THEN
                CALL sherr( NF90_PUT_ATT(idx_f, idx_v, TRIM(cat), TRIM(vattr(jat)%val_char)), cri,cfi,cvi)

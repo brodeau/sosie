@@ -57,7 +57,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &    cv_lon = 'glamt',         & ! input grid longitude name, T-points
       &    cv_lat = 'gphit'            ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, cunit
+   CHARACTER(len=256)  :: cr, cunit, cnm_fill
    CHARACTER(len=512)  :: cdum, cconf
    !!
    !!
@@ -401,7 +401,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       CALL GETMASK_2D(cf_mm, cv_mt, imask, jlev=1)
    ELSE
       !! getting mask from _FillValue on first field of file:
-      CALL CHECK_4_MISS(cf_mod, cv_mod, lfillval, rfillval_mod)
+      CALL CHECK_4_MISS(cf_mod, cv_mod, lfillval, rfillval_mod, cnm_fill)
       CALL GETVAR_2D(i0, j0, cf_mod, cv_mod, Ntm, 0, 1, xdum_r4, jt1=1, jt2=1)
       imask(:,:) = 1
       WHERE ( xdum_r4 == rfillval_mod ) imask = 0

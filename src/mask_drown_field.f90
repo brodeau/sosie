@@ -56,7 +56,7 @@ PROGRAM mask_drown_field
   LOGICAL :: lreg, l3d, l_missv, &
        &   l_mask_f = .FALSE., &
        &   l_drwn_f = .FALSE.
-
+  CHARACTER(LEN=14) :: cmissv
   CHARACTER(LEN=2), DIMENSION(16), PARAMETER :: &
        &  clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-m','-q','-p','-g','-o','-M','-D','-l','-u' /)
   
@@ -258,20 +258,15 @@ PROGRAM mask_drown_field
 
   PRINT *, ''
   
-  IF ( trim(cf_mm) == '0' ) THEN
-     PRINT *, 'Will extract mask from treated file from missing value "_FillValue"....'
-     CALL CHECK_4_MISS(cf_in, cv_in, l_missv, rmissv, cmiss='_FillValue') !lolo
-
-
+  IF ( TRIM(cf_mm) == '0' ) THEN
+     CALL CHECK_4_MISS(cf_in, cv_in, l_missv, rmissv, cmissv)
+     PRINT *, 'Will extract mask from treated file from missing value "'//TRIM(cmissv)//'"....'
      IF ( .NOT. l_missv ) THEN
-        PRINT *, 'PROBLEM: variable ',trim(cv_in),' of file ',trim(cf_in),' doesnt have a "_FillValue" arg...'
+        PRINT *, 'PROBLEM: variable ',TRIM(cv_in),' of file ',TRIM(cf_in),' doesnt have a missing-value attribute!'
         STOP
-     ELSE
-        PRINT *, ' => missing value to use is', rmissv
      END IF
+     PRINT *, ' => missing value to use is', rmissv
      mask(:,:,:) = 1
-
-     
   ELSE
      PRINT *, 'Will extract mask "',trim(cv_mm),'" from file ', trim(cf_mm)
      CALL DIMS(cf_mm, cv_mm, ni_m, nj_m, nk_m, nt_m)
@@ -421,7 +416,7 @@ SUBROUTINE usage()
   WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
   WRITE(6,*) ''
   WRITE(6,*) ' -m  <mask_file>      => Specify mask file to be used (default: mask.nc)'
-  WRITE(6,*) '                         or "0" fo use "_FillValue" value of input file'
+  WRITE(6,*) '                         or "0" to use missing-value attribute value of input variable'
   WRITE(6,*) ''
   WRITE(6,*) ' -q  <name>           => Specify mask name in mask file (default: lsm)'
   WRITE(6,*) ''

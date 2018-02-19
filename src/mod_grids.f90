@@ -18,7 +18,6 @@ MODULE MOD_GRIDS
       &     if0, iv0
 
    REAL(wpl) :: rmv, dx, dy
-
    LOGICAL :: lmval
 
 
@@ -387,7 +386,12 @@ CONTAINS
          IF ( TRIM(cf_lsm_in) == 'missing_value' ) THEN
 
             WRITE(6,*) 'Opening land-sea mask from missing_value on input data!'
-            CALL WHO_IS_MV(cf_in, cv_in, ca_missval, rmv)
+            CALL CHECK_4_MISS(cf_in, cv_in, lmval, rmv, ca_missval)
+            IF ( .NOT. lmval ) THEN
+               PRINT *, 'ERROR (get_src_conf of mod_grids.f90) : '//TRIM(cv_in)//' has no missing value attribute!'
+               PRINT *, '      (in '//TRIM(cf_in)//')'
+               STOP
+            END IF
             ALLOCATE ( z3d_tmp(ni_in,nj_in,nk_in) )
             !! Read data field (at time 1 if time exists) :
             IF ( ltime  ) jt0 = 1
@@ -634,10 +638,15 @@ CONTAINS
          ELSE
 
             IF ( TRIM(cf_lsm_out) == 'missing_value' ) THEN
-
+               
                WRITE(6,*) 'Opening target land-sea mask from missing_value!'
-               CALL WHO_IS_MV(cf_x_out, cv_lsm_out, ca_missval, rmv)
-
+               CALL CHECK_4_MISS(cf_x_out, cv_lsm_out, lmval, rmv, ca_missval)
+               IF ( .NOT. lmval ) THEN
+                  PRINT *, 'ERROR lili (get_trg_conf of mod_grids.f90) : '//TRIM(cv_lsm_out)//' has no missing value attribute!'
+                  PRINT *, '      (in '//TRIM(cf_x_out)//')'
+                  STOP
+               END IF
+               !!
                ALLOCATE ( z3d_tmp(ni_out,nj_out,nk_out) )
                if0 = 0 ; iv0 = 0   ! Read data field (at time 1 if time exists)
                IF ( l_int_3d ) THEN
