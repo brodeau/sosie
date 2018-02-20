@@ -1162,7 +1162,8 @@ CONTAINS
 
                lagain    = .TRUE.
                niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...
-
+               IF ( rlat > 60. ) niter = 0 ! we skip the bluff because the grid might be too close to NP boundary cut!
+               
                DO WHILE ( lagain )
 
                   IF ( niter == -1 ) THEN
@@ -1452,25 +1453,20 @@ CONTAINS
 
 
    FUNCTION L_IS_GRID_REGULAR( Xlon, Xlat )
-
       !!----------------------------------------------------------
       !! Tell if a grid (1 longitude 2D array and 1 latitude 2D array) is regular
       !!----------------------------------------------------------
-
-      ! Argument
       REAL(8), DIMENSION(:,:), INTENT(in) :: Xlon, Xlat
       LOGICAL                             :: l_is_grid_regular
       INTEGER :: nx, ny, ji, jj
-
+      !!-------------------------------------------------------------------------
       nx = SIZE(Xlon,1)
       ny = SIZE(Xlon,2)
       IF ( (SIZE(Xlat,1) /= nx) .OR. (SIZE(Xlat,2) /= ny) ) THEN
          PRINT *, ' ERROR (L_IS_GRID_REGULAR of mod_grids.f90): Xlat does not agree in shape with Xlon!'
          STOP
       END IF
-
       l_is_grid_regular = .TRUE.
-
       !!  a/ checking on longitude array: (LOLO: use epsilon(Xlon) instead 1.E-12?)
       DO jj = 2, ny
          IF ( SUM( ABS(Xlon(:,jj) - Xlon(:,1)) ) > 1.E-12 ) THEN
@@ -1487,7 +1483,6 @@ CONTAINS
             END IF
          END DO
       END IF
-
    END FUNCTION L_IS_GRID_REGULAR
 
 

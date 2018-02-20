@@ -3,7 +3,6 @@
 
 
 # Getting started with SOSIE
-
 (Also check the online SOSIE doc for more info on the interpolation method:
 https://brodeau.github.io/sosie/)
 

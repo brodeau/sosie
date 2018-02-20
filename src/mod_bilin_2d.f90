@@ -171,7 +171,8 @@ CONTAINS
       mask_ignore_out(:,:) = 1
       WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_out = 0
       WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_out = 0
-      !WHERE ( (IMETRICS(:,:,3) < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
+      !lili
+      WHERE ( (IMETRICS(:,:,3) < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
       IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
       
       DO jj=1, ny2
@@ -379,27 +380,39 @@ CONTAINS
       IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
       CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
+      
+      !CALL DUMP_2D_FIELD(REAL(i_nrst_in,4), 'i_nrst_in.nc', 'ji')
+      !CALL DUMP_2D_FIELD(REAL(j_nrst_in,4), 'j_nrst_in.nc', 'jj')
+      !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'mask_ignore_out', 'lsm')
+      !STOP'LOLO mod_bilin_2d.f90'
 
+      
       DO jj = 1, nyo
          DO ji = 1, nxo
 
             IF ( mask_ignore_out(ji,jj)==1 ) THEN
-
-               !IF ( (ji == 1).AND.(MOD(jj,10)==0) ) PRINT *, ' *** j index =>',jj,'/',nyo
-
+               
                !! Now deal with horizontal interpolation
                !! set longitude of input point in accordance with lon ( [lon0, 360+lon0 [ )
                xP = lon_out(ji,jj)
                yP = lat_out(ji,jj)
-
+               
                iP = i_nrst_in(ji,jj)
                jP = j_nrst_in(ji,jj)
 
-               IF ( (ip /= INT(rflg)).AND.(jp /= INT(rflg)) ) THEN
+               !IF ((ji==257).AND.(jj==288)) PRINT *, 'LOLO AAA: iP, jP = ', iP, jP
+               
+               IF ( (iP /= INT(rflg)).AND.(jP /= INT(rflg)) ) THEN
 
                   iPm1 = iP-1
                   iPp1 = iP+1
 
+                  !IF ((ji==257).AND.(jj==288)) THEN
+                  !   PRINT *, 'LOLO AAA: iPm1, iPp1 = ', iPm1, iPp1, nxi
+                  !   PRINT *, 'LOLO AAA: jP-1, jP+1 = ', jP-1, jP+1, nyi
+                  !END IF
+                  
+                  
                   IF ( iPm1 == 0 ) THEN
                      !! We are in the extended case !!!
                      IF ( k_ew_per>=0 ) iPm1 = nxi - k_ew_per
@@ -449,11 +462,13 @@ CONTAINS
                      iqdrn = 4
 
                      ! to avoid problem with the GW meridian, pass to -180, 180 when working around GW
-                     IF ( hP > 180. ) THEN
-                        hPp = hP - 360._8
-                     ELSE
-                        hPp = hP
-                     ENDIF
+                     !IF ( hP > 180. ) THEN
+                     !   hPp = hP - 360._8
+                     !ELSE
+                     !   hPp = hP
+                     !ENDIF
+                     hPp = SIGN(1.,180.-hP)*MIN(hP,ABS(hP-360.))
+                     
 
                      IF ( hN > hE ) hN = hN -360._8
                      IF ( hPp > hN .AND. hPp <= hE ) iqdrn=1
@@ -518,7 +533,7 @@ CONTAINS
                      MTRCS(ji,jj,3) = iqdrn
                      ZAB(ji,jj,:)   = (/ alpha, beta /)
 
-                  END IF !lulu
+                  END IF ! IF ((iPm1 < 1).OR.(jP-1 < 1).OR.(iPp1 > nxi).OR.(jP+1 > nyi))
 
                END IF
 
@@ -565,6 +580,9 @@ CONTAINS
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, mask_metrics)
 
+      !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'mask_ignore_out', 'lsm')
+      !STOP'LOLO mod_bilin_2d.f90'
+      
       DEALLOCATE ( MTRCS, ZAB, mask_metrics )
 
    END SUBROUTINE MAPPING_BL

@@ -2,16 +2,16 @@
 &ninput
 ivect     = 0
 lregin    = F
-cf_in     = 'data/ssh_ORCA1_20170101_20171231_grid_T.nc4'
+cf_in     = '../data/ssh_ORCA1_20170101_20171231_grid_T.nc4'
 cv_in     = 'ssh'
 cv_t_in   = 'time_counter'
 jt1       = 0
 jt2       = 0
 jplev     = 1
-cf_x_in   = 'data/mesh_mask_ORCA1v2_light.nc4'
+cf_x_in   = '../data/mesh_mask_ORCA1v2_light.nc4'
 cv_lon_in = 'glamt'
 cv_lat_in = 'gphit'
-cf_lsm_in = 'data/mesh_mask_ORCA1v2_light.nc4'
+cf_lsm_in = '../data/mesh_mask_ORCA1v2_light.nc4'
 cv_lsm_in = 'tmask'
 ldrown    = T
 ewper     = 2
@@ -23,10 +23,10 @@ ismooth   = 0
 !!
 &nhtarget
 lregout    = F
-cf_x_out   = 'data/mesh_mask_ORCA025_light.nc4'
+cf_x_out   = '../data/mesh_mask_ORCA025_light.nc4'
 cv_lon_out = 'glamt'
 cv_lat_out = 'gphit'
-cf_lsm_out = 'data/mesh_mask_ORCA025_light.nc4'
+cf_lsm_out = '../data/mesh_mask_ORCA025_light.nc4'
 cv_lsm_out = 'tmask'
 lmout      = T
 rmaskvalue = -9999.

@@ -378,7 +378,7 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: '//TRIM(cv_lon)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: '//TRIM(cv_lat)//')'
+      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: '//TRIM(cv_lon)//')'
       WRITE(6,*) ''
       WRITE(6,*) ''
       !!

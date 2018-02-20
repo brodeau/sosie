@@ -1236,8 +1236,8 @@ CONTAINS
       ! Argument
       REAL(8), DIMENSION(:,:), INTENT(in)    :: Xtest
       CHARACTER(len=*), INTENT(in), OPTIONAL :: cname_long
-      !INTEGER                                :: IS_ORCA_NORTH_FOLD
-      TYPE(grid_type)                     :: IS_ORCA_NORTH_FOLD
+      !INTEGER                               :: IS_ORCA_NORTH_FOLD
+      TYPE(grid_type)                        :: IS_ORCA_NORTH_FOLD
       !!
       INTEGER :: nx, ny
       CHARACTER(len=128) :: cnlon
