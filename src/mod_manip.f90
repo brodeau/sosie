@@ -1025,10 +1025,10 @@ CONTAINS
 
       REAL(8),    DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_in, e2_in    !: grid layout and metrics
-      INTEGER,    DIMENSION(:,:), ALLOCATABLE :: IJ_VLAT_IN
+      INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_IN
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
 
-      INTEGER, DIMENSION(2) :: ij_min_loc ! ij_max_loc,
+      INTEGER, DIMENSION(2) :: ij_min_loc, ij_max_loc
 
       LOGICAL :: lagain
 
@@ -1093,15 +1093,12 @@ CONTAINS
       !!
       nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
       !!
-      ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), IJ_VLAT_IN(nsplit,2) )
+      ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), J_VLAT_IN(nsplit,2) )
       dy = (y_max_bnd - y_min_bnd)/REAL(nsplit)
       DO jlat=1,nsplit+1
          VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
       END DO
       !!
-      PRINT *, '     => VLAT_SPLIT_BOUNDS ='
-      PRINT *, VLAT_SPLIT_BOUNDS
-      PRINT *, ''
 
       IF ( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Bounds for latitude for VLAT_SPLIT_BOUNDS are bad!'
@@ -1121,18 +1118,29 @@ CONTAINS
          jmin_band = MINVAL(MINLOC(Yin, mask=(Yin>=rlat_low), dim=2))
          !!
          !! To be sure to include everything, adding 2 extra points below and above:
-         IJ_VLAT_IN(jlat,1) = MAX(jmin_band - 2,   1  )
-         IJ_VLAT_IN(jlat,2) = MIN(jmax_band + 2, ny_in)
+         J_VLAT_IN(jlat,1) = MAX(jmin_band - 2,   1  )
+         J_VLAT_IN(jlat,2) = MIN(jmax_band + 2, ny_in)
          !!
          IF ( ldebug ) THEN
             PRINT *, ' Latitude bin #', jlat
             PRINT *, '     => lat_low, lat_high:', REAL(rlat_low,4), REAL(rlat_hgh,4)
-            PRINT *, '     => JJ min and max on input domain =>', IJ_VLAT_IN(jlat,1), IJ_VLAT_IN(jlat,2)
+            PRINT *, '     => JJ min and max on input domain =>', J_VLAT_IN(jlat,1), J_VLAT_IN(jlat,2)
             PRINT *, ''
          END IF
          !!
       END DO
 
+      PRINT *, ''
+      PRINT *, '     => VLAT_SPLIT_BOUNDS ='
+      PRINT *, VLAT_SPLIT_BOUNDS
+      PRINT *, ''
+      PRINT *, '     => J_VLAT_IN(:,1) ='
+      PRINT *, J_VLAT_IN(:,1)
+      PRINT *, '     => J_VLAT_IN(:,2) ='
+      PRINT *, J_VLAT_IN(:,2)
+      PRINT *, ''
+      
+            
       rlat_old   = rflg
       jj_out_old = -10
 
@@ -1177,15 +1185,17 @@ CONTAINS
                   ELSE
                      imin_in = 1
                      imax_in = nx_in
-                     jmin_in = IJ_VLAT_IN(MAX(jlat-niter,1)         , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
-                     jmax_in = IJ_VLAT_IN(MIN(jlat+niter,nsplit), 2)      !! MB Comment: Force to ny_in if necessary when nearest point not found whereas it exist really
+                     jmin_in = J_VLAT_IN(MAX(jlat-niter,1)     , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
+                     jmax_in = J_VLAT_IN(MIN(jlat+niter,nsplit), 2)  !! MB Comment: Force to ny_in if necessary when nearest point not found whereas it exist really
                      IF ( ldebug ) THEN
-                        PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter
+                        PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter, jlat
                         PRINT *, '     => bin #', jlat
                         PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
                      END IF
                   END IF
-
+                  
+                  IF (niter>=0) PRINT *, '  ... searching latitude band jmin_in, jmax_in (niter, jlat):', jmin_in, jmax_in, niter, jlat !lolo_debug
+                  
                   Xdist = 1.E12
                   Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
                   !CALL DUMP_2D_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
@@ -1242,7 +1252,7 @@ CONTAINS
                      IF (niter > nsplit/3) THEN
                         !! We are too far in latitude, giving up...
                         PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
-                        PRINT *, '     => did not find nearest point for target coordinates:', &
+                        PRINT *, '     => did not find nearest point for target coordinates:', & !
                            &              REAL(rlon,4), REAL(rlat,4)
                         lagain = .FALSE.
                      END IF
@@ -1251,14 +1261,15 @@ CONTAINS
 
                   niter  = niter + 1
 
-               END DO
+               END DO !DO WHILE ( lagain )
                rlat_old = rlat
+               !IF (niter>=0) PRINT *, '' !lolo_debug
 
             END IF ! IF ( mask_out(ji_out,jj_out) == 1 )
          END DO    ! DO ji_out = 1, nx_out
       END DO       ! DO jj_out = j_strt_out, j_stop_out, jlat_inc
 
-      DEALLOCATE ( VLAT_SPLIT_BOUNDS, IJ_VLAT_IN, e1_in, e2_in, mspot_lon , mspot_lat , Xdist )
+      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_IN, e1_in, e2_in, mspot_lon , mspot_lat , Xdist )
 
    END SUBROUTINE FIND_NEAREST_TWISTED
 
