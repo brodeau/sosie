@@ -16,9 +16,9 @@ MODULE MOD_MANIP
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
    
-   !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_advanced = .FALSE.
-   !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .TRUE.
-   LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .FALSE.
+   !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_twisted = .FALSE.
+   !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .TRUE.
+   LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .FALSE.
 
    LOGICAL  :: lfirst_dist = .TRUE.
 
@@ -850,25 +850,24 @@ CONTAINS
          END IF
       END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_out .OR. (i_orca_out > 0) )
 
-      IF ( l_is_reg_in .AND. (.NOT. l_force_use_of_advanced) ) THEN
+      IF ( l_is_reg_in .AND. (.NOT. l_force_use_of_twisted) ) THEN
          PRINT *, '                 => going for simple FIND_NEAREST algorithm !'; PRINT *, ''
          CALL FIND_NEAREST_EASY(    Xout, Yout, Xin, Yin, JIpos, JJpos, mask_ignore_out, &
             &                       j_strt_out, j_stop_out, jlat_inc )
       ELSE
+         PRINT *, '                  => going for advanced FIND_NEAREST algorithm !'; PRINT *, ''
          CALL FIND_NEAREST_TWISTED( Xout, Yout, Xin, Yin, JIpos, JJpos, mask_ignore_out, &
             &                       j_strt_out, j_stop_out, jlat_inc )
-         PRINT *, '                  => going for advanced FIND_NEAREST algorithm !'; PRINT *, ''
       END IF
       PRINT *, ''
       DEALLOCATE ( mask_ignore_out )
-
+      
    END SUBROUTINE FIND_NEAREST_POINT
 
 
 
    SUBROUTINE FIND_NEAREST_EASY( Xout, Yout, Xin, Yin, JIpos, JJpos, mask_out, &
       &                          j_strt_out, j_stop_out, jlat_inc )
-      !!
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_EASY  ***
       !!
@@ -882,20 +881,15 @@ CONTAINS
       !!
       !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
       !!---------------------------------------------------------------
-      !debug: USE io_ezcdf
-      !USE io_ezcdf
-
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
       INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_out
-      INTEGER, INTENT(in)                     :: j_strt_out, j_stop_out, jlat_inc
-
+      INTEGER,                    INTENT(in)  :: j_strt_out, j_stop_out, jlat_inc
 
       !! Important parameters:
-      INTEGER, PARAMETER :: &
-         &                   nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
-
+      INTEGER, PARAMETER :: nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
+      
       INTEGER :: &
          &    nx_in, ny_in, nx_out, ny_out, &
          &    ji_out, jj_out, ji_in, jj_in, &
@@ -903,7 +897,7 @@ CONTAINS
 
       REAL(8) :: rlon, rlat
 
-      INTEGER, DIMENSION(2) :: ij_min_loc ! ij_max_loc,
+      INTEGER, DIMENSION(2) :: ij_min_loc
       INTEGER, DIMENSION(1) :: ip, jp
 
       REAL(8), DIMENSION(:),   ALLOCATABLE :: vlat, vlon
@@ -914,12 +908,9 @@ CONTAINS
       nx_out = SIZE(Xout,1)
       ny_out = SIZE(Xout,2)
 
-
-      !! ---------------------------------------------------------------------------------------
-
       JIpos(:,:) = INT(rflg)
       JJpos(:,:) = INT(rflg)
-
+      
       ALLOCATE ( vlon(nx_in) , vlat(ny_in) , Xdist(nx_in,ny_in) )
 
       vlon(:) = Xin(:,3)   ! 3 => make sure we're inside the domain
@@ -979,11 +970,10 @@ CONTAINS
 
    END SUBROUTINE FIND_NEAREST_EASY
 
-
+   
 
    SUBROUTINE FIND_NEAREST_TWISTED( Xout, Yout, Xin, Yin, JIpos, JJpos, mask_out, &
       &                             j_strt_out, j_stop_out, jlat_inc )
-      !!
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -997,25 +987,16 @@ CONTAINS
       !!
       !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
       !!---------------------------------------------------------------
-      !debug: USE io_ezcdf
-      !USE io_ezcdf
-
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
       INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_out
       INTEGER, INTENT(in)                     :: j_strt_out, j_stop_out, jlat_inc
-
-
+      !!
       !! Important parameters:
-      INTEGER, PARAMETER :: &
-         &                   Nlat_split = 40, &  ! number of latitude bands to split the search work (for 180. degree south->north)
-         &                   nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
-
-      REAL(8), PARAMETER :: frac_emax = 0.6 ! fraction of emax to test if found!
-      !!                                      => 0.5 seems to be too small, for example on ORCA1 grid at around 20 deg N... ???
-
-
+      INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
+      REAL(8), PARAMETER :: frac_emax = 0.6   ! fraction of emax to test if found!
+      !!                                        => 0.5 seems to be too small, for example on ORCA1 grid at around 20 deg N... ???
       INTEGER :: &
          &    nx_in, ny_in, nx_out, ny_out, &
          &    jlat, ji_out, jj_out, ji_in, jj_in, jj_out_old, &
@@ -1023,17 +1004,15 @@ CONTAINS
          &    nsplit, jmax_band, jmin_band
 
       REAL(8) :: emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old
-
       REAL(8) :: y_max_out, y_min_out, y_max_bnd, y_min_bnd, y_max_bnd0, y_min_bnd0, dy, &
-         &       y_max_in, y_min_in ! , x_max_out, x_min_out, x_max_in, x_min_in
-
+         &       y_max_in, y_min_in
       REAL(8),    DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_in, e2_in    !: grid layout and metrics
       INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_IN
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
-
-      INTEGER, DIMENSION(2) :: ij_min_loc, ij_max_loc
+      
+      INTEGER, DIMENSION(2) :: ij_min_loc
 
       LOGICAL :: lagain
 
@@ -1155,7 +1134,7 @@ CONTAINS
       DO jj_out = j_strt_out, j_stop_out, jlat_inc
          DO ji_out = 1, nx_out
             IF ( mask_out(ji_out,jj_out) == 1 ) THEN
-
+               
                rlon = Xout(ji_out,jj_out)
                rlat = Yout(ji_out,jj_out)
 
@@ -1175,7 +1154,7 @@ CONTAINS
                   END DO
                   !!
                END IF
-
+               
                lagain    = .TRUE.
                niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...
                IF ( rlat > 60. ) niter = 0 ! we skip the bluff part because the grid might be too close to NP boundary cut!
@@ -1235,7 +1214,6 @@ CONTAINS
                         END IF
                      END IF
                      !! Found .
-
                   ELSE
                      !! Not found yet...
                      IF (niter == 0) THEN
