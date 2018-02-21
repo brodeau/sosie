@@ -391,7 +391,7 @@ END PROGRAM mask_drown_field
 
 SUBROUTINE usage()
   !!
-  OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
+  !! OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  !! MB: Pb with gfortran
   !!
   WRITE(6,*) ''
   WRITE(6,*) '   List of command line options:'
