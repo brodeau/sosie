@@ -757,7 +757,7 @@ CONTAINS
       INTEGER :: jj, nx_in, ny_in, nx_out, ny_out, j_strt_out, j_stop_out, jlat_inc
       REAL(8) :: y_max_in, y_min_in, rmin_dlat_dj, rtmp
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out
-      INTEGER(1), DIMENSION(:),   ALLOCATABLE :: i1dum
+      INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_out
       LOGICAL :: l_is_reg_in, l_is_reg_out
 
@@ -1031,7 +1031,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_in, e2_in    !: grid layout and metrics
       INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_IN
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
-      INTEGER(1), DIMENSION(:),   ALLOCATABLE :: i1dum
+      INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
 
       INTEGER, DIMENSION(2) :: ij_min_loc, ij_max_loc
 
@@ -1124,7 +1124,7 @@ CONTAINS
          !! Largest ever possible j index of the highest latitude in region where Yin<=rlat_hgh
          jmax_band = MAXVAL(MAXLOC(Yin, mask=(Yin<=rlat_hgh), dim=2))  ! MAXLOC(Yin, ..., dim=2) returns ni_in values (the max in each column)
          !! Smalles ever possible j index of the smallest latitude in region where Yin>=rlat_low
-         i1dum = MINLOC(Yin, mask=(Yin>=rlat_low), dim=2)
+         i1dum = MINLOC(Yin, mask=(Yin .GT. rlat_low), dim=2)
          jmin_band = MINVAL(i1dum, mask=(i1dum>0))
          DEALLOCATE ( i1dum )
          !!
