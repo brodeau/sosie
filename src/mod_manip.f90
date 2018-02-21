@@ -1009,7 +1009,7 @@ CONTAINS
 
       !! Important parameters:
       INTEGER, PARAMETER :: &
-         &                   Nlat_split = 30, &  ! number of latitude bands to split the search work (for 180. degree south->north)
+         &                   Nlat_split = 40, &  ! number of latitude bands to split the search work (for 180. degree south->north)
          &                   nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
 
       REAL(8), PARAMETER :: frac_emax = 0.6 ! fraction of emax to test if found!
