@@ -15,6 +15,7 @@ MODULE MOD_MANIP
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
+   
    !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_advanced = .FALSE.
    !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .TRUE.
    LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_advanced = .FALSE.
@@ -756,6 +757,7 @@ CONTAINS
       INTEGER :: jj, nx_in, ny_in, nx_out, ny_out, j_strt_out, j_stop_out, jlat_inc
       REAL(8) :: y_max_in, y_min_in, rmin_dlat_dj, rtmp
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out
+      INTEGER(1), DIMENSION(:),   ALLOCATABLE :: i1dum
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_out
       LOGICAL :: l_is_reg_in, l_is_reg_out
 
@@ -798,7 +800,7 @@ CONTAINS
       l_is_reg_out = L_IS_GRID_REGULAR( Xout , Yout )
       PRINT *, ' *** FIND_NEAREST_POINT => Is target grid regular ??? =>', l_is_reg_out
 
-      ALLOCATE ( mask_ignore_out(nx_out,ny_out) )
+      ALLOCATE ( mask_ignore_out(nx_out,ny_out) , i1dum(nx_out) )
       mask_ignore_out(:,:) = 1
       IF ( PRESENT( mask_domain_out ) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
@@ -836,9 +838,11 @@ CONTAINS
          !!     are not covered by source domain:
          !ij_min_loc = MINLOC(Yout, mask=(Yout>=y_min_in))  ! possible bug identified by Max (aka MB)
          !ij_max_loc = MAXLOC(Yout, mask=(Yout<=y_max_in))
-         j_strt_out = MINVAL(MINLOC(Yout, mask=(Yout>=y_min_in), dim=2))  ! smallest j on target source that covers smallest source latitude
+         !j_strt_out = MINVAL(MINLOC(Yout, mask=(Yout>=y_min_in), dim=2))  ! smallest j on target source that covers smallest source latitude
+         i1dum = MINLOC(Yout, mask=(Yout>=y_min_in), dim=2)
+         j_strt_out = MINVAL(i1dum, mask=(i1dum>0))
+         DEALLOCATE ( i1dum )         
          j_stop_out = MAXVAL(MAXLOC(Yout, mask=(Yout<=y_max_in), dim=2))  ! largest j on target source that covers largest source latitude
-!!!!    ....        MAXLOC(Yin, ..., dim=2) returns ni_in values (the max in each column)
          IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
          IF (ldebug) THEN
             PRINT *, ' j_strt_out, j_stop_out / nj_out =>', j_strt_out, j_stop_out, '/', ny_out
@@ -1027,6 +1031,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_in, e2_in    !: grid layout and metrics
       INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_IN
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
+      INTEGER(1), DIMENSION(:),   ALLOCATABLE :: i1dum
 
       INTEGER, DIMENSION(2) :: ij_min_loc, ij_max_loc
 
@@ -1038,7 +1043,7 @@ CONTAINS
       nx_out = SIZE(Xout,1)
       ny_out = SIZE(Xout,2)
 
-      ALLOCATE ( Xdist(nx_in,ny_in) , mspot_lon(nx_in,ny_in) , mspot_lat(nx_in,ny_in) )
+      ALLOCATE ( Xdist(nx_in,ny_in) , mspot_lon(nx_in,ny_in) , mspot_lat(nx_in,ny_in) , i1dum(nx_in) )
 
       y_min_in  = MINVAL(Yin) ; ! Min and Max latitude of source domain
       y_max_in  = MAXVAL(Yin)
@@ -1107,6 +1112,8 @@ CONTAINS
          STOP
       END IF
 
+      J_VLAT_IN = 0
+      
       DO jlat = 1, nsplit
          rlat_low = VLAT_SPLIT_BOUNDS(jlat)
          rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
@@ -1114,18 +1121,21 @@ CONTAINS
          !ij_max_loc = MAXLOC(Yin, mask=(Yin<=rlat_hgh)) ; jmax_band = ij_max_loc(2)
          !ij_min_loc = MINLOC(Yin, mask=(Yin>=rlat_low)) ; jmin_band = ij_min_loc(2)
          !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_low:rlat_hgh]
+         !! Largest ever possible j index of the highest latitude in region where Yin<=rlat_hgh
          jmax_band = MAXVAL(MAXLOC(Yin, mask=(Yin<=rlat_hgh), dim=2))  ! MAXLOC(Yin, ..., dim=2) returns ni_in values (the max in each column)
-         jmin_band = MINVAL(MINLOC(Yin, mask=(Yin>=rlat_low), dim=2))
+         !! Smalles ever possible j index of the smallest latitude in region where Yin>=rlat_low
+         i1dum = MINLOC(Yin, mask=(Yin>=rlat_low), dim=2)
+         jmin_band = MINVAL(i1dum, mask=(i1dum>0))
+         DEALLOCATE ( i1dum )
          !!
-         !! To be sure to include everything, adding 2 extra points below and above:
-         J_VLAT_IN(jlat,1) = MAX(jmin_band - 2,   1  )
-         J_VLAT_IN(jlat,2) = MIN(jmax_band + 2, ny_in)
+         !! To be sure to include everything, adding 1 extra points below and above:
+         J_VLAT_IN(jlat,1) = MAX(jmin_band - 1,   1  )
+         J_VLAT_IN(jlat,2) = MIN(jmax_band + 1, ny_in)
          !!
          IF ( ldebug ) THEN
             PRINT *, ' Latitude bin #', jlat
             PRINT *, '     => lat_low, lat_high:', REAL(rlat_low,4), REAL(rlat_hgh,4)
             PRINT *, '     => JJ min and max on input domain =>', J_VLAT_IN(jlat,1), J_VLAT_IN(jlat,2)
-            PRINT *, ''
          END IF
          !!
       END DO
@@ -1133,14 +1143,12 @@ CONTAINS
       PRINT *, ''
       PRINT *, '     => VLAT_SPLIT_BOUNDS ='
       PRINT *, VLAT_SPLIT_BOUNDS
-      PRINT *, ''
-      PRINT *, '     => J_VLAT_IN(:,1) ='
+      PRINT *, '     => corresponding start values for j ='
       PRINT *, J_VLAT_IN(:,1)
-      PRINT *, '     => J_VLAT_IN(:,2) ='
+      PRINT *, '     => corresponding stop values for j ='
       PRINT *, J_VLAT_IN(:,2)
       PRINT *, ''
       
-            
       rlat_old   = rflg
       jj_out_old = -10
 
@@ -1170,7 +1178,7 @@ CONTAINS
 
                lagain    = .TRUE.
                niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...
-               IF ( rlat > 60. ) niter = 0 ! we skip the bluff because the grid might be too close to NP boundary cut!
+               IF ( rlat > 60. ) niter = 0 ! we skip the bluff part because the grid might be too close to NP boundary cut!
                
                DO WHILE ( lagain )
 
@@ -1193,8 +1201,6 @@ CONTAINS
                         PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
                      END IF
                   END IF
-                  
-                  IF (niter>=0) PRINT *, '  ... searching latitude band jmin_in, jmax_in (niter, jlat):', jmin_in, jmax_in, niter, jlat !lolo_debug
                   
                   Xdist = 1.E12
                   Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
@@ -1238,17 +1244,12 @@ CONTAINS
                         mspot_lon = 0 ; mspot_lat = 0
                         WHERE( (Xin > MAX(rlon-0.5,  0.)).AND.(Xin < MIN(rlon+0.5,360.)) ) mspot_lon = 1
                         WHERE( (Yin > MAX(rlat-0.5,-90.)).AND.(Yin < MIN(rlat+0.5, 90.)) ) mspot_lat = 1
-                        !lolo:
-                        !CALL DUMP_2D_FIELD(REAL(Xin,4), 'Xin_2.nc',      'dist')
-                        !CALL DUMP_2D_FIELD(REAL(mspot_lon,4), 'mspot_lon.nc', 'dist')
-                        !CALL DUMP_2D_FIELD(REAL(mspot_lat,4), 'mspot_lat.nc', 'dist')
-                        !lolo.
                         IF ( SUM(mspot_lon*mspot_lat) == 0 ) THEN
                            lagain = .FALSE.
                            IF ( ldebug ) PRINT *, ' *** FIND_NEAREST_POINT: SHORT leave test worked! Aborting search!'
                         END IF
                      END IF
-
+                     
                      IF (niter > nsplit/3) THEN
                         !! We are too far in latitude, giving up...
                         PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
@@ -1263,7 +1264,6 @@ CONTAINS
 
                END DO !DO WHILE ( lagain )
                rlat_old = rlat
-               !IF (niter>=0) PRINT *, '' !lolo_debug
 
             END IF ! IF ( mask_out(ji_out,jj_out) == 1 )
          END DO    ! DO ji_out = 1, nx_out
