@@ -467,7 +467,7 @@ CONTAINS
                      !ELSE
                      !   hPp = hP
                      !ENDIF
-                     hPp = SIGN(1.,180.-hP)*MIN(hP,ABS(hP-360.))
+                     hPp = SIGN(1.d0,180.-hP)*MIN(hP,ABS(hP-360.))
                      
 
                      IF ( hN > hE ) hN = hN -360._8
