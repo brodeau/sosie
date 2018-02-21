@@ -51,7 +51,7 @@ For generic examples:
 For ROMS examples:
 * data_roms.tar.gz &rarr; https://drive.google.com/uc?authuser=0&id=1ljE3KZu1fqQlKSumm3CtaR0Uf2I9yps3&export=download
 
-Save them into the "examples" sub-directory of SOSIE.
+Save and extract them into the "examples" sub-directory of SOSIE.
 
 Into this "examples" sub-directory you will find various namelists and scripts
 to test SOSIE on working configurations.  For each example you will find a
@@ -146,4 +146,14 @@ Do the interpolation:
           >> sosie.x -f namelist.example6
 
 Check the newly created **so_ORCA2-ORCA1_test.nc**
+
+&nbsp;
+
+#### Bi-linear remapping ORCA to ORCA 
+Examples are stored into "examples/ORCAX_to_ORCAY"
+
+Remapping metric/weight files for big source/target configurations can be downloaded at the following link, since they are very time-consuming to generate. 
+
+https://drive.google.com/drive/folders/1YB7iuDIStZVGCi-FOh6g6AbGQmKj07Px
+
 
