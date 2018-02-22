@@ -86,18 +86,15 @@ CONTAINS
       END IF
       !lolo.
       
-      !!   Masking result
+      !! Masking result if requested
       IF ( lmout ) THEN
          WHERE (mask_out(:,:,1) == 0)  data_out = rmaskvalue
       ELSE
          rmaskvalue = 0.
       ENDIF
 
+      !! If target grid is an ORCA grid, calling "lbc_lnk":
       IF ( i_orca_out > 0 ) CALL lbc_lnk( i_orca_out, data_out, c_orca_out, 1.0_8 )
-      !PRINT *, 'LULU calling lbc_lnk on data_out (mod_interp.f90) !!! => ', i_orca_out, c_orca_out
-
-      
-
       
    END SUBROUTINE INTERP_2D
 

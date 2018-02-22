@@ -182,8 +182,14 @@ CONTAINS
             iqdrn = IMETRICS(ji,jj,3)
             alpha = RAB(ji,jj,1)
             beta  = RAB(ji,jj,2)
-            !! INTERPOLATION:
-            Z2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqdrn, alpha, beta, Z1)            
+            
+            IF ( (X1(iP,jP)==X2(ji,jj)).AND.(Y1(iP,jP)==Y2(ji,jj)) ) THEN
+               !PRINT *, ' *** LOLO: SAME POINT !!!'
+               Z2(ji,jj) = Z1(iP,jP)
+            ELSE
+               !! INTERPOLATION:
+               Z2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqdrn, alpha, beta, Z1)            
+            END IF
          END DO
       END DO
       
@@ -290,9 +296,9 @@ CONTAINS
 
       wup = w1 + w2 + w3 + w4
 
-      IF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
-         PRINT *, ' WARNING: INTERP_BL => at least one of the i,j index is zero!'
-      END IF
+      !IF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
+      !   PRINT *, ' WARNING: INTERP_BL => at least one of the i,j index is zero!'
+      !END IF
 
       ! interpolate with non-masked  values, above target point
       
