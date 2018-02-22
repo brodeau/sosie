@@ -731,26 +731,24 @@ CONTAINS
    END FUNCTION det
 
 
-
-
-
-
-
-
    FUNCTION heading(plona, plonb, plata, platb)
-
       !!--------------------------------------------------------------
       !!           ***   FUNCTION HEADING   ***
       !!
       !!   ** Purpose: Compute true heading between point a and b
       !!
       !!   ** Method : suppose that the 2 points are not too far away from each other
-      !!            so that heading can be computed with loxodromy
+      !!               so that heading can be computed with loxodromy
+      !!
+      !!      "heading" is the angle (in degrees) that going from point A to point B makes:
+      !!               * 100% northward => 0 deg.
+      !!               * 100% eastward  => 90 deg.
+      !!               * 100% eastward  => 180 deg.
+      !!                 ...
       !!
       !!  * history
       !!         J.M. Molines, may 2007
       !!--------------------------------------------------------------
-
       IMPLICIT NONE
       !!  Arguments
       REAL(8), INTENT(in) :: plata, plona, platb, plonb
@@ -776,12 +774,12 @@ CONTAINS
       IF (ldebug) PRINT *,' xa_xb , modulo 2pi', xb-xa, MOD((xb-xa),2*zpi)
       xb_xa=MOD((xb-xa),2*zpi)
 
-      IF ( xb_xa >= zpi ) xb_xa = xb_xa -2*zpi
-      IF ( xb_xa <= - zpi ) xb_xa = xb_xa +2*zpi
+      IF ( xb_xa >=  zpi ) xb_xa = xb_xa -2*zpi
+      IF ( xb_xa <= -zpi ) xb_xa = xb_xa +2*zpi
       IF (ldebug)  print *, 'yb -ya, xb_xa ',yb -ya , xb_xa
-
+      
       angled = ATAN2(xb_xa, yb - ya)
-
+      
       heading=angled*180./zpi
       IF (heading < 0) heading = heading + 360._8
 
