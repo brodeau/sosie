@@ -20,7 +20,7 @@ MODULE MOD_BILIN_2D
    !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
    INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iqdrn at each point
-   INTEGER(2), DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
+   INTEGER,    DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
 
 
    PRIVATE
@@ -29,7 +29,7 @@ MODULE MOD_BILIN_2D
 
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
-   INTEGER  :: iqdrn, iqdrn_old !: grid sector from 1 to 4 (clockwise, 1=NE) in wich target point
+   INTEGER  :: iqdrn !: grid sector from 1 to 4 (clockwise, 1=NE) in wich target point
    INTEGER  :: iP, jP   !: location of nearest point on input grid
 
    LOGICAL, SAVE :: l_last_y_row_missing
@@ -82,7 +82,7 @@ CONTAINS
 
       REAL(8) :: alpha, beta, rmeanv
       LOGICAL :: lefw
-      INTEGER :: icpt, ji, jj
+      INTEGER :: cpt, ji, jj
 
       REAL(8),    DIMENSION(:,:), ALLOCATABLE ::  X1, Y1, X2, Y2
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out !, msk_res
@@ -166,11 +166,12 @@ CONTAINS
       END IF
 
       Z2(:,:) = rflg ! Flagging non-interpolated output points
-      icpt = 0
+      cpt = 0
 
       mask_ignore_out(:,:) = 1
       WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_out = 0
       WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_out = 0
+      !lili
       WHERE ( (IMETRICS(:,:,3) < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
       IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
 
@@ -229,21 +230,22 @@ CONTAINS
 
 
 
-   FUNCTION INTERP_BL(k_ew_per, jiP, jjP, iqd, xa, xb, Z_in)
+
+   FUNCTION INTERP_BL(k_ew_per, iP, jP, iqdrn, xa, xb, Z_in)
 
       IMPLICIT none
 
       INTEGER,                 INTENT(in) :: k_ew_per
-      INTEGER,                 INTENT(in) :: jiP, jjP, iqd
+      INTEGER,                 INTENT(in) :: iP, jP, iqdrn
       REAL(8),                 INTENT(in) :: xa, xb
       REAL(4), DIMENSION(:,:), INTENT(in) :: Z_in
 
       REAL(4) :: INTERP_BL
       REAL(8) ::  wup, w1, w2, w3, w4
-      INTEGER  :: nxi, jiPm1, jiPp1, &
+      INTEGER  :: nxi, iPm1, iPp1, &
          &        i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
 
-      !! Choose the 4 interpolation points, according to sector and nearest point (jiP, jjP)
+      !! Choose the 4 interpolation points, according to sector and nearest point (iP, jP)
 
       !!   o<--o        x<--o         o<--x         o<--o
       !! 1 |   ^ NE   2 |   ^ SE    3 |   ^ SW    4 |   ^ NW
@@ -252,37 +254,37 @@ CONTAINS
 
       nxi = SIZE(Z_in,1)
 
-      jiPm1 = jiP-1
-      jiPp1 = jiP+1
-      IF ( (jiPm1 ==   0  ).AND.(k_ew_per>=0) )  jiPm1 = nxi - k_ew_per
-      IF ( (jiPp1 == nxi+1).AND.(k_ew_per>=0) )  jiPp1 = 1   + k_ew_per
+      iPm1 = iP-1
+      iPp1 = iP+1
+      IF ( (iPm1 ==   0  ).AND.(k_ew_per>=0) )  iPm1 = nxi - k_ew_per
+      IF ( (iPp1 == nxi+1).AND.(k_ew_per>=0) )  iPp1 = 1   + k_ew_per
 
 
-      SELECT CASE (iqd)
+      SELECT CASE (iqdrn)
 
       CASE (1)  ! nearest point is the bottom left corner point of local mesh
-         i1=jiP   ; j1 = jjP  ! local mesh is located NE of nearest point
-         i2=jiPp1 ; j2 = jjP
-         i3=jiPp1 ; j3 = jjP+1
-         i4=jiP   ; j4 = jjP+1
+         i1=iP   ; j1 = jP  ! local mesh is located NE of nearest point
+         i2=iPp1 ; j2 = jP
+         i3=iPp1 ; j3 = jP+1
+         i4=iP   ; j4 = jP+1
 
       CASE (2)  ! nearest point is the top left corner point of mesh
-         i1=jiP   ; j1 = jjP    ! local mesh is located SE of nearest point
-         i2=jiP   ; j2 = jjP-1
-         i3=jiPp1 ; j3 = jjP-1
-         i4=jiPp1 ; j4 = jjP
+         i1=iP   ; j1 = jP    ! local mesh is located SE of nearest point
+         i2=iP   ; j2 = jP-1
+         i3=iPp1 ; j3 = jP-1
+         i4=iPp1 ; j4 = jP
 
       CASE (3)  ! nearest point is the top righ corner point of mesh
-         i1=jiP   ; j1 = jjP   ! local mesh is located SW of nearest point
-         i2=jiPm1 ; j2 = jjP
-         i3=jiPm1 ; j3 = jjP-1
-         i4=jiP   ; j4 = jjP-1
+         i1=iP   ; j1 = jP   ! local mesh is located SW of nearest point
+         i2=iPm1 ; j2 = jP
+         i3=iPm1 ; j3 = jP-1
+         i4=iP   ; j4 = jP-1
 
       CASE (4)  ! nearest point is the bottom right corner point of mesh
-         i1=jiP   ; j1 = jjP  ! local mesh is located NW of nearest point
-         i2=jiP   ; j2 = jjP+1
-         i3=jiPm1 ; j3 = jjP+1
-         i4=jiPm1 ; j4 = jjP
+         i1=iP   ; j1 = jP  ! local mesh is located NW of nearest point
+         i2=iP   ; j2 = jP+1
+         i3=iPm1 ; j3 = jP+1
+         i4=iPm1 ; j4 = jP
 
       END SELECT
 
@@ -338,6 +340,7 @@ CONTAINS
       INTEGER :: &
          &     nxi, nyi, nxo, nyo, &
          &     ji, jj,   &
+         &     iP,  jP,  &
          &     iPm1, iPp1,  &
          &     iproblem
 
@@ -359,12 +362,10 @@ CONTAINS
       !! To save in the netcdf file:
       REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
       INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iqdrn at each point
-      INTEGER(2), DIMENSION(:,:),   ALLOCATABLE :: ID_problem
+      INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: mask_metrics
       INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_out
 
       REAL(8) :: alpha, beta
-      LOGICAL :: l_ok, lagain
-      INTEGER :: icpt
 
       nxi = size(X1,1)
       nyi = size(X1,2)
@@ -374,8 +375,8 @@ CONTAINS
 
       ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3) )
 
-      ALLOCATE ( ID_problem(nxo,nyo) )
-      ID_problem(:,:) = 0
+      ALLOCATE ( mask_metrics(nxo,nyo) )
+      mask_metrics(:,:) = 0
 
       ALLOCATE ( i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
 
@@ -427,7 +428,7 @@ CONTAINS
                      IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
                   END IF
 
-                  IF ((iPm1 < 1).OR.(jP-1 < 1).OR.(iPp1 > nxi).OR.(jP+1 > nyi)) THEN
+                  IF ((iPm1 < 1).OR.(jP-1 < 1).OR.(iPp1 > nxi).OR.(jP+1 > nyi)) THEN !lulu
                      PRINT *, 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
                      PRINT *, '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
                      PRINT *, ''
@@ -456,106 +457,67 @@ CONTAINS
                      hW = heading(lonP,lonW,latP,latW)  ! 'west' on the grid
                      !!  => returns an angle !
 
-
-
-                     !! First attemp, and generally the good one to find iqdrn !
-                     !! ********************************************************
-                     !! Determine the sector in wich the target point is
-                     !! located: ( from 1, to 4 resp. adjacent cells NE, SE, SW,
-                     !! NW of the grid) which mesh from the nearest point
-                     !! point-of-view !
+                     !! determine the sector in wich the target point is located:
+                     !!  ( from 1, to 4 resp. adjacent cells NE, SE, SW, NW  of the grid)
+                     !!  which mesh from the nearest point point-of-view !
                      !!
                      !!   o--o        x--o         o--x         o--o
                      !! 1 |  | NE   2 |  | SE    3 |  | SW    4 |  | NW
                      !!   x--o        o--o         o--o         o--x
-                     !!
+
                      iqdrn = 4
-                     !!
-                     ! To avoid problem with the GW meridian, pass to -180, 180 when working around GW
+
+                     ! to avoid problem with the GW meridian, pass to -180, 180 when working around GW
+                     !IF ( hP > 180. ) THEN
+                     !   hPp = hP - 360._8
+                     !ELSE
+                     !   hPp = hP
+                     !ENDIF
                      hPp = SIGN(1.d0,180.-hP)*MIN(hP,ABS(hP-360.))
-                     !!
+
+
                      IF ( hN > hE ) hN = hN -360._8
                      IF ( hPp > hN .AND. hPp <= hE ) iqdrn=1
                      IF ( hP > hE  .AND. hP <= hS )  iqdrn=2
                      IF ( hP > hS  .AND. hP <= hW )  iqdrn=3
                      IF ( hP > hW  .AND. hPp <= hN)  iqdrn=4
 
-                     iqdrn_old = iqdrn
-
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
-                     !! Problem is that sometimes, in the case of really twisted
-                     !! meshes this method screws up, iqdrn is not what it
-                     !! shoule be, so need the following loop on the value of iqdrn:
-                     icpt = 0
-                     lagain = .TRUE.
-                     DO WHILE ( lagain )
+                     SELECT CASE ( iqdrn ) ! point 2 3 4 are counter clockwise in the respective sector
+                     CASE ( 1 )
+                        loni(2) = lonE ; lati(2) = latE
+                        loni(3) = MOD(X1(iPp1,jP+1), 360._8) ; lati(3) = Y1(iPp1,jP+1)
+                        loni(4) = lonN ; lati(4) = latN
+                     CASE ( 2 )
+                        loni(2) = lonS ; lati(2) = latS
+                        loni(3) = MOD(X1(iPp1,jP-1), 360._8) ; lati(3) = Y1(iPp1,jP-1)
+                        loni(4) = lonE ; lati(4) = latE
+                     CASE ( 3 )
+                        loni(2) = lonW ; lati(2) = latW
+                        loni(3) = MOD(X1(iPm1,jP-1), 360._8) ; lati(3) = Y1(iPm1,jP-1)
+                        loni(4) = lonS ; lati(4) = latS
+                     CASE ( 4 )
+                        loni(2) = lonN ; lati(2) = latN
+                        loni(3) = MOD(X1(iPm1,jP+1), 360._8) ; lati(3) = Y1(iPm1,jP+1)
+                        loni(4) = lonW ; lati(4) = latW
+                     END SELECT
 
-                        SELECT CASE ( iqdrn ) ! point 2 3 4 are counter clockwise in the respective sector
-                        CASE ( 1 )
-                           loni(2) = lonE ; lati(2) = latE
-                           loni(3) = MOD(X1(iPp1,jP+1), 360._8) ; lati(3) = Y1(iPp1,jP+1)
-                           loni(4) = lonN ; lati(4) = latN
-                        CASE ( 2 )
-                           loni(2) = lonS ; lati(2) = latS
-                           loni(3) = MOD(X1(iPp1,jP-1), 360._8) ; lati(3) = Y1(iPp1,jP-1)
-                           loni(4) = lonE ; lati(4) = latE
-                        CASE ( 3 )
-                           loni(2) = lonW ; lati(2) = latW
-                           loni(3) = MOD(X1(iPm1,jP-1), 360._8) ; lati(3) = Y1(iPm1,jP-1)
-                           loni(4) = lonS ; lati(4) = latS
-                        CASE ( 4 )
-                           loni(2) = lonN ; lati(2) = latN
-                           loni(3) = MOD(X1(iPm1,jP+1), 360._8) ; lati(3) = Y1(iPm1,jP+1)
-                           loni(4) = lonW ; lati(4) = latW
-                        END SELECT
+                     WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
 
-                        WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
-
-                        !! The tests!!!
-                        l_ok = l_point_belongs_to_box( xP,yP, loni(1),lati(1), loni(2),lati(2), loni(3),lati(3), loni(4),lati(4) )
-                        
-                        IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
-                           !! The point xP,yP is not into the mesh corresponding
-                           !! to current iquadran, trying all other adjacent
-                           !! meshes to find if it belongs to one of them...
-                           icpt  = icpt + 1
-                           iqdrn = icpt
-                        ELSE
-                           !! Everything okay! Point is inside the the mesh
-                           !! corresponding to current iquadran ! :D
-                           lagain = .FALSE.
-                           IF ( icpt > 0 ) PRINT *, ' --- iquadran corrected thanks to iterative test (old,new) =>', iqdrn_old, iqdrn
-                        END IF
-                        IF ( icpt == 5 ) THEN
-                           !PRINT *, '      LOLO: GIVING UP!!!'
-                           !!PRINT *, ''
-                           !!PRINT *, '  ERROR_LOLO: treated longitude not included into selected grid mesh! iter =', icpt
-                           !!PRINT *, '  iquadran =', iqdrn
-                           !!PRINT *, '  loni =', REAL(loni,4)
-                           !!PRINT *, '  lati =', REAL(lati,4)
-                           !PRINT *, '  Target grid ji,jj =', ji,jj
-                           !PRINT *, '  ** looked up point :', REAL( (/xP, yP/),4)
-                           !PRINT *, '  ** nearest point on source grid i,j :', iP,jP
-                           !PRINT *, '  ** which, in lon, lat is:', X1(iP,jP), Y1(iP,jP)
-                           !PRINT *, ''
-                           lagain = .FALSE. ! simply give up, but point is marked with value 55 in ID_problem (see below)
-                           !dist_3x3 = DISTANCE_2D(zx, Xsrc(inrst-1:inrst+1,jnrst-1:jnrst+1), zy, Ysrc(inrst-1:inrst+1,jnrst-1:jnrst+1))
-                           !CALL DUMP_2D_FIELD(REAL(Xsrc(inrst-1:inrst+1,jnrst-1:jnrst+1)), 'Xsrc_box_3x3.nc', 'lon')
-                           !CALL DUMP_2D_FIELD(REAL(Ysrc(inrst-1:inrst+1,jnrst-1:jnrst+1)), 'Ysrc_box_3x3.nc', 'lat')
-                           !CALL DUMP_2D_FIELD(REAL(dist_3x3,4) ,  'dist_box_3x3.nc', 'dist')
-                           !STOP
-                        END IF
-                     END DO !DO WHILE ( lagain )
-                     
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
-                     ID_problem(ji,jj) = iproblem
+                     mask_metrics(ji,jj) = iproblem
 
-                     IF ( icpt == 5 ) ID_problem(ji,jj) = ID_problem(ji,jj) + 55 ! IDing the screw up from above...
-                     
+                     !ELSE   ! point is outside the domaine, put dummy values
+                     !   alpha = rflg
+                     !   beta  = rflg
+                     !   mask_metrics(ji,jj) = 1
+                     !ENDIF
+
+
                      IF (ldebug) THEN
                         PRINT *, 'Nearest point :',lonP,  latP,  hP, hPp
                         PRINT *, 'North point :',  lonN , latN , hN
@@ -597,7 +559,7 @@ CONTAINS
 
 
 
-      !! Awkwardly fixing problematic points but remembering them in ID_problem
+      !! Awkwardly fixing problematic points but remembering them in mask_metrics
 
       !! Negative values that are actually 0
       WHERE ( ((ZAB(:,:,1) < 0.).AND.(ZAB(:,:,1) > -repsilon)) ) ZAB(:,:,1) = 0.0
@@ -605,29 +567,29 @@ CONTAINS
 
       WHERE ( (ZAB(:,:,1) < 0.).AND.(ZAB(:,:,1) > rflg) )
          ZAB(:,:,1) = 0.5
-         ID_problem(:,:) = -6
+         mask_metrics(:,:) = -6
       END WHERE
       WHERE ( ZAB(:,:,1) > 1. )
          ZAB(:,:,1) = 0.5
-         ID_problem(:,:) =  6
+         mask_metrics(:,:) =  6
       END WHERE
 
       WHERE ( (ZAB(:,:,2) < 0.).AND.(ZAB(:,:,2) > rflg) )
          ZAB(:,:,2) = 0.5
-         ID_problem(:,:) = ID_problem(:,:) - 10
+         mask_metrics(:,:) = mask_metrics(:,:) - 10
       END WHERE
       WHERE ( ZAB(:,:,2) > 1. )
          ZAB(:,:,2) = 0.5
-         ID_problem(:,:) = ID_problem(:,:) + 10
+         mask_metrics(:,:) = mask_metrics(:,:) + 10
       END WHERE
 
       !! Print metrics and weight into a netcdf file 'cf_w':
-      CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem)
+      CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, mask_metrics)
 
       !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'mask_ignore_out', 'lsm')
       !STOP'LOLO mod_bilin_2d.f90'
 
-      DEALLOCATE ( MTRCS, ZAB, ID_problem )
+      DEALLOCATE ( MTRCS, ZAB, mask_metrics )
 
    END SUBROUTINE MAPPING_BL
 
@@ -749,39 +711,9 @@ CONTAINS
 
 
 
-   FUNCTION l_point_belongs_to_box( px,py, px1,py1, px2,py2, px3,py3, px4,py4 )
-      REAL(8), INTENT(in)  :: px,py, px1,py1, px2,py2, px3,py3, px4,py4
-      LOGICAL :: l_point_belongs_to_box
-      LOGICAL :: l_x_ok, l_y_ok
-      REAL(8) :: zxmin, zxmax, zx, zx1, zx2, zx3, zx4
 
-      zxmax =  MAXVAL( (/ px1, px2, px3, px4 /) ) ! highest longitude
-      zxmin =  MINVAL( (/ px1, px2, px3, px4 /) ) ! smalles longitude
 
-      IF ( zxmin < 0. ) STOP 'ERROR (l_point_belongs_to_box of mod_bilin_2d.f90): we expect positive longitude!'
 
-      IF ( (zxmin < 10.).AND.(zxmax > 350.) ) THEN
-         !PRINT *, ' LOLO REORG:', REAL( (/ px1, px2, px3, px4 /),4) , REAL( px, 4)
-         !! Need to reorganize in frame -180. -- +180.:
-         zx  = SIGN(1.d0,180.-px )*MIN(px ,ABS(px -360.))
-         zx1 = SIGN(1.d0,180.-px1)*MIN(px1,ABS(px1-360.))
-         zx2 = SIGN(1.d0,180.-px2)*MIN(px2,ABS(px2-360.))
-         zx3 = SIGN(1.d0,180.-px3)*MIN(px3,ABS(px3-360.))
-         zx4 = SIGN(1.d0,180.-px4)*MIN(px4,ABS(px4-360.))
-         zxmax =  MAXVAL( (/ zx1, zx2, zx3, zx4 /) ) ! highest longitude
-         zxmin =  MINVAL( (/ zx1, zx2, zx3, zx4 /) ) ! smalles longitude
-         !PRINT *, ' LOLO REORG:', REAL( (/ zx1, zx2, zx3, zx4 /),4) , REAL( zx, 4) ; PRINT *, ''
-      ELSE
-         zx  = px
-         zx1 = px1
-         zx2 = px2
-         zx3 = px3
-         zx4 = px4
-      END IF
-      l_x_ok = ( ( zx <= zxmax ) .AND. ( zx >=zxmin ) )
-      l_y_ok = (   py <= MAXVAL( (/ py1, py2, py3, py4 /) ) .AND. py >= MINVAL( (/ py1, py2, py3, py4 /) ) )
-      l_point_belongs_to_box = l_x_ok .AND. l_y_ok
-   END FUNCTION l_point_belongs_to_box
 
    FUNCTION det(p1, p2, p3, p4)
       !!----------------------------------------------------------

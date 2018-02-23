@@ -995,7 +995,7 @@ CONTAINS
       !!
       !! Important parameters:
       INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
-      REAL(8), PARAMETER :: frac_emax = 0.6   ! fraction of emax to test if found!
+      REAL(8), PARAMETER :: frac_emax = 0.51   ! fraction of emax to test if found!
       !!                                        => 0.5 seems to be too small, for example on ORCA1 grid at around 20 deg N... ???
       INTEGER :: &
          &    nx_in, ny_in, nx_out, ny_out, &

@@ -44,7 +44,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
    INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
-   INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
+   INTEGER(2), DIMENSION(:,:),   ALLOCATABLE :: IPB       !: ID of problem
 
 
    !! Grid, default name :

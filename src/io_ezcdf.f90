@@ -1490,15 +1490,14 @@ CONTAINS
 
 
 
-   SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, mproblem)
+   SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, id_pb)
       INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
-      CHARACTER(len=*),          INTENT(in) :: cf_out
+      CHARACTER(len=*),             INTENT(in) :: cf_out
       REAL(8),    DIMENSION(:,:),   INTENT(in) :: xlon, xlat
-      !INTEGER(8), DIMENSION(:,:,:), INTENT(in) :: imtrcs
       INTEGER(4), DIMENSION(:,:,:), INTENT(in) :: imtrcs
       REAL(8),    DIMENSION(:,:,:), INTENT(in) :: ralfbet
-      REAL(8),                   INTENT(in) :: vflag
-      INTEGER, DIMENSION(:,:),   INTENT(in) :: mproblem
+      REAL(8),                      INTENT(in) :: vflag
+      INTEGER(2), DIMENSION(:,:),   INTENT(in) :: id_pb
 
       INTEGER          :: lx, ly, il0, id_n2, id_n3, id_v1, id_v2, id_v3
 
@@ -1556,7 +1555,7 @@ CONTAINS
 
       CALL sherr( NF90_PUT_VAR(id_f, id_v1,  imtrcs),  crtn,cf_out,'metrics')
       CALL sherr( NF90_PUT_VAR(id_f, id_v2, ralfbet),  crtn,cf_out,'alphabeta')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v3, mproblem), crtn,cf_out,'iproblem')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v3, id_pb), crtn,cf_out,'iproblem')
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_out,cdum)
 
@@ -1566,12 +1565,12 @@ CONTAINS
 
 
 
-   SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet, mproblem)
+   SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet, id_pb)
       CHARACTER(len=*),          INTENT(in)  :: cf_in
       !INTEGER(8), DIMENSION(:,:,:), INTENT(out) :: imtrcs
       INTEGER(4), DIMENSION(:,:,:), INTENT(out) :: imtrcs
       REAL(8),    DIMENSION(:,:,:), INTENT(out) :: ralfbet
-      INTEGER, DIMENSION(:,:),   INTENT(out) :: mproblem
+      INTEGER(2), DIMENSION(:,:),   INTENT(out) :: id_pb
 
       INTEGER :: id_f
       INTEGER :: id_v1, id_v2, id_v3
@@ -1586,7 +1585,7 @@ CONTAINS
 
       CALL sherr( NF90_GET_VAR(id_f, id_v1, imtrcs),   crtn,cf_in,cdum)
       CALL sherr( NF90_GET_VAR(id_f, id_v2, ralfbet),  crtn,cf_in,cdum)
-      CALL sherr( NF90_GET_VAR(id_f, id_v3, mproblem), crtn,cf_in,cdum)
+      CALL sherr( NF90_GET_VAR(id_f, id_v3, id_pb), crtn,cf_in,cdum)
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cdum)
 
