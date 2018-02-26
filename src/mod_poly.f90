@@ -30,11 +30,6 @@ MODULE MOD_POLY
    PRIVATE
 
    INTEGER(4), PUBLIC , PARAMETER :: jpvert = 4  !: Number of vertex per polygon
-   !INTEGER(4), PUBLIC , PARAMETER :: jpolys = 20  !: Number of polygons.
-
-   ! - Storage for polygon definitions
-   !INTEGER(4)                    :: numpolys            ! number of of polygons currently defined
-   !INTEGER(4), DIMENSION(jpolys) :: nvertcnt            ! number of vertices of a given polygon
 
    REAL(4), DIMENSION(jpvert+1) :: vertx, verty  ! 2dim. array of polygons and their X,Y  coordinates
    REAL(4)                      :: rmaxx, rmaxy  ! max x,y of polygon coordinates
@@ -56,42 +51,6 @@ MODULE MOD_POLY
 
 CONTAINS
 
-   !   SUBROUTINE ReadPoly(cdfront, kpoly, cdarea)
-   !      !!---------------------------------------------------------------------
-   !      !!                  ***  ROUTINE ReadPoly  ***
-   !      !!
-   !      !! ** Purpose : read an ASCII file with names of polygon area
-   !      !!        and vertices.
-   !      !!
-   !      !! References :  late 80's trigrid (Walters et Al.)
-   !      !!----------------------------------------------------------------------
-   !      CHARACTER(LEN=*),                 INTENT(in) :: cdfront ! Name of input file
-   !      INTEGER(4),                 INTENT(out) :: kpoly   ! number of poylgons
-   !      CHARACTER(LEN=*), DIMENSION (:), INTENT(out) :: cdarea  ! Name of the polygonal area!
-   !
-   !      INTEGER(4) :: jj                          ! dummy loop index
-   !      INTEGER(4) :: inum=8                      ! logical unit for input file
-   !      INTEGER(4) :: ipoly                       ! polygon counter
-   !      !!----------------------------------------------------------------------
-   !      OPEN (inum,FILE=cdfront)
-   !      ipoly=0
-   !      !
-   !      DO WHILE (.TRUE.)
-   !         ipoly=ipoly+1
-   !         READ(inum,'(a)',END=995) cdarea(ipoly)                   ! 1rst line of block : name of polygon
-   !         READ(inum,*)nvertcnt(ipoly), ipac(ipoly)                 ! 2nd : number of vertices,
-   !         ivert=nvertcnt(ipoly)
-   !         READ(inum,*)(vertx(ipoly,jj),verty(ipoly,jj),jj=1,ivert)  ! 3rd : (x,y) pairs foreach vertex
-   !      ENDDO!
-   !
-   !995   kpoly=ipoly-1!
-   !
-   !      CLOSE(inum)!
-   !
-   !   END SUBROUTINE ReadPoly
-
-
-
    FUNCTION L_InPoly ( vplon, vplat, pxpoint, pypoint )
       !!---------------------------------------------------------------------
       !!                  ***  ROUTINE InPoly  ***
@@ -105,34 +64,43 @@ CONTAINS
       !! References : Trigrid
       !!----------------------------------------------------------------------
       REAL(8), DIMENSION(4), INTENT(in) :: vplon, vplat
-      REAL(8),              INTENT(in)  :: pxpoint, pypoint  ! Position to check
+      REAL(8),               INTENT(in) :: pxpoint, pypoint  ! Position to check
       LOGICAL      :: L_InPoly
       !!
-      INTEGER(4) :: ipac      ! flag for Pacific area (across date line )
-      INTEGER(4) :: ivert                       ! number of vertices of a polygon
       INTEGER(4) :: ji, jj
       INTEGER(4) :: icross, inumvert
       REAL(8)    :: zxpt, zx, zy, zevenodd
       !!----------------------------------------------------------------------
-      !!
-      ipac = 0 !lolo
-      !!
-      ivert = 4
-      !!
-      vertx(1:4) = REAL( vplon(:) , 4 )
+      rmaxx = MAXVAL(vplon)
+      rmaxy = MAXVAL(vplat)
+      rminx = MINVAL(vplon)
+      rminy = MINVAL(vplat)
+           
+      IF ( (rminx < 0.).OR.(pxpoint < 0.) ) STOP'ERROR (L_InPoly of mod_poly.f90): we only expect positive longitudes!'
+
+      IF ( (rminx < 10.).AND.(rmaxx > 350.) ) THEN
+         !! Need to reorganize in frame -180. -- +180.:
+         zx  =           SIGN(1.d0,180.-pxpoint )*MIN(pxpoint ,ABS(pxpoint -360.))
+         vertx(1:4) = REAL( SIGN(1.d0,180.-vplon   )*MIN(vplon ,  ABS(  vplon -360.)) , 4 )
+         rmaxx = MAXVAL(vertx(1:4))
+         rminx = MINVAL(vertx(1:4))
+      ELSE
+         zx         = pxpoint
+         vertx(1:4) = REAL( vplon , 4)
+      END IF
+
+      
+      zy         = pypoint
       verty(1:4) = REAL( vplat(:) , 4 )
-      !!
-      ! take care of the date line for pacific zone
-      IF (ipac == 1 ) THEN
-         DO jj=1,ivert
-            IF (vertx(jj) < 0 ) vertx(jj) = vertx(jj) + 360.
-         END DO
-      ENDIF
+
+
+
+      
       ! Automatically close the polygon
-      vertx(ivert+1)=vertx(1)
-      verty(ivert+1)=verty(1)
+      vertx(jpvert+1)=vertx(1)
+      verty(jpvert+1)=verty(1)
       ! add dummy 0.001 to integer vertex coordinates... to avoid singular problem
-      DO jj=1, ivert+1
+      DO jj=1, jpvert+1
          IF ( (vertx(jj) - INT( vertx(jj) ) ) == 0 ) vertx(jj) = vertx(jj)+0.001
          IF ( (verty(jj) - INT( verty(jj) ) ) == 0 ) verty(jj) = verty(jj)+0.001
       END DO
@@ -140,9 +108,9 @@ CONTAINS
       !PRINT *, '' ; PRINT *, ''
       !PRINT *, ' vertx = ', vertx
       !PRINT *, ''
-      !PRINT *, ' verty = ', verty      
+      !PRINT *, ' verty = ', verty
       !PRINT *, ''
-      
+
       inumvert = 4 !lolo
       !!
       DO ji = 1, inumvert-1
@@ -157,35 +125,7 @@ CONTAINS
 
       !PRINT *, ' slope=', slope
 
-      
-      !     - calculate the max x,y's of polygon
-      rmaxx = MAXVAL(vertx)
-      rmaxy = MAXVAL(verty)
-      !rmaxx = vertx(1)
-      !rmaxy = verty(1)
-      !DO ji = 1, inumvert
-      !   IF (vertx(ji) >  rmaxx)  rmaxx = vertx(ji)
-      !   IF (verty(ji) >  rmaxy)  rmaxy = verty(ji)
-      !END DO
-      
-      !     - calculate the min x,y's of polygon
-      rminx = MINVAL(vertx)
-      rminy = MINVAL(verty)
-      !rminx = vertx(1)
-      !rminy = verty(1)
-      !DO ji = 1, inumvert
-      !   IF (vertx(ji) <  rminx)  rminx = vertx(ji)
-      !   IF (verty(ji) <  rminy)  rminy = verty(ji)
-      !END DO
-
-
-      !PRINT *, ' rminx, rmaxx =>', rminx, rmaxx
-      !PRINT *, ' rminy, rmaxy =>', rminy, rmaxy
-      
       !
-      !     - store coordinates of point to test
-      zx = pxpoint
-      zy = pypoint
       !     - get the number of cross with the polygon boundary
       icross = 0
       !     - see if point falls in the max and min range of polygon
@@ -272,12 +212,6 @@ CONTAINS
    END FUNCTION L_InPoly
 
 
-
-
-
-   
-
-   
    SUBROUTINE PointSlope ( pslup, pvertxa, pvertxb, pvertya, pvertyb, pax, pby, pcnstnt )
       !!---------------------------------------------------------------------
       !!                  ***  ROUTINE PointSlope  ***
