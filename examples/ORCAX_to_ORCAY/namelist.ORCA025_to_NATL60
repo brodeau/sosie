@@ -1,0 +1,52 @@
+!!
+&ninput
+ivect     = 0
+lregin    = F
+cf_in     = '../data/ssh_ORCA025.nc4'
+cv_in     = 'ssh'
+cv_t_in   = 'time_counter'
+jt1       = 0
+jt2       = 0
+jplev     = 1
+cf_x_in   = '../data/mesh_mask_ORCA025_light.nc4'
+cv_lon_in = 'glamt'
+cv_lat_in = 'gphit'
+cf_lsm_in = '../data/mesh_mask_ORCA025_light.nc4'
+cv_lsm_in = 'tmask'
+ldrown    = T
+ewper     = 2
+vmax      = 1.E6
+vmin      =-1.E6
+ismooth   = 0
+/
+!!
+!!
+&nhtarget
+lregout    = F
+cf_x_out   = '../data/meshmask_t_eco_NATL60.nc4'
+cv_lon_out = 'glamt'
+cv_lat_out = 'gphit'
+cf_lsm_out = '../data/meshmask_t_eco_NATL60.nc4'
+cv_lsm_out = 'tmask'
+lmout      = T
+rmaskvalue = -9999.
+lct        = F
+t0         = 0.
+t_stp      = 0.
+ewper_out  = -1
+/
+!!
+!!
+&noutput
+cmethod  = 'bilin'
+cv_t_out = 'time_counter'
+cv_out   = 'ssh'
+cu_out   = ''
+cln_out  = ''
+cd_out   = '.'
+!!
+csource  = 'ORCA025'
+ctarget  = 'NATL60'
+cextra   = 'bilin'
+/
+!!
