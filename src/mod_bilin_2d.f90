@@ -325,7 +325,7 @@ CONTAINS
       !! OPTIONAL:
       !!      * mask_domain_out: ignore (dont't treat) regions of the target domain where mask_domain_out==0 !
       !!----------------------------------------------------------------------------
-      
+
       USE io_ezcdf
       USE mod_poly, ONLY : L_InPoly
 
@@ -517,7 +517,7 @@ CONTAINS
 
                         !! The tests!!!
                         l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )
-                        
+
                         IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
                            !! The point xP,yP is not into the mesh corresponding
                            !! to current iquadran, trying all other adjacent
@@ -531,23 +531,7 @@ CONTAINS
                            IF ( icpt > 0 ) PRINT *, ' --- iquadran corrected thanks to iterative test (old,new) =>', iqdrn_old, iqdrn
                         END IF
                         IF ( icpt == 5 ) THEN
-                           !PRINT *, '      LOLO: GIVING UP!!!'
-                           !!PRINT *, ''
-                           !!PRINT *, '  ERROR_LOLO: treated longitude not included into selected grid mesh! iter =', icpt
-                           !!PRINT *, '  iquadran =', iqdrn
-                           !!PRINT *, '  loni =', REAL(loni,4)
-                           !!PRINT *, '  lati =', REAL(lati,4)
-                           !PRINT *, '  Target grid ji,jj =', ji,jj
-                           !PRINT *, '  ** looked up point :', REAL( (/xP, yP/),4)
-                           !PRINT *, '  ** nearest point on source grid i,j :', iP,jP
-                           !PRINT *, '  ** which, in lon, lat is:', X1(iP,jP), Y1(iP,jP)
-                           !PRINT *, ''
                            lagain = .FALSE. ! simply give up, but point is marked with value 55 in ID_problem (see below)
-                           !dist_3x3 = DISTANCE_2D(zx, Xsrc(inrst-1:inrst+1,jnrst-1:jnrst+1), zy, Ysrc(inrst-1:inrst+1,jnrst-1:jnrst+1))
-                           !CALL DUMP_2D_FIELD(REAL(Xsrc(inrst-1:inrst+1,jnrst-1:jnrst+1)), 'Xsrc_box_3x3.nc', 'lon')
-                           !CALL DUMP_2D_FIELD(REAL(Ysrc(inrst-1:inrst+1,jnrst-1:jnrst+1)), 'Ysrc_box_3x3.nc', 'lat')
-                           !CALL DUMP_2D_FIELD(REAL(dist_3x3,4) ,  'dist_box_3x3.nc', 'dist')
-                           !STOP
                         END IF
                      END DO !DO WHILE ( lagain )
                      
@@ -555,7 +539,7 @@ CONTAINS
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
                      ID_problem(ji,jj) = iproblem
-
+                     
                      IF ( icpt == 5 ) ID_problem(ji,jj) = ID_problem(ji,jj) + 55 ! IDing the screw up from above...
                      
                      IF (ldebug) THEN
@@ -749,41 +733,6 @@ CONTAINS
 
    END SUBROUTINE LOCAL_COORD
 
-
-
-!   FUNCTION l_point_belongs_to_box( px,py, px1,py1, px2,py2, px3,py3, px4,py4 )
-!      REAL(8), INTENT(in)  :: px,py, px1,py1, px2,py2, px3,py3, px4,py4
-!      LOGICAL :: l_point_belongs_to_box
-!      LOGICAL :: l_x_ok, l_y_ok
-!      REAL(8) :: zxmin, zxmax, zx, zx1, zx2, zx3, zx4
-!
-!      zxmax =  MAXVAL( (/ px1, px2, px3, px4 /) ) ! highest longitude
-!      zxmin =  MINVAL( (/ px1, px2, px3, px4 /) ) ! smalles longitude
-!
-!      IF ( zxmin < 0. ) STOP 'ERROR (l_point_belongs_to_box of mod_bilin_2d.f90): we expect positive longitude!'
-!
-!      IF ( (zxmin < 10.).AND.(zxmax > 350.) ) THEN
-!         !PRINT *, ' LOLO REORG:', REAL( (/ px1, px2, px3, px4 /),4) , REAL( px, 4)
-!         !! Need to reorganize in frame -180. -- +180.:
-!         zx  = SIGN(1.d0,180.-px )*MIN(px ,ABS(px -360.))
-!         zx1 = SIGN(1.d0,180.-px1)*MIN(px1,ABS(px1-360.))
-!         zx2 = SIGN(1.d0,180.-px2)*MIN(px2,ABS(px2-360.))
-!         zx3 = SIGN(1.d0,180.-px3)*MIN(px3,ABS(px3-360.))
-!         zx4 = SIGN(1.d0,180.-px4)*MIN(px4,ABS(px4-360.))
-!         zxmax =  MAXVAL( (/ zx1, zx2, zx3, zx4 /) ) ! highest longitude
-!         zxmin =  MINVAL( (/ zx1, zx2, zx3, zx4 /) ) ! smalles longitude
-!         !PRINT *, ' LOLO REORG:', REAL( (/ zx1, zx2, zx3, zx4 /),4) , REAL( zx, 4) ; PRINT *, ''
-!      ELSE
-!         zx  = px
-!         zx1 = px1
-!         zx2 = px2
-!         zx3 = px3
-!         zx4 = px4
-!      END IF
-!      l_x_ok = ( ( zx <= zxmax ) .AND. ( zx >=zxmin ) )
-!      l_y_ok = (   py <= MAXVAL( (/ py1, py2, py3, py4 /) ) .AND. py >= MINVAL( (/ py1, py2, py3, py4 /) ) )
-!      l_point_belongs_to_box = l_x_ok .AND. l_y_ok
-!   END FUNCTION l_point_belongs_to_box
 
    FUNCTION det(p1, p2, p3, p4)
       !!----------------------------------------------------------
