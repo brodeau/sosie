@@ -184,7 +184,7 @@ CONTAINS
             beta  = RAB(ji,jj,2)
 
             IF ( (X1(iP,jP)==X2(ji,jj)).AND.(Y1(iP,jP)==Y2(ji,jj)) ) THEN
-               !PRINT *, ' *** LOLO: SAME POINT !!!'
+               PRINT *, ' *** LOLO: SAME POINT !!! IDproblem =', IPB(ji,jj)
                Z2(ji,jj) = Z1(iP,jP)
             ELSE
                !! INTERPOLATION:
@@ -398,6 +398,8 @@ CONTAINS
          DO ji = 1, nxo
 
             IF ( mask_ignore_out(ji,jj)==1 ) THEN
+               !! => exclude regions that do not exist on source domain (mask_ignore_out==0) and
+               !! points for which the nearest point was not found (mask_ignore_out==-1 or -2)
 
                !! Now deal with horizontal interpolation
                !! set longitude of input point in accordance with lon ( [lon0, 360+lon0 [ )
@@ -516,12 +518,14 @@ CONTAINS
                         WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
 
                         !! The tests!!!
-                        l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )
+                        l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )    ! $$
 
                         IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
-                           !! The point xP,yP is not into the mesh corresponding
-                           !! to current iquadran, trying all other adjacent
-                           !! meshes to find if it belongs to one of them...
+                           !! Mhhh... Seems like the "heading()" approach
+                           !! screwed up... i.e the point xP,yP is not into the
+                           !! mesh corresponding to current iquadran, trying all
+                           !! other adjacent meshes to find if it belongs to one
+                           !! of them...
                            icpt  = icpt + 1
                            iqdrn = icpt
                         ELSE
@@ -540,7 +544,7 @@ CONTAINS
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
                      ID_problem(ji,jj) = iproblem
                      
-                     IF ( icpt == 5 ) ID_problem(ji,jj) = ID_problem(ji,jj) + 55 ! IDing the screw up from above...
+                     IF ( icpt == 5 ) ID_problem(ji,jj) = 5 ! IDing the screw-up from above...
                      
                      IF (ldebug) THEN
                         PRINT *, 'Nearest point :',lonP,  latP,  hP, hPp
@@ -591,29 +595,35 @@ CONTAINS
 
       WHERE ( (ZAB(:,:,1) < 0.).AND.(ZAB(:,:,1) > rflg) )
          ZAB(:,:,1) = 0.5
-         ID_problem(:,:) = -6
+         ID_problem(:,:) = 6
       END WHERE
       WHERE ( ZAB(:,:,1) > 1. )
          ZAB(:,:,1) = 0.5
-         ID_problem(:,:) =  6
+         ID_problem(:,:) =  7
       END WHERE
 
       WHERE ( (ZAB(:,:,2) < 0.).AND.(ZAB(:,:,2) > rflg) )
          ZAB(:,:,2) = 0.5
-         ID_problem(:,:) = ID_problem(:,:) - 10
+         ID_problem(:,:) = 8
       END WHERE
       WHERE ( ZAB(:,:,2) > 1. )
          ZAB(:,:,2) = 0.5
-         ID_problem(:,:) = ID_problem(:,:) + 10
+         ID_problem(:,:) = 9
       END WHERE
+      
+      WHERE (mask_ignore_out <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
+      WHERE (mask_ignore_out ==  0) ID_problem = -2 ! No idea if possible... #lolo
+      WHERE (mask_ignore_out <  -2) ID_problem = -3 ! No idea if possible... #lolo
 
+
+      
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem)
 
       !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'mask_ignore_out', 'lsm')
       !STOP'LOLO mod_bilin_2d.f90'
 
-      DEALLOCATE ( MTRCS, ZAB, ID_problem )
+      DEALLOCATE ( MTRCS, ZAB, ID_problem, mask_ignore_out )
 
    END SUBROUTINE MAPPING_BL
 
@@ -710,25 +720,19 @@ CONTAINS
       END DO   ! loop until zres small enough (or itermax reach )
 
       IF ( niter >= itermax )   THEN
-         !IF ( maxval(xphi) < 89. ) THEN
-         !   PRINT *, ''
-         !   PRINT *, 'LOCAL_COORD of mod_bilin_2d.f90: problematic region found!!!!'
-         !   PRINT *, ' --> relax, this may only occur on your masked regions...'
-         !   PRINT *, ''
-         !   PRINT *, ' *** input longitude:', xlam ; PRINT *, ''
-         !   PRINT *, ' *** input latitude:' , xphi ; PRINT *, ''
-         !END IF
-         zalpha = 0.5 ; zbeta  = 0.5 ; ipb = 5
+         zalpha = 0.5
+         zbeta  = 0.5
+         ipb    = 1
       END IF
 
       xa = zalpha
       xb = zbeta
 
       !! Problem if the 4 latitudes surrounding 'lati' are equal!
-      IF ( (xphi(1)==xphi(2)).and.(xphi(2)==xphi(3)).and.(xphi(3)==xphi(4)) ) THEN
+      IF ( (xphi(1)==xphi(2)).AND.(xphi(2)==xphi(3)).AND.(xphi(3)==xphi(4)) ) THEN
          xa  = 0.5
          xb  = 0.5
-         ipb = 3
+         ipb = 2
       END IF
 
    END SUBROUTINE LOCAL_COORD

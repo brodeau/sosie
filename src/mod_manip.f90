@@ -734,14 +734,14 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT(Xout, Yout, Xin, Yin, JIpos, JJpos,  mask_domain_out)
+   SUBROUTINE FIND_NEAREST_POINT(Xout, Yout, Xin, Yin, JIp, JJp,  mask_domain_out)
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
       !!   Source domain: Xin, Yin
       !!   Target domain: Xout, Yout
       !!     => for each point of target domain: i_in,j_in location of nearest point on source domain
-      !!        => JIpos & JJpos have same shape as Xout & Yout !
+      !!        => JIp & JJp have same shape as Xout & Yout !
       !!
       !!                Laurent Brodeau, July, 2017
       !!
@@ -751,8 +751,8 @@ CONTAINS
       !!---------------------------------------------------------------
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
-      INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
+      INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIp, JJp  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: mask_domain_out
 
       INTEGER :: jj, nx_in, ny_in, nx_out, ny_out, j_strt_out, j_stop_out, jlat_inc
       REAL(8) :: y_max_in, y_min_in, rmin_dlat_dj, rtmp
@@ -777,13 +777,13 @@ CONTAINS
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Yout dont agree in shape with Xout'
          STOP
       END IF
-      IF ( (SIZE(JIpos,1) /= nx_out) .OR. (SIZE(JIpos,2) /= ny_out) ) THEN
-         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JIpos dont agree in shape with Xout'
-         PRINT *, SIZE(JIpos,1), SIZE(JIpos,2), 'vs', nx_out, ny_out
+      IF ( (SIZE(JIp,1) /= nx_out) .OR. (SIZE(JIp,2) /= ny_out) ) THEN
+         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JIp dont agree in shape with Xout'
+         PRINT *, SIZE(JIp,1), SIZE(JIp,2), 'vs', nx_out, ny_out
          STOP
       END IF
-      IF ( (SIZE(JJpos,1) /= nx_out) .OR. (SIZE(JJpos,2) /= ny_out) ) THEN
-         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JJpos dont agree in shape with Xout'
+      IF ( (SIZE(JJp,1) /= nx_out) .OR. (SIZE(JJp,2) /= ny_out) ) THEN
+         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JJp dont agree in shape with Xout'
          STOP
       END IF
 
@@ -852,14 +852,16 @@ CONTAINS
 
       IF ( l_is_reg_in .AND. (.NOT. l_force_use_of_twisted) ) THEN
          PRINT *, '                 => going for simple FIND_NEAREST algorithm !'; PRINT *, ''
-         CALL FIND_NEAREST_EASY(    Xout, Yout, Xin, Yin, JIpos, JJpos, mask_ignore_out, &
+         CALL FIND_NEAREST_EASY(    Xout, Yout, Xin, Yin, JIp, JJp, mask_ignore_out, &
             &                       j_strt_out, j_stop_out, jlat_inc )
       ELSE
          PRINT *, '                  => going for advanced FIND_NEAREST algorithm !'; PRINT *, ''
-         CALL FIND_NEAREST_TWISTED( Xout, Yout, Xin, Yin, JIpos, JJpos, mask_ignore_out, &
+         CALL FIND_NEAREST_TWISTED( Xout, Yout, Xin, Yin, JIp, JJp, mask_ignore_out, &
             &                       j_strt_out, j_stop_out, jlat_inc )
       END IF
       PRINT *, ''
+
+      IF ( PRESENT( mask_domain_out ) ) mask_domain_out(:,:) = mask_ignore_out(:,:)      
       DEALLOCATE ( mask_ignore_out )
       
    END SUBROUTINE FIND_NEAREST_POINT
@@ -908,8 +910,8 @@ CONTAINS
       nx_out = SIZE(Xout,1)
       ny_out = SIZE(Xout,2)
 
-      JIpos(:,:) = INT(rflg)
-      JJpos(:,:) = INT(rflg)
+      JIpos(:,:) = -1
+      JJpos(:,:) = -1
       
       ALLOCATE ( vlon(nx_in) , vlat(ny_in) , Xdist(nx_in,ny_in) )
 
@@ -955,7 +957,7 @@ CONTAINS
                   STOP
                END IF
 
-               IF ( ( JIpos(ji_out,jj_out) == INT(rflg) ).OR.( JJpos(ji_out,jj_out) == INT(rflg) ) ) THEN
+               IF ( ( JIpos(ji_out,jj_out) == -1 ).OR.( JJpos(ji_out,jj_out) == -1 ) ) THEN
                   PRINT *, 'ERROR in FIND_NEAREST_EASY of mod_bilin_2d.f90 !'
                   PRINT *, 'Point rlon, rlat', rlon, rlat
                   PRINT *, 'not found on the source grid!'
@@ -987,11 +989,11 @@ CONTAINS
       !!
       !!      * mask_out: ignore (dont't treat) regions of the target domain where mask_out==0 !
       !!---------------------------------------------------------------
-      REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xout, Yout    !: lon and lat arrays of target domain
-      REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xin , Yin     !: lon and lat arrays of source domain
-      INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
-      INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_out
-      INTEGER, INTENT(in)                     :: j_strt_out, j_stop_out, jlat_inc
+      REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xout, Yout    !: lon and lat arrays of target domain
+      REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xin , Yin     !: lon and lat arrays of source domain
+      INTEGER(4), DIMENSION(:,:), INTENT(out)   :: JIpos, JJpos  !: nearest point location of point P in Xin,Yin wrt Xout,Yout
+      INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask_out
+      INTEGER, INTENT(in)                       :: j_strt_out, j_stop_out, jlat_inc
       !!
       !! Important parameters:
       INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
@@ -1033,8 +1035,8 @@ CONTAINS
       !! ---------------------------------------------------------------------------------------
       PRINT *, '                        => going for advanced algorithm !'
 
-      JIpos(:,:) = INT(rflg)
-      JJpos(:,:) = INT(rflg)
+      JIpos(:,:) = -1
+      JJpos(:,:) = -1
 
       ALLOCATE ( e1_in(nx_in,ny_in), e2_in(nx_in,ny_in) )
 
@@ -1247,6 +1249,10 @@ CONTAINS
          END DO    ! DO ji_out = 1, nx_out
       END DO       ! DO jj_out = j_strt_out, j_stop_out, jlat_inc
 
+
+      WHERE ( JIpos == -1 ) mask_out = -1
+      WHERE ( JJpos == -1 ) mask_out = -2
+      
       DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_IN, e1_in, e2_in, mspot_lon , mspot_lat , Xdist )
 
    END SUBROUTINE FIND_NEAREST_TWISTED

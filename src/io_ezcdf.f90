@@ -408,7 +408,7 @@ CONTAINS
 
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
          PRINT *, ''
-         PRINT *, '  *** GETVAR_2D: opening file '//TRIM(cf_in)//' !'
+         PRINT *, ' --- GETVAR_2D: opening file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
@@ -452,8 +452,8 @@ CONTAINS
       END DO
 
       ! Closing when needed:
-      IF ( (( kt == ite ).OR.( kt == 0 )).AND.(jlev == kz_stop) )  THEN
-         PRINT *, '  *** GETVAR_2D: closing file '//TRIM(cf_in)//' !'
+      IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
+         PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
          PRINT *, ''
@@ -530,6 +530,8 @@ CONTAINS
       IF ( present(lz) ) kz_stop = lz
 
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
+         PRINT *, ''
+         PRINT *, ' --- GETVAR_2D_R8: opening file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
@@ -573,9 +575,11 @@ CONTAINS
       END DO
 
       ! Closing when needed:
-      IF ( (( kt == ite ).OR.( kt == 0 )).AND.(jlev == kz_stop) )  THEN
+      IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
+         PRINT *, ' --- GETVAR_2D_R8: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
+         PRINT *, ''
       END IF
 
    END SUBROUTINE GETVAR_2D_R8
@@ -656,6 +660,8 @@ CONTAINS
       END IF
 
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
+         PRINT *, ''
+         PRINT *, ' --- GETVAR_3D: opening file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE,  idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
@@ -671,6 +677,7 @@ CONTAINS
       END IF
 
       IF ( ( kt == ite ).OR.( kt == 0 ) )  THEN
+         PRINT *, ' --- GETVAR_3D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
       END IF
