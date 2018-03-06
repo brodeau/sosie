@@ -20,7 +20,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! ************************ Configurable part ****************************
    !!
    LOGICAL, PARAMETER :: &
-      &   l_debug_SARAL = .TRUE., &
+      &   l_debug_SARAL = .FALSE., &
       &   l_debug = .FALSE., &
       &   l_debug_mapping = .FALSE., &
       &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
@@ -98,7 +98,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: imask
    INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
    !!
-   INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
+   INTEGER :: jt, it, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
    REAL(8) :: rt, t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta, t_min, t_max
@@ -107,7 +107,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
-   REAL(4) :: zsf, zao, rfillval_mod
+   REAL(4) :: zsf, zao, rrr, rfillval_mod
    TYPE(t_unit_t0) :: tut_epoch, tut_obs, tut_mod
 
    INTEGER :: it1, it2
@@ -445,17 +445,19 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    PRINT *, 'Done!'; PRINT *, ''
 
-   IF ( l_debug_SARAL ) THEN
-      OPEN(16, FILE='debug_saral.txt', FORM='FORMATTED', RECL=256, STATUS='unknown')
-      WRITE(16,*) '#     jt    time (d) dt 2 cons. points (s)  dl 2 cons. points (km)     '
-      DO jt = 2, Nt0
-         zsf = (vt_obs(jt) - vt_obs(jt-1))*3600.*24. ! dt
-         zao = DISTANCE( xlon_gt_0(1,jt), xlon_gt_0(1,jt-1), xlat_gt_0(1,jt), xlat_gt_0(1,jt-1) )! dl
-         WRITE(16,*) jt, vt_obs(jt), zsf, zao
-      END DO
-      CLOSE(16)
-      STOP
-   END IF
+   !IF ( l_debug_SARAL ) THEN
+   !   OPEN(16, FILE='debug_saral.txt', FORM='FORMATTED', RECL=256, STATUS='unknown')
+   !   WRITE(16,*) '#     Fucked-up points! '
+   !   WRITE(16,*) '# time rec. in file  | time (d since 1950)  |   dt (s)     | dl (km)        | speed (km/s)'
+   !   DO jt = 2, Nt0
+   !      zsf = (vt_obs(jt) - vt_obs(jt-1))*3600.*24. ! dt
+   !      zao = DISTANCE( xlon_gt_0(1,jt), xlon_gt_0(1,jt-1), xlat_gt_0(1,jt), xlat_gt_0(1,jt-1) )! dl
+   !      rrr = zao/zsf
+   !      IF (rrr > 8.) WRITE(16,*) jt, vt_obs(jt), zsf, zao, zao/zsf
+   !   END DO
+   !   CLOSE(16)
+   !   STOP
+   !END IF
 
 
 
@@ -587,11 +589,34 @@ PROGRAM INTERP_TO_GROUND_TRACK
    xlat_gt_f(1,:) = SHRINK_VECTOR(xlat_gt_i(1,:),  IGNORE(1,:), Ntf)
    vtf(:)         = SHRINK_VECTOR(rcycle(it1:it2), IGNORE(1,:), Ntf)
    icycle = INT2(vtf)
-   vtf(:)         = SHRINK_VECTOR(vt_obs(it1:it2), IGNORE(1,:), Ntf)
+   vtf(:)         = SHRINK_VECTOR(vt_obs(it1:it2), IGNORE(1,:), Ntf) !
    F_gt_f(:)      = SHRINK_VECTOR(F_gt_0(it1:it2), IGNORE(1,:), Ntf)
 
-
+   ! 
    DEALLOCATE ( xlon_gt_i , xlat_gt_i , vt_obs , F_gt_0 , rcycle )
+
+
+   
+   IF ( l_debug_SARAL ) THEN
+      OPEN(16, FILE='debug_saral.txt', FORM='FORMATTED', RECL=256, STATUS='unknown')
+      !WRITE(16,*) '#     Fucked-up points! '
+      WRITE(16,*) '# time rec. in file  | time (d since 1950)  |   dt (s)     | dl (km)        | speed (km/s)'
+      DO jt = 2, Ntf
+         it  = it1-1+jt
+         zsf = (vtf(it) - vtf(it-1))*3600.*24. ! dt
+         zao = DISTANCE( xlon_gt_f(1,jt), xlon_gt_f(1,jt-1), xlat_gt_f(1,jt), xlat_gt_f(1,jt-1) )! dl
+         rrr = zao/zsf
+         !IF (rrr > 8.) WRITE(16,*) jt, vt_obs(jt), zsf, zao, zao/zsf
+         WRITE(16,*) it, vtf(it), zsf, zao, zao/zsf
+      END DO
+      CLOSE(16)
+      STOP 'You are in SARAL debug mode (l_debug_SARAL=.TRUE.), we stop here! An check file "debug_saral.txt"!!!'
+   END IF
+
+   
+
+
+
 
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist ) !
    IF ( .NOT. l_exist ) THEN
