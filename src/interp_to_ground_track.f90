@@ -8,7 +8,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !!========================================================================
    !! Purpose :
-   !!
    !! ---------
    !!
    !! Author :   Laurent Brodeau, 2018
@@ -36,11 +35,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs, vdistance
-
-   REAL(8), DIMENSION(:),     ALLOCATABLE :: vtf, vt_mod, vt_obs, F_gt_0, F_gt_f, rcycle
-
-   REAL(4), DIMENSION(:,:),   ALLOCATABLE :: RES_2D_MOD, RES_2D_OBS
+   REAL(8), DIMENSION(:),   ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs, vdistance
+   REAL(8), DIMENSION(:),   ALLOCATABLE :: vtf, vt_mod, vt_obs, F_gt_0, F_gt_f, rcycle
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: RES_2D_MOD, RES_2D_OBS
 
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
    INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: IMETRICS  !: iP, jP, iquadran at each point
@@ -492,7 +489,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, ' *** Time overlap for Model and Track file:', t_min, t_max
 
 
-      !! Findin when we can start and stop when scanning the track file:
+      !! Finding when we can start and stop when scanning the track file:
       !! it1, it2
       DO it1 = 1, Nt0-1
          IF ( (vt_obs(it1) <= t_min).AND.(vt_obs(it1+1) > t_min) ) EXIT
@@ -557,6 +554,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Allocate arrays on the final retained size
    ALLOCATE ( IMETRICS(1,Ntf,3), RAB(1,Ntf,2), IPB(1,Ntf), xlon_gt_f(1,Ntf), xlat_gt_f(1,Ntf), vtf(Ntf), F_gt_f(Ntf), icycle(Ntf) )
+   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf), rcycle_obs(Ntf), vdistance(Ntf) )
 
    xlon_gt_f(1,:) = SHRINK_VECTOR(xlon_gt_i(1,:),  IGNORE(1,:), Ntf)
    xlat_gt_f(1,:) = SHRINK_VECTOR(xlat_gt_i(1,:),  IGNORE(1,:), Ntf)
@@ -616,7 +614,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !STOP 'mapping done!'
 
-   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf), rcycle_obs(Ntf), vdistance(Ntf) )
+
 
    Ftrack_mod_np(:) = -9999.
    Ftrack_obs(:)    = -9999.

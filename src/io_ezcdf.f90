@@ -912,9 +912,16 @@ CONTAINS
 
       CHARACTER(len=80), PARAMETER :: crtn = 'PT_SERIES'
 
-      nbt = size(vdt1,1)
-
-      IF ( nbt /= size(vtime,1) ) CALL print_err(crtn, 'Time array and series array dont agree in size!!!')
+      nbt = size(vtime,1)
+      
+      IF (                     SIZE(vdt1,1)/=nbt)  CALL print_err(crtn, 'Time vec and series vec #1 dont agree in size! => '//TRIM(cv_dt1))
+      IF (PRESENT(cv_dt2).AND.(SIZE(vdt2,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #2 dont agree in size! => '//TRIM(cv_dt2))
+      IF (PRESENT(cv_dt3).AND.(SIZE(vdt3,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #3 dont agree in size! => '//TRIM(cv_dt3))
+      IF (PRESENT(cv_dt4).AND.(SIZE(vdt4,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #4 dont agree in size! => '//TRIM(cv_dt4))
+      IF (PRESENT(cv_dt5).AND.(SIZE(vdt5,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #5 dont agree in size! => '//TRIM(cv_dt5))
+      IF (PRESENT(cv_dt6).AND.(SIZE(vdt6,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #6 dont agree in size! => '//TRIM(cv_dt6))
+      IF (PRESENT(cv_dt7).AND.(SIZE(vdt7,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #7 dont agree in size! => '//TRIM(cv_dt7))
+      IF (PRESENT(cv_dt8).AND.(SIZE(vdt8,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #8 dont agree in size! => '//TRIM(cv_dt8))
 
       IF ( vflag /= 0.) THEN
          rmin =  1.E6 ; rmax = -1.E6
