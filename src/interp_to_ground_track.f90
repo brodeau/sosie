@@ -20,6 +20,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! ************************ Configurable part ****************************
    !!
    LOGICAL, PARAMETER :: &
+      &   l_debug_SARAL = .TRUE., &
       &   l_debug = .FALSE., &
       &   l_debug_mapping = .FALSE., &
       &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
@@ -106,7 +107,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
-   REAL(4) :: rfillval_mod
+   REAL(4) :: zsf, zao, rfillval_mod
    TYPE(t_unit_t0) :: tut_epoch, tut_obs, tut_mod
 
    INTEGER :: it1, it2
@@ -425,12 +426,37 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CALL DIMS(cf_obs, 'time', Nt0, nj1, nk, ni1)
    PRINT *, ' *** Nb. time records in NetCDF track file:', Nt0
    ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0), rcycle(Nt0) )
+  
    CALL GETVAR_1D(cf_obs, 'time', vt_obs)
+   
    CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
+   CALL GET_SF_AO(cf_obs, 'longitude', zsf, zao,  italk=1)
+   IF ( (zsf /= 1.).OR.(zao /= 0.) ) xlon_gt_0(1,:) = zsf*xlon_gt_0(1,:) + zao
+  
    CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
+   CALL GET_SF_AO(cf_obs, 'latitude',  zsf, zao,  italk=1)
+   IF ( (zsf /= 1.).OR.(zao /= 0.) ) xlat_gt_0(1,:) = zsf*xlat_gt_0(1,:) + zao
+
    CALL GETVAR_1D(cf_obs, 'cycle',     rcycle)
+
    CALL GETVAR_1D(cf_obs, cv_obs,      F_gt_0)
+   CALL GET_SF_AO(cf_obs, cv_obs, zsf, zao,  italk=1)
+   IF ( (zsf /= 1.).OR.(zao /= 0.) ) F_gt_0 = zsf*F_gt_0 + zao
+
    PRINT *, 'Done!'; PRINT *, ''
+
+   IF ( l_debug_SARAL ) THEN
+      OPEN(16, FILE='debug_saral.txt', FORM='FORMATTED', RECL=256, STATUS='unknown')
+      WRITE(16,*) '#     jt    time (d) dt 2 cons. points (s)  dl 2 cons. points (km)     '
+      DO jt = 2, Nt0
+         zsf = (vt_obs(jt) - vt_obs(jt-1))*3600.*24. ! dt
+         zao = DISTANCE( xlon_gt_0(1,jt), xlon_gt_0(1,jt-1), xlat_gt_0(1,jt), xlat_gt_0(1,jt-1) )! dl
+         WRITE(16,*) jt, vt_obs(jt), zsf, zao
+      END DO
+      CLOSE(16)
+      STOP
+   END IF
+
 
 
 
@@ -521,6 +547,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    xlat_gt_i(:,:) = xlat_gt_0(:,it1:it2)
 
    DEALLOCATE ( xlon_gt_0, xlat_gt_0 )
+
 
    IF ( .NOT. l_glob_lon_wize ) THEN
       ALLOCATE ( xdum_r8(1,Nti) )

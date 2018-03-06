@@ -1693,7 +1693,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GET_SF_AO(cf_in, cv_in, rsf, rao)
+   SUBROUTINE GET_SF_AO(cf_in, cv_in, rsf, rao,  italk)
       !!
       !!-----------------------------------------------------------------------
       !! This routine extracts the 'scale_factor' and 'add_offset' of a given
@@ -1709,17 +1709,23 @@ CONTAINS
       !!          * rsf       : scale factor                        (real)
       !!          * rao       : add offset                          (real)
       !!
+      !!  OPTIONAL (INPUT):
+      !! ------------------
+      !!          * italk     : verbose level: 0 nothing, 1 talks!    (integer)
+      !! 
       !!------------------------------------------------------------------------
       !!
       INTEGER                      :: id_f, id_v
-      CHARACTER(len=*), INTENT(in) :: cf_in, cv_in
+      CHARACTER(len=*),INTENT(in) :: cf_in, cv_in
       REAL(4),         INTENT(out) :: rsf, rao
+      INTEGER, OPTIONAL, INTENT(in) :: italk
       !!
       !! local :
-      INTEGER :: ierr1, ierr2
+      INTEGER :: ierr1, ierr2, itlk=0
       !!
       CHARACTER(len=80), PARAMETER :: crtn = 'GET_SF_AO'
       !!
+      IF ( PRESENT(italk) ) itlk = italk
       !!
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in)
       !!
@@ -1728,15 +1734,23 @@ CONTAINS
       ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
       ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
       !!
+      IF ( itlk > 0 ) WRITE(6,*) ' --- GET_SF_AO: variable ', TRIM(cv_in), ' of file ',TRIM(cf_in), ' :'
+      !!
       IF ( (ierr1 /= NF90_NOERR).OR.(ierr2 /= NF90_NOERR) ) THEN
-         rsf = 1.      ;   rao = 0.
-         WRITE(6,*) 'WARNING: variable ', trim(cv_in), ' of file ',trim(cf_in), ' :'
-         WRITE(6,*) '       does not have a "scale_factor" and "add_offset" attributes'
-         WRITE(6,*) '       => scale_factor =', rsf; WRITE(6,*) '       => add_offset =', rao
-         PRINT *, ''
+         rsf = 1.
+         rao = 0.
+         IF ( itlk > 0 ) THEN
+            WRITE(6,*) '       does not have a "scale_factor" and "add_offset" attributes'
+         END IF
       END IF
       !!
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
+      !!
+      IF ( itlk > 0 ) THEN
+         WRITE(6,*) '       => scale_factor =', rsf
+         WRITE(6,*) '       => add_offset =', rao
+         PRINT *, ''
+      END IF
       !!
    END SUBROUTINE GET_SF_AO
 
