@@ -249,6 +249,8 @@ CONTAINS
                          IF ( mask_out(ji,jj,jk) == 1 ) nlev = nlev + 1
                       ENDDO
                       nlev = nlev - 1
+                   ELSE
+                      nlev = jk_last
                    END IF
                    !!
                    CALL AKIMA_1D(REAL(depth_in_tmp(ji,jj,:),4),data3d_tmp(ji,jj,:),  &
