@@ -1112,7 +1112,7 @@ CONTAINS
 
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_time=attr_time)
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time)
          !!
          !! Variable
          IF ( TRIM(cv_t) /= '' ) THEN
@@ -1257,7 +1257,7 @@ CONTAINS
          !!
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_time=attr_time)
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time)
 
          !! Depth vector:
          IF ( (TRIM(cv_dpth) == 'lev').OR.(TRIM(cv_dpth) == 'depth') ) THEN
@@ -1831,7 +1831,7 @@ CONTAINS
 
    SUBROUTINE prepare_nc(id_file, cdt0, nx, ny, cv_lon, cv_lat, cv_time, vxtrm,     &
       &                  id_ji, id_jj, id_jt, id_lon, id_lat, id_time, cri,cfi,cvi, &
-      &                  attr_lon, attr_lat, attr_time)
+      &                  attr_lon, attr_lat, attr_tim)
 
       INTEGER,                 INTENT(in)  :: id_file, nx, ny
       CHARACTER(len=2),        INTENT(in)  :: cdt0
@@ -1839,17 +1839,17 @@ CONTAINS
       REAL(8), DIMENSION(3,2), INTENT(in)  :: vxtrm
       INTEGER,                 INTENT(out) :: id_ji, id_jj, id_jt, id_lon, id_lat, id_time
 
-      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_time
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_tim
 
       LOGICAL ::  &
-         &       lcopy_att_lon  = .FALSE., &
-         &       lcopy_att_lat  = .FALSE., &
-         &       lcopy_att_time = .FALSE.
-
-      IF ( PRESENT(attr_lon) ) lcopy_att_lon  = .TRUE.
-      IF ( PRESENT(attr_lat) ) lcopy_att_lat  = .TRUE.
-      IF ( PRESENT(attr_time)) lcopy_att_time = .TRUE.
-
+         &       lcopy_att_lon = .FALSE., &
+         &       lcopy_att_lat = .FALSE., &
+         &       lcopy_att_tim = .FALSE.
+      
+      IF ( PRESENT(attr_lon).AND.(attr_lon(1)%itype>0) ) lcopy_att_lon = .TRUE.
+      IF ( PRESENT(attr_lat).AND.(attr_lat(1)%itype>0) ) lcopy_att_lat = .TRUE.
+      IF ( PRESENT(attr_tim).AND.(attr_tim(1)%itype>0) ) lcopy_att_tim = .TRUE.
+            
       !!    HORIZONTAL
       IF ( (TRIM(cv_lon) /= '').AND.(TRIM(cv_lat) /= '') ) THEN
          !!
@@ -1883,7 +1883,7 @@ CONTAINS
       IF ( TRIM(cv_time) /= '' ) THEN
          CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_time), NF90_UNLIMITED, id_jt), cri,cfi,cvi)
          CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time, deflate_level=9), cri,cfi,cvi)
-         IF ( lcopy_att_time )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_time, attr_time,  cri,cfi,cvi)
+         IF ( lcopy_att_tim )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_time, attr_tim,  cri,cfi,cvi)
          CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)
          CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_max',vxtrm(3,2)), cri,cfi,cvi)
       END IF
