@@ -330,12 +330,6 @@ CONTAINS
          ENDIF
       END IF
 
-      !! What about scale_factor / add_offset
-      CALL GET_SF_AO(cf_in, cv_in, rsf, rao)
-      WRITE(6,*) 'Scale factor =', rsf; WRITE(6,*) 'Add   offset =', rao; PRINT*,''
-
-
-      !lulu
       lon_min_1 = MINVAL(lon_in)
       lon_max_1 = MAXVAL(lon_in)
       PRINT *, ' *** Minimum longitude on source domain before reorg. : ', lon_min_1

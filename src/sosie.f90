@@ -136,9 +136,6 @@ PROGRAM SOSIE
          !! Read data 2D field at time jte :
          CALL GETVAR_2D(idf_i, idv_i, cf_in, cv_in, Ntr, jplev*jcz, jte*jct, data_in, jt1=j_start, jt2=j_stop)
 
-         !! In case scale_factor or add_offset :
-         IF ((rsf /= 1.).or.(rao /= 0.)) data_in = rsf*data_in + rao
-
          IF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
             !! Replacing NaN with 0. to avoid some fuck-up later...
             WHERE(mask_in(:,:,1)==0) data_in = 0.
@@ -168,9 +165,6 @@ PROGRAM SOSIE
 
          !! Read data 3D field at time jt :
          CALL GETVAR_3D(idf_i, idv_i, cf_in, cv_in, Ntr, jte*jct, data3d_in, jt1=j_start, jt2=j_stop)
-
-         !! In case scale_factor or add_offset :
-         IF ((rsf /= 1.).or.(rao /= 0.)) data3d_in = rsf*data3d_in + rao
 
          IF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
             !! Replacing NaN with 0. to avoid some fuck-up later...

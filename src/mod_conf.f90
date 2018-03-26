@@ -42,9 +42,6 @@ MODULE MOD_CONF
       &   jj_ex_top, jj_ex_btm, &
       &   i_chg_lon
 
-   REAL(wpl) ::  &
-      &   rsf, rao
-
    REAL(8) ::  &
       &   lon_min_1, lon_max_1, & !lolo
       &   max_lon_in,  min_lon_in, &

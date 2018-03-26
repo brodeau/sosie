@@ -328,12 +328,19 @@ CONTAINS
       CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
       REAL(8), DIMENSION (:), INTENT(out) ::  X
 
+      INTEGER :: ierr1, ierr2
+      REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D'
 
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
 
-      CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
+      CALL sherr( NF90_INQ_VARID(id_f, TRIM(cv_in), id_v),  crtn,cf_in,cv_in)
+      ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
+      ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
+
       CALL sherr( NF90_GET_VAR(id_f, id_v, X),              crtn,cf_in,cv_in)
+      IF (ierr1 == NF90_NOERR) X = rsf*X
+      IF (ierr2 == NF90_NOERR) X = X + rao
 
       CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
 
@@ -386,9 +393,9 @@ CONTAINS
          & ly       ! y dimension of the variable        (integer)
 
       INTEGER :: n1, n2, n3, n4, jlev, its, ite, kz_stop = 0
-
+      INTEGER :: ierr1, ierr2
+      REAL(4) :: rsf, rao
       LOGICAL :: l_okay
-
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D'
 
       lx = size(X,1)
@@ -412,6 +419,9 @@ CONTAINS
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
+
+      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
 
       IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
@@ -450,6 +460,9 @@ CONTAINS
          END IF
 
       END DO
+
+      IF (ierr1 == NF90_NOERR) X = rsf*X
+      IF (ierr2 == NF90_NOERR) X = X + rao
 
       ! Closing when needed:
       IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
@@ -507,9 +520,9 @@ CONTAINS
          & ly       ! y dimension of the variable        (integer)
 
       INTEGER :: n1, n2, n3, n4, jlev, its, ite, kz_stop = 0
-
+      INTEGER :: ierr1, ierr2
+      REAL(4) :: rsf, rao
       LOGICAL :: l_okay
-
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R8'
 
       lx = size(X,1)
@@ -537,6 +550,9 @@ CONTAINS
       END IF
 
       IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
+
+      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
 
       l_okay = .FALSE.
       DO WHILE ( .NOT. l_okay )
@@ -573,6 +589,9 @@ CONTAINS
          END IF
 
       END DO
+
+      IF (ierr1 == NF90_NOERR) X = rsf*X
+      IF (ierr2 == NF90_NOERR) X = X + rao
 
       ! Closing when needed:
       IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
@@ -636,9 +655,9 @@ CONTAINS
          & lx,  &        ! x dimension of the variable        (integer)
          & ly,  &        ! y dimension of the variable        (integer)
          & lz            ! z dimension of the variable        (integer)
-
       INTEGER :: n1, n2, n3, n4, its, ite, izs, ize
-
+      INTEGER :: ierr1, ierr2
+      REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_3D'
 
       lx = size(X,1)
@@ -668,6 +687,9 @@ CONTAINS
 
       IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
+      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
+
       IF ( kt == 0 ) THEN
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs/), count=(/lx,ly,ize/)), &
             &      crtn,cf_in,cv_in)
@@ -675,6 +697,9 @@ CONTAINS
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs,kt/), count=(/lx,ly,ize,1/)), &
             &      crtn,cf_in,cv_in)
       END IF
+
+      IF (ierr1 == NF90_NOERR) X = rsf*X
+      IF (ierr2 == NF90_NOERR) X = X + rao
 
       IF ( ( kt == ite ).OR.( kt == 0 ) )  THEN
          PRINT *, ' --- GETVAR_3D: closing file '//TRIM(cf_in)//' !'
@@ -913,7 +938,7 @@ CONTAINS
       CHARACTER(len=80), PARAMETER :: crtn = 'PT_SERIES'
 
       nbt = size(vtime,1)
-      
+
       IF (                     SIZE(vdt1,1)/=nbt)  CALL print_err(crtn, 'Time vec and series vec #1 dont agree in size! => '//TRIM(cv_dt1))
       IF (PRESENT(cv_dt2).AND.(SIZE(vdt2,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #2 dont agree in size! => '//TRIM(cv_dt2))
       IF (PRESENT(cv_dt3).AND.(SIZE(vdt3,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #3 dont agree in size! => '//TRIM(cv_dt3))
@@ -1021,7 +1046,7 @@ CONTAINS
 
 
    SUBROUTINE P2D_T(idx_f, idx_v, lt, lct, xlon, xlat, vtime, x2d, cf_in, &
-      &             cv_lo, cv_la, cv_t, cv_in, vflag, &
+      &             cv_lo, cv_la, cv_t, cv_in, vflag,      &
       &             attr_lon, attr_lat, attr_time, attr_F, &
       &             cextrainfo)
       !!
@@ -1352,11 +1377,15 @@ CONTAINS
       REAL(4),          INTENT(out) :: rmissval
       CHARACTER(len=*), INTENT(out) :: cmissval
       !!
-      INTEGER :: ierr, jm
+      INTEGER :: ierr, jm, ierr1, ierr2
+      REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'CHECK_4_MISS'
       !!---------------------------------------------------------------------
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in) ! Opening file
       CALL sherr( NF90_INQ_VARID(id_f, cv_in, id_v),  crtn,cf_in,cv_in)    ! looking up variable
+      ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
+      ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
+
       !! Scanning possible values until found:
       cmissval = '0'
       DO jm=1, nmval
@@ -1366,6 +1395,10 @@ CONTAINS
             EXIT
          END IF
       END DO
+      !!
+      IF (ierr1 == NF90_NOERR) rmissval = rsf*rmissval
+      IF (ierr2 == NF90_NOERR) rmissval = rmissval + rao
+      !!
       IF ( ierr == -43 ) THEN
          lmv = .FALSE.
       ELSE
@@ -1712,7 +1745,7 @@ CONTAINS
       !!  OPTIONAL (INPUT):
       !! ------------------
       !!          * italk     : verbose level: 0 nothing, 1 talks!    (integer)
-      !! 
+      !!
       !!------------------------------------------------------------------------
       !!
       INTEGER                      :: id_f, id_v
@@ -1845,11 +1878,11 @@ CONTAINS
          &       lcopy_att_lon = .FALSE., &
          &       lcopy_att_lat = .FALSE., &
          &       lcopy_att_tim = .FALSE.
-      
+
       IF ( PRESENT(attr_lon).AND.(attr_lon(1)%itype>0) ) lcopy_att_lon = .TRUE.
       IF ( PRESENT(attr_lat).AND.(attr_lat(1)%itype>0) ) lcopy_att_lat = .TRUE.
       IF ( PRESENT(attr_tim).AND.(attr_tim(1)%itype>0) ) lcopy_att_tim = .TRUE.
-            
+
       !!    HORIZONTAL
       IF ( (TRIM(cv_lon) /= '').AND.(TRIM(cv_lat) /= '') ) THEN
          !!
