@@ -332,8 +332,8 @@ CONTAINS
 
       lon_min_1 = MINVAL(lon_in)
       lon_max_1 = MAXVAL(lon_in)
-      PRINT *, ' *** Minimum longitude on source domain before reorg. : ', lon_min_1
-      PRINT *, ' *** Maximum longitude on source domain before reorg. : ', lon_max_1
+      PRINT *, ' *** Minimum longitude on source domain before reorg. : ', REAL(lon_min_1,4)
+      PRINT *, ' *** Maximum longitude on source domain before reorg. : ', REAL(lon_max_1,4)
 
       IF ( lregin ) THEN
          !! Fixing input 1D longitude:
@@ -349,30 +349,23 @@ CONTAINS
       PRINT *, ' *** Minimum longitude on source domain now: ', lon_min_2
       PRINT *, ' *** Maximum longitude on source domain now: ', lon_max_2
 
-      ! lolo: disgusting!:
-      l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -170.).AND.(lon_max_1 >  0. ).AND.(lon_min_1 <  170.)
+      ! lolo: IMPROVE! This is disgusting:
+      l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -175.).AND.(lon_max_1 >  0. ).AND.(lon_max_1 <  175.)
       l_loc2 = (lon_min_2 >= 0.).AND.(lon_min_2 <   2.5).AND.(lon_max_2 >357.5).AND.(lon_max_2 <= 360.)
-      IF (.NOT. l_loc1) THEN
-         IF ( l_loc2 ) THEN
-            l_glob_lon_wize = .TRUE.
-            PRINT *, 'Looks like global setup (longitude-wise at least...)'
-         ELSE
-            PRINT *, 'ERROR (get_src_conf of mod_grids.f90) : cannot find if regional or global source domain...'; STOP
-         END IF
+      IF ( (.NOT. l_loc1).AND.(l_loc2) ) THEN
+         l_glob_lon_wize = .TRUE.
+         PRINT *, 'Looks like global setup (longitude-wise at least...)'
       ELSE
          PRINT *, 'Looks like regional setup (longitude-wise at least...)'
          l_glob_lon_wize = .FALSE.
-         !!
          WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
       END IF
       PRINT *, ''
-
+      
       l_glob_lat_wize = .TRUE.
       IF ( MAXVAL(lat_in) < 88. ) l_glob_lat_wize =.FALSE.
-      
-      
+            
       !! Getting land-sea mask on source domain
-
       mask_in(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
 
       IF ( ldrown ) THEN
