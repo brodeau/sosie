@@ -39,6 +39,8 @@ CONTAINS
       ALLOCATE ( data_in(ni_in,nj_in), mask_in(ni_in,nj_in,nk_in), data_in_b(ni_in,nj_in),    &
          &     mask_in_b(ni_in,nj_in,nk_in), vt0(Ntr0), vt(Ntr) )
 
+      vt(:) = 0.
+      
       IF ( lregin ) THEN
          ALLOCATE ( lon_in(ni_in,1),     lat_in(nj_in,1)     )
       ELSE
