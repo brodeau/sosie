@@ -107,7 +107,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
-   REAL(4) :: zsf, zao, rrr, rfillval_mod
+   REAL(4) :: zdt, zdst, rrr, rfillval_mod
    TYPE(t_unit_t0) :: tut_epoch, tut_obs, tut_mod
 
    INTEGER :: it1, it2
@@ -428,20 +428,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
    ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0), rcycle(Nt0) )
   
    CALL GETVAR_1D(cf_obs, 'time', vt_obs)
-   
    CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
-   CALL GET_SF_AO(cf_obs, 'longitude', zsf, zao,  italk=1)
-   IF ( (zsf /= 1.).OR.(zao /= 0.) ) xlon_gt_0(1,:) = zsf*xlon_gt_0(1,:) + zao
-  
    CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
-   CALL GET_SF_AO(cf_obs, 'latitude',  zsf, zao,  italk=1)
-   IF ( (zsf /= 1.).OR.(zao /= 0.) ) xlat_gt_0(1,:) = zsf*xlat_gt_0(1,:) + zao
 
    CALL GETVAR_1D(cf_obs, 'cycle',     rcycle)
 
    CALL GETVAR_1D(cf_obs, cv_obs,      F_gt_0)
-   CALL GET_SF_AO(cf_obs, cv_obs, zsf, zao,  italk=1)
-   IF ( (zsf /= 1.).OR.(zao /= 0.) ) F_gt_0 = zsf*F_gt_0 + zao
 
    PRINT *, 'Done!'; PRINT *, ''
 
@@ -450,10 +442,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !   WRITE(16,*) '#     Fucked-up points! '
    !   WRITE(16,*) '# time rec. in file  | time (d since 1950)  |   dt (s)     | dl (km)        | speed (km/s)'
    !   DO jt = 2, Nt0
-   !      zsf = (vt_obs(jt) - vt_obs(jt-1))*3600.*24. ! dt
-   !      zao = DISTANCE( xlon_gt_0(1,jt), xlon_gt_0(1,jt-1), xlat_gt_0(1,jt), xlat_gt_0(1,jt-1) )! dl
-   !      rrr = zao/zsf
-   !      IF (rrr > 8.) WRITE(16,*) jt, vt_obs(jt), zsf, zao, zao/zsf
+   !      zdt = (vt_obs(jt) - vt_obs(jt-1))*3600.*24. ! dt
+   !      zdst = DISTANCE( xlon_gt_0(1,jt), xlon_gt_0(1,jt-1), xlat_gt_0(1,jt), xlat_gt_0(1,jt-1) )! dl
+   !      rrr = zdst/zdt
+   !      IF (rrr > 8.) WRITE(16,*) jt, vt_obs(jt), zdt, zdst, zdst/zdt
    !   END DO
    !   CLOSE(16)
    !   STOP
@@ -603,11 +595,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
       WRITE(16,*) '# time rec. in file  | time (d since 1950)  |   dt (s)     | dl (km)        | speed (km/s)'
       DO jt = 2, Ntf
          it  = it1-1+jt
-         zsf = (vtf(it) - vtf(it-1))*3600.*24. ! dt
-         zao = DISTANCE( xlon_gt_f(1,jt), xlon_gt_f(1,jt-1), xlat_gt_f(1,jt), xlat_gt_f(1,jt-1) )! dl
-         rrr = zao/zsf
-         !IF (rrr > 8.) WRITE(16,*) jt, vt_obs(jt), zsf, zao, zao/zsf
-         WRITE(16,*) it, vtf(it), zsf, zao, zao/zsf
+         zdt = (vtf(it) - vtf(it-1))*3600.*24. ! dt
+         zdst = DISTANCE( xlon_gt_f(1,jt), xlon_gt_f(1,jt-1), xlat_gt_f(1,jt), xlat_gt_f(1,jt-1) )! dl
+         rrr = zdst/zdt
+         !IF (rrr > 8.) WRITE(16,*) jt, vt_obs(jt), zdt, zdst, zdst/zdt
+         WRITE(16,*) it, vtf(it), zdt, zdst, zdst/zdt
       END DO
       CLOSE(16)
       STOP 'You are in SARAL debug mode (l_debug_SARAL=.TRUE.), we stop here! An check file "debug_saral.txt"!!!'
@@ -727,7 +719,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
          alpha    = RAB(1,jtf,1)
          beta     = RAB(1,jtf,2)
 
-         IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
+         !LOLO: IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
+         IF ( (iP>0).AND.(jP>0) ) THEN
             IF ( imask(iP,jP)==1 ) THEN
                r_obs    = F_gt_f(jtf)
                l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
