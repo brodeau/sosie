@@ -5,10 +5,10 @@
 FC = ifort
 
 # Root directory for Netcdf:
-NETCDF_DIR = /opt/netcdf-4.1
+NETCDF_DIR = $(HOME)/opt/hdf5_netcdf4_intel_mpi
 
 # Linking argument: usually -lnetcdf or -lnetcdff (or both):
-L_NCDF =  -L /opt/hdf5-1.8.4/lib -lnetcdf -lnetcdff -lhdf5_hl -lhdf5 -lz
+L_NCDF =  -L $(NETCDF_DIR)/lib -lnetcdf -lnetcdff -lhdf5_hl -lhdf5 -lz
 
 
 
@@ -16,8 +16,8 @@ L_NCDF =  -L /opt/hdf5-1.8.4/lib -lnetcdf -lnetcdff -lhdf5_hl -lhdf5 -lz
 
 EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -traceback -debug extended -C
 
-#FF = -xHOST -O3 -i4 -module mod/
-FF =  -O0 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
+FF = -xHOST -O3 -i4 -module mod/
+#FF =  -O0 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
 
 
 # Directory to install binaries:
