@@ -9,7 +9,7 @@ MODULE MOD_MANIP
 
    PRIVATE
 
-   PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, test_xyz, partial_deriv, &
+   PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud_1d, flip_ud_1d_double, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR
 
@@ -510,42 +510,6 @@ CONTAINS
       !!
       !!
    END SUBROUTINE extra_2_west
-   !!
-   !!
-   FUNCTION TEST_XYZ(rx, ry, rz)
-      !!
-      !! Testing if 2D coordinates or 1D, and if match shape of data...
-      !!
-      CHARACTER(len=2) :: TEST_XYZ
-      !!
-      REAL(8), DIMENSION(:,:), INTENT(in) :: rx, ry
-      REAL(4), DIMENSION(:,:), INTENT(in) :: rz
-      !!
-      INTEGER :: ix1, ix2, iy1, iy2, iz1, iz2
-      !!
-      ix1 = size(rx,1) ; ix2 = size(rx,2)
-      iy1 = size(ry,1) ; iy2 = size(ry,2)
-      iz1 = size(rz,1) ; iz2 = size(rz,2)
-      !!
-      IF ( (ix2 == 1).AND.(iy2 == 1) ) THEN
-         !!
-         IF ( (ix1 == iz1).AND.(iy1 == iz2) ) THEN
-            TEST_XYZ = '1d'
-         ELSE
-            PRINT *, 'ERROR, mod_manip.f90 = >TEST_XYZ 1: longitude and latitude array do not match data!'
-            PRINT *, ''; STOP
-         END IF
-         !!
-      ELSE
-         IF ( (ix1 == iz1).AND.(iy1 == iz1).AND.(ix2 == iz2).AND.(iy2 == iz2) ) THEN
-            TEST_XYZ = '2d'
-         ELSE
-            PRINT *, 'ERROR, mod_manip.f90 = >TEST_XYZ 2: longitude and latitude array do not match data!'
-            PRINT *, ''; STOP
-         END IF
-      END IF
-      !!
-   END FUNCTION TEST_XYZ
 
 
    SUBROUTINE PARTIAL_DERIV(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)

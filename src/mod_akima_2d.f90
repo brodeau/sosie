@@ -29,7 +29,8 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: FILL_EXTRA_BANDS, TEST_XYZ
+   USE mod_manip, ONLY: FILL_EXTRA_BANDS
+   USE io_ezcdf,  ONLY: TEST_XYZ
 
 
    IMPLICIT NONE

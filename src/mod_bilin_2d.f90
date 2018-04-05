@@ -67,7 +67,7 @@ CONTAINS
       !!
       !!================================================================
 
-      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB
+      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB, TEST_XYZ
 
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
