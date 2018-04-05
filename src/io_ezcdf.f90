@@ -56,6 +56,7 @@ MODULE io_ezcdf
       &    phovmoller,       &
       &    get_time_unit_t0, &
       &    l_is_leap_year,   &
+      &    test_xyz,         &
       &    to_epoch_time_scalar, to_epoch_time_vect
    !!===========================
 
@@ -1095,7 +1096,7 @@ CONTAINS
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
       !! About dimensions of xlon, xlat and x2d:
-      CALL ctest_coor(xlon, xlat, x2d, cdt)
+      cdt = TEST_XYZ(xlon, xlat, x2d)
       lx = size(x2d,1) ; ly = size(x2d,2)
 
       IF ( lct == 1 ) THEN
@@ -1214,7 +1215,6 @@ CONTAINS
       !!        vflag = flag value or "0."                        [real]
       !!
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
-      !!
       !!--------------------------------------------------------------------------
 
       INTEGER,                    INTENT(inout) :: idx_f, idx_v
@@ -1230,6 +1230,7 @@ CONTAINS
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_z, &
          &                                                          attr_time, attr_F
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
+
       INTEGER          :: id_z
       INTEGER          :: id_x, id_y, id_t, id_lo, id_la, id_tim
       INTEGER          :: lx, ly, lz
@@ -1244,12 +1245,13 @@ CONTAINS
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
       !! About dimensions of xlon, xlat, vdpth and x3d:
-      CALL ctest_coor(xlon, xlat, x3d(:,:,1), cdt)
+      cdt = TEST_XYZ(xlon, xlat, x3d(:,:,1))
+
       lx = size(x3d,1) ; ly = size(x3d,2) ; lz = size(vdpth)
       IF ( size(x3d,3) /= lz ) CALL print_err(crtn, 'depth array do not match data')
-      !!
+
       IF ( lct == 1 ) THEN
-         !!
+
          IF ( vflag /= 0.) THEN
             rmin =  1.E6 ; rmax = -1.E6
             DO jk=1, lz
@@ -1264,26 +1266,16 @@ CONTAINS
          ELSE
             rmin = minval(x3d) ; rmax = maxval(x3d)
          END IF
-
          dr = (rmax - rmin)/10.0 ; rmin = rmin - dr ; rmax = rmax + dr
+         vextrema(1,:) = (/MINVAL(xlon),MAXVAL(xlon)/); vextrema(2,:) = (/MINVAL(xlat),MAXVAL(xlat)/)
+         vextrema(3,:) = (/MINVAL(vtime),MAXVAL(vtime)/)
 
-      END IF ! lct == 1
-
-      IF ( lct == 1 ) THEN
-         !!
-         vextrema(1,:) = (/minval(xlon),maxval(xlon)/); vextrema(2,:) = (/minval(xlat),maxval(xlat)/)
-         vextrema(3,:) = (/minval(vtime),maxval(vtime)/)
-         !!
-         !! Opening mesh file for grid quest :
-         !! ----------------------------------
-         !!
          !!           CREATE NETCDF OUTPUT FILE :
          CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f),  crtn,cf_in,cv_in)
          !!
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
             &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time)
-
          !! Depth vector:
          IF ( (TRIM(cv_dpth) == 'lev').OR.(TRIM(cv_dpth) == 'depth') ) THEN
             CALL sherr( NF90_DEF_DIM(idx_f, TRIM(cv_dpth), lz, id_z),  crtn,cf_in,cv_in)
@@ -1323,8 +1315,6 @@ CONTAINS
          !!           END OF DEFINITION
          CALL sherr( NF90_ENDDEF(idx_f),  crtn,cf_in,cv_in)
          !!
-         !!
-         !!
          !!       Write longitude variable :
          CALL sherr( NF90_PUT_VAR(idx_f, id_lo, xlon),  crtn,cf_in,cv_in)
          !!
@@ -1337,7 +1327,7 @@ CONTAINS
          !!       Write time variable :
          IF ( TRIM(cv_t) /= '' ) CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
          !!
-      END IF
+      END IF  !IF ( lct == 1 )
 
       !!                WRITE VARIABLE
       CALL sherr( NF90_PUT_VAR(idx_f, idx_v,  x3d, start=(/1,1,1,lct/), count=(/lx,ly,lz,1/)),  crtn,cf_in,cv_in)
@@ -1506,7 +1496,7 @@ CONTAINS
       IF ( PRESENT(xlon).AND.PRESENT(xlat) ) THEN
          IF ( PRESENT(cv_lo).AND.PRESENT(cv_la) ) THEN
             lzcoord = .TRUE.
-            CALL ctest_coor(xlon, xlat, xfld, cdt)
+            cdt = TEST_XYZ(xlon, xlat, xfld)
          ELSE
             CALL print_err(crtn, 'if you specify xlon and xlat, you must also specify cv_lo and cv_la')
          END IF
@@ -1821,42 +1811,81 @@ CONTAINS
    END SUBROUTINE sherr
 
 
-
-
-
-   SUBROUTINE ctest_coor(rx, ry, rd, cdm)
-
+   FUNCTION TEST_XYZ(rx, ry, rz)
+      !!
       !! Testing if 2D coordinates or 1D, and if match shape of data...
-
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: rx, ry
-      REAL(4), DIMENSION(:,:), INTENT(in)  :: rd
-      CHARACTER(len=2)       , INTENT(out) :: cdm
-
-      INTEGER :: ix1, ix2, iy1, iy2, id1, id2
-
-      ix1 = size(rx,1) ; ix2 = size(rx,2)
-      iy1 = size(ry,1) ; iy2 = size(ry,2)
-      id1 = size(rd,1) ; id2 = size(rd,2)
-
+      !!
+      CHARACTER(len=2) :: TEST_XYZ
+      !!
+      REAL(8), DIMENSION(:,:), INTENT(in) :: rx, ry
+      REAL(4), DIMENSION(:,:), INTENT(in) :: rz
+      !!
+      INTEGER :: ix1, ix2, iy1, iy2, iz1, iz2
+      !!
+      ix1 = SIZE(rx,1) ; ix2 = SIZE(rx,2)
+      iy1 = SIZE(ry,1) ; iy2 = SIZE(ry,2)
+      iz1 = SIZE(rz,1) ; iz2 = SIZE(rz,2)
+      !!
       IF ( (ix2 == 1).AND.(iy2 == 1) ) THEN
-
-         IF ( (ix1 == id1).AND.(iy1 == id2) ) THEN
-            cdm = '1d'
+         !!
+         IF ( (ix1 == iz1).AND.(iy1 == iz2) ) THEN
+            TEST_XYZ = '1d'
+         ELSEIF ( (ix1 == iy1).AND.(ix1 == iz1).AND.(iz2 == 1) ) THEN
+            TEST_XYZ = 'y1'
+            !! This is thechnically 1D, yet in a 2D shape => [x=nx,y=1]
+            !!  => may occur when 2D zonal sections
          ELSE
-            CALL print_err('cdm', 'longitude and latitude array do not match data (1d)')
+            PRINT *, 'ERROR, mod_manip.f90 = >TEST_XYZ 1: longitude and latitude array do not match data!'
+            PRINT *, '  => ix1,ix2 / iy1,iy2 / iz1,iz2 ='
+            PRINT *,      ix1,ix2 ,' /', iy1,iy2 ,' /', iz1,iz2
+            PRINT *, ''; STOP
          END IF
-
+         !!
       ELSE
-
-         IF ( (ix1 == id1).AND.(iy1 == id1).AND.(ix2 == id2).AND.(iy2 == id2) ) THEN
-            cdm = '2d'
+         IF ( (ix1 == iz1).AND.(iy1 == iz1).AND.(ix2 == iz2).AND.(iy2 == iz2) ) THEN
+            TEST_XYZ = '2d'
          ELSE
-            CALL print_err('cdm', 'longitude and latitude array do not match data (2d)')
+            PRINT *, 'ERROR, mod_manip.f90 = >TEST_XYZ 2: longitude and latitude array do not match data!'
+            PRINT *, ''; STOP
          END IF
-
       END IF
+      !!
+   END FUNCTION TEST_XYZ
 
-   END SUBROUTINE ctest_coor
+
+   !   SUBROUTINE TEST_XYZ(rx, ry, rd, cdm)
+   !
+   !      !! Testing if 2D coordinates or 1D, and if match shape of data...
+   !
+   !      REAL(8), DIMENSION(:,:), INTENT(in)  :: rx, ry
+   !      REAL(4), DIMENSION(:,:), INTENT(in)  :: rd
+   !      CHARACTER(len=2)       , INTENT(out) :: cdm
+   !
+   !      INTEGER :: ix1, ix2, iy1, iy2, id1, id2
+   !
+   !      ix1 = size(rx,1) ; ix2 = size(rx,2)
+   !      iy1 = size(ry,1) ; iy2 = size(ry,2)
+   !      id1 = size(rd,1) ; id2 = size(rd,2)
+   !
+   !      IF ( (ix2 == 1).AND.(iy2 == 1) ) THEN
+   !
+   !         IF ( (ix1 == id1).AND.(iy1 == id2) ) THEN
+   !            cdm = '1d'
+   !         ELSE
+   !            CALL print_err('cdm', 'longitude and latitude array do not match data (1d)')
+   !         END IF
+   !
+   !      ELSE!
+   !
+   !         IF ( (ix1 == id1).AND.(iy1 == id1).AND.(ix2 == id2).AND.(iy2 == id2) ) THEN
+   !            cdm = '2d'
+   !         ELSE
+   !            CALL print_err('cdm', 'longitude and latitude array do not match data (2d)')
+   !         END IF
+   !
+   !      END IF
+   !
+   !   END SUBROUTINE TEST_XYZ
 
 
 
@@ -1865,7 +1894,8 @@ CONTAINS
    SUBROUTINE prepare_nc(id_file, cdt0, nx, ny, cv_lon, cv_lat, cv_time, vxtrm,     &
       &                  id_ji, id_jj, id_jt, id_lon, id_lat, id_time, cri,cfi,cvi, &
       &                  attr_lon, attr_lat, attr_tim)
-
+      !!----------------------------------------------------------------------------------
+      !!----------------------------------------------------------------------------------
       INTEGER,                 INTENT(in)  :: id_file, nx, ny
       CHARACTER(len=2),        INTENT(in)  :: cdt0
       CHARACTER(len=*),        INTENT(in)  :: cv_lon, cv_lat, cv_time, cri,cfi,cvi
@@ -1886,7 +1916,7 @@ CONTAINS
       !!    HORIZONTAL
       IF ( (TRIM(cv_lon) /= '').AND.(TRIM(cv_lat) /= '') ) THEN
          !!
-         IF ( cdt0 == '2d' ) THEN
+         IF ( (cdt0 == '2d').OR.(cdt0 == 'y1') ) THEN
             CALL sherr( NF90_DEF_DIM(id_file, 'x', nx, id_ji), cri,cfi,cvi)
             CALL sherr( NF90_DEF_DIM(id_file, 'y', ny, id_jj), cri,cfi,cvi)
             CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, (/id_ji,id_jj/), id_lon, deflate_level=9), cri,cfi,cvi)

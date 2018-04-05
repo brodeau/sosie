@@ -1,0 +1,59 @@
+!!
+&ninput
+ivect     = 0
+lregin    = F
+cf_in     = '../data/so_ORCA2_grid_T.nc'
+cv_in     = 'so'
+cv_t_in   = 'time_counter'
+jt1       = 0
+jt2       = 0
+jplev     = 0
+cf_x_in   = '../data/mesh_mask_ORCA2_light.nc'
+cv_lon_in = 'glamt'
+cv_lat_in = 'gphit'
+cf_lsm_in = '../data/mesh_mask_ORCA2_light.nc'
+cv_lsm_in = 'tmask'
+ldrown    = T
+ewper     = 2
+vmax      =  1.E6
+vmin      = -1.E6
+ismooth   = 0
+/
+!!
+&n3d
+cf_z_in  = '../data/so_ORCA2_grid_T.nc'
+cv_z_in  = 'deptht'
+cf_z_out = '/data1/laurent/NANUK1/NANUK1-I/meshmask_BDY_S_NANUK1.nc'
+cv_z_out = 'gdept_1d'
+cv_z_out_name = 'deptht'
+/
+!!
+&nhtarget
+lregout    = F
+cf_x_out   = '/data1/laurent/NANUK1/NANUK1-I/meshmask_BDY_S_NANUK1.nc'
+cv_lon_out = 'glamt'
+cv_lat_out = 'gphit'
+cf_lsm_out = '/data1/laurent/NANUK1/NANUK1-I/meshmask_BDY_S_NANUK1.nc'
+cv_lsm_out = 'tmask'
+lmout      = T
+rmaskvalue = -9999.
+lct        = F
+t0         = 0.
+t_stp      = 0.
+ewper_out  = 2
+/
+!!
+!!
+&noutput
+cmethod  = 'bilin'
+cv_t_out = 'time_counter'
+cv_out   = 'so'
+cu_out   = ''
+cln_out  = ''
+cd_out   = '.'
+!!
+csource  = 'ORCA2'
+ctarget  = 'BDY_S_NANUK1'
+cextra   = 'boo'
+/
+!!

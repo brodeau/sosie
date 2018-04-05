@@ -32,10 +32,10 @@ CONTAINS
 
       INTEGER :: jt
 
-      !! Determine input dimensions from input file :
+      !! Determine source dimensions from input file :
       CALL know_dim_in()
 
-      !! Allocate input arrays with input dimensions :
+      !! Allocate source arrays with source dimensions :
       ALLOCATE ( data_in(ni_in,nj_in), mask_in(ni_in,nj_in,nk_in), data_in_b(ni_in,nj_in),    &
          &     mask_in_b(ni_in,nj_in,nk_in), vt0(Ntr0), vt(Ntr) )
 
@@ -48,7 +48,7 @@ CONTAINS
       END IF
 
       IF ( l_int_3d ) ALLOCATE ( data3d_in(ni_in,nj_in,nk_in), depth_in(ni_in,nj_in,nk_in) )
-      !! if input grid is in terrain-following, need array for input bathy
+      !! if source grid is in terrain-following, need array for source bathy
       IF ( l_int_3d .AND. trim(ctype_z_in) == 'sigma' ) ALLOCATE ( bathy_in(ni_in,nj_in) )
       !! Filling time array :
       IF ( ltime  )  THEN
@@ -63,7 +63,7 @@ CONTAINS
             vatt_info_t(1)%val_char = 'unknown'
             vatt_info_t(1)%ilength = LEN('unknown')
             !!
-         ELSE    ! we get time vector and its attributes into input file
+         ELSE    ! we get time vector and its attributes into source file
             CALL GETVAR_1D(cf_in, cv_t_in, vt0) ;  vt(:) = vt0(j_start:j_stop)
             CALL GETVAR_ATTRIBUTES(cf_in, cv_t_in,  nb_att_t, vatt_info_t)
          END IF
@@ -77,8 +77,8 @@ CONTAINS
       PRINT *, ''
       gt_orca_in = IS_ORCA_NORTH_FOLD( lat_in , cname_long=trim(cv_lon_in) )
       i_orca_in  = gt_orca_in%ifld_nord
-      IF ( i_orca_in == 4 ) PRINT *, ' Input grid is an ORCA grid with north-pole T-point folding!'
-      IF ( i_orca_in == 6 ) PRINT *, ' Input grid is an ORCA grid with north-pole F-point folding!'
+      IF ( i_orca_in == 4 ) PRINT *, ' Source grid is an ORCA grid with north-pole T-point folding!'
+      IF ( i_orca_in == 6 ) PRINT *, ' Source grid is an ORCA grid with north-pole F-point folding!'
       PRINT *, ''
 
    END SUBROUTINE SRC_DOMAIN
@@ -104,7 +104,7 @@ CONTAINS
 
       CALL know_dim_out()
 
-      !! Allocate output arrays with output dimensions :
+      !! Allocate target arrays with target dimensions :
       ALLOCATE ( mask_out(ni_out,nj_out,nk_out), data_out(ni_out,nj_out), IGNORE(ni_out,nj_out) )
 
       IF ( .NOT. lmout ) mask_out(:,:,:) = 1 ; !lolo
@@ -120,7 +120,7 @@ CONTAINS
          ALLOCATE ( data3d_tmp(ni_out, nj_out, nk_in), data3d_out(ni_out,nj_out,nk_out) )
       END IF
 
-      !! If output grid is terrain-following, then allocate for bathy_out
+      !! If target grid is terrain-following, then allocate for bathy_out
       IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) ALLOCATE ( bathy_out(ni_out,nj_out) )
       IF ( l_int_3d .AND. trim(ctype_z_out) == 'sigma' ) ALLOCATE ( Cs_rho(nk_out), Sc_rho(nk_out) )
 
@@ -137,7 +137,7 @@ CONTAINS
          nlat_inc_out = nlat_inc_in
 
          CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out(1,1,:))
-         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
+         WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
          CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
          DO ji=1,ni_out
             DO jj=1,nj_out
@@ -157,11 +157,11 @@ CONTAINS
 
          max_lat_out = maxval(lat_out) ;   min_lat_out = minval(lat_out) ;
          PRINT*,''
-         WRITE(6,*) 'Latitude max on  input grid =', max_lat_in
-         WRITE(6,*) 'Latitude max on output grid =', max_lat_out
+         WRITE(6,*) 'Latitude max on source grid =', max_lat_in
+         WRITE(6,*) 'Latitude max on target grid =', max_lat_out
          PRINT*,''
-         WRITE(6,*) 'Latitude min on  input grid =', min_lat_in
-         WRITE(6,*) 'Latitude min on output grid =', min_lat_out
+         WRITE(6,*) 'Latitude min on source grid =', min_lat_in
+         WRITE(6,*) 'Latitude min on target grid =', min_lat_out
          PRINT*,''
 
          !! Building IGNORE mask:
@@ -305,27 +305,27 @@ CONTAINS
 
       IF ( l_int_3d ) THEN
          IF ( trim(ctype_z_in) == 'sigma' ) THEN
-            !! read input bathymetry
+            !! read source bathymetry
             CALL GETVAR_2D(if0,iv0,cf_bathy_in, cv_bathy_in, 0, 0, 0, bathy_in(:,:))
-            !! compute 3D depth_in for input variable from bathy and sigma parameters
+            !! compute 3D depth_in for source variable from bathy and sigma parameters
             CALL depth_from_scoord(ssig_in, bathy_in, ni_in, nj_in, nk_in, depth_in)
          ELSEIF ( trim(ctype_z_in) == 'z' ) THEN
             !! in z case, the depth vector is copied at each grid-point
             CALL rd_vgrid(nk_in, cf_z_in, cv_z_in, depth_in(1,1,:))
-            WRITE(6,*) ''; WRITE(6,*) 'Input Depths ='; PRINT *, depth_in(1,1,:) ; WRITE(6,*) ''
+            WRITE(6,*) ''; WRITE(6,*) 'Source Depths ='; PRINT *, depth_in(1,1,:) ; WRITE(6,*) ''
             DO ji=1,ni_in
                DO jj=1,nj_in
                   depth_in(ji,jj,:) = depth_in(1,1,:)
                ENDDO
             ENDDO
          ELSE
-            PRINT*,''; PRINT *, 'Not a valid input vertical coordinate' ; PRINT*,''
+            PRINT*,''; PRINT *, 'Not a valid source vertical coordinate' ; PRINT*,''
          ENDIF
 
          IF ( trim(ctype_z_in) == 'z' ) THEN
-            PRINT*,''; WRITE(6,*) 'Input has z coordinates and depth vector is =', depth_in(1,1,:); PRINT*,''
+            PRINT*,''; WRITE(6,*) 'Source has z coordinates and depth vector is =', depth_in(1,1,:); PRINT*,''
          ELSEIF ( trim(ctype_z_in) == 'sigma' ) THEN
-            PRINT*,''; WRITE(6,*) 'Input has sigma coordinates and depth range is ', MINVAL(depth_in), &
+            PRINT*,''; WRITE(6,*) 'Source has sigma coordinates and depth range is ', MINVAL(depth_in), &
                &                           ' to ', MAXVAL(depth_in) ; PRINT*,''
          ELSE
             PRINT*,''; WRITE(6,*) 'You should not see this' ; STOP
@@ -338,9 +338,9 @@ CONTAINS
       PRINT *, ' *** Maximum longitude on source domain before reorg. : ', REAL(lon_max_1,4)
 
       IF ( lregin ) THEN
-         !! Fixing input 1D longitude:
+         !! Fixing source 1D longitude:
          CALL FIX_LONG_1D(ni_in, lon_in(:,1), nlon_inc_in, i_chg_lon)
-         !! Fixing input 1D latitude:
+         !! Fixing source 1D latitude:
          CALL FIX_LATD_1D(nj_in, lat_in(:,1), nlat_inc_in)
       ELSE
          WHERE ( lon_in < 0. )  lon_in = lon_in + 360.
@@ -374,7 +374,7 @@ CONTAINS
 
          IF ( TRIM(cf_lsm_in) == 'missing_value' ) THEN
 
-            WRITE(6,*) 'Opening land-sea mask from missing_value on input data!'
+            WRITE(6,*) 'Opening land-sea mask from missing_value on source data!'
             CALL CHECK_4_MISS(cf_in, cv_in, lmval, rmv, ca_missval)
             IF ( .NOT. lmval ) THEN
                PRINT *, 'ERROR (get_src_conf of mod_grids.f90) : '//TRIM(cv_in)//' has no missing value attribute!'
@@ -467,7 +467,7 @@ CONTAINS
                   WRITE(6,*) 'but your source land-sea mask is not 3D!'
                   WRITE(6,*) '=> set ldrown to false in the namelist'
                   WRITE(6,*) 'If you want to "drown" a level other than the surface,'
-                  WRITE(6,*) 'please provide a 3D input land-sea mask'
+                  WRITE(6,*) 'please provide a 3D source land-sea mask'
                   STOP
                END IF
             ELSEIF ( l_int_3d ) THEN
@@ -576,15 +576,15 @@ CONTAINS
          END IF
 
          IF ( trim(ctype_z_out) == 'sigma' ) THEN
-            !! read bathy for output grid
+            !! read bathy for target grid
             CALL GETVAR_2D(if0,iv0,cf_bathy_out, cv_bathy_out, 0, 0, 0, bathy_out(:,:))
-            !! compute target depth on output grid from bathy_out and ssig_out params
+            !! compute target depth on target grid from bathy_out and ssig_out params
             CALL depth_from_scoord(ssig_out, bathy_out, ni_out, nj_out, ssig_out%Nlevels, depth_out)
             CALL GETVAR_ATTRIBUTES(cf_bathy_out, cv_bathy_out,  nb_att_z, vatt_info_z)
          ELSEIF (trim(ctype_z_out) == 'z' ) THEN
             !! depth vector copied on all grid-points
             CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out(1,1,:))
-            !WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
+            !WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
             CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
             DO ji=1,ni_out
                DO jj=1,nj_out
@@ -592,22 +592,22 @@ CONTAINS
                ENDDO
             ENDDO
          ELSE
-            PRINT*,''; WRITE(6,*) 'Not a valid output vertical coordinate' ; STOP
+            PRINT*,''; WRITE(6,*) 'Not a valid target vertical coordinate' ; STOP
             !!
          ENDIF
 
          !RD fix this
          !         IF (trim(ctype_z_out) == 'z' ) THEN
-         !            PRINT*,''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out(1,1,:) ; PRINT*,''
+         !            PRINT*,''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_out(1,1,:) ; PRINT*,''
          !         ELSEIF ( trim(ctype_z_out) == 'sigma' ) THEN
-         !            PRINT*,''; WRITE(6,*) 'Output on sigma coordinates' ; PRINT*,''
+         !            PRINT*,''; WRITE(6,*) 'Target on sigma coordinates' ; PRINT*,''
          !         ENDIF
 
       END IF
 
       !RD fix this
       !         CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out)
-      !         WRITE(6,*) ''; WRITE(6,*) 'Output Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
+      !         WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_out ; WRITE(6,*) ''
       !         CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
 
       !!  Getting target mask (mandatory doing 3D interpolation!)
@@ -616,9 +616,9 @@ CONTAINS
          IF ( (l3d).AND.(jplev > 1) ) THEN
             WRITE(6,*) ''
             WRITE(6,*) '****************************************************************'
-            WRITE(6,*) 'We do not know output mask yet, since it is at a given depth!'
+            WRITE(6,*) 'We do not know target mask yet, since it is at a given depth!'
             WRITE(6,*) '--> next version of SOSIE!'
-            WRITE(6,*) 'So we do not mask output file'
+            WRITE(6,*) 'So we do not mask target file'
             WRITE(6,*) '****************************************************************'
             WRITE(6,*) ''
 
@@ -657,7 +657,7 @@ CONTAINS
                      !! select coord type
                      IF ( trim(ctype_z_out) == 'sigma' ) THEN
                         WRITE(6,*) 'Opening 2D land-sea mask file on target grid: ', trim(cf_lsm_out)
-                        !! read 2D mask for output and make it 3D
+                        !! read 2D mask for target and make it 3D
                         CALL GETMASK_2D(cf_lsm_out, cv_lsm_out, mask_out(:,:,1))
                         DO jz0=2,nk_out
                            mask_out(:,:,jz0) = mask_out(:,:,1)
@@ -699,12 +699,12 @@ CONTAINS
       !!   Laurent Brodeau, 2015
       !!
       !!   may 2007: modified by Pierre Mathiot to detect and handle
-      !!               regular 2D input longitude and regular 2D input
-      !!               latitude when the input grid is declared as irregular.
+      !!               regular 2D source longitude and regular 2D source
+      !!               latitude when the source grid is declared as irregular.
       !!               Allowing akima interpolation.
 
       !! Arguments:
-      INTEGER,                   INTENT(in)  :: iv !: iv = -1 means we're handling input grid
+      INTEGER,                   INTENT(in)  :: iv !: iv = -1 means we're handling source grid
       !!                                                /= -1 means target grid
       LOGICAL,                   INTENT(in)  :: lreg
       CHARACTER(len=400),        INTENT(in)  :: cfgrd
@@ -923,7 +923,7 @@ CONTAINS
 
       nk_in = 1
 
-      !! Determine input dimensions from input file :
+      !! Determine source dimensions from source file :
       CALL DIMS(cf_in, cv_in, ni_in, nj_in, jk0, jrec)
 
       !PRINT *, 'mod_grids.f90, cf_in, cv_in =>', TRIM(cf_in), '', TRIM(cv_in)
@@ -942,11 +942,11 @@ CONTAINS
          !! So it just  overides good sence and force sosie to understand that
          !! your field to interpolate is 2D with a time record
          !! (usually the case if the time record dimension in your
-         !! input file is not declared as UNLIMITED => bad! :(
+         !! source file is not declared as UNLIMITED => bad! :(
          WRITE(6,*) ''
          Ntr = jk0
          WRITE(6,*) 'WARNING: know_dim_in of mod_grids.f90 !!!'
-         WRITE(6,*) '   => we force input field "'//TRIM(cv_in)//'" to be 2D + time !!!'
+         WRITE(6,*) '   => we force source field "'//TRIM(cv_in)//'" to be 2D + time !!!'
          WRITE(6,*) '   => because you specified "jplev = -1" in the namelist!'
          WRITE(6,*) '   => the time-record dimension is therefore:', Ntr
          WRITE(6,*) ''
@@ -959,14 +959,14 @@ CONTAINS
          IF ( jk0 > 0 ) THEN
 
             l3d = .TRUE.
-            nk_in = jk0 ; WRITE(6,*) 'Number of level into input file =', nk_in
+            nk_in = jk0 ; WRITE(6,*) 'Number of level into source file =', nk_in
 
             IF (jplev /= 0) THEN
                IF ( (jplev <= 0).OR.(jplev > nk_in) ) THEN
                   WRITE(6,*) 'Level jplev is wrong! -> number of level =', nk_in
                   WRITE(6,*) 'In the namelist, jplev =', jplev ;  STOP
                END IF
-               WRITE(6,*) 'We are going to interpolate level', jplev, ' of input file'
+               WRITE(6,*) 'We are going to interpolate level', jplev, ' of source file'
             ELSE
                WRITE(6,*) ''
                WRITE(6,*) '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
@@ -1020,7 +1020,7 @@ CONTAINS
 
       IF ( (jt1 > 0).AND.(jt2 > 0) ) THEN
          Ntr = jt2 - jt1 + 1 ;  ;  j_start = jt1 ;  j_stop = jt2
-         !! jrec is the time dimension of the input file, Ntr is the length requested by the user :
+         !! jrec is the time dimension of the source file, Ntr is the length requested by the user :
          IF ( ( Ntr > jrec ).OR.(jt1 < 1).OR.(jt1 > jt2).OR.(jt2 > jrec) ) THEN
             WRITE(6,*) ''; WRITE(6,*) 'Check jt1 and jt2 in the namelist:'
             WRITE(6, '("=> the time dimension of ",a," is ", i5)') TRIM(cv_in), jrec
@@ -1059,7 +1059,7 @@ CONTAINS
          !!
          IF (lregout) THEN
             IF ( TRIM(cf_x_out) == 'spheric') THEN
-               WRITE(6,*) ''; WRITE(6,*) 'Building regular spherical output grid!'
+               WRITE(6,*) ''; WRITE(6,*) 'Building regular spherical target grid!'
                READ(cv_lon_out,*) dx ; READ(cv_lat_out,*) dy
                ni_out = INT(360./dx) ; nj_out = INT(180./dy)
                GOTO 100
@@ -1196,7 +1196,7 @@ CONTAINS
          n_inc = -1 ; ALLOCATE( y1d_b(ny) )
          !!
          WRITE(6,*) ''; WRITE(6,*) 'Latitude does not seem to increase with j'
-         WRITE(6,*) '--> We reverse 1D input latitude array!'
+         WRITE(6,*) '--> We reverse 1D source latitude array!'
          y1d_b = vlat
          DO jy = 1, ny
             vlat(jy) = y1d_b(ny-jy+1)
