@@ -177,7 +177,11 @@ CONTAINS
                xdum = lon_out
             END IF
             xdum = SIGN(1._8,180._8-xdum)*MIN(xdum,ABS(xdum-360._8)) ! like lon_out but between -180 and +180 !
-            !CALL DUMP_2D_FIELD(REAL(xdum,4), 'lon_out_180-180.nc', 'lon') ; !#lolo
+            IF ( (lon_min_1 > 180.).OR.(lon_max_1 > 180.) ) THEN
+               lon_min_1 = SIGN(1._8,180._8-lon_min_1)*MIN(lon_min_1,ABS(lon_min_1-360._8)) ! longitude in source domain was given in "0-360" mode
+               lon_max_1 = SIGN(1._8,180._8-lon_max_1)*MIN(lon_max_1,ABS(lon_max_1-360._8))
+            END IF
+            !CALL DUMP_2D_FIELD(REAL(xdum,4), 'xdum_lon_out_180-180.nc', 'lon') ; !#lolo
             WHERE ( xdum < lon_min_1 ) IGNORE=0
             WHERE ( xdum > lon_max_1 ) IGNORE=0
          END IF
@@ -646,6 +650,11 @@ CONTAINS
                mask_out = 1
                WHERE ( z3d_tmp == rmv ) mask_out = 0
                DEALLOCATE ( z3d_tmp )
+               
+            ELSEIF ( TRIM(cf_lsm_out) == 'val' ) THEN
+               PRINT *, ' ** the masked region on target domain will be where field = ', rmaskvalue
+               mask_out = 1               
+               PRINT *, ''
 
             ELSE
 

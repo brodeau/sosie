@@ -195,9 +195,11 @@ ssig_out = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!
 !! cf_lsm_out : file containing output land-sea mask [char]
 !!              MUST BE 3D for 3D interpolation!
-!!              or specify 'missing_value' if a 'missing_value' netcdf
-!!              attribute defines the mask on a field 'X' in file 'cf_x_out'
-!!              (not needed if "lmout = .FALSE." --> '')
+!!              - or specify 'missing_value' if a 'missing_value' netcdf
+!!                attribute defines the mask on a field 'X' in file 'cf_x_out'
+!!                (not needed if "lmout = .FALSE." --> '')
+!!              - or specify 'val' so points with value "rmaskvalue" in the file
+!!                to be saved will be masked!
 !!
 !! cv_lsm_out : name of land-sea mask variable in 'cf_lsm_out'     [char]
 !!              or name of field 'X' in 'cf_x_out' if you specified
