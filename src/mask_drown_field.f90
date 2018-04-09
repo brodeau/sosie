@@ -251,8 +251,8 @@ PROGRAM mask_drown_field
      xlon(:,1) = vlon(:) ; xlat(:,1) = vlat(:)
   ELSE
      ALLOCATE ( xlon(ni,nj), xlat(ni,nj) )
-     CALL GETVAR_2D_R8(ifx, ivx, cf_in, cv_lon, 0, 0, 0, xlon)   !lolo => not cool should be able to DOUBLE!
-     CALL GETVAR_2D_R8(ify, ivy, cf_in, cv_lat, 0, 0, 0, xlat)   !lolo => not cool should be able to DOUBLE!
+     CALL GETVAR_2D(ifx, ivx, cf_in, cv_lon, 0, 0, 0, xlon)   !lolo => not cool should be able to DOUBLE!
+     CALL GETVAR_2D(ify, ivy, cf_in, cv_lat, 0, 0, 0, xlat)   !lolo => not cool should be able to DOUBLE!
   END IF
 
 

@@ -822,8 +822,8 @@ CONTAINS
          IF ( l_2d_grid_yet_regular(idx) ) THEN
             !! Getting regular 2D grid :
             ALLOCATE ( zrlon(lx,ly), zrlat(lx,ly) )
-            CALL GETVAR_2D_R8(if1, iv1, cfgrd, cvx, 0, 0, 0, zrlon) ; if1 = 0 ; iv1 = 0
-            CALL GETVAR_2D_R8(if1, iv1, cfgrd, cvy, 0, 0, 0, zrlat)
+            CALL GETVAR_2D(if1, iv1, cfgrd, cvx, 0, 0, 0, zrlon) ; if1 = 0 ; iv1 = 0
+            CALL GETVAR_2D(if1, iv1, cfgrd, cvy, 0, 0, 0, zrlat)
             !!
             !! Checking for Regular 2D longitude and latitude
             lreg2d = .TRUE.
@@ -910,11 +910,11 @@ CONTAINS
          !! -----------------------------------------------------------------
          !! If 3d dimension, we chose first level
          IF ( ilz1 /= -1 ) THEN
-            CALL GETVAR_2D_R8(if1, iv1, cfgrd, cvx, 0, 1, 0, rlon) ; if1 = 0 ; iv1 = 0
-            CALL GETVAR_2D_R8(if1, iv1, cfgrd, cvy, 0, 1, 0, rlat)
+            CALL GETVAR_2D(if1, iv1, cfgrd, cvx, 0, 1, 0, rlon) ; if1 = 0 ; iv1 = 0
+            CALL GETVAR_2D(if1, iv1, cfgrd, cvy, 0, 1, 0, rlat)
          ELSE
-            CALL GETVAR_2D_R8(if1, iv1, cfgrd, cvx, 0, 0, 0, rlon) ; if1 = 0 ; iv1 = 0
-            CALL GETVAR_2D_R8(if1, iv1, cfgrd, cvy, 0, 0, 0, rlat)
+            CALL GETVAR_2D(if1, iv1, cfgrd, cvx, 0, 0, 0, rlon) ; if1 = 0 ; iv1 = 0
+            CALL GETVAR_2D(if1, iv1, cfgrd, cvy, 0, 0, 0, rlat)
          END IF
 
       END IF

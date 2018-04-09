@@ -316,14 +316,14 @@ PROGRAM TEST_STUFFS
       END IF
       
       !!  Getting longitude and latitude form grid file :
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlamt)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xphit)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlamu)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xphiu)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlamv)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xphiv)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlamf)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xphif)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlamt)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xphit)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlamu)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xphiu)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlamv)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xphiv)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlamf)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xphif)
 
 
       

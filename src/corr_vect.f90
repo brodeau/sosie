@@ -442,14 +442,14 @@ PROGRAM CORR_VECT
       END IF
 
       !!  Getting longitude and latitude form grid file :
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlon_t)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xlat_t)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlon_u)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlon_f)
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlon_t)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xlat_t)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlon_u)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlon_f)
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)
 
 
       PRINT *, ''
@@ -762,14 +762,14 @@ PROGRAM CORR_VECT
 
       !!  Getting longitude and latitude form grid file :
       !! ------------------------------------------------
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlon_t)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xlat_t)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlon_u)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlon_f)  ; i0=0 ; j0=0
-      CALL GETVAR_2D_R8(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlon_t)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xlat_t)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlon_u)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xlat_u)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlon_v)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlon_f)  ; i0=0 ; j0=0
+      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)  ; i0=0 ; j0=0
 
       IF ( l_3d_inv ) THEN
          ALLOCATE ( vdepth(nk) )

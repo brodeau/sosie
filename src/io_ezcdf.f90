@@ -38,6 +38,11 @@ MODULE io_ezcdf
       MODULE PROCEDURE GETVAR_1D_R8, GETVAR_1D_R4
    END INTERFACE GETVAR_1D
 
+   INTERFACE GETVAR_2D
+      MODULE PROCEDURE GETVAR_2D_R8, GETVAR_2D_R4
+   END INTERFACE GETVAR_2D
+
+   
 
 
    !! List of public routines
@@ -46,7 +51,6 @@ MODULE io_ezcdf
       &    get_sf_ao,        &
       &    getvar_1d,        &
       &    getvar_2d,        &
-      &    getvar_2d_r8,     & ! Mostly for 2D coordinates
       &    getvar_3d,        &
       &    getvar_attributes,&
       &    force_attr,       &
@@ -379,10 +383,9 @@ CONTAINS
    END SUBROUTINE GETVAR_1D_R4
  
 
+   
 
-
-   SUBROUTINE GETVAR_2D(idx_f, idx_v, cf_in, cv_in, lt, kz, kt, X, jt1, jt2, lz)
-
+   SUBROUTINE GETVAR_2D_R4(idx_f, idx_v, cf_in, cv_in, lt, kz, kt, X, jt1, jt2, lz)
       !!-----------------------------------------------------------------------------
       !! This routine extract a 2D field from a netcdf file
       !! at a given time
@@ -396,12 +399,8 @@ CONTAINS
       !!          * lt        : time dimension of the variable     (integer)
       !!          * kz        : level to extract                    (integer)
       !!                      0 => input file does not have levels ( 1 would work anyway...)
-      !!
       !!          * kt        : time snapshot to extract            (integer)
       !!                      0 => input file does not have a time snapshot
-      !!                           (= old GETVAR_2D_NOTIME)
-      !!
-      !!
       !! OUTPUT :
       !! --------
       !!          * X         : 2D array contening the variable     (real)
@@ -411,32 +410,24 @@ CONTAINS
       !!          * jt1, jt2  : first and last time snapshot to extract
       !!          *       lz  : number of levels to know when they are all read
       !!                        so we can close the file
-      !!
       !!------------------------------------------------------------------------
-
       INTEGER,                   INTENT(inout) :: idx_f, idx_v
       CHARACTER(len=*),          INTENT(in)    :: cf_in, cv_in
       INTEGER,                   INTENT(in)    :: lt, kz, kt
       REAL(4),  DIMENSION (:,:), INTENT(out)   :: X
       INTEGER,       OPTIONAL,   INTENT(in)    :: jt1, jt2, lz
-
-      INTEGER :: &
-         & lx, &    ! x dimension of the variable        (integer)
-         & ly       ! y dimension of the variable        (integer)
-
-      INTEGER :: n1, n2, n3, n4, jlev, its, ite, kz_stop = 0
-      INTEGER :: ierr1, ierr2
+      
+      INTEGER :: lx, ly, n1, n2, n3, n4, jlev, its, ite, kz_stop = 0, ierr1, ierr2
       REAL(4) :: rsf, rao
       LOGICAL :: l_okay
-      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D'
-
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R4'
+      
       lx = size(X,1)
       ly = size(X,2)
 
       jlev = kz ! so we can modify jlev without affecting kz...
 
       CALL DIMS(cf_in, cv_in, n1, n2, n3, n4)
-
       IF ( (lx /= n1).OR.(ly /= n2) ) CALL print_err(crtn, ' PROBLEM #1 => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
       its = 1 ; ite = lt
@@ -461,7 +452,6 @@ CONTAINS
       DO WHILE ( .NOT. l_okay )
 
          IF ( jlev == 0 ) THEN    ! No levels
-
             IF ( kt == 0 ) THEN
                CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1/), count=(/lx,ly/)), &
                   &      crtn,cf_in,cv_in)
@@ -478,7 +468,6 @@ CONTAINS
                PRINT *, ' *** warning: ',trim(crtn),' => there is actually no levels for ', trim(cv_in),' in ',trim(cf_in)
                PRINT *, '              => fixing it...'
                jlev = 0 ! => should be treated at next "while" loop...
-
             ELSE
                IF ( jlev >  n3 ) CALL print_err(crtn, ' you want extract a level greater than max value')
                IF ( kt == 0 ) THEN
@@ -487,16 +476,13 @@ CONTAINS
                   CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,jlev,kt/), count=(/lx,ly,1,1/)), crtn,cf_in,cv_in)
                END IF
                l_okay = .TRUE.  ! we can exit the WHILE loop...
-            END IF
-
+            END IF            
          END IF
-
       END DO
 
       IF (ierr1 == NF90_NOERR) X = rsf*X
       IF (ierr2 == NF90_NOERR) X = X + rao
-
-      ! Closing when needed:
+      
       IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
@@ -504,69 +490,30 @@ CONTAINS
          PRINT *, ''
       END IF
 
-   END SUBROUTINE GETVAR_2D
-
-
+   END SUBROUTINE GETVAR_2D_R4
 
    SUBROUTINE GETVAR_2D_R8(idx_f, idx_v, cf_in, cv_in, lt, kz, kt, X, jt1, jt2, lz)
-
       !!-----------------------------------------------------------------------------
-      !! This routine extract a 2D field from a netcdf file
-      !! at a given time
-      !!
-      !! INPUT :
-      !! -------
-      !!          * idx_f    : ID of current file                  (integer)
-      !!          * idx_v    : ID of current variable              (integer)
-      !!          * cf_in      : name of the input file              (character)
-      !!          * cv_in      : name of the variable                (character)
-      !!          * lt        : time dimension of the variable     (integer)
-      !!          * kz        : level to extract                    (integer)
-      !!                      0 => input file does not have levels ( 1 would work anyway...)
-      !!
-      !!          * kt        : time snapshot to extract            (integer)
-      !!                      0 => input file does not have a time snapshot
-      !!                           (= old GETVAR_2D_NOTIME)
-      !!
-      !!
-      !! OUTPUT :
-      !! --------
-      !!          * X         : 2D array contening the variable     (double)
-      !!
-      !! OPTIONAL INPUT :
-      !! ----------------
-      !!          * jt1, jt2  : first and last time snapshot to extract
-      !!          *       lz  : number of levels to know when they are all read
-      !!                        so we can close the file
-      !!
+      !! See GETVAR_2D_R4
       !!------------------------------------------------------------------------
-
       INTEGER,                   INTENT(inout) :: idx_f, idx_v
       CHARACTER(len=*),          INTENT(in)    :: cf_in, cv_in
       INTEGER,                   INTENT(in)    :: lt, kz, kt
       REAL(8),  DIMENSION (:,:), INTENT(out)   :: X
       INTEGER,       OPTIONAL,   INTENT(in)    :: jt1, jt2, lz
-
-      INTEGER :: &
-         & lx, &    ! x dimension of the variable        (integer)
-         & ly       ! y dimension of the variable        (integer)
-
-      INTEGER :: n1, n2, n3, n4, jlev, its, ite, kz_stop = 0
-      INTEGER :: ierr1, ierr2
+      
+      INTEGER :: lx, ly, n1, n2, n3, n4, jlev, its, ite, kz_stop = 0, ierr1, ierr2
       REAL(4) :: rsf, rao
       LOGICAL :: l_okay
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R8'
-
+      
       lx = size(X,1)
       ly = size(X,2)
 
       jlev = kz ! so we can modify jlev without affecting kz...
 
       CALL DIMS(cf_in, cv_in, n1, n2, n3, n4)
-
-      IF ( (lx /= n1).OR.(ly /= n2) ) CALL print_err(crtn, ' PROBLEM #1 => '//trim(cv_in)//' in '//trim(cf_in))
-      !PRINT *, ' n4, lt =>', n4, lt
-      IF ( (lt > 0).AND.(n4 /= lt)  ) CALL print_err(crtn, ' PROBLEM #2  => '//trim(cv_in)//' in '//trim(cf_in))
+      IF ( (lx /= n1).OR.(ly /= n2) ) CALL print_err(crtn, ' PROBLEM #1 => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
       its = 1 ; ite = lt
       IF ( PRESENT(jt1) ) its = jt1
@@ -576,21 +523,20 @@ CONTAINS
 
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
          PRINT *, ''
-         PRINT *, ' --- GETVAR_2D_R8: opening file '//TRIM(cf_in)//' !'
+         PRINT *, ' --- GETVAR_2D: opening file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
 
-      IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
-
       ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
       ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
+
+      IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
       l_okay = .FALSE.
       DO WHILE ( .NOT. l_okay )
 
          IF ( jlev == 0 ) THEN    ! No levels
-
             IF ( kt == 0 ) THEN
                CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1/), count=(/lx,ly/)), &
                   &      crtn,cf_in,cv_in)
@@ -607,7 +553,6 @@ CONTAINS
                PRINT *, ' *** warning: ',trim(crtn),' => there is actually no levels for ', trim(cv_in),' in ',trim(cf_in)
                PRINT *, '              => fixing it...'
                jlev = 0 ! => should be treated at next "while" loop...
-
             ELSE
                IF ( jlev >  n3 ) CALL print_err(crtn, ' you want extract a level greater than max value')
                IF ( kt == 0 ) THEN
@@ -616,24 +561,24 @@ CONTAINS
                   CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,jlev,kt/), count=(/lx,ly,1,1/)), crtn,cf_in,cv_in)
                END IF
                l_okay = .TRUE.  ! we can exit the WHILE loop...
-            END IF
-
+            END IF            
          END IF
-
       END DO
 
       IF (ierr1 == NF90_NOERR) X = rsf*X
       IF (ierr2 == NF90_NOERR) X = X + rao
-
-      ! Closing when needed:
+      
       IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
-         PRINT *, ' --- GETVAR_2D_R8: closing file '//TRIM(cf_in)//' !'
+         PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
          PRINT *, ''
       END IF
 
    END SUBROUTINE GETVAR_2D_R8
+
+
+
 
 
 
