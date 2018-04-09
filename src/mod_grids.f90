@@ -2,6 +2,7 @@ MODULE MOD_GRIDS
 
    USE mod_conf
    USE mod_scoord
+   USE io_ezcdf
 
    IMPLICIT none
 
@@ -27,8 +28,6 @@ CONTAINS
 
 
    SUBROUTINE SRC_DOMAIN()
-
-      USE io_ezcdf  !: => only to get time array !LB???
 
       INTEGER :: jt
 
@@ -88,12 +87,8 @@ CONTAINS
 
    SUBROUTINE TRG_DOMAIN()
 
-      !lolo: remettre: USE io_ezcdf, ONLY: getvar_attributes
-      USE io_ezcdf
-
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
       REAL(8) :: zz
-      
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
          lregout = lregin
@@ -307,9 +302,7 @@ CONTAINS
 
    SUBROUTINE get_src_conf()
 
-      USE io_ezcdf
       USE mod_manip
-      USE mod_scoord
       !! Local :
       INTEGER :: ji, jj, jk
       REAL    :: rval_thrshld, lon_min_2, lon_max_2
@@ -529,9 +522,6 @@ CONTAINS
 
    SUBROUTINE get_trg_conf()
 
-      USE io_ezcdf
-      USE mod_scoord
-
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
 
 
@@ -717,18 +707,7 @@ CONTAINS
 
 
    SUBROUTINE rd_grid(iv, lreg, cfgrd, cvx, cvy, rlon, rlat)
-
-      USE io_ezcdf
-
-      !!   AUTHOR:
-      !!   -------
-      !!   Laurent Brodeau, 2015
       !!
-      !!   may 2007: modified by Pierre Mathiot to detect and handle
-      !!               regular 2D source longitude and regular 2D source
-      !!               latitude when the source grid is declared as irregular.
-      !!               Allowing akima interpolation.
-
       !! Arguments:
       INTEGER,                   INTENT(in)  :: iv !: iv = -1 means we're handling source grid
       !!                                                /= -1 means target grid
@@ -759,12 +738,12 @@ CONTAINS
 
       IF ( lreg ) THEN
          IF ( (size(rlon,2) /= size(rlat,2)).OR.(size(rlon,2) /= 1) ) THEN
-            WRITE(6,*) 'ERROR 1: rd_grid (prepare.F90)!' ; STOP
+            WRITE(6,*) 'ERROR 1: rd_grid (mod_grids.f90)!' ; STOP
          END IF
          lx = size(rlon,1) ; ly = size(rlat,1)
       ELSE
          IF ( (size(rlon,1) /= size(rlat,1)).OR.(size(rlon,1) /= size(rlat,1)) ) THEN
-            WRITE(6,*) 'ERROR 2: rd_grid (prepare.F90)!' ; STOP
+            WRITE(6,*) 'ERROR 2: rd_grid (mod_grids.f90)!' ; STOP
          END IF
          lx = size(rlon,1) ; ly = size(rlon,2)
       END IF
@@ -926,8 +905,6 @@ CONTAINS
 
    SUBROUTINE rd_vgrid(nk, cfgrd, cvz, vdepth)
 
-      USE io_ezcdf
-
       INTEGER,                   INTENT(in) :: nk
       CHARACTER(len=400),        INTENT(in) :: cfgrd
       CHARACTER(len=80),         INTENT(in) :: cvz
@@ -943,20 +920,14 @@ CONTAINS
 
    SUBROUTINE know_dim_in()
 
-      USE io_ezcdf
-
       INTEGER :: jk0, jrec
 
       nk_in = 1
 
-      !! Determine source dimensions from source file :
       CALL DIMS(cf_in, cv_in, ni_in, nj_in, jk0, jrec)
-
-      !PRINT *, 'mod_grids.f90, cf_in, cv_in =>', TRIM(cf_in), '', TRIM(cv_in)
-      !PRINT *, 'ni_in, nj_in, jk0, jrec =>', ni_in, nj_in, jk0, jrec
-
+      
       IF ( nj_in == -1 ) THEN
-         WRITE(6,*) 'prepare.know_dim_in => ERROR! variable ',trim(cv_in),' should be at least 2D!!!'
+         WRITE(6,*) 'ERROR (know_dim_in)! variable ',TRIM(cv_in),' should be at least 2D!!!'
          STOP
       END IF
 
@@ -1066,18 +1037,13 @@ CONTAINS
 
    SUBROUTINE know_dim_out
       !!
-      USE io_ezcdf
-      !!
       nk_out = 1
       !!
-
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
-
          ni_out = ni_in
          nj_out = nj_in
 
       ELSE
-
          !! If 3D interpolation and building spherical grid, we use levels from source grid:
          IF ( l_int_3d .AND. (TRIM(cf_x_out)  == 'spheric') ) THEN
             cf_z_out = cf_z_in ;  cv_z_out = cv_z_in
@@ -1086,8 +1052,10 @@ CONTAINS
          IF (lregout) THEN
             IF ( TRIM(cf_x_out) == 'spheric') THEN
                WRITE(6,*) ''; WRITE(6,*) 'Building regular spherical target grid!'
-               READ(cv_lon_out,*) dx ; READ(cv_lat_out,*) dy
-               ni_out = INT(360./dx) ; nj_out = INT(180./dy)
+               READ(cv_lon_out,*) dx
+               READ(cv_lat_out,*) dy
+               ni_out = INT(360./dx)
+               nj_out = INT(180./dy)
                GOTO 100
             ELSE
                CALL DIMS(cf_x_out, cv_lon_out, ni_out, n1, n2, nrec)
@@ -1101,7 +1069,6 @@ CONTAINS
       END IF
 
 100   CONTINUE
-
 
       IF ( l_int_3d ) THEN
          !!
@@ -1140,9 +1107,7 @@ CONTAINS
    !!
    SUBROUTINE FIX_LONG_1D(nx, vlon, n_inc, i_chg_x)
       !!
-      !!
-      !! Making 1D longitude understandable
-      !! ==================================
+      !! Makes 1D longitude understandable
       !!
       INTEGER,                  INTENT(in)    :: nx
       REAL(8), DIMENSION(nx),  INTENT(inout) :: vlon
@@ -1151,21 +1116,17 @@ CONTAINS
       !!
       REAL(8), DIMENSION(:), ALLOCATABLE    :: x1d_b
       INTEGER :: jx
-
-
-
+      !!---------------------------------------------------------------
       IF ( (vlon(1) == -180.0).AND.(vlon(nx) == 180.0) ) THEN
-         !! In that very special case we do the following trick to avoid having
-         !! twice the point "lon. 180" in the final longitude array
+         !! to avoid having twice the point "lon. 180" in the final longitude array
          vlon(1)  = -179.99
          vlon(nx) =  179.99
          IF ( ewper /= 0 ) THEN
             ewper = 0
-            WRITE(6,*) 'prepare.F90: FIX_LONG_1D => "ewper" forced to 0 !'; WRITE(6,*) ''
+            WRITE(6,*) 'mod_grids.f90: FIX_LONG_1D => "ewper" forced to 0 !'; WRITE(6,*) ''
          END IF
       END IF
-
-
+      
       !! We want positive and increasing longitude !
       WHERE ( vlon < 0. )  vlon = vlon + 360.
       !!
@@ -1181,7 +1142,6 @@ CONTAINS
             END IF
          END IF
       END DO
-      !!
       !!
       IF ( n_inc == -1 ) THEN
          !!
@@ -1201,12 +1161,11 @@ CONTAINS
       END IF
       !!
    END SUBROUTINE FIX_LONG_1D
-   !!
-   !!
+
+   
    SUBROUTINE FIX_LATD_1D(ny, vlat, n_inc)
       !!
-      !! Making 1D latitude increasing with jy
-      !! =====================================
+      !! Makes 1D latitude increasing with jy
       !!
       INTEGER,                  INTENT(in)    :: ny
       REAL(8), DIMENSION(ny), INTENT(inout) :: vlat
