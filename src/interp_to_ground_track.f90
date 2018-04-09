@@ -545,7 +545,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    IF ( .NOT. l_glob_lon_wize ) THEN
       ALLOCATE ( xdum_r8(1,Nti) )
-      xdum_r8 = SIGN(1._8, 180._8-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360._8)) ! like xlon_gt_i but between -180 and +180 !
+      xdum_r8 = degE_to_degWE(xlon_gt_i)
+      !xdum_r8 = SIGN(1._8, 180._8-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360._8)) ! like xlon_gt_i but between -180 and +180 !
       WHERE ( xdum_r8 < lon_min_1 ) IGNORE=0
       WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
       DEALLOCATE ( xdum_r8 )

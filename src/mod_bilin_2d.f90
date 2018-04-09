@@ -476,7 +476,7 @@ CONTAINS
                      iqdrn = 4
                      !!
                      ! To avoid problem with the GW meridian, pass to -180, 180 when working around GW
-                     hPp = SIGN(1.d0,180.-hP)*MIN(hP,ABS(hP-360.))
+                     hPp = degE_to_degWE(hP)
                      !!
                      IF ( hN > hE ) hN = hN -360._8
                      IF ( hPp > hN .AND. hPp <= hE ) iqdrn=1
@@ -668,14 +668,12 @@ CONTAINS
 
       zxlam = xlam       !: save input longitude in workinh array
 
-      IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180. &
-         &                            .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) THEN
-         ! then we are near the 0 deg line and we must work in the frame -180 180
-         WHERE ( zxlam >= 180. ) zxlam=zxlam -360._8
-      ENDIF
+      ! when near the 0 deg line and we must work in the frame -180 180      
+      IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
+         &                            .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) &
+         &  zxlam = degE_to_degWE(zxlam)
 
       zres=1000. ; zdlam=0.5 ;  zdphi=0.5 ;  zalpha=0. ;  zbeta=0. ;  niter=0
-
 
       DO WHILE ( (zres > zresmax).AND.(niter < itermax) )
 

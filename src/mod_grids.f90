@@ -3,7 +3,8 @@ MODULE MOD_GRIDS
    USE mod_conf
    USE mod_scoord
    USE io_ezcdf
-
+   USE mod_manip, ONLY : degE_to_degWE
+   
    IMPLICIT none
 
    PRIVATE
@@ -183,10 +184,10 @@ CONTAINS
             ELSE
                xdum = lon_out
             END IF
-            xdum = SIGN(1._8,180._8-xdum)*MIN(xdum,ABS(xdum-360._8)) ! like lon_out but between -180 and +180 !
-            IF ( (lon_min_1 > 180.).OR.(lon_max_1 > 180.) ) THEN
-               lon_min_1 = SIGN(1._8,180._8-lon_min_1)*MIN(lon_min_1,ABS(lon_min_1-360._8)) ! longitude in source domain was given in "0-360" mode
-               lon_max_1 = SIGN(1._8,180._8-lon_max_1)*MIN(lon_max_1,ABS(lon_max_1-360._8))
+            xdum = degE_to_degWE(xdum)
+            IF ( (lon_min_1 > 180.).OR.(lon_max_1 > 180.) ) THEN               
+               lon_min_1 = degE_to_degWE(lon_min_1)
+               lon_max_1 = degE_to_degWE(lon_max_1)
             END IF
             !CALL DUMP_2D_FIELD(REAL(xdum,4), 'xdum_lon_out_180-180.nc', 'lon') ; !#lolo
             WHERE ( xdum < lon_min_1 ) IGNORE=0
