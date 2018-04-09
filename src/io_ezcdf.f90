@@ -33,6 +33,13 @@ MODULE io_ezcdf
 
    PRIVATE
 
+
+   INTERFACE GETVAR_1D
+      MODULE PROCEDURE GETVAR_1D_R8, GETVAR_1D_R4
+   END INTERFACE GETVAR_1D
+
+
+
    !! List of public routines
    !! =======================
    PUBLIC :: dims,      &
@@ -310,8 +317,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GETVAR_1D(cf_in, cv_in, X)
-
+   SUBROUTINE GETVAR_1D_R8(cf_in, cv_in, VX)
       !!-----------------------------------------------------------------------
       !! This routine extract a variable 1D from a netcdf file
       !!
@@ -322,31 +328,56 @@ CONTAINS
       !!
       !! OUTPUT :
       !! --------
-      !!          * X         : 1D array contening the variable   (double)
+      !!          * VX         : 1D array contening the variable   (double)
       !!
       !!------------------------------------------------------------------------
       INTEGER                             :: id_f, id_v
       CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
-      REAL(8), DIMENSION (:), INTENT(out) ::  X
-
+      REAL(8), DIMENSION (:), INTENT(out) :: VX
       INTEGER :: ierr1, ierr2
       REAL(4) :: rsf, rao
-      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D'
-
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D_R8'
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
-
       CALL sherr( NF90_INQ_VARID(id_f, TRIM(cv_in), id_v),  crtn,cf_in,cv_in)
       ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
       ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
-
-      CALL sherr( NF90_GET_VAR(id_f, id_v, X),              crtn,cf_in,cv_in)
-      IF (ierr1 == NF90_NOERR) X = rsf*X
-      IF (ierr2 == NF90_NOERR) X = X + rao
-
+      CALL sherr( NF90_GET_VAR(id_f, id_v, VX),              crtn,cf_in,cv_in)
+      IF (ierr1 == NF90_NOERR) VX = rsf*VX
+      IF (ierr2 == NF90_NOERR) VX = VX + rao
       CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
+   END SUBROUTINE GETVAR_1D_R8
+ 
 
-   END SUBROUTINE GETVAR_1D
-
+   SUBROUTINE GETVAR_1D_R4(cf_in, cv_in, VX)
+      !!-----------------------------------------------------------------------
+      !! This routine extract a variable 1D from a netcdf file
+      !!
+      !! INPUT :
+      !! -------
+      !!          * cf_in      : name of the input file             (character l=100)
+      !!          * cv_in      : name of the variable               (character l=20)
+      !!
+      !! OUTPUT :
+      !! --------
+      !!          * VX         : 1D array contening the variable   (double)
+      !!
+      !!------------------------------------------------------------------------
+      INTEGER                             :: id_f, id_v
+      CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
+      REAL(4), DIMENSION (:), INTENT(out) :: VX
+      INTEGER :: ierr1, ierr2
+      REAL(4) :: rsf, rao
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D_R4'
+      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
+      CALL sherr( NF90_INQ_VARID(id_f, TRIM(cv_in), id_v),  crtn,cf_in,cv_in)
+      ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
+      ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
+      CALL sherr( NF90_GET_VAR(id_f, id_v, VX),              crtn,cf_in,cv_in)
+      IF (ierr1 == NF90_NOERR) VX = rsf*VX
+      IF (ierr2 == NF90_NOERR) VX = VX + rao
+      CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
+   END SUBROUTINE GETVAR_1D_R4
+ 
 
 
 

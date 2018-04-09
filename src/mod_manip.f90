@@ -9,8 +9,15 @@ MODULE MOD_MANIP
 
    PRIVATE
 
+
+   INTERFACE flip_ud_1d
+      MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8
+   END INTERFACE
+
+
+   
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
-      &      flip_ud_1d, flip_ud_1d_double, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
+      &      flip_ud_1d, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
@@ -557,47 +564,32 @@ CONTAINS
    END SUBROUTINE PARTIAL_DERIV
 
 
-   SUBROUTINE FLIP_UD_1D(XF)
-
+   SUBROUTINE FLIP_UD_1D_R4(XF)
       REAL(4), DIMENSION(:), INTENT(inout) :: XF
-
       INTEGER :: nz, jk
       REAL(4), DIMENSION(:), ALLOCATABLE :: ztmp
-
       nz = SIZE(XF,1)
-
       ALLOCATE ( ztmp(nz) )
-
       ztmp(:) = XF(:)
-
       DO jk = 1, nz
          XF(jk) =  ztmp(nz-jk+1)
       END DO
-
       DEALLOCATE ( ztmp )
+   END SUBROUTINE FLIP_UD_1D_R4
 
-   END SUBROUTINE FLIP_UD_1D
-
-   SUBROUTINE FLIP_UD_1D_DOUBLE(XF)
-
+   SUBROUTINE FLIP_UD_1D_R8(XF)
       REAL(8), DIMENSION(:), INTENT(inout) :: XF
-
       INTEGER :: nz, jk
       REAL(8), DIMENSION(:), ALLOCATABLE :: ztmp
-
       nz = SIZE(XF,1)
-
       ALLOCATE ( ztmp(nz) )
-
       ztmp(:) = XF(:)
-
       DO jk = 1, nz
          XF(jk) =  ztmp(nz-jk+1)
       END DO
-
       DEALLOCATE ( ztmp )
+   END SUBROUTINE FLIP_UD_1D_R8
 
-   END SUBROUTINE FLIP_UD_1D_DOUBLE
 
    SUBROUTINE FLIP_UD_2D(XF)
 

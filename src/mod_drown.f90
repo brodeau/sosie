@@ -66,6 +66,8 @@ CONTAINS
 
       INTEGER, PARAMETER :: jinc_debg = 2
 
+      
+      X = X * mask  ! we rather have 0s on continents than some fucked up high values...
 
       ninc_max = 200   ! will stop before when all land points have been treated!!!
       IF ( present(nb_inc) ) ninc_max = nb_inc

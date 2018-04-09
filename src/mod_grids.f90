@@ -92,6 +92,8 @@ CONTAINS
       USE io_ezcdf
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
+      REAL(8) :: zz
+      
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
          lregout = lregin
@@ -116,7 +118,7 @@ CONTAINS
       END IF
 
       IF (l_int_3d) THEN
-         ALLOCATE ( depth_in_tmp(ni_out, nj_out, nk_in), depth_out(ni_out,nj_out,nk_out) )
+         ALLOCATE ( depth_in_trgt2d(ni_out, nj_out, nk_in), depth_out(ni_out,nj_out,nk_out) )
          ALLOCATE ( data3d_tmp(ni_out, nj_out, nk_in), data3d_out(ni_out,nj_out,nk_out) )
       END IF
 
@@ -154,6 +156,16 @@ CONTAINS
          !! Normal case => 2D horizontal interpolation will be performed !
 
          CALL get_trg_conf()
+         
+         IF ( (TRIM(ctype_z_in) == 'z') .AND. (nk_in == nk_out) ) THEN
+            WRITE(6,'("Mhhh interesting, target and vertical both have ", i4.4 ," vertical levels!")') nk_in
+            zz = SUM( ( 1000.*(depth_out(1,1,:) - depth_in(1,1,:)) )**2 )
+            IF ( zz < 1.0 ) THEN
+               PRINT *, ' => well, they are actually identical!', zz; PRINT *, ''
+               l_identical_levels = .TRUE.
+               
+            END IF
+         END IF
 
          max_lat_out = maxval(lat_out) ;   min_lat_out = minval(lat_out) ;
          PRINT*,''
@@ -278,7 +290,7 @@ CONTAINS
          DEALLOCATE ( data3d_in, depth_in )
          !data3d_tmp = 0.0;  depth_out = 0.0;  data3d_out = 0.0
          DEALLOCATE ( data3d_tmp, depth_out, data3d_out )
-         DEALLOCATE ( depth_in_tmp )
+         DEALLOCATE ( depth_in_trgt2d )
          IF (trim(ctype_z_in) == 'sigma' )  DEALLOCATE ( bathy_in )
          IF (trim(ctype_z_out) == 'sigma' ) DEALLOCATE ( bathy_out )
       END IF
@@ -313,10 +325,10 @@ CONTAINS
             CALL GETVAR_2D(if0,iv0,cf_bathy_in, cv_bathy_in, 0, 0, 0, bathy_in(:,:))
             !! compute 3D depth_in for source variable from bathy and sigma parameters
             CALL depth_from_scoord(ssig_in, bathy_in, ni_in, nj_in, nk_in, depth_in)
-         ELSEIF ( trim(ctype_z_in) == 'z' ) THEN
+         ELSEIF ( TRIM(ctype_z_in) == 'z' ) THEN
             !! in z case, the depth vector is copied at each grid-point
             CALL rd_vgrid(nk_in, cf_z_in, cv_z_in, depth_in(1,1,:))
-            WRITE(6,*) ''; WRITE(6,*) 'Source Depths ='; PRINT *, depth_in(1,1,:) ; WRITE(6,*) ''
+            !WRITE(6,*) ''; WRITE(6,*) 'Source Depths ='; PRINT *, depth_in(1,1,:) ; WRITE(6,*) ''
             DO ji=1,ni_in
                DO jj=1,nj_in
                   depth_in(ji,jj,:) = depth_in(1,1,:)
@@ -325,10 +337,10 @@ CONTAINS
          ELSE
             PRINT*,''; PRINT *, 'Not a valid source vertical coordinate' ; PRINT*,''
          ENDIF
-
-         IF ( trim(ctype_z_in) == 'z' ) THEN
-            PRINT*,''; WRITE(6,*) 'Source has z coordinates and depth vector is =', depth_in(1,1,:); PRINT*,''
-         ELSEIF ( trim(ctype_z_in) == 'sigma' ) THEN
+         
+         IF ( TRIM(ctype_z_in) == 'z' ) THEN
+            PRINT*,''; WRITE(6,*) 'Source has z coordinates and depth vector is:'; PRINT *, depth_in(1,1,:); PRINT*,''
+         ELSEIF ( TRIM(ctype_z_in) == 'sigma' ) THEN
             PRINT*,''; WRITE(6,*) 'Source has sigma coordinates and depth range is ', MINVAL(depth_in), &
                &                           ' to ', MAXVAL(depth_in) ; PRINT*,''
          ELSE
@@ -576,25 +588,30 @@ CONTAINS
 
       IF ( l_int_3d ) THEN
          IF ( trim(cf_x_out)  == 'spheric') THEN
-            cf_z_out = cf_z_in ;  cv_z_out = cv_z_in         !Important
+            cf_z_out = cf_z_in
+            cv_z_out = cv_z_in         !Important
          END IF
 
          IF ( trim(ctype_z_out) == 'sigma' ) THEN
+
             !! read bathy for target grid
             CALL GETVAR_2D(if0,iv0,cf_bathy_out, cv_bathy_out, 0, 0, 0, bathy_out(:,:))
             !! compute target depth on target grid from bathy_out and ssig_out params
-            CALL depth_from_scoord(ssig_out, bathy_out, ni_out, nj_out, ssig_out%Nlevels, depth_out)
+            CALL DEPTH_FROM_SCOORD(ssig_out, bathy_out, ni_out, nj_out, ssig_out%Nlevels, depth_out)
             CALL GETVAR_ATTRIBUTES(cf_bathy_out, cv_bathy_out,  nb_att_z, vatt_info_z)
+            
          ELSEIF (trim(ctype_z_out) == 'z' ) THEN
+
             !! depth vector copied on all grid-points
             CALL rd_vgrid(nk_out, cf_z_out, cv_z_out, depth_out(1,1,:))
-            !WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
             CALL GETVAR_ATTRIBUTES(cf_z_out, cv_z_out,  nb_att_z, vatt_info_z)
             DO ji=1,ni_out
                DO jj=1,nj_out
                   depth_out(ji,jj,:) = depth_out(1,1,:)
                ENDDO
             ENDDO
+            WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_out(1,1,:) ; WRITE(6,*) ''
+
          ELSE
             PRINT*,''; WRITE(6,*) 'Not a valid target vertical coordinate' ; STOP
             !!
@@ -914,7 +931,7 @@ CONTAINS
       INTEGER,                   INTENT(in) :: nk
       CHARACTER(len=400),        INTENT(in) :: cfgrd
       CHARACTER(len=80),         INTENT(in) :: cvz
-      REAL(8), DIMENSION(nk) ,  INTENT(out) :: vdepth
+      REAL(4), DIMENSION(nk) ,  INTENT(out) :: vdepth
 
       CALL GETVAR_1D(cfgrd, cvz, vdepth)
 

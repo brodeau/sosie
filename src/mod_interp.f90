@@ -33,9 +33,9 @@ CONTAINS
       IF ( ldrown ) THEN
          !! Extrapolate sea values over land :
          IF ( lmout ) THEN
-            CALL DROWN(ewper, data_in, mask_in(:,:,1),  nb_inc=100, nb_smooth=0)
+            CALL DROWN(ewper, data_in, mask_in(:,:,1), nb_inc=ni_in/5)
          ELSE
-            CALL DROWN(ewper, data_in, mask_in(:,:,1))
+            CALL DROWN(ewper, data_in, mask_in(:,:,1), nb_inc=ni_in/2)
          END IF
       ELSE
          PRINT *, '-------------------'
@@ -57,7 +57,7 @@ CONTAINS
 
       CASE('akima')
          CALL akima_2d(ewper, lon_in, lat_in, data_in, lon_out, lat_out, data_out)
-         
+
       CASE('bilin')
          CALL bilin_2d(ewper, lon_in, lat_in, data_in, lon_out, lat_out, data_out, cpat,  mask_domain_out=IGNORE)
 
@@ -85,7 +85,7 @@ CONTAINS
          CALL DROWN(ewper_out, data_out, mask_out(:,:,1),  nb_inc=100, nb_smooth=5)
       END IF
       !lolo.
-      
+
       !! Masking result if requested
       IF ( lmout ) THEN
          WHERE (mask_out(:,:,1) == 0)  data_out = rmaskvalue
@@ -95,7 +95,7 @@ CONTAINS
 
       !! If target grid is an ORCA grid, calling "lbc_lnk":
       IF ( i_orca_out > 0 ) CALL lbc_lnk( i_orca_out, data_out, c_orca_out, 1.0_8 )
-      
+
    END SUBROUTINE INTERP_2D
 
 
@@ -106,41 +106,64 @@ CONTAINS
       !! 3D INTERPOLATION
       !! ================
 
-      INTEGER :: ji, jj, jk, jk_last=0
+      INTEGER :: ji, jj, jk, jklast=0
       REAL(8) :: zmax_in, zmax_out
 
+      CHARACTER(len=128) :: cfdbg !DEBUG
+      
       !! Interpolation of each of the nk_in levels onto the target grid
       !! --------------------------------------------------------------
+
+
+      !! Need to do some sort of vertical drown downward to propagate the bottom
+      !! value (last water pomit mask==1) down into the sea-bed...      
+      !DO jj = 1, nj_in
+      !   DO ji = 1, ni_in
+      !      IF ( mask_in(ji,jj,1) == 1 ) THEN  ! ocean at first level!
+      !         IF ((jj==678).AND.(ji==1108)) PRINT *, ' LOLO, before deepening', data3d_in(ji,jj,:) !LOLOdebug
+      !         jk = 1
+      !         DO WHILE ( jk <= nk_in )
+      !            IF ( (jklast == 0).AND.(jk < nk_in) ) THEN
+      !               IF ( (mask_in(ji,jj,jk) == 1).AND.(mask_in(ji,jj,jk+1) == 0) ) THEN
+      !                  jklast = jk ! last point with water before seabed...
+      !                  !IF ((jj==678).AND.(ji==1108)) PRINT *, 'LOLO: bottom point at jk=', jklast
+      !               END IF
+      !            END IF
+      !            IF ( jk > jklast ) data3d_in(ji,jj,jk) = data3d_in(ji,jj,jklast) ! persistence!
+      !            jk = jk + 1
+      !         END DO
+      !      END IF
+      !      IF ((jj==678).AND.(ji==1108)) PRINT *, ' LOLO, after deepening', data3d_in(ji,jj,:) !LOLOdebug
+      !   END DO
+      !END DO
+      !jklast = 0
+      !!LOLOdebug:
+      !DO jk = 1, nk_in
+      !   WRITE(cfdbg,'("data_in_drowned_h+b_lev",i2.2,".nc")') jk ; PRINT *, ' *** saving ', TRIM(cfdbg)
+      !   CALL DUMP_2D_FIELD(data3d_in(:,:,jk), TRIM(cfdbg), 'data')
+      !END DO
+      !!LOLOdebug.
+
+
+
       DO jk = 1, nk_in
 
          PRINT *, ' Level : ', jk
 
          IF ( cmethod /= 'no_xy' ) THEN
 
-         IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data3d_in(:,:,jk))
-         IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_in(:,:,jk))
+            IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data3d_in(:,:,jk))
+            IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_in(:,:,jk))
 
-         IF ( ldrown ) THEN
-            !! Extrapolate sea values over land :
-            !WRITE(6,*) '*** Extrapolating source data over continents with DROWN on level jk =', jk
-            IF ( lmout ) THEN
-               CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk),  nb_inc=100, nb_smooth=0)
+            IF ( ldrown ) THEN
+               !! Extrapolate sea values over land :
+               WRITE(6,*) '*** Extrapolating source data over land at level jk =', INT(jk,2)
+               CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk), nb_inc=ni_in/2, nb_smooth=10 )
             ELSE
-               CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk))
+               PRINT *, '-------------------'
+               PRINT *, 'DROWN NOT CALLED!!!'
+               PRINT *, '-------------------'
             END IF
-            !LOLOdebug:
-            !WRITE(cfdbg,'("data_in_drowned_lev",i2.2,".nc")') jk
-            !IF ( jk == 17 ) THEN
-            !   !CALL DUMP_2D_FIELD(data3d_in(:,:,jk), trim(cfdbg), 'data')
-            !   CALL DUMP_2D_FIELD(real(mask_in(:,:,jk),4), 'lolo.nc', 'data')
-            !   STOP
-            !END IF
-            !LOLOdebug.
-         ELSE
-            PRINT *, '-------------------'
-            PRINT *, 'DROWN NOT CALLED!!!'
-            PRINT *, '-------------------'
-         END IF
 
          END IF
 
@@ -153,7 +176,23 @@ CONTAINS
             IF ( jk == 1 ) PRINT *, ' Smoothing '//TRIM(cv_in)//'!', ismooth, ' times'
             CALL SMOOTH(ewper, data3d_in(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_in(:,:,jk))
          END IF
+         
+      END DO !DO jk = 1, nk_in
 
+
+      !! Prevent last level to cause problem when not a single water point (last level is only rock!)
+      IF ( SUM(mask_in(:,:,nk_in)) == 0) data3d_in(:,:,nk_in) = data3d_in(:,:,nk_in-1) ! persistence!      
+      
+      !LOLOdebug:
+      !DO jk = nk_in/2, nk_in
+      !   WRITE(cfdbg,'("data_to_be_interpolated_lev",i2.2,".nc")') jk ; PRINT *, ' *** saving ', TRIM(cfdbg)
+      !   CALL DUMP_2D_FIELD(data3d_in(:,:,jk), TRIM(cfdbg), cv_in)
+      !END DO
+      !LOLOdebug.      
+
+      
+      !! Now! 3D input field ready to be interpolated...
+      DO jk = 1, nk_in
 
          SELECT CASE(cmethod)
 
@@ -162,35 +201,36 @@ CONTAINS
                &              lon_out, lat_out, data3d_tmp(:,:,jk))
             IF ( trim(ctype_z_in) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
-               depth_in_tmp(:,:,jk) = depth_in(1,1,jk)
+               depth_in_trgt2d(:,:,jk) = depth_in(1,1,jk)
             ELSE
                !! input is sigma, layers are non-flat
-               CALL akima_2d(ewper, lon_in,  lat_in,  REAL(depth_in(:,:,jk),4), &
-               &              lon_out, lat_out, depth_in_tmp(:,:,jk) )
+               CALL akima_2d(ewper, lon_in,  lat_in, depth_in(:,:,jk),       &
+                  &              lon_out, lat_out,   depth_in_trgt2d(:,:,jk) )
             ENDIF
 
          CASE('bilin')
             CALL bilin_2d(ewper, lon_in,  lat_in,  data3d_in(:,:,jk), &
                &              lon_out, lat_out, data3d_tmp(:,:,jk), cpat)
 
-               IF ( trim(ctype_z_in) == 'z' ) THEN
-                  !! we don't need horizontal interpolation, all levels are flat
-                  depth_in_tmp(:,:,jk) = depth_in(1,1,jk)
-               ELSE
-                  !! input is sigma, layers are non-flat
-                  CALL bilin_2d(ewper, lon_in,  lat_in,  REAL(depth_in(:,:,jk),4), &
-                 &              lon_out, lat_out, depth_in_tmp(:,:,jk), cpat)
-               ENDIF
+            IF ( trim(ctype_z_in) == 'z' ) THEN
+               !! we don't need horizontal interpolation, all levels are flat
+               depth_in_trgt2d(:,:,jk) = depth_in(1,1,jk)
+               IF ( l_identical_levels ) depth_in_trgt2d(:,:,jk) = depth_out(1,1,jk) !lolo
+            ELSE
+               !! input is sigma, layers are non-flat
+               CALL bilin_2d(ewper, lon_in,  lat_in, depth_in(:,:,jk), &
+                  &              lon_out, lat_out,   depth_in_trgt2d(:,:,jk), cpat)
+            ENDIF
 
          CASE('no_xy')
             data3d_tmp(:,:,jk) = data3d_in(:,:,jk)
-               IF ( trim(ctype_z_in) == 'z' ) THEN
-                  !! we don't need horizontal interpolation, all levels are flat
-                  depth_in_tmp(:,:,jk) = depth_in(1,1,jk)
-               ELSE
-                  !! input is sigma, layers are non-flat
-                  depth_in_tmp(:,:,jk) = depth_in(:,:,jk)
-               ENDIF
+            IF ( trim(ctype_z_in) == 'z' ) THEN
+               !! we don't need horizontal interpolation, all levels are flat
+               depth_in_trgt2d(:,:,jk) = depth_in(1,1,jk)
+            ELSE
+               !! input is sigma, layers are non-flat
+               depth_in_trgt2d(:,:,jk) = depth_in(:,:,jk)
+            ENDIF
 
          CASE DEFAULT
             PRINT *, 'Interpolation method "', trim(cmethod), '" is unknown!!!'; STOP
@@ -199,86 +239,94 @@ CONTAINS
          IF (lregout) CALL extrp_hl(data3d_tmp(:,:,jk))
 
 
-      END DO
+      END DO !DO jk = 1, nk_in
+      
 
-      !! Masking everything :
-      data3d_out(:,:,:) = rmaskvalue
+      data3d_out(:,:,:) = rmaskvalue ! Masking everything
 
-      IF ( .NOT. (trim(cf_x_out)  == 'spheric') ) THEN
+
+
+      !IF ( .NOT. (TRIM(cf_x_out)  == 'spheric') ) THEN  !LOLO WTF was this???
+      IF ( .NOT. l_identical_levels ) THEN  ! ( l_identical_levels always false for S-coordinates...)
 
          depth_in  = ABS(depth_in)
          depth_out = ABS(depth_out)
-         depth_in_tmp  = ABS(depth_in_tmp)
+         depth_in_trgt2d  = ABS(depth_in_trgt2d)
 
          !! Need to perform a vertical interpolation from data3d_tmp to data3d_out :
-         DO ji = 1, ni_out
-            DO jj = 1, nj_out
+         DO jj = 1, nj_out
+            DO ji = 1, ni_out
 
-                !! RD dev notes : we need to make sure that the depth vector for both in and out
-                !! are from smallest to largest value so that persistance works
-                IF ( trim(ctype_z_in) == 'sigma' ) THEN
-                   CALL FLIP_UD_1D(depth_in_tmp(ji,jj,:))
-                   CALL FLIP_UD_1D(data3d_tmp(ji,jj,:))
-                ENDIF
+               !! RD dev notes : we need to make sure that the depth vector for both in and out
+               !! are from smallest to largest value so that persistance works
+               IF ( trim(ctype_z_in) == 'sigma' ) THEN
+                  CALL FLIP_UD_1D(depth_in_trgt2d(ji,jj,:))
+                  CALL FLIP_UD_1D(data3d_tmp(ji,jj,:))
+               ENDIF
+               
+               IF ( trim(ctype_z_out) == 'sigma' ) THEN
+                  CALL FLIP_UD_1D(depth_out(ji,jj,:))
+               ENDIF
 
-                IF ( trim(ctype_z_out) == 'sigma' ) THEN
-                   CALL FLIP_UD_1D_DOUBLE(depth_out(ji,jj,:))
-                ENDIF
+               !! RD dev notes : we compare the depth from source depth vector and target depth vector
+               !! at the same horizontal location : compare depth_in_trgt2d and depth_out
+               zmax_in  = MAXVAL(depth_in_trgt2d(ji,jj,:))
+               zmax_out = MAXVAL(depth_out(ji,jj,:))
 
-                !! RD dev notes : we compare the depth from source depth vector and target depth vector
-                !! at the same horizontal location : compare depth_in_tmp and depth_out
-                zmax_in  = MAXVAL(depth_in_tmp(ji,jj,:))
-                zmax_out = MAXVAL(depth_out(ji,jj,:))
+               IF ( zmax_out > zmax_in ) THEN
+                  !! Must find the last target level less deep than zmax_in
+                  jklast = 1
+                  DO WHILE ( jklast < nk_out )
+                     IF ( depth_out(ji,jj,jklast+1) > zmax_in ) EXIT
+                     jklast = jklast + 1
+                  END DO
+               ELSE
+                  jklast = nk_out
+               END IF
+               
+               IF ( (mask_out(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
+                  IF ( lmout ) THEN  ! adapting nlev if masking target
+                     nlev = 1
+                     !! RD while loop causes seg fault in debug
+                     DO jk=1,nk_out
+                        IF ( mask_out(ji,jj,jk) == 1 ) nlev = nlev + 1
+                     ENDDO
+                     nlev = nlev - 1
+                  ELSE
+                     nlev = jklast
+                  END IF
+                  !!
+                  CALL AKIMA_1D( depth_in_trgt2d(ji,jj,:),data3d_tmp(ji,jj,:),  &
+                     &           depth_out(ji,jj,1:nlev), data3d_out(ji,jj,1:nlev))
+                  !!
+                  !! Assuring persistance at the bottom if target depth goes deeper that source depth
+                  !! RD dev notes : I think the indices were off. If jklast is the last target level
+                  !! that can be properly computed then we want to apply persistance to jklast + 1 to nk_out
+                  !! btw, interp from z to sigma works slightly better without this on my test case
+                  IF ( (jklast > 0).AND.(jklast < nk_out) ) THEN
+                     DO jk = jklast+1, nk_out
+                        data3d_out(ji,jj,jk) = data3d_out(ji,jj,jklast)
+                     END DO
+                  END IF
 
-                IF ( zmax_out > zmax_in ) THEN
-                   !! Must find the last target level less deep than zmax_in
-                   jk_last = 1
-                   DO WHILE ( jk_last < nk_out )
-                      IF ( depth_out(ji,jj,jk_last+1) > zmax_in ) EXIT
-                      jk_last = jk_last + 1
-                   END DO
-                ELSE
-                   jk_last = nk_out
-                END IF
+                  !! RD dev notes : when interpolating to sigma, need to reverse again arrays
+                  IF ( trim(ctype_z_out) == 'sigma' ) THEN
+                     CALL FLIP_UD_1D(depth_out(ji,jj,:))
+                     CALL FLIP_UD_1D(data3d_out(ji,jj,:))
+                  ENDIF
 
-                IF ( (mask_out(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
-                   IF ( lmout ) THEN  ! adapting nlev if masking target
-                      nlev = 1
-                      !! RD while loop causes seg fault in debug
-                      DO jk=1,nk_out
-                         IF ( mask_out(ji,jj,jk) == 1 ) nlev = nlev + 1
-                      ENDDO
-                      nlev = nlev - 1
-                   ELSE
-                      nlev = jk_last
-                   END IF
-                   !!
-                   CALL AKIMA_1D(REAL(depth_in_tmp(ji,jj,:),4),data3d_tmp(ji,jj,:),  &
-  &                              REAL(depth_out(ji,jj,1:nlev),4),data3d_out(ji,jj,1:nlev))
-                   !!
-                   !! Assuring persistance at the bottom if target depth goes deeper that source depth
-                   !! RD dev notes : I think the indices were off. If jk_last is the last target level
-                   !! that can be properly computed then we want to apply persistance to jk_last + 1 to nk_out
-                   !! btw, interp from z to sigma works slightly better without this on my test case
-                   IF ( (jk_last > 0).AND.(jk_last < nk_out) ) THEN
-                      DO jk = jk_last+1, nk_out
-                         data3d_out(ji,jj,jk) = data3d_out(ji,jj,jk_last)
-                      END DO
-                   END IF
-
-                   !! RD dev notes : when interpolating to sigma, need to reverse again arrays
-                   IF ( trim(ctype_z_out) == 'sigma' ) THEN
-                      CALL FLIP_UD_1D_DOUBLE(depth_out(ji,jj,:))
-                      CALL FLIP_UD_1D(data3d_out(ji,jj,:))
-                   ENDIF
-
-                END IF
-             END DO
-          END DO
+               END IF
+            END DO
+         END DO
 
       ELSE
+
+         WRITE(6,*) '  *** skipping vertical interpolation as source and target vertical grids are identical!'
          data3d_out = data3d_tmp ! target levels are same than source levels
-      END IF                     ! => no vertical interpolation required...
+         
+      END IF  !IF ( .NOT. l_identical_levels )      ! => no vertical interpolation required...
+
+
 
       !! avoid working with 3D arrays as a whole : produce SEGV on some machines (small)
       !! RD : replaced out of bounds values by vmin/vmax not rmaskvalue
@@ -315,7 +363,7 @@ CONTAINS
       IF (jj_ex_btm > 0) THEN
          DO jj=(nlat_inc_out + 1)/2+(1 - nlat_inc_out)/2*nj_out,jj_ex_btm,nlat_inc_out
             X2d(:,jj) = X2d(:,jj_ex_btm+nlat_inc_out)
-            !PRINT *, ' LOLOx: jj_out=', jj, 'values of jj_out=',jj_ex_btm+nlat_inc_out
+            !PRINT *, ' LOLO: jj_out=', jj, 'values of jj_out=',jj_ex_btm+nlat_inc_out
          END DO
       END IF
 

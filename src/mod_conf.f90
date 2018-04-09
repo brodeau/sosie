@@ -10,7 +10,8 @@ MODULE MOD_CONF
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
    LOGICAL, SAVE :: l_first_call_interp_routine, &
-      &             l_glob_lon_wize, l_glob_lat_wize
+      &             l_glob_lon_wize, l_glob_lat_wize, &
+      &             l_identical_levels=.FALSE.  ! if true and 3D interpolation => means that source and target vertical grids are identical!
    
 
    LOGICAL, DIMENSION(2) :: l_2d_grid_yet_regular = (/ .FALSE. , .FALSE. /) !: in case input (i=1) and/or output (i=2) domains are
@@ -178,13 +179,11 @@ MODULE MOD_CONF
       &   vt0, vt          !: time arrays
 
    !! Arrays on source grid :
-   REAL(8),  DIMENSION(:,:,:),    ALLOCATABLE ::  &
+   REAL(4), DIMENSION(:,:,:),    ALLOCATABLE ::  &
       &   depth_in,   &
-      &   depth_out
-
-  REAL(4),  DIMENSION(:,:,:),    ALLOCATABLE ::  &    
-       &   depth_in_tmp
-
+      &   depth_out,  &
+      &   depth_in_trgt2d
+   
   REAL(wpl),  DIMENSION(:,:),    ALLOCATABLE ::  &    
        &   bathy_in,  &
        &   bathy_out
