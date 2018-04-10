@@ -1035,6 +1035,11 @@ CONTAINS
       !! Multiple of 0.5:
       y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
       y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
+      !lolo:
+      y_max_bnd = MIN( y_max_bnd , y_max_bnd0)
+      y_min_bnd = MAX( y_min_bnd , y_min_bnd0)
+      !lolo.
+      
       PRINT *, '   => binning from ', y_min_bnd, ' to ', y_max_bnd
       !!
       nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
