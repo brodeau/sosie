@@ -1089,6 +1089,14 @@ CONTAINS
       PRINT *, '     => corresponding stop values for j ='
       PRINT *, J_VLAT_IN(:,2)
       PRINT *, ''
+
+      DO jlat = 1, nsplit
+         IF ( J_VLAT_IN(jlat,2) <= J_VLAT_IN(jlat,1) ) THEN
+            PRINT *, ' ERROR: jj_stop > jj_start ! ', J_VLAT_IN(jlat,2), J_VLAT_IN(jlat,1)
+            PRINT *, '   => for latitude bin #', jlat
+            STOP
+         END IF
+      END DO
       
       rlat_old   = rflg
       jj_out_old = -10
