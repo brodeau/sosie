@@ -45,6 +45,7 @@ CONTAINS
 
       IF ( ismooth > 0 ) THEN
          !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
+         WRITE(6,'("     --- ",a,": smoothing ",i2," times!")') TRIM(cv_in), ismooth
          PRINT *, ' Smoothing '//TRIM(cv_in)//'!', ismooth, ' times'
          CALL SMOOTH(ewper, data_in,  nb_smooth=ismooth, mask_apply=mask_in(:,:,1))
       END IF
@@ -173,7 +174,7 @@ CONTAINS
                STOP
             END IF
             !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
-            IF ( jk == 1 ) PRINT *, ' Smoothing '//TRIM(cv_in)//'!', ismooth, ' times'
+            WRITE(6,'("     --- ",a,": smoothing level #",i3.3," ",i2," times!")') TRIM(cv_in), jk, ismooth
             CALL SMOOTH(ewper, data3d_in(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_in(:,:,jk))
          END IF
          
