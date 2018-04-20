@@ -67,7 +67,7 @@ CONTAINS
       !!
       !!================================================================
 
-      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB, TEST_XYZ   !, DUMP_2D_FIELD
+      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB, TEST_XYZ  ! , DUMP_2D_FIELD
 
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
@@ -208,9 +208,11 @@ CONTAINS
       mask_ignore_out(:,:) = 1
       WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_out = 0
       WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_out = 0
-      WHERE ( (IMETRICS(:,:,3) < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
+            
+      !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
+            
       IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
-
+      
       DO jj=1, ny2
          DO ji=1, nx2
             iP    = IMETRICS(ji,jj,1)
@@ -229,7 +231,7 @@ CONTAINS
          END DO
       END DO
 
-      Z2 = Z2*REAL(mask_ignore_out, 4) + REAL(1-mask_ignore_out, 4)*rflg ! masking problem points as in mask_ignore_out
+      Z2 = Z2*REAL(mask_ignore_out, 4) + REAL(1-mask_ignore_out, 4)*-9996. ! masking problem points as in mask_ignore_out
 
 
       IF ( l_first_call_interp_routine ) THEN
@@ -338,9 +340,9 @@ CONTAINS
       ! interpolate with non-masked  values, above target point
 
       IF ( wup == 0. ) THEN
-         INTERP_BL = -9999.
+         INTERP_BL = -9998.
       ELSEIF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
-         INTERP_BL = -9999.
+         INTERP_BL = -9997.
       ELSE
          INTERP_BL = REAL( ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup , 4 )
       ENDIF
@@ -619,10 +621,7 @@ CONTAINS
          ZAB(:,:,1) = rflg
          ZAB(:,:,2) = rflg
       END WHERE
-      !lolo.
-
-
-
+      
       !! Awkwardly fixing problematic points but remembering them in ID_problem
 
       !! Negative values that are actually 0
@@ -646,13 +645,17 @@ CONTAINS
          ZAB(:,:,2) = 0.5
          ID_problem(:,:) = 9
       END WHERE
-
+      
+      WHERE ( MTRCS(:,:,3) < 1 )
+         MTRCS(:,:,3) = 1 ! maybe bad... but at least reported in ID_problem ...
+         ID_problem(:,:) = 4
+      END WHERE
+            
       WHERE (mask_ignore_out <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
       WHERE (mask_ignore_out ==  0) ID_problem = -2 ! No idea if possible... #lolo
       WHERE (mask_ignore_out <  -2) ID_problem = -3 ! No idea if possible... #lolo
 
-
-
+      
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem)
 

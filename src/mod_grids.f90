@@ -205,6 +205,11 @@ CONTAINS
             WHERE ( xdum > max_lat_in ) IGNORE=0
             PRINT *, ''            
          END IF
+         
+         !LOLO:
+         !CALL DUMP_2D_FIELD(REAL(IGNORE(:,:),4), 'IGNORE.nc', 'lsm')
+         !STOP
+
          IF ( (.NOT.l_glob_lon_wize).OR.(.NOT.l_glob_lat_wize) ) DEALLOCATE ( xdum )
          
 
