@@ -113,17 +113,20 @@ CONTAINS
       !! Working arrays for source domain:
       l_add_extra_j = .FALSE.
       ny1w = ny1
-      
+
       IF ( lregin .AND. (ny1 > 20) .AND. (nx1 > 20) ) THEN !lolo, ensure it's a map, not a something fishy...
          ymx = Y1(nx1/2,ny1)
          IF ( (ymx < 90.) .AND. ( 2.*ymx - Y1(nx1/2,ny1-1) >= 90. ) ) THEN
-            PRINT *, ''
-            PRINT *, '  ------ W A R N I N G ! ! ! ------'
-            PRINT *, ' *** your source grid is regular and seems to include the north pole.'
-            PRINT *, '     => yet the highest latitude in the latitude array is ', ymx
-            PRINT *, '     => will generate and use an extra upper J row where lat=90 on all 2D source arrays !!! '
             ny1w = ny1 + 1
             l_add_extra_j = .TRUE.
+            !!
+            IF ( l_first_call_interp_routine ) THEN
+               PRINT *, ''
+               PRINT *, '  ------ W A R N I N G ! ! ! ------'
+               PRINT *, ' *** your source grid is regular and seems to include the north pole.'
+               PRINT *, '     => yet the highest latitude in the latitude array is ', ymx
+               PRINT *, '     => will generate and use an extra upper J row where lat=90 on all 2D source arrays !!! '
+            END IF
          END IF
       END IF
 
@@ -208,11 +211,11 @@ CONTAINS
       mask_ignore_out(:,:) = 1
       WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_out = 0
       WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_out = 0
-            
+
       !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
-            
+
       IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
-      
+
       DO jj=1, ny2
          DO ji=1, nx2
             iP    = IMETRICS(ji,jj,1)
@@ -621,7 +624,7 @@ CONTAINS
          ZAB(:,:,1) = rflg
          ZAB(:,:,2) = rflg
       END WHERE
-      
+
       !! Awkwardly fixing problematic points but remembering them in ID_problem
 
       !! Negative values that are actually 0
@@ -645,17 +648,17 @@ CONTAINS
          ZAB(:,:,2) = 0.5
          ID_problem(:,:) = 9
       END WHERE
-      
+
       WHERE ( MTRCS(:,:,3) < 1 )
          MTRCS(:,:,3) = 1 ! maybe bad... but at least reported in ID_problem ...
          ID_problem(:,:) = 4
       END WHERE
-            
+
       WHERE (mask_ignore_out <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
       WHERE (mask_ignore_out ==  0) ID_problem = -2 ! No idea if possible... #lolo
       WHERE (mask_ignore_out <  -2) ID_problem = -3 ! No idea if possible... #lolo
 
-      
+
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem)
 
