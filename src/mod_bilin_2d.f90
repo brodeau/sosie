@@ -174,7 +174,7 @@ CONTAINS
       IF ( l_first_call_interp_routine ) THEN
 
          l_last_y_row_missing = .FALSE.
-
+         
          !! Testing if the file containing weights exists or if we need to create it
          !! (2nd option might be pretty time-consuming!!!
          PRINT*,'';PRINT*,'********************************************************'
@@ -193,9 +193,7 @@ CONTAINS
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
-      END IF
-
-      IF ( l_first_call_interp_routine ) THEN
+         
          !! We read the mapping metrics in the netcdf file (regardless of
          !! whether the mapping file was just created or not) => maybe not that
          !! smart but ensure that we saved the right stuff in the netcdf mapping
@@ -204,6 +202,7 @@ CONTAINS
          CALL RD_MAPPING_AB(cf_wght, IMETRICS, RAB, IPB)
          PRINT *, ''; PRINT *, 'Mapping and weights read into ', TRIM(cf_wght); PRINT *, ''
       END IF
+
 
       Z2(:,:) = rflg ! Flagging non-interpolated output points
       icpt = 0
@@ -234,7 +233,7 @@ CONTAINS
          END DO
       END DO
 
-      Z2 = Z2*REAL(mask_ignore_out, 4) + REAL(1-mask_ignore_out, 4)*-9996. ! masking problem points as in mask_ignore_out
+      Z2 = Z2*REAL(mask_ignore_out, 4) + REAL(1-mask_ignore_out, 4)*-9995. ! masking problem points as in mask_ignore_out
 
 
       IF ( l_first_call_interp_routine ) THEN
@@ -249,7 +248,7 @@ CONTAINS
       !IF ( i_orca_out == 4 ) PRINT *, ' Target grid is an ORCA grid with north-pole T-point folding!'
       !IF ( i_orca_out == 6 ) PRINT *, ' Target grid is an ORCA grid with north-pole F-point folding!'
 
-      !! Correcting last missing band if relevant:
+      !! Correcting last missing band if relevant: LOLO: should use lbc_lnk no ????
       IF ( l_last_y_row_missing ) THEN
          IF ( i_orca_out == 4 ) THEN
             Z2(2:nx2/2           ,ny2)   = Z2(nx2:nx2-nx2/2-2:-1,ny2-2)
@@ -281,8 +280,8 @@ CONTAINS
       REAL(4), DIMENSION(:,:), INTENT(in) :: Z_in
 
       REAL(4) :: INTERP_BL
-      REAL(8) ::  wup, w1, w2, w3, w4
-      INTEGER  :: nxi, jiPm1, jiPp1, &
+      REAL(4) ::  wup, w1, w2, w3, w4
+      INTEGER  :: nxi, nyi, jiPm1, jiPp1, &
          &        i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
 
       !! Choose the 4 interpolation points, according to sector and nearest point (jiP, jjP)
@@ -293,6 +292,7 @@ CONTAINS
       !!   x-->o        o-->o         o-->o         o-->x
 
       nxi = SIZE(Z_in,1)
+      nyi = SIZE(Z_in,2)
 
       jiPm1 = jiP-1
       jiPp1 = jiP+1
@@ -329,10 +329,10 @@ CONTAINS
       END SELECT
 
       !! compute sum weight above target point
-      w1=(1 - xa)*(1 - xb)
-      w2=     xa *(1 - xb)
-      w3=     xa * xb
-      w4=(1 - xa)* xb
+      w1=REAL( (1. - xa)*(1. - xb) , 4)
+      w2=REAL(       xa *(1. - xb) , 4)
+      w3=REAL(       xa * xb       , 4)
+      w4=REAL( (1. - xa)* xb       , 4)
 
       wup = w1 + w2 + w3 + w4
 
@@ -341,15 +341,17 @@ CONTAINS
       !END IF
 
       ! interpolate with non-masked  values, above target point
-
+      
       IF ( wup == 0. ) THEN
          INTERP_BL = -9998.
-      ELSEIF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
+      ELSEIF ( (i1<1).OR.(j1<1).OR.(i2<1).OR.(j2<1).OR.(i3<1).OR.(j3<1).OR.(i4<1).OR.(j4<1) ) THEN
          INTERP_BL = -9997.
+      ELSEIF ( (j1>nyi).OR.(j2>nyi).OR.(j3>nyi).OR.(j4>nyi) ) THEN
+         INTERP_BL = -9996.
       ELSE
-         INTERP_BL = REAL( ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup , 4 )
+         INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
-
+      
    END FUNCTION INTERP_BL
 
 
@@ -415,16 +417,14 @@ CONTAINS
       nxo = size(lon_out,1)
       nyo = size(lon_out,2)
 
-      ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3) )
-
-      ALLOCATE ( ID_problem(nxo,nyo) )
+      ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3), ID_problem(nxo,nyo), mask_ignore_out(nxo,nyo), &
+         &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
+      ZAB(:,:,:)      = 0
+      MTRCS(:,:,:)    = 0
       ID_problem(:,:) = 0
-
-      ALLOCATE ( i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
-
-
-      ALLOCATE ( mask_ignore_out(nxo,nyo) )
       mask_ignore_out(:,:) = 1
+
+
       IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
       CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
@@ -450,18 +450,10 @@ CONTAINS
                iP = i_nrst_in(ji,jj)
                jP = j_nrst_in(ji,jj)
 
-               !IF ((ji==257).AND.(jj==288)) PRINT *, 'LOLO AAA: iP, jP = ', iP, jP
-
                IF ( (iP /= INT(rflg)).AND.(jP /= INT(rflg)) ) THEN
 
                   iPm1 = iP-1
                   iPp1 = iP+1
-
-                  !IF ((ji==257).AND.(jj==288)) THEN
-                  !   PRINT *, 'LOLO AAA: iPm1, iPp1 = ', iPm1, iPp1, nxi
-                  !   PRINT *, 'LOLO AAA: jP-1, jP+1 = ', jP-1, jP+1, nyi
-                  !END IF
-
 
                   IF ( iPm1 == 0 ) THEN
                      !! We are in the extended case !!!
@@ -585,7 +577,7 @@ CONTAINS
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
                      ID_problem(ji,jj) = iproblem
 
-                     IF ( icpt == 5 ) ID_problem(ji,jj) = 5 ! IDing the screw-up from above...
+                     IF ( icpt == 5 ) ID_problem(ji,jj) = 2 ! IDing the screw-up from above...
 
                      IF (ldebug) THEN
                         PRINT *, 'Nearest point :',lonP,  latP,  hP, hPp
@@ -630,40 +622,37 @@ CONTAINS
       !! Negative values that are actually 0
       WHERE ( ((ZAB(:,:,1) < 0.).AND.(ZAB(:,:,1) > -repsilon)) ) ZAB(:,:,1) = 0.0
       WHERE ( ((ZAB(:,:,2) < 0.).AND.(ZAB(:,:,2) > -repsilon)) ) ZAB(:,:,2) = 0.0
-
-      WHERE ( (ZAB(:,:,1) < 0.).AND.(ZAB(:,:,1) > rflg) )
+      
+      WHERE ( (ZAB(:,:,1) > rflg).AND.(ZAB(:,:,1) < 0.) )
          ZAB(:,:,1) = 0.5
-         ID_problem(:,:) = 6
+         ID_problem(:,:) = 4
       END WHERE
       WHERE ( ZAB(:,:,1) > 1. )
          ZAB(:,:,1) = 0.5
-         ID_problem(:,:) =  7
+         ID_problem(:,:) =  5
       END WHERE
 
-      WHERE ( (ZAB(:,:,2) < 0.).AND.(ZAB(:,:,2) > rflg) )
+      WHERE ( (ZAB(:,:,2) > rflg).AND.(ZAB(:,:,2) < 0.) )
          ZAB(:,:,2) = 0.5
-         ID_problem(:,:) = 8
+         ID_problem(:,:) = 6
       END WHERE
       WHERE ( ZAB(:,:,2) > 1. )
          ZAB(:,:,2) = 0.5
-         ID_problem(:,:) = 9
+         ID_problem(:,:) = 7
       END WHERE
-
+      
+      !! iquadran was not found:
       WHERE ( MTRCS(:,:,3) < 1 )
          MTRCS(:,:,3) = 1 ! maybe bad... but at least reported in ID_problem ...
-         ID_problem(:,:) = 4
+         ID_problem(:,:) = 1
       END WHERE
-
+      
       WHERE (mask_ignore_out <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
       WHERE (mask_ignore_out ==  0) ID_problem = -2 ! No idea if possible... #lolo
       WHERE (mask_ignore_out <  -2) ID_problem = -3 ! No idea if possible... #lolo
-
-
+      
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem)
-
-      !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'mask_ignore_out', 'lsm')
-      !STOP'LOLO mod_bilin_2d.f90'
 
       DEALLOCATE ( MTRCS, ZAB, ID_problem, mask_ignore_out )
 
@@ -762,7 +751,7 @@ CONTAINS
       IF ( niter >= itermax )   THEN
          zalpha = 0.5
          zbeta  = 0.5
-         ipb    = 1
+         ipb    = 11
       END IF
 
       xa = zalpha
@@ -772,7 +761,7 @@ CONTAINS
       IF ( (xphi(1)==xphi(2)).AND.(xphi(2)==xphi(3)).AND.(xphi(3)==xphi(4)) ) THEN
          xa  = 0.5
          xb  = 0.5
-         ipb = 2
+         ipb = 12
       END IF
 
    END SUBROUTINE LOCAL_COORD
