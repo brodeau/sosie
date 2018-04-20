@@ -153,13 +153,12 @@ CONTAINS
 
          CALL get_trg_conf()
          
-         IF ( (TRIM(ctype_z_in) == 'z') .AND. (nk_in == nk_out) ) THEN
+         IF ( (nk_in > 1) .AND. (TRIM(ctype_z_in) == 'z') .AND. (nk_in == nk_out) ) THEN
             WRITE(6,'("Mhhh interesting, target and vertical both have ", i4.4 ," vertical levels!")') nk_in
             zz = SUM( ( 1000.*(depth_out(1,1,:) - depth_in(1,1,:)) )**2 )
             IF ( zz < 1.0 ) THEN
                PRINT *, ' => well, they are actually identical!', zz; PRINT *, ''
-               l_identical_levels = .TRUE.
-               
+               l_identical_levels = .TRUE.               
             END IF
          END IF
 

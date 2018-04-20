@@ -12,21 +12,21 @@ MODULE MOD_MANIP
 
    INTERFACE flip_ud_1d
       MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8
-   END INTERFACE
+   END INTERFACE flip_ud_1d
 
    INTERFACE degE_to_degWE
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
    END INTERFACE degE_to_degWE
 
 
-   
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud_1d, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
-      &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR, degE_to_degWE
+      &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR, degE_to_degWE, &
+      &      ext_north_to_90_regg
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
-   
+
    !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_twisted = .FALSE.
    !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .TRUE.
    LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .FALSE.
@@ -801,7 +801,7 @@ CONTAINS
          !j_strt_out = MINVAL(MINLOC(Yout, mask=(Yout>=y_min_in), dim=2))  ! smallest j on target source that covers smallest source latitude
          i1dum = MINLOC(Yout, mask=(Yout>=y_min_in), dim=2)
          j_strt_out = MINVAL(i1dum, mask=(i1dum>0))
-         DEALLOCATE ( i1dum )         
+         DEALLOCATE ( i1dum )
          j_stop_out = MAXVAL(MAXLOC(Yout, mask=(Yout<=y_max_in), dim=2))  ! largest j on target source that covers largest source latitude
          IF ( j_strt_out > j_stop_out ) jlat_inc = -1 ! latitude decreases as j increases (like ECMWF grids...)
          IF (ldebug) THEN
@@ -821,9 +821,9 @@ CONTAINS
       END IF
       PRINT *, ''
 
-      IF ( PRESENT( mask_domain_out ) ) mask_domain_out(:,:) = mask_ignore_out(:,:)      
+      IF ( PRESENT( mask_domain_out ) ) mask_domain_out(:,:) = mask_ignore_out(:,:)
       DEALLOCATE ( mask_ignore_out )
-      
+
    END SUBROUTINE FIND_NEAREST_POINT
 
 
@@ -851,7 +851,7 @@ CONTAINS
 
       !! Important parameters:
       INTEGER, PARAMETER :: nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
-      
+
       INTEGER :: &
          &    nx_in, ny_in, nx_out, ny_out, &
          &    ji_out, jj_out, ji_in, jj_in, &
@@ -872,7 +872,7 @@ CONTAINS
 
       JIpos(:,:) = -1
       JJpos(:,:) = -1
-      
+
       ALLOCATE ( vlon(nx_in) , vlat(ny_in) , Xdist(nx_in,ny_in) )
 
       vlon(:) = Xin(:,3)   ! 3 => make sure we're inside the domain
@@ -932,7 +932,7 @@ CONTAINS
 
    END SUBROUTINE FIND_NEAREST_EASY
 
-   
+
 
    SUBROUTINE FIND_NEAREST_TWISTED( Xout, Yout, Xin, Yin, JIpos, JJpos, mask_out, &
       &                             j_strt_out, j_stop_out, jlat_inc )
@@ -973,7 +973,7 @@ CONTAINS
       INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_IN
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
-      
+
       INTEGER, DIMENSION(2) :: ij_min_loc
 
       LOGICAL :: lagain
@@ -1039,7 +1039,7 @@ CONTAINS
       y_max_bnd = MIN( y_max_bnd , y_max_bnd0)
       y_min_bnd = MAX( y_min_bnd , y_min_bnd0)
       !lolo.
-      
+
       PRINT *, '   => binning from ', y_min_bnd, ' to ', y_max_bnd
       !!
       nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
@@ -1059,7 +1059,7 @@ CONTAINS
       END IF
 
       J_VLAT_IN = 0
-      
+
       DO jlat = 1, nsplit
          rlat_low = VLAT_SPLIT_BOUNDS(jlat)
          rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
@@ -1102,14 +1102,14 @@ CONTAINS
             STOP
          END IF
       END DO
-      
+
       rlat_old   = rflg
       jj_out_old = -10
 
       DO jj_out = j_strt_out, j_stop_out, jlat_inc
          DO ji_out = 1, nx_out
             IF ( mask_out(ji_out,jj_out) == 1 ) THEN
-               
+
                rlon = Xout(ji_out,jj_out)
                rlat = Yout(ji_out,jj_out)
 
@@ -1129,11 +1129,11 @@ CONTAINS
                   END DO
                   !!
                END IF
-               
+
                lagain    = .TRUE.
                niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...
                IF ( rlat > 60. ) niter = 0 ! we skip the bluff part because the grid might be too close to NP boundary cut!
-               
+
                DO WHILE ( lagain )
 
                   IF ( niter == -1 ) THEN
@@ -1155,7 +1155,7 @@ CONTAINS
                         PRINT *, '       => jmin & jmax on source domain =', jmin_in, jmax_in
                      END IF
                   END IF
-                  
+
                   Xdist = 1.E12
                   Xdist(imin_in:imax_in,jmin_in:jmax_in) = DISTANCE_2D(rlon, Xin(imin_in:imax_in,jmin_in:jmax_in), rlat, Yin(imin_in:imax_in,jmin_in:jmax_in))
                   !CALL DUMP_2D_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
@@ -1202,7 +1202,7 @@ CONTAINS
                            IF ( ldebug ) PRINT *, ' *** FIND_NEAREST_POINT: SHORT leave test worked! Aborting search!'
                         END IF
                      END IF
-                     
+
                      IF (niter > nsplit/3) THEN
                         !! We are too far in latitude, giving up...
                         PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
@@ -1225,7 +1225,7 @@ CONTAINS
 
       WHERE ( JIpos == -1 ) mask_out = -1
       WHERE ( JJpos == -1 ) mask_out = -2
-      
+
       DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_IN, e1_in, e2_in, mspot_lon , mspot_lat , Xdist )
 
    END SUBROUTINE FIND_NEAREST_TWISTED
@@ -1496,23 +1496,108 @@ CONTAINS
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8) :: rlong
       REAL(8) :: degE_to_degWE_scal
-      degE_to_degWE_scal = SIGN(1.,180.-rlong)*MIN(rlong, ABS(rlong-360.)) 
+      degE_to_degWE_scal = SIGN(1.,180.-rlong)*MIN(rlong, ABS(rlong-360.))
    END FUNCTION degE_to_degWE_scal
 
    FUNCTION degE_to_degWE_1d( vlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:) :: vlong
       REAL(8), DIMENSION(SIZE(vlong,1)) :: degE_to_degWE_1d
-      degE_to_degWE_1d = SIGN(1.,180.-vlong)*MIN(vlong, ABS(vlong-360.)) 
+      degE_to_degWE_1d = SIGN(1.,180.-vlong)*MIN(vlong, ABS(vlong-360.))
    END FUNCTION degE_to_degWE_1d
 
    FUNCTION degE_to_degWE_2d( xlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:,:) :: xlong
       REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: degE_to_degWE_2d
-      degE_to_degWE_2d = SIGN(1.,180.-xlong)*MIN(xlong, ABS(xlong-360.)) 
+      degE_to_degWE_2d = SIGN(1.,180.-xlong)*MIN(xlong, ABS(xlong-360.))
    END FUNCTION degE_to_degWE_2d
 
-   
-END MODULE MOD_MANIP
 
+
+
+   SUBROUTINE EXT_NORTH_TO_90_REGG( XX, YY, XF,  XP, YP, FP )
+      !!============================================================================
+      !! We accept only regular lat-lon grid (supposed to include the north
+      !! pole)!
+      !!
+      !! XX, YY is a 2D regular lon-lat grid which is supposed to include the
+      !! northpole but for which the highest latitude (at j=Nj) is less than
+      !! 90. We're going to use "across-North-Pole" continuity to fill the
+      !! last upper row where latitude = 90 !
+      !!
+      !! => XP, YP is the same grid with an extra upper row where latitude = 90
+      !!     => Last upper row of FP (on XP,YP) contains interpolated values of
+      !!        the field
+      !!============================================================================
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY
+      REAL(4), DIMENSION(:,:), INTENT(in)  :: XF
+      REAL(8), DIMENSION(:,:), INTENT(out) :: XP, YP
+      REAL(4), DIMENSION(:,:), INTENT(out) :: FP
+
+      !! Local
+      REAL(8) :: rr, zlon, zlon_m
+      INTEGER :: nx, ny, nyp1
+      INTEGER :: ji, ji_m
+
+      IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
+         & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : size of input coor. and data do not match!!!'; STOP
+      END IF
+      IF ( (SIZE(XP,1) /= SIZE(YP,1)).OR.(SIZE(XP,2) /= SIZE(YP,2)).OR. &
+         & (SIZE(XP,1) /= SIZE(FP,1)).OR.(SIZE(XP,2) /= SIZE(FP,2))) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : size of output coor. and data do not match!!!'; STOP
+      END IF
+      nx = SIZE(XX,1)
+      ny = SIZE(XX,2)
+      nyp1 = SIZE(XP,2)
+      IF ( nyp1 /= ny + 1 ) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : target y dim is not nj+1!!!'; STOP
+      END IF
+
+      XP = 0.
+      YP = 0.
+      FP = 0.
+
+      !! Filling center of domain:
+      XP(:, 1:ny) = XX(:,:)
+      YP(:, 1:ny) = YY(:,:)
+      FP(:, 1:ny) = XF(:,:)
+
+      !! Testing if the grid is of the type of what we expect:
+      rr = YY(nx/2,ny) ! highest latitude
+      IF ( rr == 90.0 ) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : mhh well you shouldnt be here I guess, 90 exists!...'
+         PRINT *, YY(:,ny)
+         STOP
+      END IF
+      IF ( SUM( (YY(:,ny) - rr)**2 ) > 1.E-12 ) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : mhh well you shouldnt be here I guess, grid doesnt seem to be regular!...'
+         STOP
+      END IF
+
+      !! Longitude points for the extra upper row are just the same!
+      XP(:,nyp1) = XX(:,ny)
+
+      !! For latitude it's easy:
+      YP(:,nyp1) = 90.0
+
+      DO ji=1, nx
+         zlon = XX(ji,ny) ! ji => zlon
+         !! at what ji do we arrive when crossing the northpole => ji_m!
+         zlon_m = MOD(zlon+180.,360.)
+         !PRINT *, ' zlon, zlon_m =>', zlon, zlon_m
+         ji_m = MINLOC(ABS(XX(:,ny)-zlon_m), dim=1)
+         !PRINT *, '  ji_m =', ji_m
+         !PRINT *, 'XX(ji_m,ny) =', XX(ji_m,ny)
+         !! Well so the northpole is righ in between so:
+         FP(ji,nyp1) = 0.5*(XF(ji,ny) + XF(ji_m,ny))
+      END DO
+
+   END SUBROUTINE EXT_NORTH_TO_90_REGG
+
+
+
+
+
+END MODULE MOD_MANIP

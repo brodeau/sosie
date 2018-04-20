@@ -48,12 +48,12 @@ CONTAINS
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             X10   : 2D source longitude array (ni*nj) or (ni*1)
-      !!             Y10   : 2D source latitude  array (ni*nj) or (nj*1)
+      !!             X10   : 2D source longitude array (ni,nj) or (ni,1)
+      !!             Y10   : 2D source latitude  array (ni,nj) or (nj,1)
       !!             Z1    : source field on source grid
       !!
-      !!             X20   : 2D target longitude array (ni*nj) or (ni*1)
-      !!             Y20   : 2D target latitude  array (ni*nj) or (nj*1)
+      !!             X20   : 2D target longitude array (ni,nj) or (ni,1)
+      !!             Y20   : 2D target latitude  array (ni,nj) or (nj,1)
       !!
       !!             cnpat : name of current configuration pattern
       !!                      -> to recognise the mapping/weight file
@@ -67,7 +67,7 @@ CONTAINS
       !!
       !!================================================================
 
-      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB, TEST_XYZ
+      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB, TEST_XYZ   !, DUMP_2D_FIELD
 
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
@@ -79,13 +79,14 @@ CONTAINS
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
 
       !! Local variables
-      INTEGER :: nx1, ny1, nx2, ny2
+      INTEGER :: nx1, ny1, ny1w, nx2, ny2
 
-      REAL(8) :: alpha, beta, rmeanv
-      LOGICAL :: lefw
+      REAL(8) :: alpha, beta, rmeanv, ymx
+      LOGICAL :: l_add_extra_j, lefw
       INTEGER :: icpt, ji, jj
 
-      REAL(8),    DIMENSION(:,:), ALLOCATABLE ::  X1, Y1, X2, Y2
+      REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
+      REAL(4),    DIMENSION(:,:), ALLOCATABLE :: Z1w
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out !, msk_res
 
       CHARACTER(len=2)   :: ctype
@@ -107,6 +108,41 @@ CONTAINS
       ELSE
          X1 = X10 ; Y1 = Y10
       END IF
+
+
+      !! Working arrays for source domain:
+      l_add_extra_j = .FALSE.
+      ny1w = ny1
+
+      IF ( lregin .AND. (ny1 > 20) .AND. (nx1 > 20) ) THEN !lolo, ensure it's a map, not a something fishy...
+         ymx = Y1(nx1/2,ny1)
+         IF ( (ymx < 90.) .AND. ( 2.*ymx - Y1(nx1/2,ny1-1) > 90. ) ) THEN
+            PRINT *, ''
+            PRINT *, '  ------ W A R N I N G ! ! ! ------'
+            PRINT *, ' *** your source grid is regular and seems to include the north pole.'
+            PRINT *, '     => yet the highest latitude in the latitude array is ', ymx
+            PRINT *, '     => will generate and use an extra upper J row where lat=90 on all 2D source arrays !!! '
+            ny1w = ny1 + 1
+            l_add_extra_j = .TRUE.
+         END IF
+      END IF
+
+      ALLOCATE ( X1w(nx1,ny1w) , Y1w(nx1,ny1w) , Z1w(nx1,ny1w) )
+
+
+      !! Is source grid supposed to include North pole?
+      !! - if yes, and suppose that the highest latitude "lat_max" on the grid is
+      !!   something like 89. or 89.5 then we need to add an extra upper-row for the latitude lat=90 !
+      !!  => so for each lonwe interpolate X(lon,90) = X(lon+180,lat_max)
+      IF ( l_add_extra_j ) THEN
+         CALL EXT_NORTH_TO_90_REGG( X1, Y1, Z1,  X1w, Y1w, Z1w )
+      ELSE
+         X1w(:,:) = X1(:,:)
+         Y1w(:,:) = Y1(:,:)
+         Z1w(:,:) = Z1(:,:)
+      END IF
+
+      DEALLOCATE ( X1, Y1 )
 
       ctype = '00'
       ctype = TEST_XYZ(X20, Y20, Z2)
@@ -150,7 +186,7 @@ CONTAINS
             PRINT *, 'This is very time consuming, but only needs to be done once...'
             PRINT *, 'Therefore, you should keep this file for any future interpolation'
             PRINT *, 'using the same "source-target" setup'
-            CALL MAPPING_BL(k_ew_per, X1, Y1, X2, Y2, cf_wght,  mask_domain_out=mask_ignore_out)
+            CALL MAPPING_BL(k_ew_per, X1w, Y1w, X2, Y2, cf_wght,  mask_domain_out=mask_ignore_out)
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
@@ -183,12 +219,12 @@ CONTAINS
             alpha = RAB(ji,jj,1)
             beta  = RAB(ji,jj,2)
 
-            IF ( (X1(iP,jP)==X2(ji,jj)).AND.(Y1(iP,jP)==Y2(ji,jj)) ) THEN
-               PRINT *, ' *** LOLO: SAME POINT !!! IDproblem =', IPB(ji,jj)
-               Z2(ji,jj) = Z1(iP,jP)
+            IF ( (X1w(iP,jP)==X2(ji,jj)).AND.(Y1w(iP,jP)==Y2(ji,jj)) ) THEN
+               !PRINT *, ' *** LOLO: SAME POINT !!! IDproblem =', IPB(ji,jj)
+               Z2(ji,jj) = Z1w(iP,jP)
             ELSE
                !! INTERPOLATION:
-               Z2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqdrn, alpha, beta, Z1)
+               Z2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqdrn, alpha, beta, Z1w)
             END IF
          END DO
       END DO
@@ -220,7 +256,7 @@ CONTAINS
          END IF
       END IF
 
-      DEALLOCATE ( X1, Y1, X2, Y2, mask_ignore_out )
+      DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_out )
 
       l_first_call_interp_routine = .FALSE.
 
@@ -538,14 +574,14 @@ CONTAINS
                            lagain = .FALSE. ! simply give up, but point is marked with value 55 in ID_problem (see below)
                         END IF
                      END DO !DO WHILE ( lagain )
-                     
+
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
                      ID_problem(ji,jj) = iproblem
-                     
+
                      IF ( icpt == 5 ) ID_problem(ji,jj) = 5 ! IDing the screw-up from above...
-                     
+
                      IF (ldebug) THEN
                         PRINT *, 'Nearest point :',lonP,  latP,  hP, hPp
                         PRINT *, 'North point :',  lonN , latN , hN
@@ -610,13 +646,13 @@ CONTAINS
          ZAB(:,:,2) = 0.5
          ID_problem(:,:) = 9
       END WHERE
-      
+
       WHERE (mask_ignore_out <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
       WHERE (mask_ignore_out ==  0) ID_problem = -2 ! No idea if possible... #lolo
       WHERE (mask_ignore_out <  -2) ID_problem = -3 ! No idea if possible... #lolo
 
 
-      
+
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem)
 
@@ -668,7 +704,7 @@ CONTAINS
 
       zxlam = xlam       !: save input longitude in workinh array
 
-      ! when near the 0 deg line and we must work in the frame -180 180      
+      ! when near the 0 deg line and we must work in the frame -180 180
       IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
          &                            .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) &
          &  zxlam = degE_to_degWE(zxlam)
