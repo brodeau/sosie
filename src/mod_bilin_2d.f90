@@ -113,10 +113,10 @@ CONTAINS
       !! Working arrays for source domain:
       l_add_extra_j = .FALSE.
       ny1w = ny1
-
+      
       IF ( lregin .AND. (ny1 > 20) .AND. (nx1 > 20) ) THEN !lolo, ensure it's a map, not a something fishy...
          ymx = Y1(nx1/2,ny1)
-         IF ( (ymx < 90.) .AND. ( 2.*ymx - Y1(nx1/2,ny1-1) > 90. ) ) THEN
+         IF ( (ymx < 90.) .AND. ( 2.*ymx - Y1(nx1/2,ny1-1) >= 90. ) ) THEN
             PRINT *, ''
             PRINT *, '  ------ W A R N I N G ! ! ! ------'
             PRINT *, ' *** your source grid is regular and seems to include the north pole.'
