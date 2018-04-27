@@ -30,7 +30,7 @@ MODULE MOD_BILIN_2D
 
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
-   INTEGER  :: iqdrn, iqdrn_old !: grid sector from 1 to 4 (clockwise, 1=NE) in wich target point
+   INTEGER  :: iqdrn, iqdrn0, iqdrn_old !: grid sector from 1 to 4 (clockwise, 1=NE) in wich target point
    INTEGER  :: iP, jP   !: location of nearest point on input grid
 
    LOGICAL, SAVE :: l_last_y_row_missing
@@ -117,7 +117,7 @@ CONTAINS
       IF ( lregin .AND. (ny1 > 20) .AND. (nx1 > 20) ) THEN !lolo, ensure it's a map, not a something fishy...
          ymx = Y1(nx1/2,ny1)
          IF ( (ymx < 90.) .AND. ( 2.*ymx - Y1(nx1/2,ny1-1) >= 90. ) ) THEN
-            ny1w = ny1 + 1
+            ny1w = ny1 + 2
             l_add_extra_j = .TRUE.
             !!
             IF ( l_first_call_interp_routine ) THEN
@@ -125,7 +125,7 @@ CONTAINS
                PRINT *, '  ------ W A R N I N G ! ! ! ------'
                PRINT *, ' *** your source grid is regular and seems to include the north pole.'
                PRINT *, '     => yet the highest latitude in the latitude array is ', ymx
-               PRINT *, '     => will generate and use an extra upper J row where lat=90 on all 2D source arrays !!! '
+               PRINT *, '     => will generate and use two extra upper J row where lat=90 and lat=90+dy on all 2D source arrays !!! '
             END IF
          END IF
       END IF
@@ -384,6 +384,7 @@ CONTAINS
          &     nxi, nyi, nxo, nyo, &
          &     ji, jj,   &
          &     iPm1, iPp1,  &
+         &     jPm1, jPp1,  &
          &     iproblem
 
       INTEGER(4), DIMENSION(:,:), ALLOCATABLE :: i_nrst_in, j_nrst_in
@@ -409,7 +410,7 @@ CONTAINS
 
       REAL(8) :: alpha, beta
       LOGICAL :: l_ok, lagain
-      INTEGER :: icpt
+      INTEGER :: icpt, idb, jdb
 
       nxi = size(X1,1)
       nyi = size(X1,2)
@@ -419,7 +420,7 @@ CONTAINS
 
       ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3), ID_problem(nxo,nyo), mask_ignore_out(nxo,nyo), &
          &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
-      ZAB(:,:,:)      = 0
+      ZAB(:,:,:)      = 0.0
       MTRCS(:,:,:)    = 0
       ID_problem(:,:) = 0
       mask_ignore_out(:,:) = 1
@@ -429,15 +430,15 @@ CONTAINS
 
       CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
 
-      !CALL DUMP_2D_FIELD(REAL(i_nrst_in,4), 'i_nrst_in.nc', 'ji')
-      !CALL DUMP_2D_FIELD(REAL(j_nrst_in,4), 'j_nrst_in.nc', 'jj')
-      !CALL DUMP_2D_FIELD(REAL(mask_ignore_out,4), 'mask_ignore_out', 'lsm')
-      !STOP'LOLO mod_bilin_2d.f90'
-
-
+      
+      idb = 0 ! i-index of point to debug on target domain
+      jdb = 0 ! j-index of point to debug on target domain
+      
       DO jj = 1, nyo
          DO ji = 1, nxo
 
+            IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug:', idb, jdb
+            
             IF ( mask_ignore_out(ji,jj)==1 ) THEN
                !! => exclude regions that do not exist on source domain (mask_ignore_out==0) and
                !! points for which the nearest point was not found (mask_ignore_out==-1 or -2)
@@ -449,11 +450,16 @@ CONTAINS
 
                iP = i_nrst_in(ji,jj)
                jP = j_nrst_in(ji,jj)
-
-               IF ( (iP /= INT(rflg)).AND.(jP /= INT(rflg)) ) THEN
+               
+               IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: xP, yP =', xP, yP
+               IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
+               
+               IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)).AND.(jP<nyi) ) THEN   ! jP<ny1 < last upper row was an extrapolation!
 
                   iPm1 = iP-1
                   iPp1 = iP+1
+                  jPm1 = jP-1
+                  jPp1 = jP+1
 
                   IF ( iPm1 == 0 ) THEN
                      !! We are in the extended case !!!
@@ -464,16 +470,21 @@ CONTAINS
                      IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
                   END IF
 
-                  IF ((iPm1 < 1).OR.(jP-1 < 1).OR.(iPp1 > nxi).OR.(jP+1 > nyi)) THEN
+                  IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: iPm1, iPp1 =', iPm1, iPp1
+                  IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: jPm1, jPp1 =', jPm1, jPp1
+                  
+                  IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi)) THEN
                      PRINT *, 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
+                     PRINT *, '          iPm1, iPp1, nxi =', iPm1, iPp1, nxi
+                     PRINT *, '          jPm1, jPp1, nyi =', jPm1, jPp1, nyi
                      PRINT *, '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
                      PRINT *, ''
                   ELSE
 
                      lonP = MOD(X1(iP,jP)  , 360._8) ; latP = Y1(iP,jP)   ! nearest point
-                     lonN = MOD(X1(iP,jP+1), 360._8) ; latN = Y1(iP,jP+1) ! N (grid)
+                     lonN = MOD(X1(iP,jPp1), 360._8) ; latN = Y1(iP,jPp1) ! N (grid)
                      lonE = MOD(X1(iPp1,jP), 360._8) ; latE = Y1(iPp1,jP) ! E (grid)
-                     lonS = MOD(X1(iP,jP-1), 360._8) ; latS = Y1(iP,jP-1) ! S (grid)
+                     lonS = MOD(X1(iP,jPm1), 360._8) ; latS = Y1(iP,jPm1) ! S (grid)
                      lonW = MOD(X1(iPm1,jP), 360._8) ; latW = Y1(iPm1,jP) ! W (grid)
 
                      !! Restore target point longitude between 0 and 360
@@ -517,69 +528,76 @@ CONTAINS
                      IF ( hP > hS  .AND. hP <= hW )  iqdrn=3
                      IF ( hP > hW  .AND. hPp <= hN)  iqdrn=4
 
-                     iqdrn_old = iqdrn
-
+                     !iqdrn0    = iqdrn
+                     !iqdrn_old = iqdrn
+                     !IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: first find of iqdrn =', iqdrn0
+                     
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
                      !! Problem is that sometimes, in the case of really twisted
                      !! meshes this method screws up, iqdrn is not what it
                      !! shoule be, so need the following loop on the value of iqdrn:
-                     icpt = 0
-                     lagain = .TRUE.
-                     DO WHILE ( lagain )
-
+                     !icpt = 0
+                     !lagain = .TRUE.
+                     !DO WHILE ( lagain )
+                     !
                         SELECT CASE ( iqdrn ) ! point 2 3 4 are counter clockwise in the respective sector
                         CASE ( 1 )
                            loni(2) = lonE ; lati(2) = latE
-                           loni(3) = MOD(X1(iPp1,jP+1), 360._8) ; lati(3) = Y1(iPp1,jP+1)
+                           loni(3) = MOD(X1(iPp1,jPp1), 360._8) ; lati(3) = Y1(iPp1,jPp1)
                            loni(4) = lonN ; lati(4) = latN
                         CASE ( 2 )
                            loni(2) = lonS ; lati(2) = latS
-                           loni(3) = MOD(X1(iPp1,jP-1), 360._8) ; lati(3) = Y1(iPp1,jP-1)
+                           loni(3) = MOD(X1(iPp1,jPm1), 360._8) ; lati(3) = Y1(iPp1,jPm1)
                            loni(4) = lonE ; lati(4) = latE
                         CASE ( 3 )
                            loni(2) = lonW ; lati(2) = latW
-                           loni(3) = MOD(X1(iPm1,jP-1), 360._8) ; lati(3) = Y1(iPm1,jP-1)
+                           loni(3) = MOD(X1(iPm1,jPm1), 360._8) ; lati(3) = Y1(iPm1,jPm1)
                            loni(4) = lonS ; lati(4) = latS
                         CASE ( 4 )
                            loni(2) = lonN ; lati(2) = latN
-                           loni(3) = MOD(X1(iPm1,jP+1), 360._8) ; lati(3) = Y1(iPm1,jP+1)
+                           loni(3) = MOD(X1(iPm1,jPp1), 360._8) ; lati(3) = Y1(iPm1,jPp1)
                            loni(4) = lonW ; lati(4) = latW
                         END SELECT
 
                         WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
-
-                        !! The tests!!!
-                        l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )    ! $$
-
-                        IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
-                           !! Mhhh... Seems like the "heading()" approach
-                           !! screwed up... i.e the point xP,yP is not into the
-                           !! mesh corresponding to current iquadran, trying all
-                           !! other adjacent meshes to find if it belongs to one
-                           !! of them...
-                           icpt  = icpt + 1
-                           iqdrn = icpt
-                        ELSE
-                           !! Everything okay! Point is inside the the mesh
-                           !! corresponding to current iquadran ! :D
-                           lagain = .FALSE.
-                           IF ( icpt > 0 ) PRINT *, ' --- iquadran corrected thanks to iterative test (old,new) =>', iqdrn_old, iqdrn
-                        END IF
-                        IF ( icpt == 5 ) THEN
-                           lagain = .FALSE. ! simply give up, but point is marked with value 55 in ID_problem (see below)
-                        END IF
-                     END DO !DO WHILE ( lagain )
-
+                     !
+                     !   !! The tests!!!
+                     !   l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )    ! $$
+                     !   IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: l_ok =', l_ok
+                     !   
+                     !   IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
+                     !      !! Mhhh... Seems like the "heading()" approach
+                     !      !! screwed up... i.e the point xP,yP is not into the
+                     !      !! mesh corresponding to current iquadran, trying all
+                     !      !! other adjacent meshes to find if it belongs to one
+                     !      !! of them...
+                     !      icpt  = icpt + 1
+                     !      iqdrn = icpt
+                     !   ELSE
+                     !      !! Everything okay! Point is inside the the mesh
+                     !      !! corresponding to current iquadran ! :D
+                     !      lagain = .FALSE.
+                     !      IF ( (icpt>0).AND.(ji==idb).AND.(jj==jdb) ) PRINT *, ' --- iquadran corrected thanks to iterative test (old,new) =>', iqdrn_old, iqdrn
+                     !   END IF
+                     !   IF ( icpt == 5 ) THEN
+                     !      lagain = .FALSE. ! simply give up
+                     !      iqdrn = iqdrn0 ! Giving what first method gave
+                     !   END IF
+                     !END DO !DO WHILE ( lagain )
+                     
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
                      ID_problem(ji,jj) = iproblem
 
-                     IF ( icpt == 5 ) ID_problem(ji,jj) = 2 ! IDing the screw-up from above...
+                     !LOLO: mark this in ID_problem => case when iqdrn = iqdrn0 ( IF ( icpt == 5 ) ) above!!!
+                     !lolo IF ( icpt == 5 ) ID_problem(ji,jj) = 2 ! IDing the screw-up from above...
 
-                     IF (ldebug) THEN
+                     !IF (ldebug) THEN
+                     IF ((ji==idb).AND.(jj==jdb)) THEN
+                        PRINT *, ' *** LOLO debug :'
                         PRINT *, 'Nearest point :',lonP,  latP,  hP, hPp
                         PRINT *, 'North point :',  lonN , latN , hN
                         PRINT *, 'East  point :',  lonE , latE , hE
@@ -600,7 +618,7 @@ CONTAINS
                      MTRCS(ji,jj,3) = iqdrn
                      ZAB(ji,jj,:)   = (/ alpha, beta /)
 
-                  END IF ! IF ((iPm1 < 1).OR.(jP-1 < 1).OR.(iPp1 > nxi).OR.(jP+1 > nyi))
+                  END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi).OR.(jPp1 > nyi))
 
                END IF
 
@@ -793,9 +811,9 @@ CONTAINS
       !!               so that heading can be computed with loxodromy
       !!
       !!      "heading" is the angle (in degrees) that going from point A to point B makes:
-      !!               * 100% northward => 0 deg.
-      !!               * 100% eastward  => 90 deg.
-      !!               * 100% eastward  => 180 deg.
+      !!               * 100% northward =>   0 deg.
+      !!               * 100% eastward  =>  90 deg.
+      !!               * 100% southward => 180 deg.
       !!                 ...
       !!
       !!  * history

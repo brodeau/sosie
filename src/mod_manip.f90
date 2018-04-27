@@ -1537,7 +1537,7 @@ CONTAINS
 
       !! Local
       REAL(8) :: rr, zlon, zlon_m
-      INTEGER :: nx, ny, nyp1
+      INTEGER :: nx, ny, nyp1, nyp2
       INTEGER :: ji, ji_m
 
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
@@ -1550,11 +1550,13 @@ CONTAINS
       END IF
       nx = SIZE(XX,1)
       ny = SIZE(XX,2)
-      nyp1 = SIZE(XP,2)
-      IF ( nyp1 /= ny + 1 ) THEN
-         PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : target y dim is not nj+1!!!'; STOP
+      nyp2 = SIZE(XP,2)
+      IF ( nyp2 /= ny + 2 ) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : target y dim is not nj+2!!!'; STOP
       END IF
 
+      nyp1 = ny + 1
+      
       XP = 0.
       YP = 0.
       FP = 0.
@@ -1578,9 +1580,11 @@ CONTAINS
 
       !! Longitude points for the extra upper row are just the same!
       XP(:,nyp1) = XX(:,ny)
+      XP(:,nyp2) = XX(:,ny)
 
       !! For latitude it's easy:
       YP(:,nyp1) = 90.0
+      YP(:,nyp2) = 90.0 + (YY(nx/2,ny) - YY(nx/2,ny-1)) ! 90. + dlon ! lolo bad???
 
       DO ji=1, nx
          zlon = XX(ji,ny) ! ji => zlon
@@ -1591,9 +1595,15 @@ CONTAINS
          !PRINT *, '  ji_m =', ji_m
          !PRINT *, 'XX(ji_m,ny) =', XX(ji_m,ny)
          !! Well so the northpole is righ in between so:
-         FP(ji,nyp1) = 0.5*(XF(ji,ny) + XF(ji_m,ny))
+         FP(ji,nyp1) = 0.5*(XF(ji,ny) + XF(ji_m,ny)) ! lolo fix!
+         FP(ji,nyp2) =  XF(ji_m,ny-1) ! lolo bad???
       END DO
 
+      !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: YP =', YP(nx/2,:)
+      !PRINT *, ''
+      !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: FP =', FP(nx/2,:)
+      !STOP'boo'
+      
    END SUBROUTINE EXT_NORTH_TO_90_REGG
 
 
