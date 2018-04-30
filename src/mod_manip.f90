@@ -1004,7 +1004,7 @@ CONTAINS
       e1_in(:,:) = 40000. ;  e2_in(:,:) = 40000.
       DO jj_in=1, ny_in
          DO ji_in=1, nx_in-1
-            e1_in(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in+1,jj_in),Yin(ji_in,jj_in),Yin(ji_in+1,jj_in))*1000. !(m)
+            e1_in(ji_in,jj_in) = distance(Xin(ji_in,jj_in),Xin(ji_in+1,jj_in),Yin(ji_in,jj_in),Yin(ji_in+1,jj_in))*1000. ! (m)
          END DO
       END DO
       DO jj_in=1, ny_in-1

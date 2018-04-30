@@ -56,7 +56,7 @@ PROGRAM SOSIE
    REAL(4) :: rfct_miss=1.
 
 
-   !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
+   OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='

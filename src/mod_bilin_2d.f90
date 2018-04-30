@@ -222,9 +222,10 @@ CONTAINS
             iqdrn = IMETRICS(ji,jj,3)
             alpha = RAB(ji,jj,1)
             beta  = RAB(ji,jj,2)
-
-            IF ( (X1w(iP,jP)==X2(ji,jj)).AND.(Y1w(iP,jP)==Y2(ji,jj)) ) THEN
-               !PRINT *, ' *** LOLO: SAME POINT !!! IDproblem =', IPB(ji,jj)
+            !!
+            IF ( (ABS(degE_to_degWE(X1w(iP,jP))-degE_to_degWE(X2(ji,jj)))<1.E-5) .AND. (ABS(Y1w(iP,jP)-Y2(ji,jj))<1.E-5) ) THEN
+               !! COPY:
+               WRITE(6,*)' *** BILIN_2D: "identical point" detected (crit: 1.E-5) => copying value, no interpolation!'
                Z2(ji,jj) = Z1w(iP,jP)
             ELSE
                !! INTERPOLATION:
