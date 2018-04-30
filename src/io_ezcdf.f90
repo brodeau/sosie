@@ -1503,7 +1503,7 @@ CONTAINS
 
 
 
-   SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, id_pb)
+   SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, id_pb,  d2np)
       INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
       CHARACTER(len=*),             INTENT(in) :: cf_out
       REAL(8),    DIMENSION(:,:),   INTENT(in) :: xlon, xlat
@@ -1511,11 +1511,14 @@ CONTAINS
       REAL(8),    DIMENSION(:,:,:), INTENT(in) :: ralfbet
       REAL(8),                      INTENT(in) :: vflag
       INTEGER(2), DIMENSION(:,:),   INTENT(in) :: id_pb
+      REAL(4), DIMENSION(:,:), OPTIONAL, INTENT(in) :: d2np ! distance to nearest point (km)
 
-      INTEGER          :: lx, ly, il0, id_n2, id_n3, id_v1, id_v2, id_v3
-
+      INTEGER          :: lx, ly, il0, id_n2, id_n3, id_v1, id_v2, id_v3, id_dnp
+      LOGICAL          :: l_save_distance_to_np=.FALSE.
       CHARACTER(len=80), PARAMETER :: crtn = 'P2D_MAPPING_AB'
-
+      
+      IF ( PRESENT(d2np) ) l_save_distance_to_np=.TRUE.
+      
       lx = size(ralfbet,1) ; ly = size(ralfbet,2)
 
       il0 = size(ralfbet,3)
@@ -1551,7 +1554,12 @@ CONTAINS
          &        crtn,cf_out,cdum)
       CALL sherr( NF90_DEF_VAR(id_f, 'iproblem',  NF90_INT,    (/id_x,id_y/),       id_v3, deflate_level=9), &
          &        crtn,cf_out,cdum)
-
+      IF ( l_save_distance_to_np ) THEN
+         CALL sherr( NF90_DEF_VAR(id_f, 'dist_np', NF90_REAL, (/id_x,id_y/), id_dnp, deflate_level=9),  crtn,cf_out,cdum)
+         CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'long_name', 'Distance to nearest point'),  crtn,cf_out,cdum)
+         CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'units'    , 'km'                       ),  crtn,cf_out,cdum)
+      END IF
+      
       IF ( vflag /= 0. ) THEN
          CALL sherr( NF90_PUT_ATT(id_f, id_v1,trim(cmv0),INT8(vflag)), crtn,cf_out,'metrics (masking)')
          CALL sherr( NF90_PUT_ATT(id_f, id_v2,trim(cmv0),vflag),       crtn,cf_out,'alphabeta (masking)')
@@ -1568,7 +1576,9 @@ CONTAINS
 
       CALL sherr( NF90_PUT_VAR(id_f, id_v1,  imtrcs),  crtn,cf_out,'metrics')
       CALL sherr( NF90_PUT_VAR(id_f, id_v2, ralfbet),  crtn,cf_out,'alphabeta')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v3, id_pb), crtn,cf_out,'iproblem')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v3,   id_pb),  crtn,cf_out,'iproblem')
+
+      IF ( l_save_distance_to_np ) CALL sherr( NF90_PUT_VAR(id_f, id_dnp, d2np), crtn,cf_out,'lon' )
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_out,cdum)
 

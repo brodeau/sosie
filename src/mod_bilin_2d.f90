@@ -380,6 +380,7 @@ CONTAINS
       CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
 
+      LOGICAL, PARAMETER :: l_save_distance_to_np=.TRUE. !: for each point of target grid, shows the distance to the nearest point found...
       INTEGER :: &
          &     nxi, nyi, nxo, nyo, &
          &     ji, jj,   &
@@ -407,6 +408,7 @@ CONTAINS
       INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iqdrn at each point
       INTEGER(2), DIMENSION(:,:),   ALLOCATABLE :: ID_problem
       INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_out
+      REAL(4),    DIMENSION(:,:),   ALLOCATABLE :: distance_to_np
 
       REAL(8) :: alpha, beta
       LOGICAL :: l_ok, lagain
@@ -419,12 +421,13 @@ CONTAINS
       nyo = size(lon_out,2)
 
       ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3), ID_problem(nxo,nyo), mask_ignore_out(nxo,nyo), &
-         &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
+         &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )      
       ZAB(:,:,:)      = 0.0
       MTRCS(:,:,:)    = 0
       ID_problem(:,:) = 0
       mask_ignore_out(:,:) = 1
 
+      IF (l_save_distance_to_np) ALLOCATE ( distance_to_np(nxo, nyo) )
 
       IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
 
@@ -535,6 +538,8 @@ CONTAINS
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
+                     IF (l_save_distance_to_np) distance_to_np(ji,jj) = DISTANCE(xP, lonP, yP, latP)
+                     
                      !! Problem is that sometimes, in the case of really twisted
                      !! meshes this method screws up, iqdrn is not what it
                      !! shoule be, so need the following loop on the value of iqdrn:
@@ -670,9 +675,10 @@ CONTAINS
       WHERE (mask_ignore_out <  -2) ID_problem = -3 ! No idea if possible... #lolo
       
       !! Print metrics and weight into a netcdf file 'cf_w':
-      CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem)
+      CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem,  d2np=distance_to_np)
 
-      DEALLOCATE ( MTRCS, ZAB, ID_problem, mask_ignore_out )
+      DEALLOCATE ( i_nrst_in, j_nrst_in, MTRCS, ZAB, ID_problem, mask_ignore_out )
+      IF ( l_save_distance_to_np ) DEALLOCATE ( distance_to_np )
 
    END SUBROUTINE MAPPING_BL
 
