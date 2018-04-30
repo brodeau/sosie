@@ -322,7 +322,7 @@ CONTAINS
 
       ELSE
 
-         WRITE(6,*) '  *** skipping vertical interpolation as source and target vertical grids are identical!'
+         WRITE(6,*) '  *** skipping vertical interpolation as source and target vertical levels are identical!'
          data3d_out = data3d_tmp ! target levels are same than source levels
          
       END IF  !IF ( .NOT. l_identical_levels )      ! => no vertical interpolation required...

@@ -157,9 +157,12 @@ CONTAINS
             WRITE(6,'("Mhhh interesting, target and vertical both have ", i4.4 ," vertical levels!")') nk_in
             zz = SUM( ( 1000.*(depth_out(1,1,:) - depth_in(1,1,:)) )**2 )
             IF ( zz < 1.0 ) THEN
-               PRINT *, ' => well, they are actually identical!', zz; PRINT *, ''
-               l_identical_levels = .TRUE.               
+               PRINT *, ' => well, they are actually identical!', zz
+               l_identical_levels = .TRUE.
+            ELSE
+               PRINT *, ' => well, they are not identical...'
             END IF
+            PRINT *, ''
          END IF
 
          max_lat_out = maxval(lat_out) ;   min_lat_out = minval(lat_out) ;
