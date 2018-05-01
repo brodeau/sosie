@@ -41,7 +41,7 @@ MODULE MOD_BILIN_2D
 CONTAINS
 
 
-   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat,  mask_domain_out)
+   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat,  mask_domain_trg)
 
       !!================================================================
       !!
@@ -63,7 +63,7 @@ CONTAINS
       !!
       !!
       !! OPTIONAL IN:
-      !!      * mask_domain_out: ignore (dont't treat) regions of the target domain where mask_domain_out==0 !
+      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!
       !!================================================================
 
@@ -76,7 +76,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       CHARACTER(len=*),        INTENT(in)  :: cnpat
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
       !! Local variables
       INTEGER :: nx1, ny1, ny1w, nx2, ny2
@@ -87,7 +87,7 @@ CONTAINS
 
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
       REAL(4),    DIMENSION(:,:), ALLOCATABLE :: Z1w
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_out !, msk_res
+      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_trg !, msk_res
 
       CHARACTER(len=2)   :: ctype
       CHARACTER(len=400) :: cf_wght
@@ -152,10 +152,10 @@ CONTAINS
       nx2 = SIZE(Z2,1)
       ny2 = SIZE(Z2,2)
 
-      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) , mask_ignore_out(nx2,ny2) ) !, msk_res(nx2,ny2) )
+      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) , mask_ignore_trg(nx2,ny2) ) !, msk_res(nx2,ny2) )
 
-      mask_ignore_out(:,:) = 1
-      IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
+      mask_ignore_trg(:,:) = 1
+      IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
 
       IF ( ctype == '1d' ) THEN
          DO jj=1, ny2
@@ -189,7 +189,7 @@ CONTAINS
             PRINT *, 'This is very time consuming, but only needs to be done once...'
             PRINT *, 'Therefore, you should keep this file for any future interpolation'
             PRINT *, 'using the same "source-target" setup'
-            CALL MAPPING_BL(k_ew_per, X1w, Y1w, X2, Y2, cf_wght,  mask_domain_out=mask_ignore_out)
+            CALL MAPPING_BL(k_ew_per, X1w, Y1w, X2, Y2, cf_wght,  mask_domain_trg=mask_ignore_trg)
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
@@ -207,11 +207,11 @@ CONTAINS
       Z2(:,:) = rflg ! Flagging non-interpolated output points
       icpt = 0
 
-      mask_ignore_out(:,:) = 1
-      WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_out = 0
-      WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_out = 0
+      mask_ignore_trg(:,:) = 1
+      WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_trg = 0
+      WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_trg = 0
 
-      !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_out = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
+      !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_trg = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
 
       IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
 
@@ -234,7 +234,7 @@ CONTAINS
          END DO
       END DO
 
-      Z2 = Z2*REAL(mask_ignore_out, 4) + REAL(1-mask_ignore_out, 4)*-9995. ! masking problem points as in mask_ignore_out
+      Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*-9995. ! masking problem points as in mask_ignore_trg
 
 
       IF ( l_first_call_interp_routine ) THEN
@@ -261,7 +261,7 @@ CONTAINS
          END IF
       END IF
 
-      DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_out )
+      DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_trg )
 
       l_first_call_interp_routine = .FALSE.
 
@@ -358,7 +358,7 @@ CONTAINS
 
 
 
-   SUBROUTINE MAPPING_BL(k_ew_per, X1, Y1, lon_out, lat_out, cf_w,  mask_domain_out)
+   SUBROUTINE MAPPING_BL(k_ew_per, X1, Y1, lon_out, lat_out, cf_w,  mask_domain_trg)
 
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
@@ -367,7 +367,7 @@ CONTAINS
       !!   *  Extract of CDFTOOLS cdfweight.f90 writen by Jean Marc Molines
       !!
       !! OPTIONAL:
-      !!      * mask_domain_out: ignore (dont't treat) regions of the target domain where mask_domain_out==0 !
+      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!----------------------------------------------------------------------------
 
       USE io_ezcdf
@@ -379,7 +379,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in) :: X1, Y1
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_out, lat_out
       CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_out
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
       LOGICAL, PARAMETER :: l_save_distance_to_np=.TRUE. !: for each point of target grid, shows the distance to the nearest point found...
       INTEGER :: &
@@ -408,7 +408,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
       INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iqdrn at each point
       INTEGER(2), DIMENSION(:,:),   ALLOCATABLE :: ID_problem
-      INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_out
+      INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_trg
       REAL(4),    DIMENSION(:,:),   ALLOCATABLE :: distance_to_np
 
       REAL(8) :: alpha, beta
@@ -421,18 +421,18 @@ CONTAINS
       nxo = size(lon_out,1)
       nyo = size(lon_out,2)
 
-      ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3), ID_problem(nxo,nyo), mask_ignore_out(nxo,nyo), &
+      ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3), ID_problem(nxo,nyo), mask_ignore_trg(nxo,nyo), &
          &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )      
       ZAB(:,:,:)      = 0.0
       MTRCS(:,:,:)    = 0
       ID_problem(:,:) = 0
-      mask_ignore_out(:,:) = 1
+      mask_ignore_trg(:,:) = 1
 
       IF (l_save_distance_to_np) ALLOCATE ( distance_to_np(nxo, nyo) )
 
-      IF ( PRESENT(mask_domain_out) ) mask_ignore_out(:,:) = mask_domain_out(:,:)
+      IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
 
-      CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_out=mask_ignore_out )
+      CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_trg=mask_ignore_trg )
 
       
       idb = 0 ! i-index of point to debug on target domain
@@ -443,9 +443,9 @@ CONTAINS
 
             IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug:', idb, jdb
             
-            IF ( mask_ignore_out(ji,jj)==1 ) THEN
-               !! => exclude regions that do not exist on source domain (mask_ignore_out==0) and
-               !! points for which the nearest point was not found (mask_ignore_out==-1 or -2)
+            IF ( mask_ignore_trg(ji,jj)==1 ) THEN
+               !! => exclude regions that do not exist on source domain (mask_ignore_trg==0) and
+               !! points for which the nearest point was not found (mask_ignore_trg==-1 or -2)
 
                !! Now deal with horizontal interpolation
                !! set longitude of input point in accordance with lon ( [lon0, 360+lon0 [ )
@@ -671,14 +671,14 @@ CONTAINS
          ID_problem(:,:) = 1
       END WHERE
       
-      WHERE (mask_ignore_out <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
-      WHERE (mask_ignore_out ==  0) ID_problem = -2 ! No idea if possible... #lolo
-      WHERE (mask_ignore_out <  -2) ID_problem = -3 ! No idea if possible... #lolo
+      WHERE (mask_ignore_trg <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
+      WHERE (mask_ignore_trg ==  0) ID_problem = -2 ! No idea if possible... #lolo
+      WHERE (mask_ignore_trg <  -2) ID_problem = -3 ! No idea if possible... #lolo
       
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem,  d2np=distance_to_np)
 
-      DEALLOCATE ( i_nrst_in, j_nrst_in, MTRCS, ZAB, ID_problem, mask_ignore_out )
+      DEALLOCATE ( i_nrst_in, j_nrst_in, MTRCS, ZAB, ID_problem, mask_ignore_trg )
       IF ( l_save_distance_to_np ) DEALLOCATE ( distance_to_np )
 
    END SUBROUTINE MAPPING_BL
