@@ -225,7 +225,7 @@ CONTAINS
             !!
             IF ( (ABS(degE_to_degWE(X1w(iP,jP))-degE_to_degWE(X2(ji,jj)))<1.E-5) .AND. (ABS(Y1w(iP,jP)-Y2(ji,jj))<1.E-5) ) THEN
                !! COPY:
-               WRITE(6,*)' *** BILIN_2D: "identical point" detected (crit: 1.E-5) => copying value, no interpolation!'
+               IF (ldebug) WRITE(6,*)' *** BILIN_2D: "identical point" detected (crit: 1.E-5) => copying value, no interpolation!'
                Z2(ji,jj) = Z1w(iP,jP)
             ELSE
                !! INTERPOLATION:
