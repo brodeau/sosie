@@ -757,7 +757,7 @@ CONTAINS
       END IF
       rlon = 0. ; rlat = 0.
 
-      !! Checking the dimension of longitude variable
+      !! Checking the dimension of longitude and latitude:
       CALL DIMS(cfgrd, cvx, ilx1, ily1, ilz1, nrec)
       CALL DIMS(cfgrd, cvy, ilx2, ily2, ilz2, nrec)
 
@@ -860,33 +860,34 @@ CONTAINS
          !!         ----------------------------------
          !!            I R R E G U L A R   G R I D :
          !!         ----------------------------------
-         WRITE(6,*) 'Opening irregular grid ', trim(cvx), ' , ', trim(cvy), &
-            &                 ' in file ', trim(cfgrd), ' .'
+         WRITE(6,*) 'Opening irregular grid ', TRIM(cvx),', ',TRIM(cvy),' in file:'
+         WRITE(6,*) '   ', TRIM(cfgrd)
+         WRITE(6,*) ' => ilx1, ilx2, ily1, ily2, ilz1, ilz2 =', ilx1, ilx2, ily1, ily2, ilz1, ilz2
          WRITE(6,*) ''
 
          IF (ilx1 /= ilx2) THEN
 
             IF ( (ily1 == ily2).and.(ilz1 == ilz2).and.(ily1 == -1).and.(ilz1 == -1) ) THEN
-               WRITE(6,*) 'Eror! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',   &
+               WRITE(6,*) 'ERROR! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',   &
                   &       trim(cvy), ' seem to be regular (1D), check namelist!'
                WRITE(6,*) 'In the file ', trim(cfgrd)
                WRITE(6,*) '       => so maybe try to set '//trim(clreg)//' to .TRUE. in the namelist!'
                STOP
             ELSE
-               WRITE(6,*) 'Eror! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',  &
+               WRITE(6,*) 'ERROR! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',  &
                   &   trim(cvy), ' do not agree in dimension!'
                WRITE(6,*) 'In the file ', trim(cfgrd) ; STOP
             END IF
          END IF
 
          IF ( (ily1 /= ily2).or.(ilz1 /= ilz2) ) THEN
-            WRITE(6,*) 'Eror! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',    &
+            WRITE(6,*) 'ERROR! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',    &
                &   trim(cvy), &
                &   ' do not agree in dimension!'
             WRITE(6,*) 'In the file ', trim(cfgrd); STOP
          END IF
          IF ( (ilx1 /= lx).or.(ily1 /= ly) ) THEN
-            WRITE(6,*) 'Eror! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',   &
+            WRITE(6,*) 'ERROR! '//trim(cdomain)//' longitude ', trim(cvx), ' and latitude ',   &
                &   trim(cvy),   &
                &   ' do not agree in dimension with configuration dimension!'
             WRITE(6,*) 'In the file ', trim(cfgrd); STOP
