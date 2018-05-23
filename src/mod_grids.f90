@@ -894,9 +894,7 @@ CONTAINS
          END IF
 
 
-         !! Getting source longitude array at level=1 (surface) and time =1 :
-         !! -----------------------------------------------------------------
-         !! If 3d dimension, we chose first level
+         !! Getting longitude and latitude arrays at level=1 (surface) and time =1 :
          IF ( ilz1 /= -1 ) THEN
             CALL GETVAR_2D(if1, iv1, cfgrd, cvx, 0, 1, 0, rlon) ; if1 = 0 ; iv1 = 0
             CALL GETVAR_2D(if1, iv1, cfgrd, cvy, 0, 1, 0, rlat)
@@ -906,7 +904,6 @@ CONTAINS
          END IF
 
       END IF
-
 
    END SUBROUTINE rd_grid
 
