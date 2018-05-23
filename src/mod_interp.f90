@@ -111,13 +111,13 @@ CONTAINS
       REAL(8) :: zmax_in, zmax_out
 
       CHARACTER(len=128) :: cfdbg !DEBUG
-      
+
       !! Interpolation of each of the nk_in levels onto the target grid
       !! --------------------------------------------------------------
 
 
       !! Need to do some sort of vertical drown downward to propagate the bottom
-      !! value (last water pomit mask==1) down into the sea-bed...      
+      !! value (last water pomit mask==1) down into the sea-bed...
       !DO jj = 1, nj_in
       !   DO ji = 1, ni_in
       !      IF ( mask_in(ji,jj,1) == 1 ) THEN  ! ocean at first level!
@@ -148,54 +148,60 @@ CONTAINS
 
 
       DO jk = 1, nk_in
-
-         PRINT *, ' Level : ', jk
-
-         IF ( cmethod /= 'no_xy' ) THEN
-
+         
+         PRINT *, '### Preparing source field at level : ', jk
+         
+         IF ( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
             IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data3d_in(:,:,jk))
             IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_in(:,:,jk))
-
-            IF ( ldrown ) THEN
-               !! Extrapolate sea values over land :
-               WRITE(6,*) '*** Extrapolating source data over land at level jk =', INT(jk,2)
-               CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk), nb_inc=ni_in/2, nb_smooth=10 )
-            ELSE
-               PRINT *, '-------------------'
-               PRINT *, 'DROWN NOT CALLED!!!'
-               PRINT *, '-------------------'
-            END IF
-
          END IF
-
+         
+         IF ( ldrown ) THEN
+            !! Extrapolate sea values over land :
+            WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_in), jk
+            CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk), nb_inc=ni_in/4, nb_smooth=5 )
+         ELSE
+            PRINT *, '-------------------'
+            PRINT *, 'DROWN NOT CALLED!!!'
+            PRINT *, '-------------------'
+         END IF
+         
          IF ( ismooth > 0 ) THEN
             IF ( TRIM(cmethod) == 'no_xy' ) THEN
                PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
                STOP
             END IF
             !! First, may apply a smoothing on "data_in" in case target grid is much coarser than the source grid!
-            WRITE(6,'("     --- ",a,": smoothing level #",i3.3," ",i2," times!")') TRIM(cv_in), jk, ismooth
+            WRITE(6,'("     --- ",a,": Smoothing level #",i3.3," ",i2," times!")') TRIM(cv_in), jk, ismooth
             CALL SMOOTH(ewper, data3d_in(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_in(:,:,jk))
          END IF
          
       END DO !DO jk = 1, nk_in
 
 
+
       !! Prevent last level to cause problem when not a single water point (last level is only rock!)
-      IF ( SUM(mask_in(:,:,nk_in)) == 0) data3d_in(:,:,nk_in) = data3d_in(:,:,nk_in-1) ! persistence!      
-      
+      IF ( SUM(mask_in(:,:,nk_in)) == 0) data3d_in(:,:,nk_in) = data3d_in(:,:,nk_in-1) ! persistence!
+
       !LOLOdebug:
       !DO jk = nk_in/2, nk_in
       !   WRITE(cfdbg,'("data_to_be_interpolated_lev",i2.2,".nc")') jk ; PRINT *, ' *** saving ', TRIM(cfdbg)
       !   CALL DUMP_2D_FIELD(data3d_in(:,:,jk), TRIM(cfdbg), cv_in)
       !END DO
-      !LOLOdebug.      
+      !LOLOdebug.
 
       
+      PRINT *, ''
+      PRINT *, ' 3D field prepared at all levels, ready to be interpolated...'
+      PRINT *, ''
+
+
       !! Now! 3D input field ready to be interpolated...
       DO jk = 1, nk_in
 
-         SELECT CASE(cmethod)
+         IF (TRIM(cmethod) /= 'no_xy' ) PRINT *, '  *** interpolating at level ', jk
+                  
+         SELECT CASE(TRIM(cmethod))
 
          CASE('akima')
             CALL akima_2d(ewper, lon_in,  lat_in,  data3d_in(:,:,jk), &
@@ -224,8 +230,9 @@ CONTAINS
             ENDIF
 
          CASE('no_xy')
+            PRINT *, '  *** copying at level ', jk
             data3d_tmp(:,:,jk) = data3d_in(:,:,jk)
-            IF ( trim(ctype_z_in) == 'z' ) THEN
+            IF ( TRIM(ctype_z_in) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
                depth_in_trgt2d(:,:,jk) = depth_in(1,1,jk)
             ELSE
@@ -239,12 +246,15 @@ CONTAINS
 
          IF (lregout) CALL extrp_hl(data3d_tmp(:,:,jk))
 
-
       END DO !DO jk = 1, nk_in
-      
 
+      PRINT *, ''
+      
       data3d_out(:,:,:) = rmaskvalue ! Masking everything
 
+      
+
+      !! Time for vertical interpolation
 
 
       !IF ( .NOT. (TRIM(cf_x_out)  == 'spheric') ) THEN  !LOLO WTF was this???
@@ -264,7 +274,7 @@ CONTAINS
                   CALL FLIP_UD_1D(depth_in_trgt2d(ji,jj,:))
                   CALL FLIP_UD_1D(data3d_tmp(ji,jj,:))
                ENDIF
-               
+
                IF ( trim(ctype_z_out) == 'sigma' ) THEN
                   CALL FLIP_UD_1D(depth_out(ji,jj,:))
                ENDIF
@@ -284,7 +294,7 @@ CONTAINS
                ELSE
                   jklast = nk_out
                END IF
-               
+
                IF ( (mask_out(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
                   IF ( lmout ) THEN  ! adapting nlev if masking target
                      nlev = 1
@@ -296,6 +306,8 @@ CONTAINS
                   ELSE
                      nlev = jklast
                   END IF
+                  !!
+                  IF ( (MOD(ji,100)==0).AND.(MOD(jj,100)==0) ) PRINT *, '  ... calling AKIMA_1D for ji_out,jj_out =', ji,jj
                   !!
                   CALL AKIMA_1D( depth_in_trgt2d(ji,jj,:),data3d_tmp(ji,jj,:),  &
                      &           depth_out(ji,jj,1:nlev), data3d_out(ji,jj,1:nlev))
@@ -328,7 +340,6 @@ CONTAINS
       END IF  !IF ( .NOT. l_identical_levels )      ! => no vertical interpolation required...
 
 
-
       !! avoid working with 3D arrays as a whole : produce SEGV on some machines (small)
       !! RD : replaced out of bounds values by vmin/vmax not rmaskvalue
       !! as it induced spval instead of zero on BGC fields
@@ -340,6 +351,10 @@ CONTAINS
          IF ( lmout ) data3d_out(:,:,jk) = data3d_out(:,:,jk)*mask_out(:,:,jk) + (1. - mask_out(:,:,jk))*rmaskvalue
 
       END DO
+
+      PRINT *, ''
+      PRINT *, ' 3D interpolation done!'
+      PRINT *, ''
 
    END SUBROUTINE INTERP_3D
 

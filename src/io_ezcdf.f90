@@ -1227,7 +1227,9 @@ CONTAINS
       IF ( size(x3d,3) /= lz ) CALL print_err(crtn, 'depth array do not match data')
 
       IF ( lct == 1 ) THEN
-
+         PRINT *, ''
+         PRINT *, ' --- '//TRIM(crtn)//': creating file '//TRIM(cf_in)//' to write '//TRIM(cv_in)//'!'
+         
          IF ( vflag /= 0.) THEN
             rmin =  1.E6 ; rmax = -1.E6
             DO jk=1, lz
@@ -1306,12 +1308,15 @@ CONTAINS
       END IF  !IF ( lct == 1 )
 
       !!                WRITE VARIABLE
+      PRINT *, ' --- '//TRIM(crtn)//': writing '//TRIM(cv_in)//' in '//TRIM(cf_in)//', record #', lct
       CALL sherr( NF90_PUT_VAR(idx_f, idx_v,  x3d, start=(/1,1,1,lct/), count=(/lx,ly,lz,1/)),  crtn,cf_in,cv_in)
 
       !! Sync data from buffer to file
       IF ( lct /= lt ) CALL sherr( NF90_SYNC (idx_f),  crtn,cf_in,cv_in)
-      IF ( lct == lt ) CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
-
+      IF ( lct == lt ) THEN
+         PRINT *, ' --- '//TRIM(crtn)//': closing file '//TRIM(cf_in)//' .'
+         CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
+      END IF
    END SUBROUTINE P3D_T
 
 
