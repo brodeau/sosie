@@ -16,10 +16,10 @@ L_NCDF = -lnetcdff
 # Fortran compilation flags:
 # -- Production
 ##FF = -O3 -i4 -xHOST -module mod/
-FF = -O3 -i4 -xHOST -module mod/
+##FF = -O3 -i4 -xHOST -module mod/
 
 # -- Debugging
-#FF = -O0 -i4 -traceback -CB -module mod/
+FF = -O2 -i4 -xHOST -traceback -CB -fpe0 -module mod/
 
 # Directory to install binaries:
 INSTALL_DIR = $(HOME)/local
