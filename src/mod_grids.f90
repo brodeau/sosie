@@ -898,7 +898,9 @@ CONTAINS
          END IF
 
 
-         !! Getting longitude and latitude arrays at level=1 (surface) and time =1 :
+         !! Getting source longitude array at level=1 (surface) and time =1 :
+         !! -----------------------------------------------------------------
+         !! If 3d dimension, we chose first level
          IF ( ilz1 /= -1 ) THEN
             CALL GETVAR_2D(if1, iv1, cfgrd, cvx, 0, 1, 0, rlon) ; if1 = 0 ; iv1 = 0
             CALL GETVAR_2D(if1, iv1, cfgrd, cvy, 0, 1, 0, rlat)
@@ -908,6 +910,7 @@ CONTAINS
          END IF
 
       END IF
+
 
    END SUBROUTINE rd_grid
 
@@ -1049,11 +1052,7 @@ CONTAINS
       !!
       nk_out = 1
       !!
-      IF ( TRIM(cmethod) == 'no_xy' ) THEN
-         ni_out = ni_in
-         nj_out = nj_in
-
-      ELSE
+      IF ( TRIM(cmethod) /= 'no_xy' ) THEN
          !! If 3D interpolation and building spherical grid, we use levels from source grid:
          IF ( l_int_3d .AND. (TRIM(cf_x_out)  == 'spheric') ) THEN
             cf_z_out = cf_z_in ;  cv_z_out = cv_z_in
@@ -1075,8 +1074,7 @@ CONTAINS
             CALL DIMS(cf_x_out, cv_lon_out, ni_out, nj_out, n1, nrec)
          END IF
          !!
-
-      END IF
+      END IF ! IF ( TRIM(cmethod) /= 'no_xy' )
 
 100   CONTINUE
 
