@@ -388,11 +388,11 @@ CONTAINS
 
       !! Getting land-sea mask on source domain
       mask_in(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
-
-      IF ( ldrown ) THEN
-
+      
+      IF ( l_drown_src ) THEN
+         
          IF ( TRIM(cf_lsm_in) == 'missing_value' ) THEN
-
+            
             WRITE(6,*) 'Opening land-sea mask from missing_value on source data!'
             CALL CHECK_4_MISS(cf_in, cv_in, lmval, rmv, ca_missval)
             IF ( .NOT. lmval ) THEN
@@ -484,8 +484,8 @@ CONTAINS
                ELSE
                   WRITE(6,*) 'PROBLEM! You want to interpolate level', jplev
                   WRITE(6,*) 'but your source land-sea mask is not 3D!'
-                  WRITE(6,*) '=> set ldrown to false in the namelist'
-                  WRITE(6,*) 'If you want to "drown" a level other than the surface,'
+                  WRITE(6,*) '=> set "idrown" to 0 in the namelist'
+                  WRITE(6,*) 'If you want to "DROWN" a level other than the surface,'
                   WRITE(6,*) 'please provide a 3D source land-sea mask'
                   STOP
                END IF
@@ -518,7 +518,7 @@ CONTAINS
             END IF
          END IF
 
-      END IF ! IF ( ldrown )
+      END IF  ! IF ( l_drown_src ) THEN
 
       !! Need to modify the mask if lon or lat have been modified :
       IF ( nlat_inc_in == -1 ) CALL FLIP_UD_3D(mask_in)

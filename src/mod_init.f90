@@ -12,7 +12,7 @@ MODULE MOD_INIT
 
    NAMELIST /ninput/   ivect, lregin, cf_in, cv_in, cv_t_in, jt1, jt2, &
       &                jplev, cf_x_in, cv_lon_in, cv_lat_in, cf_lsm_in, cv_lsm_in, &
-      &                ldrown, ewper, vmax, vmin, ismooth, cf_coor_in
+      &                idrown, ewper, vmax, vmin, ismooth, cf_coor_in
 
    NAMELIST /n3d/      cf_z_in, cv_z_in, cf_z_out, cv_z_out, cv_z_out_name, &
       &                cf_bathy_in, cv_bathy_in, cf_bathy_out, cv_bathy_out, &
@@ -125,7 +125,11 @@ CONTAINS
 
       CLOSE(numnam)
 
-
+      
+      l_drown_src = .FALSE.
+      IF ( idrown > 0 ) l_drown_src = .TRUE.
+      
+      
 
       IF ( iex == 1 ) THEN
 
@@ -235,7 +239,7 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'Output file: ', trim(cf_out)
          WRITE(6,*)''
-         WRITE(6,*)'Shall we use DROWN: ', ldrown
+         WRITE(6,*)'Shall we use DROWN on source fields: ', l_drown_src
          WRITE(6,*)''
          WRITE(6,*)'East west periodicity of source grid: ', ewper
          WRITE(6,*)''

@@ -10,6 +10,7 @@ MODULE MOD_CONF
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
    LOGICAL, SAVE :: l_first_call_interp_routine, &
+      &             l_drown_src, & ! DROWN source field
       &             l_glob_lon_wize, l_glob_lat_wize, &
       &             l_identical_levels=.FALSE.  ! if true and 3D interpolation => means that source and target vertical grids are identical!
    
@@ -65,16 +66,13 @@ MODULE MOD_CONF
    LOGICAL :: &
       &    lregin,  & ! whether source grid is regular or not
       &    lregout, & ! whether target grid is regular or not
-      &    ldrown,  & ! whether to use the DROWN procedure to extrapolate sea values on earth
       &    lmout,   & ! masking output or not
       &    lct        ! time control
-
-
-   ! &    ldrown_out ! drowning out put (only if lmout=FALSE and cv_lsm_out /= ''
 
    !! Integers
    !! --------
    INTEGER  :: &
+      &    idrown=0, &  ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
       &    jt1=0, jt2=0, ismooth=0
 
    !! Name of files or directories:

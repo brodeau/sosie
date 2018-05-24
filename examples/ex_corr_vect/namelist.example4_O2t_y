@@ -16,10 +16,11 @@ cv_lon_in = 'lon'
 cv_lat_in = 'lat'
 cf_lsm_in = '../data/lsm_era-int.nc'  ! land-sea mask
 cv_lsm_in = 'lsm'
-ldrown    = T            ! we want to propagate sea values onto the land-sea mask
+idrown    = 100           ! we want to propagate sea values onto the land-sea mask
 ewper     = 0           ! input field does have east-west periodicity with 0 overlapping point
 vmax      =  1.E6
 vmin      = -1.E6
+ismooth   = 0
 /
 !!
 &nhtarget

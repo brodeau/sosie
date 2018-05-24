@@ -30,13 +30,9 @@ CONTAINS
 
       mask_in = mask_in_b    ! re-filling the mask with trusted values...
 
-      IF ( ldrown ) THEN
+      IF ( l_drown_src ) THEN
          !! Extrapolate sea values over land :
-         IF ( lmout ) THEN
-            CALL DROWN(ewper, data_in, mask_in(:,:,1), nb_inc=ni_in/5)
-         ELSE
-            CALL DROWN(ewper, data_in, mask_in(:,:,1), nb_inc=ni_in/2)
-         END IF
+         CALL DROWN(ewper, data_in, mask_in(:,:,1), nb_inc=idrown)
       ELSE
          PRINT *, '-------------------'
          PRINT *, 'DROWN NOT CALLED!!!'
@@ -83,7 +79,7 @@ CONTAINS
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF (jj_ex_btm > 0) THEN
-         CALL DROWN(ewper_out, data_out, mask_out(:,:,1),  nb_inc=100, nb_smooth=5)
+         CALL DROWN(ewper_out, data_out, mask_out(:,:,1),  nb_inc=idrown, nb_smooth=5)
       END IF
       !lolo.
 
@@ -156,10 +152,10 @@ CONTAINS
             IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_in(:,:,jk))
          END IF
          
-         IF ( ldrown ) THEN
+         IF ( l_drown_src ) THEN
             !! Extrapolate sea values over land :
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_in), jk
-            CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk), nb_inc=ni_in/4, nb_smooth=5 )
+            CALL DROWN(ewper, data3d_in(:,:,jk), mask_in(:,:,jk), nb_inc=idrown, nb_smooth=5 )
          ELSE
             PRINT *, '-------------------'
             PRINT *, 'DROWN NOT CALLED!!!'

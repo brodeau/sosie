@@ -8,7 +8,7 @@
 !!
 !! ************************************************************
 !! &ninput => info about field to interpolate
-!!            and source grid to interpolate from  
+!!            and source grid to interpolate from
 !! ************************************************************
 !!
 !! ivect : vector correction control on treated field [integer]
@@ -51,21 +51,34 @@
 !! cv_lon_in : name of longitude in the input grid file [char]
 !! cv_lat_in : name of latitude in the input grid file [char]
 !!
-!! cf_lsm_in : file containing the input land-sea mask [char]
-!!             (only relevant if ldrown==.true.)
+!! cf_lsm_in : (only relevant if idrown>0)
+!!             file containing the input land-sea mask [char]
 !!             Alternatively:
 !!             * specify " cf_lsm_in = 'missing_value' " if a 'missing_value' netcdf
 !!               attribute defines the mask on the input data field
 !!             * specify " cf_lsm_in = 'nan' " if mask is defined with NaN values
-!!               (not needed if "ldrown = .FALSE." --> '')
+!!             * specify " cf_lsm_in = 'value' if you want land regions to be defined
+!!               where field 'cv_in' is strictly equal to the numeric value read into 'cv_lsm_in'
+!!             * specify " cf_lsm_in = 'val+' if you want land regions to be defined
+!!               where field 'cv_in' is larger or equal to the numeric value read into 'cv_lsm_in'
+!!             * specify " cf_lsm_in = 'val-' if you want land regions to be defined
+!!               where field 'cv_in' is smaller or equal to the numeric value read into 'cv_lsm_in'
+!!               Ex: you want all points where your field is <= 0 to become land mask,
+!!                   then specify: cf_lsm_in = 'val-' and cv_lsm_in = '0.00001'
 !!
-!! cv_lsm_in : name of land-sea mask variable [char]
-!!             (not needed if "ldrown = .FALSE."
-!!              or if cf_lsm_in = 'missing_value'--> '')
+!! cv_lsm_in : (only relevant if idrown>0)
+!!             name of land-sea mask variable [char]
+!!             or if cf_lsm_in = 'missing_value'--> '')
 !!             by default ocean is flagged with value 1
 !!             and continents are flagged with value 0
+!!             Alternatively:
+!!             a string of numeric value when cf_lsm_in is 'value', 'val-', or 'val+'
 !!
-!! ldrown : whether we call DROWN land filling procedure [logical]
+!! idrown : whether we call DROWN land filling procedure (>0) or not (=0) [integer] 
+!!          => will propagate/extrapolate sea values (defined where
+!!             lsm==1) of field cv_in by "idrown" grid points ONTO continents
+!!             (defined WHERE lsm==0) to avoid interpolation problems, such as
+!!             continental values that contaminate sea values during interpolation
 !!
 !! ewper : east-west periodicity on the input file/grid [integer]
 !!         = -1 --> no periodicity
@@ -73,6 +86,17 @@
 !!
 !! vmax : upper bound not to exceed for treated variable [real]
 !! vmin : lower bound not to exceed for treated variable [real]
+!!
+!! ismooth : if ismooth > 0 the field to be interpolated will be smoothed
+!!           prior to interpolation. By applying ismooth times a type of
+!!           closest neighboors boxcar smoothing algorithm
+!!           (check "SMOOTH" of mod_drown.f90)
+!!         => this is usefull to avoid sub-sampling when your target
+!!            grid is much coarser than your source grid
+!!            (i.e. when interpolating from high-res to low-res)
+!!         => start with a multiple of 10, typically 20, and adjust depending
+!!            on the result
+!!               
 !!--------------------------------------------------------------------------
 !!
 &ninput
@@ -89,25 +113,12 @@ cv_lon_in = 'lon'
 cv_lat_in = 'lat'
 cf_lsm_in = 'missing_value'   ! we use 'missing_value' of input field to determine
 cv_lsm_in = ''                ! the land-sea-mask
-ldrown    = T            ! we want to propagate sea values onto the land-sea mask
+idrown    = 100            ! we want to propagate sea values onto the land-sea mask
 ewper     = 0          ! input field does have east-west periodicity with 0 overlapping point
 vmax      =  1.E6
 vmin      = -1.E6
 ismooth   = 0
 /
-!!
-!!
-!!
-!!
-!! ***********************************************************
-!! &n3d => info about source and target vertical levels/grids
-!!         ONLY IF 3D INTERPOLATION ( jplev = 0 in &ninput)
-!! ***********************************************************
-!!
-!! Only mind if you do want to perform a 3D (spatial) interpolation
-!! 
-!! This namelist section is not required as we do pure 2D interpolation
-!!
 !!
 !!
 !! *****************************************************************
@@ -130,9 +141,11 @@ ismooth   = 0
 !!
 !! cf_lsm_out : file containing output land-sea mask [char]
 !!              MUST BE 3D for 3D interpolation!
-!!              or specify 'missing_value' if a 'missing_value' netcdf
-!!              attribute defines the mask on a field 'X' in file 'cf_x_out'
-!!              (not needed if "lmout = .FALSE." --> '')
+!!              - or specify 'missing_value' if a 'missing_value' netcdf
+!!                attribute defines the mask on a field 'X' in file 'cf_x_out'
+!!                (not needed if "lmout = .FALSE." --> '')
+!!              - or specify 'val' so points with value "rmaskvalue" in the file
+!!                to be saved will be masked!
 !!
 !! cv_lsm_out : name of land-sea mask variable in 'cf_lsm_out'     [char]
 !!              or name of field 'X' in 'cf_x_out' if you specified
@@ -194,7 +207,8 @@ ewper_out  = 2
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
 !! *** Into the netcdf file to be created : ***
-!! cv_t_out : name of time record vector in the output file               [char]
+!! cv_t_out : name of time record vector in the output file [char]
+!!            => set to cv_t_out='' if no time dimension
 !! cv_out   : name for treated variable in the output file                [char]
 !! cu_out   : if not = '': then change the unit of treated variable units [char]
 !! cln_out  : if not = '': then change the long name treated variable     [char]
