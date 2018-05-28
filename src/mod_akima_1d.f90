@@ -10,7 +10,7 @@ MODULE MOD_AKIMA_1D
    !!
    IMPLICIT NONE
 
-   
+
    INTERFACE AKIMA_1D
       MODULE PROCEDURE AKIMA_1D_1D    !, AKIMA_1D_3D
    END INTERFACE AKIMA_1D
@@ -25,69 +25,65 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_1D_1D(vx1, vy1, vx2, vy2)
+   SUBROUTINE AKIMA_1D_1D( vz1, vf1,  vz2, vf2)
       !!
-      REAL(4), DIMENSION(:), INTENT(in)  :: vx1, vy1, vx2
-      REAL(4), DIMENSION(:), INTENT(out) :: vy2
+      REAL(4), DIMENSION(:), INTENT(in)  :: vz1, vf1, vz2
+      REAL(4), DIMENSION(:), INTENT(out) :: vf2
+      !!___________________________________________________
+      INTEGER :: nk1, nk2, nk1e, jk1, jk2, jp1, jp2, jk1e
+      REAL(4)  :: a0, a1, a2, a3, dz, dz2
+      LOGICAL  :: lfnd, l_do_interp
+      REAL(4), DIMENSION(:), ALLOCATABLE  :: vz1e, vf1e, vslp
       !!___________________________________________________
       !!
-      !! Local :
-      INTEGER :: n1, n2
       !!
-      REAL(8), DIMENSION(:), ALLOCATABLE  :: vx1p4, vy1p4, vslp
-      !!
-      REAL(8) :: a0, a1, a2, a3, rr, dx
-      INTEGER  :: n4, j1, j2, p1, p2, j1p4
-      LOGICAL  :: lfnd
-      !!
-      !!
-      IF ( size(vx1) /= size(vy1) ) THEN
-         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vx1 and vy1 do not have the same size!'; STOP
+      IF ( size(vz1) /= size(vf1) ) THEN
+         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vz1 and vf1 do not have the same size!'; STOP
       END IF
-      IF ( size(vx2) /= size(vy2) ) THEN
-         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vx2 and vy2 do not have the same size!'; STOP
+      IF ( size(vz2) /= size(vf2) ) THEN
+         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vz2 and vf2 do not have the same size!'; STOP
       END IF
       !!
-      n1 = size(vx1)
-      n2 = size(vx2)
+      nk1 = size(vz1)
+      nk2 = size(vz2)
       !!
-      n4 = n1 + 4
+      nk1e = nk1 + 4
       !!
-      ALLOCATE ( vx1p4(n4), vy1p4(n4), vslp(n4) )
+      ALLOCATE ( vz1e(nk1e), vf1e(nk1e), vslp(nk1e) )
       !!
-      vx1p4(3:n1+2) = REAL(vx1(:), 8)
-      vy1p4(3:n1+2) = REAL(vy1(:), 8)
+      vz1e(3:nk1+2) = vz1(:)
+      vf1e(3:nk1+2) = vf1(:)
       !!
       !! Extending input X array :
       !! =========================
-      !! - if vx is regularly spaced, it's not a big deal, otherwise we use
+      !! - if vz is regularly spaced, it's not a big deal, otherwise we use
       !!   what's been proposed by Akima (1970) :
       !!
       !! Bottom (or West) :
-      vx1p4(2) =  REAL(vx1p4(4) - (vx1p4(5) - vx1p4(3)), 8)
-      vx1p4(1) =  REAL(vx1p4(3) - (vx1p4(5) - vx1p4(3)), 8)
+      vz1e(2) =  vz1e(4) - (vz1e(5) - vz1e(3))
+      vz1e(1) =  vz1e(3) - (vz1e(5) - vz1e(3))
       !!
       !! Top (or East) :
-      vx1p4(n4-1) =  REAL(vx1p4(n4-3) + vx1p4(n4-2) - vx1p4(n4-4), 8)
-      vx1p4(n4)   =  REAL(vx1p4(n4-2) + vx1p4(n4-2) - vx1p4(n4-4), 8)
+      vz1e(nk1e-1) =  vz1e(nk1e-3) + vz1e(nk1e-2) - vz1e(nk1e-4)
+      vz1e(nk1e)   =  vz1e(nk1e-2) + vz1e(nk1e-2) - vz1e(nk1e-4)
       !!
       !!
       !! Now extrapolating input Y values on these 4 extra points :
       !! ==========================================================
       !!
       !! Bottom (or West) :
-      CALL extra_2_west(vx1p4(5), vx1p4(4), vx1p4(3), vx1p4(2), vx1p4(1), &
-         &            vy1p4(5), vy1p4(4), vy1p4(3), vy1p4(2), vy1p4(1) )
+      CALL extra_2_west(vz1e(5), vz1e(4), vz1e(3), vz1e(2), vz1e(1), &
+         &              vf1e(5), vf1e(4), vf1e(3), vf1e(2), vf1e(1) )
       !!
       !! Top (or East) :
-      CALL extra_2_east(vx1p4(n4-4), vx1p4(n4-3), vx1p4(n4-2), vx1p4(n4-1), vx1p4(n4), &
-         &            vy1p4(n4-4), vy1p4(n4-3), vy1p4(n4-2), vy1p4(n4-1), vy1p4(n4) )
+      CALL extra_2_east(vz1e(nk1e-4), vz1e(nk1e-3), vz1e(nk1e-2), vz1e(nk1e-1), vz1e(nk1e), &
+         &              vf1e(nk1e-4), vf1e(nk1e-3), vf1e(nk1e-2), vf1e(nk1e-1), vf1e(nk1e) )
       !!
       !!
       !! Computing slopes :
       !! ==================
       !!
-      CALL SLOPES_1D(vx1p4, vy1p4, vslp)
+      CALL SLOPES_1D(vz1e, vf1e, vslp)
       !!
       !!
       !!
@@ -96,8 +92,8 @@ CONTAINS
       !!
       !! We INTERPOLATE and don't extrapolate so checking the bounds !
       !! input X array is supposed to be orgnised so :
-      !    xstart = vx1(1)  !  xstart = minval(x1) ;   xstop  = maxval(x1)
-      !    xstop  = vx1(n1)
+      !    xstart = vz1(1)  !  xstart = minval(x1) ;   xstop  = maxval(x1)
+      !    xstop  = vz1(nk1)
       !!
       !!
       !! Treating each target point :
@@ -107,82 +103,90 @@ CONTAINS
       !!        -> should be fixed !!!
       !!        x1 is totally ORGANISED (increasing!)
       !!
+      !jk1_o = 1
       !!
-      DO j2 = 1, n2
+      DO jk2 = 1, nk2
          !!
-         j1   = 1
+         !jk1  = MAX(jk1_o,1)
+         l_do_interp = .TRUE.
+         jk1 = 1
          lfnd = .FALSE.
          !!
          !! Persistence: if point of output grid is shallower
          !!              than first point of input grid
-         !!              (should occur only when j2 = 1)
-         IF ( vx2(j2) < vx1(1) ) THEN
-            vy2(j2) = vy1(1)
-            GOTO 10
+         !!              (should occur only when jk2 = 1)
+         IF ( vz2(jk2) < vz1(1) ) THEN
+            vf2(jk2) = vf1(1)
+            l_do_interp = .FALSE.
          END IF
          !!
          !!
-         DO WHILE ( (j1 < n1).and.(.not. lfnd) )
+         DO WHILE ( (.NOT. lfnd).AND.(l_do_interp) )
             !!
+            IF ( jk1 == nk1 ) EXIT
             !!
-            IF ( (vx2(j2) > vx1(j1)).and.(vx2(j2) < vx1(j1+1)) ) THEN
-               j1p4  = j1 + 2
-               p1    = j1p4
-               p2    = j1p4 + 1
+            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) < vz1(jk1+1)) ) THEN
+               jk1e  = jk1 + 2
+               jp1    = jk1e
+               jp2    = jk1e + 1
                lfnd = .TRUE.
                !!
             ELSE
                !!
-               IF ( vx2(j2) == vx1(j1) ) THEN
-                  vy2(j2) = vy1(j1)
-                  GOTO 10
+               IF ( vz2(jk2) == vz1(jk1) ) THEN
+                  vf2(jk2) = vf1(jk1)
+                  l_do_interp = .FALSE.
+                  EXIT
                ELSE
-                  IF ( vx2(j2) == vx1(j1+1) ) THEN
-                     vy2(j2) = vy1(j1+1)
-                     GOTO 10
+                  IF ( vz2(jk2) == vz1(jk1+1) ) THEN
+                     vf2(jk2) = vf1(jk1+1)
+                     l_do_interp = .FALSE.
+                     EXIT
                   END IF
                END IF
                !!
             END IF
             !!
-            j1 = j1 + 1
+            jk1 = jk1 + 1
             !!
-         END DO
+         END DO ! DO WHILE ( .NOT. lfnd )
+
          !!  (PM) Take bottom value below the last data
-         IF (( j1 == n1) .and. (.not. lfnd)) THEN
-            vy2(j2) = vy1(n1)
-            GOTO 10
+         IF (( jk1 == nk1) .and. (.not. lfnd)) THEN
+            vf2(jk2) = vf1(nk1)
+            l_do_interp = .FALSE.
          END IF
          !!
          IF ( .not. lfnd ) THEN
-            vy2(j2) = -6666.0
-            GOTO 10
+            vf2(jk2) = -6666.0
+            l_do_interp = .FALSE.
          END IF
          !!
          !!
          !!
-         !! Estimating vy2(j2) with a third order polynome :
-         !! -----------------------------------------------
-         !! Coefficients of the polynome
+         IF ( l_do_interp ) THEN
+            !! Estimating vf2(jk2) with a third order polynome :
+            !! -----------------------------------------------
+            !! Coefficients of the polynome
+            !!
+            !! MIND ! : jp1 and jp2 are given in 've' (n+4 extended arrays)
+            a0 = vf1e(jp1)
+            a1 = vslp(jp1)
+            dz = 1./(vz1e(jp2) - vz1e(jp1))
+            dz2 = dz*dz
+            a2 = ( 3*(vf1e(jp2) - vf1e(jp1))*dz - 2*vslp(jp1) - vslp(jp2) ) * dz
+            a3 = ( vslp(jp1) + vslp(jp2) - 2*(vf1e(jp2)-vf1e(jp1))/(vz1e(jp2)-vz1e(jp1)) ) * dz2
+            !!
+            dz = vz2(jk2) - vz1e(jp1)
+            dz2 = dz*dz
+            !!
+            vf2(jk2) = a0 + a1*dz + a2*dz2 + a3*dz2*dz
+            !!
+         END IF
          !!
-         !! MIND ! : p1 and p2 are given in 'vp4'
-         a0 = vy1p4(p1)
-         a1 = vslp(p1)
-         a2 = (3*(vy1p4(p2) - vy1p4(p1))/(vx1p4(p2) - vx1p4(p1)) - 2*vslp(p1) - vslp(p2)) &
-            & /(vx1p4(p2) - vx1p4(p1))
-         a3 = (vslp(p1) + vslp(p2) - 2*(vy1p4(p2)-vy1p4(p1))/(vx1p4(p2)-vx1p4(p1)))  &
-            &         /(vx1p4(p2) - vx1p4(p1))**2
-         !!
-         dx = REAL(vx2(j2), 8) - vx1p4(p1)
-         !!
-         rr = a0 + a1*dx + a2*dx**2 + a3*dx**3
-         vy2(j2) = REAL(rr, 4)
-         !!
-         !!
-10       CONTINUE
-         !!
-      END DO
+      END DO  !DO jk2 = 1, nk2
       !!
+      DEALLOCATE ( vz1e, vf1e, vslp )
       !!
    END SUBROUTINE AKIMA_1D_1D
 
@@ -192,157 +196,157 @@ CONTAINS
 
 
 
-!  SUBROUTINE AKIMA_1D_3D(vx1, vy1, vx2, vy2)
-!     !!
-!     REAL(4), DIMENSION(:,:,:), INTENT(in)  :: vx1, vy1, vx2
-!     REAL(4), DIMENSION(:,:,:), INTENT(out) :: vy2
-!     !!___________________________________________________
-!     !!
-!     !! Local :
-!     INTEGER :: nx, ny, nz1, nz2
-!     !!
-!     REAL(4), DIMENSION(:,:,:), ALLOCATABLE  :: vx1p4, vy1p4, vslp
-!     !!
-!     REAL(4), DIMENSION(:,:), ALLOCATABLE  :: a0, a1, a2, a3, dx
-!     INTEGER  :: n4, j1, j2, p1, p2, j1p4
-!     LOGICAL, DIMENSION(:,:), ALLOCATABLE  :: lfnd
-!     !!
-!     !!
-!      !IF ( SIZE(vx1) /= SIZE(vy1) ) THEN
-!      !   PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_3D: vx1 and vy1 do not have the same size!'; STOP
-!      !END IF
-!      !IF ( size(vx2) /= size(vy2) ) THEN
-!      !   PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_3D: vx2 and vy2 do not have the same size!'; STOP
-!      !END IF
-!      !!
-!      nx =  SIZE(vx1,1)
-!      ny =  SIZE(vx1,2)
-!      nz1 = SIZE(vx1,3)
-!      nz2 = SIZE(vx2,3)
-!      !!
-!      n4 = nz1 + 4
-!      !!
-!      ALLOCATE ( vx1p4(nx,ny,n4), vy1p4(nx,ny,n4), vslp(nx,ny,n4), lfnd(nx,ny) )
-!      ALLOCATE ( a0(nx,ny), a1(nx,ny), a2(nx,ny), a3(nx,ny), dx(nx,ny) )
-!      !!
-!      vx1p4(:,:,3:nz1+2) = vx1(:,:,:)
-!      vy1p4(:,:,3:nz1+2) = vy1(:,:,:)
-!      !!
-!      !! Extending input X array :
-!      !! =========================
-!      !! - if vx is regularly spaced, it's not a big deal, otherwise we use
-!      !!   what's been proposed by Akima (1970) :
-!      !!
-!      !! Bottom (or West) :
-!      vx1p4(:,:,2) =  vx1p4(:,:,4) - (vx1p4(:,:,5) - vx1p4(:,:,3))
-!      vx1p4(:,:,1) =  vx1p4(:,:,3) - (vx1p4(:,:,5) - vx1p4(:,:,3))
-!      !!
-!      !! Top (or East) :
-!      vx1p4(:,:,n4-1) =  vx1p4(:,:,n4-3) + vx1p4(:,:,n4-2) - vx1p4(:,:,n4-4)
-!      vx1p4(:,:,n4)   =  vx1p4(:,:,n4-2) + vx1p4(:,:,n4-2) - vx1p4(:,:,n4-4)
-!      !!
-!      !!
-!      !! Now extrapolating input Y values on these 4 extra points :
-!      !! ==========================================================
-!      !!
-!      !! Bottom :
-!      CALL extra_2_bottom(vx1p4(:,:,5), vx1p4(:,:,4), vx1p4(:,:,3), vx1p4(:,:,2), vx1p4(:,:,1), &
-!         &            vy1p4(:,:,5), vy1p4(:,:,4), vy1p4(:,:,3), vy1p4(:,:,2), vy1p4(:,:,1) )
-!      !!
-!      !! Top :
-!      CALL extra_2_top(vx1p4(:,:,n4-4), vx1p4(:,:,n4-3), vx1p4(:,:,n4-2), vx1p4(:,:,n4-1), vx1p4(:,:,n4), &
-!         &            vy1p4(:,:,n4-4), vy1p4(:,:,n4-3), vy1p4(:,:,n4-2), vy1p4(:,:,n4-1), vy1p4(:,:,n4) )
-!      !!
-!      !!
-!      !! Computing slopes :
-!      !! ==================
-!      !!
-!      CALL SLOPES_3D(vx1p4, vy1p4, vslp)
-!      !!
-!      !!
-!      !!
-!      !! Ok! Now, each point of the target grid must be interpolated :
-!      !! =============================================================
-!      DO j2 = 1, nz2
-!         !!
-!         j1   = 1
-!         lfnd(:,:) = .FALSE.
-!         !!
-!         !IF ( vx2(j2) < vx1(1) ) THEN
-!         !   vy2(j2) = vy1(1)
-!         !   GOTO 10
-!         !END IF
-!         !!
-!         !!
-!         DO WHILE ( j1 < nz1 )
-!            WHERE ( .NOT. lfnd )
-!               !!
-!               !!
-!               WHERE ( (vx2(:,:,j2) > vx1(:,:,j1)).AND.(vx2(:,:,j2) < vx1(:,:,j1+1)) )
-!                  j1p4  = j1 + 2
-!                  p1    = j1p4
-!                  p2    = j1p4 + 1
-!                  lfnd = .TRUE.
-!                  !!
-!               ELSEWHERE
-!                  !!
-!                  WHERE ( vx2(:,:,j2) == vx1(:,:,j1) )
-!                     vy2(:,:,j2) = vy1(:,:,j1)
-!                     !GOTO 10
-!                  ELSEWHERE
-!                     WHERE ( vx2(:,:,j2) == vx1(:,:,j1+1) )
-!                        vy2(:,:,j2) = vy1(:,:,j1+1)
-!                        !GOTO 10
-!                     END WHERE
-!                  END WHERE
-!                  !!
-!               END WHERE
-!               !!
-!               j1 = j1 + 1
-!               !!
-!            END WHERE
-!         END DO
-!
-!         IF ( j1 == nz1) THEN
-!            WHERE (.NOT. lfnd)
-!               vy2(:,:,j2) = vy1(:,:,nz1)
-!               !GOTO 10
-!            END WHERE
-!         END IF
-!
-!         !IF ( .NOT. lfnd ) THEN
-!         !   vy2(:,:,j2) = -6666.0
-!         !   GOTO 10
-!         !END IF
-!
-!
-!
-!         !!
-!         !! Estimating vy2(j2) with a third order polynome :
-!         !! -----------------------------------------------
-!         !! Coefficients of the polynome
-!         !!
-!         !! MIND ! : p1 and p2 are given in 'vp4'
-!         a0(:,:) = vy1p4(:,:,p1)
-!         a1(:,:) = vslp(:,:,p1)
-!         a2(:,:) = (3*(vy1p4(:,:,p2) - vy1p4(:,:,p1))/(vx1p4(:,:,p2) - vx1p4(:,:,p1)) - 2*vslp(:,:,p1) - vslp(:,:,p2)) &
-!            & /(vx1p4(:,:,p2) - vx1p4(:,:,p1))
-!         a3(:,:) = (vslp(:,:,p1) + vslp(:,:,p2) - 2*(vy1p4(:,:,p2)-vy1p4(:,:,p1))/(vx1p4(:,:,p2)-vx1p4(:,:,p1)))  &
-!            &         /(vx1p4(:,:,p2) - vx1p4(:,:,p1))**2
-!         !!
-!         dx(:,:) = vx2(j2) - vx1p4(:,:,p1)
-!         !!
-!         vy2(j2) = a0(:,:) + a1(:,:)*dx(:,:) + a2(:,:)*dx(:,:)**2 + a3(:,:)*dx(:,:)**3
-!         !!
-!         !!
-!10       CONTINUE
-!        !!
-!     END DO
-!     !!
-!     DEALLOCATE ( vx1p4, vy1p4, vslp, lfnd )
-!     DEALLOCATE ( a0, a1, a2, a3, dx )
-!     !!
-!  END SUBROUTINE AKIMA_1D_3D
+   !  SUBROUTINE AKIMA_1D_3D(vx1, vy1, vx2, vy2)
+   !     !!
+   !     REAL(4), DIMENSION(:,:,:), INTENT(in)  :: vx1, vy1, vx2
+   !     REAL(4), DIMENSION(:,:,:), INTENT(out) :: vy2
+   !     !!___________________________________________________
+   !     !!
+   !     !! Local :
+   !     INTEGER :: nx, ny, nz1, nz2
+   !     !!
+   !     REAL(4), DIMENSION(:,:,:), ALLOCATABLE  :: vx1p4, vy1p4, vslp
+   !     !!
+   !     REAL(4), DIMENSION(:,:), ALLOCATABLE  :: a0, a1, a2, a3, dx
+   !     INTEGER  :: n4, j1, j2, p1, p2, j1p4
+   !     LOGICAL, DIMENSION(:,:), ALLOCATABLE  :: lfnd
+   !     !!
+   !     !!
+   !      !IF ( SIZE(vx1) /= SIZE(vy1) ) THEN
+   !      !   PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_3D: vx1 and vy1 do not have the same size!'; STOP
+   !      !END IF
+   !      !IF ( size(vx2) /= size(vy2) ) THEN
+   !      !   PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_3D: vx2 and vy2 do not have the same size!'; STOP
+   !      !END IF
+   !      !!
+   !      nx =  SIZE(vx1,1)
+   !      ny =  SIZE(vx1,2)
+   !      nz1 = SIZE(vx1,3)
+   !      nz2 = SIZE(vx2,3)
+   !      !!
+   !      n4 = nz1 + 4
+   !      !!
+   !      ALLOCATE ( vx1p4(nx,ny,n4), vy1p4(nx,ny,n4), vslp(nx,ny,n4), lfnd(nx,ny) )
+   !      ALLOCATE ( a0(nx,ny), a1(nx,ny), a2(nx,ny), a3(nx,ny), dx(nx,ny) )
+   !      !!
+   !      vx1p4(:,:,3:nz1+2) = vx1(:,:,:)
+   !      vy1p4(:,:,3:nz1+2) = vy1(:,:,:)
+   !      !!
+   !      !! Extending input X array :
+   !      !! =========================
+   !      !! - if vx is regularly spaced, it's not a big deal, otherwise we use
+   !      !!   what's been proposed by Akima (1970) :
+   !      !!
+   !      !! Bottom (or West) :
+   !      vx1p4(:,:,2) =  vx1p4(:,:,4) - (vx1p4(:,:,5) - vx1p4(:,:,3))
+   !      vx1p4(:,:,1) =  vx1p4(:,:,3) - (vx1p4(:,:,5) - vx1p4(:,:,3))
+   !      !!
+   !      !! Top (or East) :
+   !      vx1p4(:,:,n4-1) =  vx1p4(:,:,n4-3) + vx1p4(:,:,n4-2) - vx1p4(:,:,n4-4)
+   !      vx1p4(:,:,n4)   =  vx1p4(:,:,n4-2) + vx1p4(:,:,n4-2) - vx1p4(:,:,n4-4)
+   !      !!
+   !      !!
+   !      !! Now extrapolating input Y values on these 4 extra points :
+   !      !! ==========================================================
+   !      !!
+   !      !! Bottom :
+   !      CALL extra_2_bottom(vx1p4(:,:,5), vx1p4(:,:,4), vx1p4(:,:,3), vx1p4(:,:,2), vx1p4(:,:,1), &
+   !         &            vy1p4(:,:,5), vy1p4(:,:,4), vy1p4(:,:,3), vy1p4(:,:,2), vy1p4(:,:,1) )
+   !      !!
+   !      !! Top :
+   !      CALL extra_2_top(vx1p4(:,:,n4-4), vx1p4(:,:,n4-3), vx1p4(:,:,n4-2), vx1p4(:,:,n4-1), vx1p4(:,:,n4), &
+   !         &            vy1p4(:,:,n4-4), vy1p4(:,:,n4-3), vy1p4(:,:,n4-2), vy1p4(:,:,n4-1), vy1p4(:,:,n4) )
+   !      !!
+   !      !!
+   !      !! Computing slopes :
+   !      !! ==================
+   !      !!
+   !      CALL SLOPES_3D(vx1p4, vy1p4, vslp)
+   !      !!
+   !      !!
+   !      !!
+   !      !! Ok! Now, each point of the target grid must be interpolated :
+   !      !! =============================================================
+   !      DO j2 = 1, nz2
+   !         !!
+   !         j1   = 1
+   !         lfnd(:,:) = .FALSE.
+   !         !!
+   !         !IF ( vx2(j2) < vx1(1) ) THEN
+   !         !   vy2(j2) = vy1(1)
+   !         !   GOTO 10
+   !         !END IF
+   !         !!
+   !         !!
+   !         DO WHILE ( j1 < nz1 )
+   !            WHERE ( .NOT. lfnd )
+   !               !!
+   !               !!
+   !               WHERE ( (vx2(:,:,j2) > vx1(:,:,j1)).AND.(vx2(:,:,j2) < vx1(:,:,j1+1)) )
+   !                  j1p4  = j1 + 2
+   !                  p1    = j1p4
+   !                  p2    = j1p4 + 1
+   !                  lfnd = .TRUE.
+   !                  !!
+   !               ELSEWHERE
+   !                  !!
+   !                  WHERE ( vx2(:,:,j2) == vx1(:,:,j1) )
+   !                     vy2(:,:,j2) = vy1(:,:,j1)
+   !                     !GOTO 10
+   !                  ELSEWHERE
+   !                     WHERE ( vx2(:,:,j2) == vx1(:,:,j1+1) )
+   !                        vy2(:,:,j2) = vy1(:,:,j1+1)
+   !                        !GOTO 10
+   !                     END WHERE
+   !                  END WHERE
+   !                  !!
+   !               END WHERE
+   !               !!
+   !               j1 = j1 + 1
+   !               !!
+   !            END WHERE
+   !         END DO
+   !
+   !         IF ( j1 == nz1) THEN
+   !            WHERE (.NOT. lfnd)
+   !               vy2(:,:,j2) = vy1(:,:,nz1)
+   !               !GOTO 10
+   !            END WHERE
+   !         END IF
+   !
+   !         !IF ( .NOT. lfnd ) THEN
+   !         !   vy2(:,:,j2) = -6666.0
+   !         !   GOTO 10
+   !         !END IF
+   !
+   !
+   !
+   !         !!
+   !         !! Estimating vy2(j2) with a third order polynome :
+   !         !! -----------------------------------------------
+   !         !! Coefficients of the polynome
+   !         !!
+   !         !! MIND ! : p1 and p2 are given in 'vp4'
+   !         a0(:,:) = vy1p4(:,:,p1)
+   !         a1(:,:) = vslp(:,:,p1)
+   !         a2(:,:) = (3*(vy1p4(:,:,p2) - vy1p4(:,:,p1))/(vx1p4(:,:,p2) - vx1p4(:,:,p1)) - 2*vslp(:,:,p1) - vslp(:,:,p2)) &
+   !            & /(vx1p4(:,:,p2) - vx1p4(:,:,p1))
+   !         a3(:,:) = (vslp(:,:,p1) + vslp(:,:,p2) - 2*(vy1p4(:,:,p2)-vy1p4(:,:,p1))/(vx1p4(:,:,p2)-vx1p4(:,:,p1)))  &
+   !            &         /(vx1p4(:,:,p2) - vx1p4(:,:,p1))**2
+   !         !!
+   !         dx(:,:) = vx2(j2) - vx1p4(:,:,p1)
+   !         !!
+   !         vy2(j2) = a0(:,:) + a1(:,:)*dx(:,:) + a2(:,:)*dx(:,:)**2 + a3(:,:)*dx(:,:)**3
+   !         !!
+   !         !!
+   !10       CONTINUE
+   !        !!
+   !     END DO
+   !     !!
+   !     DEALLOCATE ( vx1p4, vy1p4, vslp, lfnd )
+   !     DEALLOCATE ( a0, a1, a2, a3, dx )
+   !     !!
+   !  END SUBROUTINE AKIMA_1D_3D
 
 
 
@@ -367,13 +371,13 @@ CONTAINS
       !! Author : Laurent Brodeau, dec. 2004
       !!
       !!-------------------------------------------------------------------
-      REAL(8), DIMENSION(:), INTENT(in)  :: x, y
-      REAL(8), DIMENSION(:), INTENT(out) :: slope
+      REAL(4), DIMENSION(:), INTENT(in)  :: x, y
+      REAL(4), DIMENSION(:), INTENT(out) :: slope
       !!_______________________________________________________
       !!
       !! Local :
       INTEGER :: nz, k
-      REAL(8) :: m1, m2, m3, m4
+      REAL(4) :: m1, m2, m3, m4
       !!
       nz = SIZE(x)
       !!
@@ -573,6 +577,13 @@ CONTAINS
       DEALLOCATE ( A, B, C, D, ALF, BET )
       !!
    END SUBROUTINE extra_2_bottom_3d
+
+
+
+
+
+
+
 
 
 END MODULE MOD_AKIMA_1D

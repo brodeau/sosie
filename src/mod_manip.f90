@@ -18,7 +18,16 @@ MODULE MOD_MANIP
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
    END INTERFACE degE_to_degWE
 
+   INTERFACE extra_2_east
+      MODULE PROCEDURE extra_2_east_r4, extra_2_east_r8
+   END INTERFACE extra_2_east
 
+   INTERFACE extra_2_west
+      MODULE PROCEDURE extra_2_west_r4, extra_2_west_r8
+   END INTERFACE extra_2_west
+   
+
+   
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR, degE_to_degWE, &
@@ -440,7 +449,7 @@ CONTAINS
 
 
 
-   SUBROUTINE extra_2_east(x1, x2, x3, x4, x5, y1, y2, y3, y4, y5)
+   SUBROUTINE extra_2_east_r8(x1, x2, x3, x4, x5, y1, y2, y3, y4, y5)
       !!
       !!============================================================================
       !!
@@ -469,19 +478,36 @@ CONTAINS
       BET  = y3 - y2
       !!
       IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
-         y4 = y3 ; y5 = y3
+         y4 = y3
+         y5 = y3
       ELSE
          y4   = C*(2*BET/B - ALF/A) + y3
          y5   = y4 + y4*D/C + BET*D/B - ALF*D/A - y3*D/C
       END IF
-      !!
-      !!
-   END SUBROUTINE extra_2_east
-   !!
-   !!
-   !!
-   !!
-   SUBROUTINE extra_2_west(x5, x4, x3, x2, x1, y5, y4, y3, y2, y1)
+   END SUBROUTINE extra_2_east_r8
+
+   SUBROUTINE extra_2_east_r4(x1, x2, x3, x4, x5, y1, y2, y3, y4, y5)
+      REAL(4), INTENT(in)  :: x1, x2, x3, x4, x5, y1, y2, y3
+      REAL(4), INTENT(out) :: y4, y5
+      REAL(4) :: A, B, C, D, ALF, BET
+      A    = x2 - x1
+      B    = x3 - x2
+      C    = x4 - x3
+      D    = x5 - x4
+      ALF  = y2 - y1
+      BET  = y3 - y2
+      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+         y4 = y3
+         y5 = y3
+      ELSE
+         y4 = C*(2*BET/B - ALF/A) + y3
+         y5 = y4 + y4*D/C + BET*D/B - ALF*D/A - y3*D/C
+      END IF
+   END SUBROUTINE extra_2_east_r4
+
+   
+
+   SUBROUTINE extra_2_west_r8(x5, x4, x3, x2, x1, y5, y4, y3, y2, y1)
       !!
       !!============================================================================
       !!
@@ -513,15 +539,35 @@ CONTAINS
       BET  = y3 - y4
       !!
       IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
-         y2 = y3; y1 = y3
+         y2 = y3
+         y1 = y3
       ELSE
-         y2   = C*(2*BET/B - ALF/A) + y3
-         y1   = y2 + y2*D/C + BET*D/B - ALF*D/A - y3*D/C
+         y2 = C*(2*BET/B - ALF/A) + y3
+         y1 = y2 + y2*D/C + BET*D/B - ALF*D/A - y3*D/C
       END IF
-      !!
-      !!
-   END SUBROUTINE extra_2_west
+   END SUBROUTINE extra_2_west_r8
 
+   SUBROUTINE extra_2_west_r4(x5, x4, x3, x2, x1, y5, y4, y3, y2, y1)
+      REAL(4), INTENT(in)  :: x1, x2, x3, x4, x5, y5, y4, y3
+      REAL(4), INTENT(out) :: y1, y2
+      REAL(4) :: A, B, C, D, ALF, BET
+      A    = x4 - x5
+      B    = x3 - x4
+      C    = x2 - x3
+      D    = x1 - x2
+      ALF  = y4 - y5
+      BET  = y3 - y4
+      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+         y2 = y3
+         y1 = y3
+      ELSE
+         y2 = C*(2*BET/B - ALF/A) + y3
+         y1 = y2 + y2*D/C + BET*D/B - ALF*D/A - y3*D/C
+      END IF
+   END SUBROUTINE extra_2_west_r4
+
+   
+   
 
    SUBROUTINE PARTIAL_DERIV(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
 
