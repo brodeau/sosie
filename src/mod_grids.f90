@@ -521,7 +521,7 @@ CONTAINS
       END IF  ! IF ( l_drown_src ) THEN
 
       !! Need to modify the mask if lon or lat have been modified :
-      IF ( nlat_inc_in == -1 ) CALL FLIP_UD_3D(mask_in)
+      IF ( nlat_inc_in == -1 ) CALL FLIP_UD(mask_in)
       IF ( nlon_inc_in == -1 ) CALL LONG_REORG_3D(i_chg_lon, mask_in)
 
    END SUBROUTINE get_src_conf

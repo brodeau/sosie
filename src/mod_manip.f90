@@ -10,9 +10,9 @@ MODULE MOD_MANIP
    PRIVATE
 
 
-   INTERFACE flip_ud_1d
-      MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8
-   END INTERFACE flip_ud_1d
+   INTERFACE flip_ud
+      MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i2
+   END INTERFACE flip_ud
 
    INTERFACE degE_to_degWE
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
@@ -20,7 +20,7 @@ MODULE MOD_MANIP
 
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
-      &      flip_ud_1d, flip_ud_2d, flip_ud_3d, long_reorg_2d, long_reorg_3d, &
+      &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR, degE_to_degWE, &
       &      ext_north_to_90_regg
 
@@ -595,7 +595,7 @@ CONTAINS
    END SUBROUTINE FLIP_UD_1D_R8
 
 
-   SUBROUTINE FLIP_UD_2D(XF)
+   SUBROUTINE FLIP_UD_2D_R4(XF)
 
       REAL(4), DIMENSION(:,:), INTENT(inout) :: XF
 
@@ -614,7 +614,32 @@ CONTAINS
 
       DEALLOCATE ( ztmp )
 
-   END SUBROUTINE FLIP_UD_2D
+   END SUBROUTINE FLIP_UD_2D_R4
+
+
+   SUBROUTINE FLIP_UD_3D_I2(XF)
+
+      INTEGER(2), DIMENSION(:,:,:), INTENT(inout) :: XF
+
+      INTEGER :: nx, ny, nz, jj
+      INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
+
+      nx = SIZE(XF,1) ; ny = SIZE(XF,2) ; nz = SIZE(XF,3)
+
+      ALLOCATE ( ztmp(nx,ny,nz) )
+
+      ztmp(:,:,:) = XF(:,:,:)
+
+      DO jj = 1, ny
+         XF(:,jj,:) =  ztmp(:,ny-jj+1,:)
+      END DO
+
+      DEALLOCATE ( ztmp )
+
+   END SUBROUTINE FLIP_UD_3D_I2
+
+
+
 
 
    SUBROUTINE LONG_REORG_2D(i_chg_x, XF)
@@ -643,26 +668,6 @@ CONTAINS
    END SUBROUTINE LONG_REORG_2D
 
 
-   SUBROUTINE FLIP_UD_3D(XF)
-
-      INTEGER(2), DIMENSION(:,:,:), INTENT(inout) :: XF
-
-      INTEGER :: nx, ny, nz, jj
-      INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
-
-      nx = SIZE(XF,1) ; ny = SIZE(XF,2) ; nz = SIZE(XF,3)
-
-      ALLOCATE ( ztmp(nx,ny,nz) )
-
-      ztmp(:,:,:) = XF(:,:,:)
-
-      DO jj = 1, ny
-         XF(:,jj,:) =  ztmp(:,ny-jj+1,:)
-      END DO
-
-      DEALLOCATE ( ztmp )
-
-   END SUBROUTINE FLIP_UD_3D
 
    SUBROUTINE LONG_REORG_3D(i_chg_x, XF)
 
@@ -1562,7 +1567,7 @@ CONTAINS
       END IF
 
       nyp1 = ny + 1
-      
+
       XP = 0.
       YP = 0.
       FP = 0.
@@ -1609,7 +1614,7 @@ CONTAINS
       !PRINT *, ''
       !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: FP =', FP(nx/2,:)
       !STOP'boo'
-      
+
    END SUBROUTINE EXT_NORTH_TO_90_REGG
 
 

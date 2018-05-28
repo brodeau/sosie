@@ -20,19 +20,23 @@ CONTAINS
 
    SUBROUTINE INTERP_2D()
 
+      !USE io_ezcdf ; !LOLOdebug
       !! ================
       !! 2D INTERPOLATION
       !! ================
 
       !! lon-aranging or lat-flipping field
-      IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data_in)
+      IF ( nlat_inc_in == -1 ) CALL FLIP_UD(data_in)
       IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_in)
 
       mask_in = mask_in_b    ! re-filling the mask with trusted values...
 
       IF ( l_drown_src ) THEN
-         !! Extrapolate sea values over land :
+         !CALL DUMP_2D_FIELD(data_in, '1_before_drown.nc', cv_in)
+         !CALL DUMP_2D_FIELD(REAL(mask_in(:,:,1),4), '1_mask_before_drown.nc', 'mask')
+         !! Extrapolate sea values over land :         
          CALL DROWN(ewper, data_in, mask_in(:,:,1), nb_inc=idrown)
+         !CALL DUMP_2D_FIELD(data_in, '2_after_drown.nc', cv_in)
       ELSE
          PRINT *, '-------------------'
          PRINT *, 'DROWN NOT CALLED!!!'
@@ -148,7 +152,7 @@ CONTAINS
          PRINT *, '### Preparing source field at level : ', jk
          
          IF ( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
-            IF ( nlat_inc_in == -1 ) CALL FLIP_UD_2D(data3d_in(:,:,jk))
+            IF ( nlat_inc_in == -1 ) CALL FLIP_UD(data3d_in(:,:,jk))
             IF ( nlon_inc_in == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_in(:,:,jk))
          END IF
          
@@ -267,12 +271,12 @@ CONTAINS
                !! RD dev notes : we need to make sure that the depth vector for both in and out
                !! are from smallest to largest value so that persistance works
                IF ( trim(ctype_z_in) == 'sigma' ) THEN
-                  CALL FLIP_UD_1D(depth_in_trgt2d(ji,jj,:))
-                  CALL FLIP_UD_1D(data3d_tmp(ji,jj,:))
+                  CALL FLIP_UD(depth_in_trgt2d(ji,jj,:))
+                  CALL FLIP_UD(data3d_tmp(ji,jj,:))
                ENDIF
 
                IF ( trim(ctype_z_out) == 'sigma' ) THEN
-                  CALL FLIP_UD_1D(depth_out(ji,jj,:))
+                  CALL FLIP_UD(depth_out(ji,jj,:))
                ENDIF
 
                !! RD dev notes : we compare the depth from source depth vector and target depth vector
@@ -320,8 +324,8 @@ CONTAINS
 
                   !! RD dev notes : when interpolating to sigma, need to reverse again arrays
                   IF ( trim(ctype_z_out) == 'sigma' ) THEN
-                     CALL FLIP_UD_1D(depth_out(ji,jj,:))
-                     CALL FLIP_UD_1D(data3d_out(ji,jj,:))
+                     CALL FLIP_UD(depth_out(ji,jj,:))
+                     CALL FLIP_UD(data3d_out(ji,jj,:))
                   ENDIF
 
                END IF
