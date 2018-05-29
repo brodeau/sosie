@@ -119,8 +119,8 @@ MODULE MOD_CONF
       &    cv_bathy_out= '',&
       &    cf_bathy_in = '',&
       &    cf_bathy_out= '',&
-      &    ctype_z_in='z', &
-      &    ctype_z_out='z'  
+      &    ctype_z_in  ='z', &
+      &    ctype_z_out ='z'  
 
    TYPE scoord_params
             integer :: Vtransform
