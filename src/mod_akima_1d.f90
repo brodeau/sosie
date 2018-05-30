@@ -205,7 +205,6 @@ CONTAINS
       REAL(4), DIMENSION(:,:,:), INTENT(in)  :: xf1
       REAL(4), DIMENSION(:,:,:), INTENT(out) :: xf2
       REAL(4), INTENT(in)  :: rfill_val
-      !INTEGER(2), DIMENSION(:,:,:), OPTIONAL, INTENT(in) :: mask
       !!___________________________________________________
       INTEGER :: nk1, nk2, nk1e, nx, ny, jk1, jk2, jp1, jp2, jk1e
       REAL(4) :: dz, dz2

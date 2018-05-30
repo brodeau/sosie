@@ -25,9 +25,9 @@ MODULE MOD_MANIP
    INTERFACE extra_2_west
       MODULE PROCEDURE extra_2_west_r4, extra_2_west_r8
    END INTERFACE extra_2_west
-   
 
-   
+
+
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR, degE_to_degWE, &
@@ -505,7 +505,7 @@ CONTAINS
       END IF
    END SUBROUTINE extra_2_east_r4
 
-   
+
 
    SUBROUTINE extra_2_west_r8(x5, x4, x3, x2, x1, y5, y4, y3, y2, y1)
       !!
@@ -566,8 +566,8 @@ CONTAINS
       END IF
    END SUBROUTINE extra_2_west_r4
 
-   
-   
+
+
 
    SUBROUTINE PARTIAL_DERIV(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
 
@@ -834,14 +834,14 @@ CONTAINS
          END DO
          rtmp = SUM(ztmp_trg(:,ny_trg/2)) ! know if increasing (>0) or decreasing (<0)
          ztmp_trg = SIGN(1.0_8 , rtmp)*ztmp_trg
-         !IF (ldebug) CALL DUMP_2D_FIELD(REAL(ztmp_trg,4), 'dlat_dj_out.nc', 'dist')
+         !IF (ldebug) CALL DUMP_2D_FIELD(REAL(ztmp_trg,4), 'dlat_dj_trg.nc', 'dist')
          rmin_dlat_dj = MINVAL(ztmp_trg(:,2:))
          IF (ldebug) PRINT *, ' Minimum dlat_dj_trg =>', rmin_dlat_dj
          DEALLOCATE ( ztmp_trg )
       END IF
 
       !!  Simplif when [d lat / d j] always has the same sign:
-      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_trg ) THEN    !!!.OR. (i_orca_out > 0) ) THEN
+      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_trg ) THEN    !!!.OR. (i_orca_trg > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
          !!
@@ -859,7 +859,7 @@ CONTAINS
             PRINT *, ' j_strt_trg, j_stop_trg / nj_trg =>', j_strt_trg, j_stop_trg, '/', ny_trg
             PRINT *, ''
          END IF
-      END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_trg .OR. (i_orca_out > 0) )
+      END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_trg .OR. (i_orca_trg > 0) )
 
       IF ( l_is_reg_src .AND. (.NOT. l_force_use_of_twisted) ) THEN
          PRINT *, '                 => going for simple FIND_NEAREST algorithm !'; PRINT *, ''
@@ -1553,21 +1553,21 @@ CONTAINS
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8) :: rlong
       REAL(8) :: degE_to_degWE_scal
-      degE_to_degWE_scal = SIGN(1.,180.-rlong)*MIN(rlong, ABS(rlong-360.))
+      degE_to_degWE_scal = SIGN(1._8,180._8-rlong)*MIN(rlong, ABS(rlong-360._8))
    END FUNCTION degE_to_degWE_scal
 
    FUNCTION degE_to_degWE_1d( vlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:) :: vlong
       REAL(8), DIMENSION(SIZE(vlong,1)) :: degE_to_degWE_1d
-      degE_to_degWE_1d = SIGN(1.,180.-vlong)*MIN(vlong, ABS(vlong-360.))
+      degE_to_degWE_1d = SIGN(1._8,180._8-vlong)*MIN(vlong, ABS(vlong-360._8))
    END FUNCTION degE_to_degWE_1d
 
    FUNCTION degE_to_degWE_2d( xlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:,:) :: xlong
       REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: degE_to_degWE_2d
-      degE_to_degWE_2d = SIGN(1.,180.-xlong)*MIN(xlong, ABS(xlong-360.))
+      degE_to_degWE_2d = SIGN(1._8,180._8-xlong)*MIN(xlong, ABS(xlong-360._8))
    END FUNCTION degE_to_degWE_2d
 
 

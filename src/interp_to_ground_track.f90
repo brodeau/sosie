@@ -112,7 +112,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    INTEGER :: it1, it2
 
-   CHARACTER(80), PARAMETER :: cunit_time_out = 'seconds since 1970-01-01 00:00:00'
+   CHARACTER(80), PARAMETER :: cunit_time_trg = 'seconds since 1970-01-01 00:00:00'
 
    !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
    tut_epoch%unit   = 's'
@@ -235,12 +235,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
    IF ( (nj1==-1).AND.(nj2==-1) ) THEN
       ni = ni1 ; nj = ni2
       PRINT *, 'Grid is 1D: ni, nj =', ni, nj
-      lregin = .TRUE.
+      l_reg_src = .TRUE.
    ELSE
       IF ( (ni1==ni2).AND.(nj1==nj2) ) THEN
          ni = ni1 ; nj = nj1
          PRINT *, 'Grid is 2D: ni, nj =', ni, nj
-         lregin = .FALSE.
+         l_reg_src = .FALSE.
       ELSE
          PRINT *, 'ERROR: problem with grid!' ; STOP
       END IF
@@ -286,7 +286,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   IF ( lregin ) THEN
+   IF ( l_reg_src ) THEN
       PRINT *, 'Regular case not supported yet! Priority to ORCA grids...'
       STOP
    END IF
@@ -614,7 +614,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist ) !
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...' !
-      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mapping ) !,  mask_domain_out=IGNORE) don't need ignore, points have been removed!
+      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mapping ) !,  mask_domain_trg=IGNORE) don't need ignore, points have been removed!
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
       PRINT *, ' *** File "',trim(cf_mapping),'" found in current directory, using it!'
@@ -786,7 +786,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ''
 
    CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
-      &           ct_unit=TRIM(cunit_time_out), &
+      &           ct_unit=TRIM(cunit_time_trg), &
       &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
       &           vdt4=REAL(xlon_gt_f(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &

@@ -25,33 +25,33 @@ MODULE MOD_CONF
       CHARACTER(len=1) :: cgrd_type
    END TYPE grid_type
 
-   TYPE(grid_type), SAVE  :: gt_orca_in, gt_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
-   INTEGER, SAVE          :: i_orca_in, i_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
-   CHARACTER(len=1), SAVE :: c_orca_in, c_orca_out   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
+   TYPE(grid_type), SAVE  :: gt_orca_src, gt_orca_trg   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
+   INTEGER, SAVE          :: i_orca_src, i_orca_trg   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
+   CHARACTER(len=1), SAVE :: c_orca_src, c_orca_trg   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
 
    
    INTEGER :: &
       &   Ntr, &                      !: time dimmension == number of time records to interpolate!
-      &   ni_in, nj_in, nk_in,   &    !: dimension of input arrays
+      &   ni_src, nj_src, nk_src,   &    !: dimension of input arrays
       &   Ntr0, nlev, j_start, j_stop, &
-      &   ni_out, nj_out, nk_out, &      !: dimension of output arrays
+      &   ni_trg, nj_trg, nk_trg, &      !: dimension of output arrays
       
-      &   nlon_inc_in,  &  !: wether input longitude increases with i
-      &   nlat_inc_in,  &  !: wether input latitude  increases with j
-      &   nlon_inc_out, &  !:  //    output  //
-      &   nlat_inc_out, &  !:  //    output  //
+      &   nlon_icr_src,  &  !: wether input longitude increases with i
+      &   nlat_icr_src,  &  !: wether input latitude  increases with j
+      &   nlon_icr_trg, &  !:  //    output  //
+      &   nlat_icr_trg, &  !:  //    output  //
       
       &   jj_ex_top, jj_ex_btm, &
       &   i_chg_lon
 
    REAL(8) ::  &
       &   lon_min_1, lon_max_1, & !lolo
-      &   max_lon_in,  min_lon_in, &
-      &   max_lat_in,  min_lat_in, &
-      &   max_lat_out, min_lat_out
+      &   max_lon_src,  min_lon_src, &
+      &   max_lat_src,  min_lat_src, &
+      &   max_lat_trg, min_lat_trg
 
    LOGICAL    :: &
-      &   l3d, l_int_3d, &  !: wether input variables is 3D
+      &   l3d, l_itrp_3d, &  !: wether input variables is 3D
       &   ltime             !: wether input field contain a time variable
 
 
@@ -64,10 +64,10 @@ MODULE MOD_CONF
    !! Logicals
    !! --------
    LOGICAL :: &
-      &    lregin,  & ! whether source grid is regular or not
-      &    lregout, & ! whether target grid is regular or not
-      &    lmout,   & ! masking output or not
-      &    lct        ! time control
+      &    l_reg_src, & ! whether source grid is regular or not
+      &    l_reg_trg, & ! whether target grid is regular or not
+      &    lmout,     & ! masking output or not
+      &    lct          ! time control
 
    !! Integers
    !! --------
@@ -77,15 +77,14 @@ MODULE MOD_CONF
 
    !! Name of files or directories:
    !! -----------------------------
-   CHARACTER(LEN=400) :: &
-      &    cf_in = '',      &
-      &    cf_x_in = '',    &
-      &    cf_z_in = '',    &
-      &    cf_coor_in = '', &
-      &    cf_z_out = '',   &
-      &    cf_lsm_in = '',  &
-      &    cf_x_out = '',   &
-      &    cf_lsm_out = '', &
+   CHARACTER(LEN=400) ::    &
+      &    cf_src = '',     &
+      &    cf_x_src = '',   &
+      &    cf_z_src = '',   &
+      &    cf_z_trg = '',   &
+      &    cf_lsm_src = '', &
+      &    cf_x_trg = '',   &
+      &    cf_lsm_trg = '', &
       &    cf_out = '',     &
       &    cd_out = '',     &
       &    csource = '',    &
@@ -99,28 +98,28 @@ MODULE MOD_CONF
    !! Name of variables :
    !! -------------------
    CHARACTER(LEN=80) ::  &
-      &    cv_t_in = '',    &
-      &    cv_lon_in = '',  &
-      &    cv_lat_in = '',  &
-      &    cv_z_in = '',    &
-      &    cv_z_out = '',   &
-      &    cv_z_out_name = '',   &
-      &    cv_lsm_in = '',  &
-      &    cv_in = '',      &
-      &    cv_lon_out = 'lon', &
-      &    cv_lat_out = 'lat', &
-      &    cv_lsm_out = '', &
+      &    cv_t_src = '',    &
+      &    cv_lon_src = '',  &
+      &    cv_lat_src = '',  &
+      &    cv_z_src = '',    &
+      &    cv_z_trg = '',   &
+      &    cv_z_trg_name = '',   &
+      &    cv_lsm_src = '',  &
+      &    cv_src = '',      &
+      &    cv_lon_trg = 'lon', &
+      &    cv_lat_trg = 'lat', &
+      &    cv_lsm_trg = '', &
       &    ca_missval
 
    !! S-coordinates specific
    !! -----------------------
    CHARACTER(LEN=80) ::  &
-      &    cv_bathy_in = '',&
-      &    cv_bathy_out= '',&
-      &    cf_bathy_in = '',&
-      &    cf_bathy_out= '',&
-      &    ctype_z_in  ='z', &
-      &    ctype_z_out ='z'  
+      &    cv_bathy_src = '',&
+      &    cv_bathy_trg= '',&
+      &    cf_bathy_src = '',&
+      &    cf_bathy_trg= '',&
+      &    ctype_z_src='z', &
+      &    ctype_z_trg='z'  
 
    TYPE scoord_params
             integer :: Vtransform
@@ -132,7 +131,7 @@ MODULE MOD_CONF
             real(wpl) :: hmin
    END TYPE scoord_params
 
-   TYPE (scoord_params) :: ssig_in, ssig_out
+   TYPE (scoord_params) :: ssig_src, ssig_trg
 
    REAL(8),  DIMENSION(:),    ALLOCATABLE ::   &
        &   Cs_rho, Sc_rho
@@ -150,8 +149,8 @@ MODULE MOD_CONF
    INTEGER           :: &
       &     ivect,    &
       &     jplev,    &
-      &     ewper,    &
-      &     ewper_out
+      &     ewper_src,    &
+      &     ewper_trg
 
    REAL(4)       ::   &
       &     rmaskvalue,  &
@@ -178,40 +177,40 @@ MODULE MOD_CONF
 
    !! Arrays on source grid :
    REAL(4), DIMENSION(:,:,:),    ALLOCATABLE ::  &
-      &   depth_in,   &
-      &   depth_out,  &
-      &   depth_in_trgt2d
+      &   depth_src,   &
+      &   depth_trg,  &
+      &   depth_src_trgt2d
    
   REAL(wpl),  DIMENSION(:,:),    ALLOCATABLE ::  &    
-       &   bathy_in,  &
-       &   bathy_out
+       &   bathy_src,  &
+       &   bathy_trg
 
    REAL(wpl),  DIMENSION(:,:),  ALLOCATABLE ::  &
-      &   data_in,    &   !: data array on source grid
-      &   data_in_b
+      &   data_src,    &   !: data array on source grid
+      &   data_src_b
 
    REAL(8),  DIMENSION(:,:),  ALLOCATABLE ::  &
-      &   lon_in,   &
-      &   lat_in
+      &   lon_src,   &
+      &   lat_src
 
    REAL(wpl),  DIMENSION(:,:,:),  ALLOCATABLE ::  &
-      &      data3d_in,  &
-      &      data3d_out, &
+      &      data3d_src,  &
+      &      data3d_trg, &
       &      data3d_tmp  ! horizontal target resol. + vertical source resol.
 
    INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0) 
    
    INTEGER(2),   DIMENSION(:,:,:),  ALLOCATABLE ::   &
-      &   mask_in, mask_in_b, &  !: land-sea mask on input grid
-      &   mask_out               !: land-sea mask on output grid
+      &   mask_src, mask_src_b, &  !: land-sea mask on input grid
+      &   mask_trg               !: land-sea mask on output grid
 
    !! Arrays on target grid :
    REAL(wpl) , DIMENSION(:,:),  ALLOCATABLE ::             &
-      &   data_out     ! data array interpolated
+      &   data_trg     ! data array interpolated
 
    REAL(8) , DIMENSION(:,:),  ALLOCATABLE ::             &
-      &   lon_out,   & ! longitude array on target grid
-      &   lon_out_b, & !  //   backup
-      &   lat_out      ! latitude array on target grid
+      &   lon_trg,   & ! longitude array on target grid
+      &   lon_trg_b, & !  //   backup
+      &   lat_trg      ! latitude array on target grid
 
 END MODULE MOD_CONF

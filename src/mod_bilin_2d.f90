@@ -114,7 +114,7 @@ CONTAINS
       l_add_extra_j = .FALSE.
       ny1w = ny1
 
-      IF ( lregin .AND. (ny1 > 20) .AND. (nx1 > 20) ) THEN !lolo, ensure it's a map, not a something fishy...
+      IF ( l_reg_src .AND. (ny1 > 20) .AND. (nx1 > 20) ) THEN !lolo, ensure it's a map, not a something fishy...
          ymx = Y1(nx1/2,ny1)
          IF ( (ymx < 90.) .AND. ( 2.*ymx - Y1(nx1/2,ny1-1) >= 90. ) ) THEN
             ny1w = ny1 + 2
@@ -239,23 +239,23 @@ CONTAINS
 
       IF ( l_first_call_interp_routine ) THEN
          !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
-         IF ( i_orca_out >= 4 ) THEN
+         IF ( i_orca_trg >= 4 ) THEN
             rmeanv = SUM(Z2(:,ny2))/nx2
             l_last_y_row_missing = ( (rmeanv < rflg + 0.1).AND.(rmeanv > rflg - 0.1) )
          END IF
       END IF
 
       !PRINT *, ' l_last_y_row_missing =>', l_last_y_row_missing
-      !IF ( i_orca_out == 4 ) PRINT *, ' Target grid is an ORCA grid with north-pole T-point folding!'
-      !IF ( i_orca_out == 6 ) PRINT *, ' Target grid is an ORCA grid with north-pole F-point folding!'
+      !IF ( i_orca_trg == 4 ) PRINT *, ' Target grid is an ORCA grid with north-pole T-point folding!'
+      !IF ( i_orca_trg == 6 ) PRINT *, ' Target grid is an ORCA grid with north-pole F-point folding!'
 
       !! Correcting last missing band if relevant: LOLO: should use lbc_lnk no ????
       IF ( l_last_y_row_missing ) THEN
-         IF ( i_orca_out == 4 ) THEN
+         IF ( i_orca_trg == 4 ) THEN
             Z2(2:nx2/2           ,ny2)   = Z2(nx2:nx2-nx2/2-2:-1,ny2-2)
             Z2(nx2:nx2-nx2/2-2:-1,ny2)   = Z2(2:nx2/2           ,ny2-2)
          END IF
-         IF ( i_orca_out == 6 ) THEN
+         IF ( i_orca_trg == 6 ) THEN
             Z2(2:nx2/2             ,ny2) = Z2(nx2-1:nx2-nx2/2+1:-1,ny2-1)
             Z2(nx2-1:nx2-nx2/2+1:-1,ny2) = Z2(2:nx2/2             ,ny2-1)
          END IF
@@ -358,7 +358,7 @@ CONTAINS
 
 
 
-   SUBROUTINE MAPPING_BL(k_ew_per, X1, Y1, lon_out, lat_out, cf_w,  mask_domain_trg)
+   SUBROUTINE MAPPING_BL(k_ew_per, X1, Y1, lon_trg, lat_trg, cf_w,  mask_domain_trg)
 
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
@@ -377,7 +377,7 @@ CONTAINS
 
       INTEGER,                 INTENT(in) :: k_ew_per
       REAL(8), DIMENSION(:,:), INTENT(in) :: X1, Y1
-      REAL(8), DIMENSION(:,:), INTENT(in) :: lon_out, lat_out
+      REAL(8), DIMENSION(:,:), INTENT(in) :: lon_trg, lat_trg
       CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
@@ -418,8 +418,8 @@ CONTAINS
       nxi = size(X1,1)
       nyi = size(X1,2)
 
-      nxo = size(lon_out,1)
-      nyo = size(lon_out,2)
+      nxo = size(lon_trg,1)
+      nyo = size(lon_trg,2)
 
       ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3), ID_problem(nxo,nyo), mask_ignore_trg(nxo,nyo), &
          &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )      
@@ -432,7 +432,7 @@ CONTAINS
 
       IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
 
-      CALL FIND_NEAREST_POINT( lon_out, lat_out, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_trg=mask_ignore_trg )
+      CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_trg=mask_ignore_trg )
 
       
       idb = 0 ! i-index of point to debug on target domain
@@ -449,8 +449,8 @@ CONTAINS
 
                !! Now deal with horizontal interpolation
                !! set longitude of input point in accordance with lon ( [lon0, 360+lon0 [ )
-               xP = lon_out(ji,jj)
-               yP = lat_out(ji,jj)
+               xP = lon_trg(ji,jj)
+               yP = lat_trg(ji,jj)
 
                iP = i_nrst_in(ji,jj)
                jP = j_nrst_in(ji,jj)
@@ -676,7 +676,7 @@ CONTAINS
       WHERE (mask_ignore_trg <  -2) ID_problem = -3 ! No idea if possible... #lolo
       
       !! Print metrics and weight into a netcdf file 'cf_w':
-      CALL P2D_MAPPING_AB(cf_w, lon_out, lat_out, MTRCS, ZAB, rflg, ID_problem,  d2np=distance_to_np)
+      CALL P2D_MAPPING_AB(cf_w, lon_trg, lat_trg, MTRCS, ZAB, rflg, ID_problem,  d2np=distance_to_np)
 
       DEALLOCATE ( i_nrst_in, j_nrst_in, MTRCS, ZAB, ID_problem, mask_ignore_trg )
       IF ( l_save_distance_to_np ) DEALLOCATE ( distance_to_np )

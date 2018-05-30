@@ -34,13 +34,13 @@ PROGRAM TEST_STUFFS
    !CHARACTER(LEN=400)  :: cextra_x, cextra_y 
    
    CHARACTER(len=3)    :: cdum
-   CHARACTER(len=1)    :: cgrid_out='0'
+   CHARACTER(len=1)    :: cgrid_trg='0'
    CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
    CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
 
    !CHARACTER(len=80) :: &
-   !   &    cv_out_U    = 'uraw',   &   ! raw U name
-   !   &    cv_out_V    = 'vraw'        ! raw V name
+   !   &    cv_trg_U    = 'uraw',   &   ! raw U name
+   !   &    cv_trg_V    = 'vraw'        ! raw V name
 
    !CHARACTER(len=800)  :: &
    !   &    cf_out_U,    &  ! file containing u_raw
@@ -180,7 +180,7 @@ PROGRAM TEST_STUFFS
       !      IF ( ANY(clist_opt == TRIM(cr)) ) THEN
       !         PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!'; CALL usage_test_stuffs()
       !      ELSE
-      !         cgrid_out = TRIM(cr)
+      !         cgrid_trg = TRIM(cr)
       !      END IF
       !   END IF
          !!
@@ -232,14 +232,14 @@ PROGRAM TEST_STUFFS
    !   STOP
    !END IF
 
-   !IF ( (cgrid_out /= 'T').AND.(cgrid_out /= 'U') ) call usage_test_stuffs()
+   !IF ( (cgrid_trg /= 'T').AND.(cgrid_trg /= 'U') ) call usage_test_stuffs()
 
    !PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
    !PRINT *, ''
 
 
-   !IF ( cgrid_out == 'U' ) PRINT *, ' *** Gonna save on grid U and V.'
-   !IF ( cgrid_out == 'T' ) PRINT *, ' *** Gonna save on grid T.'
+   !IF ( cgrid_trg == 'U' ) PRINT *, ' *** Gonna save on grid U and V.'
+   !IF ( cgrid_trg == 'T' ) PRINT *, ' *** Gonna save on grid T.'
    !PRINT *, ''
 
 
@@ -300,16 +300,16 @@ PROGRAM TEST_STUFFS
       IF ( i3d == 1 ) THEN
          ALLOCATE ( vdepth(nk) )
          CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
-         !IF ( cgrid_out == 'U' ) THEN
-         !   CALL GETMASK_3D(cf_lsm_out, 'umask', mask_u(:,:,:))
-         !   CALL GETMASK_3D(cf_lsm_out, 'vmask', mask_v(:,:,:))
+         !IF ( cgrid_trg == 'U' ) THEN
+         !   CALL GETMASK_3D(cf_lsm_trg, 'umask', mask_u(:,:,:))
+         !   CALL GETMASK_3D(cf_lsm_trg, 'vmask', mask_v(:,:,:))
          !ELSE
          CALL GETMASK_3D(cf_mm, 'tmask', mask_t(:,:,:))
          !END IF
       ELSE
-        ! IF ( cgrid_out == 'U' ) THEN
-        !    CALL GETMASK_2D(cf_lsm_out, 'umask', mask_u(:,:,1), jlev=1)
-        !    CALL GETMASK_2D(cf_lsm_out, 'vmask', mask_v(:,:,1), jlev=1)
+        ! IF ( cgrid_trg == 'U' ) THEN
+        !    CALL GETMASK_2D(cf_lsm_trg, 'umask', mask_u(:,:,1), jlev=1)
+        !    CALL GETMASK_2D(cf_lsm_trg, 'vmask', mask_v(:,:,1), jlev=1)
          ! ELSE
          CALL GETMASK_2D(cf_mm, 'tmask', mask_t(:,:,1), jlev=1)
          !END IF

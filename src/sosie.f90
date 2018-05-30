@@ -56,7 +56,7 @@ PROGRAM SOSIE
    REAL(4) :: rfct_miss=1.
 
 
-   OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
+   !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -72,11 +72,11 @@ PROGRAM SOSIE
    CALL READ_NMLST(1)      ! MODUDE mod_init
 
    !! Setting defaults for some logical flags :
-   l3d = .FALSE. ; l_int_3d = .FALSE. ; ltime = .TRUE.
+   l3d = .FALSE. ; l_itrp_3d = .FALSE. ; ltime = .TRUE.
 
    !! Getting source domain and metrics:
    CALL SRC_DOMAIN()       ! MODULE mod_grids
-   mask_in_b = mask_in     ! making a backup of the land-sea mask on the source grid
+   mask_src_b = mask_src     ! making a backup of the land-sea mask on the source grid
 
    !! Getting target domain and metrics:
    CALL TRG_DOMAIN()       ! MODULE mod_grids
@@ -91,14 +91,14 @@ PROGRAM SOSIE
 
    IF ( .NOT. lmout) rfct_miss = 0.
    
-   cextinf =                'Horizontal grid read in '//TRIM(cf_x_out)
-   IF (l_int_3d) cextinf = TRIM(cextinf)//' / Vertical grid read in '//TRIM(cf_z_out)
-   cextinf = TRIM(cextinf)//' / Source field read in '//TRIM(cf_in)
+   cextinf =                'Horizontal grid read in '//TRIM(cf_x_trg)
+   IF (l_itrp_3d) cextinf = TRIM(cextinf)//' / Vertical grid read in '//TRIM(cf_z_trg)
+   cextinf = TRIM(cextinf)//' / Source field read in '//TRIM(cf_src)
    cextinf = TRIM(cextinf)//' / Interpolation method: '//TRIM(cmethod)
 
    
    !! Netcdf Atributes of the interpolated field as in input file:
-   CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  nb_att_F, vatt_info_F) ; !getting all attributes for treated field !lolo
+   CALL GETVAR_ATTRIBUTES(cf_src, cv_src,  nb_att_F, vatt_info_F) ; !getting all attributes for treated field !lolo
    !! Overwritting some attributes given in the namelist if /= '':
    IF ( TRIM(cu_out)  /= '' ) CALL FORCE_ATTR('units',      cu_out, vatt_info_F)
    IF ( TRIM(cln_out) /= '' ) CALL FORCE_ATTR('long_name', cln_out, vatt_info_F)   
@@ -125,31 +125,31 @@ PROGRAM SOSIE
 
       WRITE(*,'(" *** treating record #",i5)') jte
 
-      IF ( .not. l_int_3d ) THEN
+      IF ( .not. l_itrp_3d ) THEN
 
          !! ================
          !! 2D INTERPOLATION
          !! ================
 
-         data_in = 0.
+         data_src = 0.
 
          !! Read data 2D field at time jte :
-         CALL GETVAR_2D(idf_i, idv_i, cf_in, cv_in, Ntr, jplev*jcz, jte*jct, data_in, jt1=j_start, jt2=j_stop)
+         CALL GETVAR_2D(idf_i, idv_i, cf_src, cv_src, Ntr, jplev*jcz, jte*jct, data_src, jt1=j_start, jt2=j_stop)
 
-         IF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
+         IF ((TRIM(cf_lsm_src)=='nan').OR.(TRIM(cf_lsm_src)=='NaN')) THEN
             !! Replacing NaN with 0. to avoid some fuck-up later...
-            WHERE(mask_in(:,:,1)==0) data_in = 0.
+            WHERE(mask_src(:,:,1)==0) data_src = 0.
          END IF
 
 
          CALL INTERP_2D()
          
-         !! => data_out for current time step is ready to be written in netcdf file
+         !! => data_trg for current time step is ready to be written in netcdf file
 
          !! Print current record into netcdf file
          CALL P2D_T(idf_o, idv_o, Ntr, jt,    &
-            &      lon_out_b, lat_out, vt, data_out,    &
-            &      cf_out, cv_lon_out, cv_lat_out, cv_t_out,    &
+            &      lon_trg_b, lat_trg, vt, data_trg,    &
+            &      cf_out, cv_lon_trg, cv_lat_trg, cv_t_out,    &
             &      cv_out, rfct_miss*REAL(rmaskvalue,4), &
             &      attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &      cextrainfo=cextinf)
@@ -161,41 +161,41 @@ PROGRAM SOSIE
          !! 3D INTERPOLATION
          !! ================
 
-         data3d_in = 0.
+         data3d_src = 0.
 
          !! Read data 3D field at time jt :
-         CALL GETVAR_3D(idf_i, idv_i, cf_in, cv_in, Ntr, jte*jct, data3d_in, jt1=j_start, jt2=j_stop)
+         CALL GETVAR_3D(idf_i, idv_i, cf_src, cv_src, Ntr, jte*jct, data3d_src, jt1=j_start, jt2=j_stop)
 
-         IF ((TRIM(cf_lsm_in)=='nan').OR.(TRIM(cf_lsm_in)=='NaN')) THEN
+         IF ((TRIM(cf_lsm_src)=='nan').OR.(TRIM(cf_lsm_src)=='NaN')) THEN
             !! Replacing NaN with 0. to avoid some fuck-up later...
-            WHERE(mask_in==0) data3d_in = 0.
+            WHERE(mask_src==0) data3d_src = 0.
          END IF
 
          CALL INTERP_3D()
 
          !PRINT *, 'cf_out => ', TRIM(cf_out)
-         !PRINT *, 'cv_lon_out => ', TRIM(cv_lon_out)
-         !PRINT *, 'cv_lat_out => ', TRIM(cv_lat_out)
-         !PRINT *, 'cv_z_out_name => ', TRIM(cv_z_out_name)
+         !PRINT *, 'cv_lon_trg => ', TRIM(cv_lon_trg)
+         !PRINT *, 'cv_lat_trg => ', TRIM(cv_lat_trg)
+         !PRINT *, 'cv_z_trg_name => ', TRIM(cv_z_trg_name)
          !PRINT *, 'cv_t_out => ', TRIM(cv_t_out)
          !PRINT *, 'cv_out => ', TRIM(cv_out)
          !PRINT *, 'vatt_info_lon => ', vatt_info_lon
          
          !! Print current record into netcdf file
-         !!  => data3d_out for current time step is ready to be written in netcdf file
+         !!  => data3d_trg for current time step is ready to be written in netcdf file
 
-        IF (trim(ctype_z_out) == 'z') THEN
+        IF (trim(ctype_z_trg) == 'z') THEN
           CALL P3D_T(idf_o, idv_o, Ntr, jt, &
-             &       lon_out_b, lat_out, REAL(depth_out(1,1,:),8), vt, data3d_out,                &
-             &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
+             &       lon_trg_b, lat_trg, REAL(depth_trg(1,1,:),8), vt, data3d_trg,                &
+             &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_trg_name, cv_t_out, &
              &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
              &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
              &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
              &       cextrainfo=cextinf)
-        ELSEIF (trim(ctype_z_out) == 'sigma' ) THEN
+        ELSEIF (trim(ctype_z_trg) == 'sigma' ) THEN
           CALL P3D_T(idf_o, idv_o, Ntr, jt, &
-             &       lon_out_b, lat_out, Sc_rho(:), vt, data3d_out,                &
-             &       cf_out, cv_lon_out, cv_lat_out, cv_z_out_name, cv_t_out, &
+             &       lon_trg_b, lat_trg, Sc_rho(:), vt, data3d_trg,                &
+             &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_trg_name, cv_t_out, &
              &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
              &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
              &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
@@ -204,7 +204,7 @@ PROGRAM SOSIE
           PRINT *, 'Unknown vertical coordinate' ; STOP
         ENDIF
 
-      END IF ! .not. l_int_3d
+      END IF ! .not. l_itrp_3d
 
    END DO  ! end of time loop
 

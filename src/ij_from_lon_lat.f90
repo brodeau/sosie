@@ -38,7 +38,7 @@ PROGRAM IJ_FROM_LON_LAT
    !!               ** don't change anything below **
    !!
    LOGICAL ::  &
-      &     lregin, &
+      &     l_reg_src, &
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
       &     l_loc1, l_loc2, &
@@ -169,12 +169,12 @@ PROGRAM IJ_FROM_LON_LAT
    IF ( (nj1==-1).AND.(nj2==-1) ) THEN
       ni = ni1 ; nj = ni2
       PRINT *, 'Grid is 1D: ni, nj =', ni, nj
-      lregin = .TRUE.
+      l_reg_src = .TRUE.
    ELSE
       IF ( (ni1==ni2).AND.(nj1==nj2) ) THEN
          ni = ni1 ; nj = nj1
          PRINT *, 'Grid is 2D: ni, nj =', ni, nj
-         lregin = .FALSE.
+         l_reg_src = .FALSE.
       ELSE
          PRINT *, 'ERROR: problem with grid!' ; STOP
       END IF
@@ -188,7 +188,7 @@ PROGRAM IJ_FROM_LON_LAT
    !! testing variable dimensions
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-   IF ( lregin ) THEN
+   IF ( l_reg_src ) THEN
       PRINT *, 'Regular case not supported yet! Priority to ORCA grids...'
       STOP
    END IF

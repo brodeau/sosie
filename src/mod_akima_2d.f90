@@ -105,7 +105,7 @@ CONTAINS
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
          &    X1, Y1, X2, Y2,   &
-         &    Z_in , lon_in , lat_in
+         &    Z_src , lon_src , lat_src
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
 
@@ -167,28 +167,28 @@ CONTAINS
       
       ni1 = nx1 + n_extd  ;   nj1 = ny1 + n_extd
       
-      ALLOCATE ( Z_in(ni1,nj1), lon_in(ni1,nj1), lat_in(ni1,nj1), &
+      ALLOCATE ( Z_src(ni1,nj1), lon_src(ni1,nj1), lat_src(ni1,nj1), &
          &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
          &       poly(ni1-1,nj1-1,nsys)    )
       
-      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_in, lat_in, Z_in,  is_orca_grid=i_orca_in)
+      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_src, lat_src, Z_src,  is_orca_grid=i_orca_src)
 
       DEALLOCATE (X1, Y1)
 
       
 
       !! Computation of partial derivatives:
-      CALL slopes_akima(k_ew_per, lon_in, lat_in, Z_in, slpx, slpy, slpxy)
+      CALL slopes_akima(k_ew_per, lon_src, lat_src, Z_src, slpx, slpy, slpxy)
 
       !! Polynome:
-      CALL build_pol(lon_in, lat_in, Z_in, slpx, slpy, slpxy, poly)
+      CALL build_pol(lon_src, lat_src, Z_src, slpx, slpy, slpxy, poly)
 
       DEALLOCATE ( slpx, slpy, slpxy )
 
 
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = minval(lon_in) ;  max_lon1 = maxval(lon_in)
-      min_lat1 = minval(lat_in) ;  max_lat1 = maxval(lat_in)
+      min_lon1 = minval(lon_src) ;  max_lon1 = maxval(lon_src)
+      min_lat1 = minval(lat_src) ;  max_lat1 = maxval(lat_src)
       min_lon2 = minval(X2)     ;  max_lon2 = maxval(X2)
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
 
@@ -223,7 +223,7 @@ CONTAINS
 
                         IF (ji1 < ni1) THEN
 
-                           IF ((lon_in(ji1,jj1) <= px2).and.(lon_in(ji1+1,jj1) > px2)) THEN
+                           IF ((lon_src(ji1,jj1) <= px2).and.(lon_src(ji1+1,jj1) > px2)) THEN
                               l_x_found = .TRUE.
                            ELSE
                               ji1 = ji1+1
@@ -242,7 +242,7 @@ CONTAINS
 
                         IF ( jj1 < nj1 ) THEN
 
-                           IF ((lat_in(ji1,jj1) <= py2).and.(lat_in(ji1,jj1+1) > py2)) THEN
+                           IF ((lat_src(ji1,jj1) <= py2).and.(lat_src(ji1,jj1+1) > py2)) THEN
                               l_y_found = .TRUE.
                            ELSE
                               jj1 = jj1 + 1
@@ -274,8 +274,8 @@ CONTAINS
                !! It's time to interpolate!
                !! =========================
 
-               px2 = px2 - lon_in(ji1,jj1)
-               py2 = py2 - lat_in(ji1,jj1)
+               px2 = px2 - lon_src(ji1,jj1)
+               py2 = py2 - lat_src(ji1,jj1)
                vpl = poly(ji1,jj1,:)
 
                Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
@@ -288,7 +288,7 @@ CONTAINS
       END DO
 
       !! Deallocation :
-      DEALLOCATE ( Z_in , lon_in , lat_in, poly, X2, Y2 )
+      DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
 
       l_first_call_interp_routine = .FALSE.
 
@@ -572,7 +572,7 @@ CONTAINS
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
 
-      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF,  is_orca_grid=i_orca_in)
+      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF,  is_orca_grid=i_orca_src)
 
 
       !! Treating middle of array ( at least 2 points away from the bordures ) :

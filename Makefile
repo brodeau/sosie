@@ -36,7 +36,6 @@ OBJ = obj/io_ezcdf.o \
       obj/mod_scoord.o \
       obj/mod_interp.o \
       obj/mod_nemotools.o \
-      obj/mod_strftime.o \
       obj/mod_poly.o
 
 
@@ -57,7 +56,7 @@ all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_tra
 
 gt: bin/interp_to_ground_track.x
 
-test: bin/test_stuffs.x bin/test_poly.x
+test: bin/test_stuffs.x
 
 bin/sosie.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
@@ -68,10 +67,6 @@ bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 
 bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
-
-bin/test_poly.x: src/test_poly.f90 $(LIB_SOSIE)
-	$(FC) $(FF) src/test_poly.f90 -o bin/test_poly.x $(LIB)
-
 
 
 bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 $(OBJ_I2GT)
@@ -138,9 +133,6 @@ obj/mod_scoord.o: src/mod_scoord.f90
 
 obj/mod_nemotools.o: src/mod_nemotools.f90
 	$(FC) $(FF) -c src/mod_nemotools.f90 -o obj/mod_nemotools.o
-
-obj/mod_strftime.o: src/mod_strftime.f90
-	$(FC) $(FF) -c src/mod_strftime.f90 -o obj/mod_strftime.o
 
 obj/mod_poly.o: src/mod_poly.f90 obj/io_ezcdf.o
 	$(FC) $(FF) -c src/mod_poly.f90 -o obj/mod_poly.o
