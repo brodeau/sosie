@@ -5,7 +5,7 @@ PROGRAM SOSIE
    !!     SOSIE is Only a Surface Interpolation Environment
    !!     =================================================
    !!
-   !!     Version 3.0 beta, September 2017
+   !!     Version 3.0, June 2018
    !!
    !!
    !!    PURPOSE:
@@ -30,17 +30,16 @@ PROGRAM SOSIE
    !!
    !!     AUTHORS:
    !!     -------
-   !!     Laurent Brodeau, 2014
+   !!     Laurent Brodeau, 2018
    !!     Jean-Michel Brankart, Jean-Marc Molines, Pierre Mathiot
    !!
    !!            Contact: https://github.com/brodeau/sosie
    !!
    !!--------------------------------------------------------------------------
 
-
+   USE io_ezcdf     !* routines for netcdf input/output
    USE mod_conf     !* important parameters, namelist, arrays, etc...
    USE mod_init     !* important parameters, namelist, arrays, etc...
-   USE io_ezcdf     !* routines for netcdf input/output
    USE mod_grids    !* grided-domain module
    USE mod_interp
 
