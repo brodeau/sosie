@@ -8,6 +8,7 @@ https://brodeau.github.io/sosie/)
 
 You need a FORTRAN-90 compiler and the netcdf library (with f90 support) installed.
 
+3.0
 
 Compiling the executables:
 --
