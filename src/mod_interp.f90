@@ -72,8 +72,8 @@ CONTAINS
       IF (l_reg_trg) CALL extrp_hl(data_trg)
 
       !! Applying bound corrections
-      WHERE ( data_trg > vmax )  data_trg = rmaskvalue
-      WHERE ( data_trg < vmin )  data_trg = rmaskvalue
+      WHERE ( data_trg > vmax )  data_trg = rmiss_val
+      WHERE ( data_trg < vmin )  data_trg = rmiss_val
 
       !lolo:
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
@@ -85,9 +85,9 @@ CONTAINS
 
       !! Masking result if requested
       IF ( lmout ) THEN
-         WHERE (mask_trg(:,:,1) == 0)  data_trg = rmaskvalue
+         WHERE (mask_trg(:,:,1) == 0)  data_trg = rmiss_val
       ELSE
-         rmaskvalue = 0.
+         rmiss_val = 0.
       ENDIF
 
       !! If target grid is an ORCA grid, calling "lbc_lnk":
@@ -246,7 +246,7 @@ CONTAINS
 
       PRINT *, ''
 
-      data3d_trg(:,:,:) = rmaskvalue ! Masking everything
+      data3d_trg(:,:,:) = rmiss_val ! Masking everything
 
 
 
@@ -268,7 +268,7 @@ CONTAINS
 
             !! Go for the vectorial routine...
             PRINT *, ' *** CALLING AKIMA_1D_3D for vertical interpolation !!!'
-            CALL AKIMA_1D( depth_src_trgt2d(1,1,:), data3d_tmp, depth_trg(1,1,:), data3d_trg(:,:,:), rmaskvalue )
+            CALL AKIMA_1D( depth_src_trgt2d(1,1,:), data3d_tmp, depth_trg(1,1,:), data3d_trg(:,:,:), rmiss_val )
 
          ELSE
 
@@ -350,18 +350,18 @@ CONTAINS
 
 
       !! avoid working with 3D arrays as a whole : produce SEGV on some machines (small)
-      !! RD : replaced out of bounds values by vmin/vmax not rmaskvalue
+      !! RD : replaced out of bounds values by vmin/vmax not rmiss_val
       !! as it induced spval instead of zero on BGC fields
       DO jk=1,nk_trg
-         WHERE ((data3d_trg(:,:,jk) > vmax).and.(data3d_trg(:,:,jk) /= rmaskvalue)) &
+         WHERE ((data3d_trg(:,:,jk) > vmax).and.(data3d_trg(:,:,jk) /= rmiss_val)) &
             &   data3d_trg(:,:,jk) = vmax
-         WHERE ((data3d_trg(:,:,jk) < vmin).and.(data3d_trg(:,:,jk) /= rmaskvalue)) &
+         WHERE ((data3d_trg(:,:,jk) < vmin).and.(data3d_trg(:,:,jk) /= rmiss_val)) &
             &   data3d_trg(:,:,jk) = vmin
 
          !! If target grid is an ORCA grid, calling "lbc_lnk":
          IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data3d_trg(:,:,jk), c_orca_trg, 1.0_8 )
 
-         IF ( lmout ) data3d_trg(:,:,jk) = data3d_trg(:,:,jk)*mask_trg(:,:,jk) + (1. - mask_trg(:,:,jk))*rmaskvalue
+         IF ( lmout ) data3d_trg(:,:,jk) = data3d_trg(:,:,jk)*mask_trg(:,:,jk) + (1. - mask_trg(:,:,jk))*rmiss_val
 
       END DO
 

@@ -59,16 +59,16 @@ vmin     = -1.E3
 !!
 !!
 &noutput
-cv_t_out = 'time_counter'
-cv_out   = 'so'
-cu_out   = 'PSU'
-cln_out  = 'Salinity'
-cd_out   = '.'
-cextra   = 'bilin'
-lmout      = T
-rmaskvalue = -9999.
-lct        = F
-t0         = 0.
-t_stp      = 0.
+cv_out    = 'so'
+cu_out    = 'PSU'
+cln_out   = 'Salinity'
+cv_t_out  = 'time_counter'
+cd_out    = '.'
+cextra    = 'bilin'
+lmout     = T
+rmiss_val = -9999.
+lct       = F
+t0        = 0.
+t_stp     = 0.
 /
 !!

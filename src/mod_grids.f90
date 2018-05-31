@@ -668,7 +668,7 @@ CONTAINS
                DEALLOCATE ( z3d_tmp )
 
             ELSEIF ( TRIM(cf_lsm_trg) == 'val' ) THEN
-               PRINT *, ' ** the masked region on target domain will be where field = ', rmaskvalue
+               PRINT *, ' ** the masked region on target domain will be where field = ', rmiss_val
                mask_trg = 1
                PRINT *, ''
 

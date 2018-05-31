@@ -551,14 +551,14 @@ PROGRAM CORR_VECT
          
          IF ( lmout_x .AND. lmout_y ) THEN
             IF ( cgrid_trg == 'U' ) THEN
-               WHERE ( mask_u == 0 ) U_c = rmaskvalue
-               WHERE ( mask_v == 0 ) V_c = rmaskvalue
+               WHERE ( mask_u == 0 ) U_c = rmiss_val
+               WHERE ( mask_v == 0 ) V_c = rmiss_val
             ELSE
-               WHERE ( mask_t == 0 ) U_c = rmaskvalue
-               WHERE ( mask_t == 0 ) V_c = rmaskvalue
+               WHERE ( mask_t == 0 ) U_c = rmiss_val
+               WHERE ( mask_t == 0 ) V_c = rmiss_val
             END IF
          ELSE
-            rmaskvalue = 0.
+            rmiss_val = 0.
          END IF
 
          
@@ -568,17 +568,17 @@ PROGRAM CORR_VECT
             IF ( cgrid_trg == 'U' ) THEN
                CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
                   &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             ELSE
                CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, U_c(:,:,:),  &
                   &    cf_out_U, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_U,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, V_c(:,:,:),  &
                   &    cf_out_V, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_V,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             END IF
 
          ELSE
@@ -587,17 +587,17 @@ PROGRAM CORR_VECT
             IF ( cgrid_trg == 'U' ) THEN
                CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1), &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, V_c(:,:,1), &
                   &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             ELSE
                CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t,         vtime, U_c(:,:,1), &
                   &    cf_out_U, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_U,       &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t,         vtime, V_c(:,:,1), &
                   &    cf_out_V, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             END IF
 
          END IF

@@ -48,16 +48,16 @@ vmin     = -1.E6
 !!
 !!
 &noutput
-cv_t_out = 'time'
-cv_out   = 'sst'
-cu_out   = 'deg.C'
-cln_out  = 'Sea Surface Temperature'
-cd_out   = '.'
-cextra   = 'bilin'
-lmout      = T
-rmaskvalue = -9999.
-lct        = F      ! we use time from input file
-t0         = 0.
-t_stp      = 0.
+cv_out    = 'sst'
+cu_out    = 'deg.C'
+cln_out   = 'Sea Surface Temperature'
+cv_t_out  = 'time'
+cd_out    = '.'
+cextra    = 'bilin'
+lmout     = T
+rmiss_val = -9999.
+lct       = F      ! we use time from input file
+t0        = 0.
+t_stp     = 0.
 /
 !!

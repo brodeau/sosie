@@ -48,16 +48,16 @@ vmin     = -1.E6
 !!
 !!
 &noutput
-cv_t_out = 'time_counter'
-cv_out   = 'SST'
-cu_out   = 'deg.C'
-cln_out  = 'Reynolds Sea Surface Temperature, Long Term Mean, 1971-2000'
-cd_out   = '.'
-cextra   = 'REYNOLDS_LTM_bilin'
-lmout      = T
-rmaskvalue = -999.
-lct        = F      ! we use time from input file
-t0         = 0.
-t_stp      = 0.
+cv_out    = 'SST'
+cu_out    = 'deg.C'
+cln_out   = 'Reynolds Sea Surface Temperature, Long Term Mean, 1971-2000'
+cv_t_out  = 'time_counter'
+cd_out    = '.'
+cextra    = 'REYNOLDS_LTM_bilin'
+lmout     = T
+rmiss_val = -999.
+lct       = F      ! we use time from input file
+t0        = 0.
+t_stp     = 0.
 /
 !!

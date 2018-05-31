@@ -149,7 +149,7 @@ PROGRAM SOSIE
          CALL P2D_T(idf_o, idv_o, Ntr, jt,    &
             &      lon_trg_b, lat_trg, vt, data_trg,    &
             &      cf_out, cv_lon_trg, cv_lat_trg, cv_t_out,    &
-            &      cv_out, rfct_miss*REAL(rmaskvalue,4), &
+            &      cv_out, rfct_miss*REAL(rmiss_val,4), &
             &      attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &      cextrainfo=cextinf)
 
@@ -187,7 +187,7 @@ PROGRAM SOSIE
           CALL P3D_T(idf_o, idv_o, Ntr, jt, &
              &       lon_trg_b, lat_trg, REAL(depth_trg(1,1,:),8), vt, data3d_trg,                &
              &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_trg_name, cv_t_out, &
-             &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
+             &       cv_out, rfct_miss*REAL(rmiss_val,4), &
              &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
              &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
              &       cextrainfo=cextinf)
@@ -195,7 +195,7 @@ PROGRAM SOSIE
           CALL P3D_T(idf_o, idv_o, Ntr, jt, &
              &       lon_trg_b, lat_trg, Sc_rho(:), vt, data3d_trg,                &
              &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_trg_name, cv_t_out, &
-             &       cv_out, rfct_miss*REAL(rmaskvalue,4), &
+             &       cv_out, rfct_miss*REAL(rmiss_val,4), &
              &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
              &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
              &       cextrainfo=cextinf)

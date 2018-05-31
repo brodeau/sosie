@@ -21,8 +21,8 @@ MODULE MOD_INIT
    
    NAMELIST /ninterp/  cmethod, idrown, ismooth, jt1, jt2, jplev, vmax, vmin
    
-   NAMELIST /noutput/  cv_t_out, cv_out, cu_out, cln_out, cd_out, cextra, &
-      &                lmout, rmaskvalue, lct, t0, t_stp
+   NAMELIST /noutput/  cv_out, cu_out, cln_out, cv_t_out, cd_out, cextra, &
+      &                lmout, rmiss_val, lct, t0, t_stp
 
    PRIVATE usage
 
@@ -242,7 +242,7 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'Masking output file: ', lmout
          WRITE(6,*)''
-         WRITE(6,*)'Value for masked points in output file: ', rmaskvalue
+         WRITE(6,*)'Value for masked points in output file: ', rmiss_val
          WRITE(6,*)''
          WRITE(6,*)'East west periodicity of target grid: ', ewper_trg
          WRITE(6,*)''

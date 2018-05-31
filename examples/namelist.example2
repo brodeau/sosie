@@ -59,16 +59,16 @@ vmin     = -1.E6
 !!
 !!
 &noutput
-cv_t_out = 'time_counter'
-cv_out   = 'temp'
-cu_out   = 'deg.C'
-cln_out  = 'Temperature, EN.4.2.0, clim. January: 1990-2010'
-cd_out   = '.'
-cextra   = 'january_clim_1990-2010'
-lmout      = T
-rmaskvalue = -9999.
-lct        = F
-t0         = 0.
-t_stp      = 0.
+cv_out    = 'temp'
+cu_out    = 'deg.C'
+cln_out   = 'Temperature, EN.4.2.0, clim. January: 1990-2010'
+cv_t_out  = 'time_counter'
+cd_out    = '.'
+cextra    = 'january_clim_1990-2010'
+lmout     = T
+rmiss_val = -9999.
+lct       = F
+t0        = 0.
+t_stp     = 0.
 /
 !!

@@ -1322,12 +1322,12 @@ CONTAINS
 
 
 
-   SUBROUTINE CHECK_4_MISS(cf_in, cv_in, lmv, rmissval, cmissval)
+   SUBROUTINE CHECK_4_MISS(cf_in, cv_in, lmv, rmissv, cmissval)
       !!-
       !! o This routine looks for the presence of a missing value attribute for
       !!   variable "cv_in" in file "cf_in"
       !!          => returns "lmv" (true/false)
-      !!          => returns the value in "rmissval" if "lmv==true"
+      !!          => returns the value in "rmissv" if "lmv==true"
       !!          => returns its attribute name: "cmissval"
       !!
       !! INPUT :
@@ -1338,14 +1338,14 @@ CONTAINS
       !! OUTPUT :
       !! --------
       !!         * imiss    = 0 -> no missing value, 1 -> missing value found [integer]
-      !!         * rmissval = value of missing value                             [real]
+      !!         * rmissv = value of missing value                             [real]
       !!         * cmissval = name of the missing value attribute           [character]
       !!----------------------------------------------------------------------------
       !!
       INTEGER                       :: id_f, id_v
       CHARACTER(len=*), INTENT(in)  :: cf_in, cv_in
       LOGICAL,          INTENT(out) :: lmv
-      REAL(4),          INTENT(out) :: rmissval
+      REAL(4),          INTENT(out) :: rmissv
       CHARACTER(len=*), INTENT(out) :: cmissval
       !!
       INTEGER :: ierr, jm, ierr1, ierr2
@@ -1360,15 +1360,15 @@ CONTAINS
       !! Scanning possible values until found:
       cmissval = '0'
       DO jm=1, nmval
-         ierr = NF90_GET_ATT(id_f, id_v, TRIM(c_nm_miss_val(jm)), rmissval)
+         ierr = NF90_GET_ATT(id_f, id_v, TRIM(c_nm_miss_val(jm)), rmissv)
          IF ( ierr == NF90_NOERR ) THEN
             cmissval = TRIM(c_nm_miss_val(jm))
             EXIT
          END IF
       END DO
       !!
-      IF (ierr1 == NF90_NOERR) rmissval = rsf*rmissval
-      IF (ierr2 == NF90_NOERR) rmissval = rmissval + rao
+      IF (ierr1 == NF90_NOERR) rmissv = rsf*rmissv
+      IF (ierr2 == NF90_NOERR) rmissv = rmissv + rao
       !!
       IF ( ierr == -43 ) THEN
          lmv = .FALSE.
@@ -1378,7 +1378,7 @@ CONTAINS
             PRINT *, ''
             PRINT *, '  *** CHECK_4_MISS: found missing value attribute '//TRIM(cmissval)//' for '//TRIM(cv_in)//' !'
             PRINT *, '      ( into '//TRIM(cf_in)//')'
-            PRINT *, '      => value =', rmissval
+            PRINT *, '      => value =', rmissv
             PRINT *, ''
          ELSE
             CALL print_err(crtn, 'problem getting missing_value attribute')

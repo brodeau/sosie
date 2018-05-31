@@ -152,7 +152,7 @@ MODULE MOD_CONF
       &     ewper_trg
 
    REAL(4)       ::   &
-      &     rmaskvalue,  &
+      &     rmiss_val,  &
       &     t0, t_stp,   &
       &     vmax,        &
       &     vmin

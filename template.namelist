@@ -124,7 +124,7 @@ ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
 !!              - or specify 'missing_value' if a 'missing_value' netcdf
 !!                attribute defines the mask on a field 'X' in file 'cf_x_trg'
 !!                (not needed if "lmout = .FALSE." --> '')
-!!              - or specify 'val' so points with value "rmaskvalue" in the file
+!!              - or specify 'val' so points with value "rmiss_val" in the file
 !!                to be saved will be masked!
 !!
 !! cv_lsm_trg : name of land-sea mask variable in 'cf_lsm_trg'     [char]
@@ -253,11 +253,11 @@ vmin       = -1.E6
 !!
 !!
 !! *** Into the netcdf file to be created : ***
-!! cv_t_out : name of time record vector in the output file [char]
-!!            => set to cv_t_out='' if no time dimension
 !! cv_out   : name for treated variable in the output file                [char]
 !! cu_out   : if not = '': then change the unit of treated variable units [char]
 !! cln_out  : if not = '': then change the long name treated variable     [char]
+!! cv_t_out : name of time record vector in the output file [char]
+!!            => set to cv_t_out='' if no time dimension
 !! cd_out   : directory to create output file to                          [char]
 !!
 !! *** Naming of the output file : ***
@@ -267,7 +267,7 @@ vmin       = -1.E6
 !!         if lmout is set to .FALSE. and cf_lsm_trg is different than '' the target
 !!         field will be drowned using the mask defined by cf_lsm_trg (and cv_lsm_trg)
 !!
-!! rmaskvalue : missing value given to target field (for continents) [logical]
+!! rmiss_val : missing value given to target field (for continents) [logical]
 !!
 !! lct   : whether to control or not time variable [logical]
 !!         TRUE -> specify time array with starting time 't0' and step 't_stp'
@@ -278,16 +278,16 @@ vmin       = -1.E6
 !!
 !!
 &noutput
-cv_t_out = 'time_counter'
-cv_out   = 'temp'
-cu_out   = ''
-cln_out  = ''
-cd_out   = '.'
-cextra   = 'monthly_1998'
-lmout      = T
-rmaskvalue = -9999.
-lct        = F
-t0         = 0.
-t_stp      = 0.
+cv_out    = 'temp'
+cu_out    = ''
+cln_out   = ''
+cv_t_out  = 'time_counter'
+cd_out    = '.'
+cextra    = 'monthly_1998'
+lmout     = T
+rmiss_val = -9999.
+lct       = F
+t0        = 0.
+t_stp     = 0.
 /
 !!

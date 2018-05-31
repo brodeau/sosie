@@ -49,16 +49,16 @@ vmin     = -1.E6
 !!
 !!
 &noutput
-cv_t_out = 'time'
-cv_out   = 'T2M'
-cu_out   = 'K'
-cln_out  = '2m air temperature, 20141201, ECMWF op. an.'
-cd_out   = '.'
-cextra   = 'Arctic'
-lmout      = T      ! We want to mask continents!
-rmaskvalue = -9999.
-lct        = F      ! we use time vector from input file
-t0         = 0.
-t_stp      = 0.
+cv_out    = 'T2M'
+cu_out    = 'K'
+cln_out   = '2m air temperature, 20141201, ECMWF op. an.'
+cv_t_out  = 'time'
+cd_out    = '.'
+cextra    = 'Arctic'
+lmout     = T      ! We want to mask continents!
+rmiss_val = -9999.
+lct       = F      ! we use time vector from input file
+t0        = 0.
+t_stp     = 0.
 /
 !!
