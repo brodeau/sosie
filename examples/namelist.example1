@@ -54,9 +54,9 @@ cu_out   = 'deg.C'
 cln_out  = 'Reynolds Sea Surface Temperature, Long Term Mean, 1971-2000'
 cd_out   = '.'
 cextra   = 'REYNOLDS_LTM_akima'
-lmout      = T
-rmaskvalue = -999.
-lct        = F      ! we use time from input file
+lmout      = T      ! We want to mask continents!
+rmaskvalue = -9999.
+lct        = F      ! we use time vector from input file
 t0         = 0.
 t_stp      = 0.
 /
