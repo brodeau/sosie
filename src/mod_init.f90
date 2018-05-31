@@ -90,7 +90,7 @@ CONTAINS
 
       INQUIRE(FILE=trim(cf_nml_sosie), EXIST=lexist )
       IF ( .NOT. lexist ) THEN
-         WRITE(*,'("Namelist ",a," cannot be found!")') trim(cf_nml_sosie)
+         WRITE(*,'("ERROR: Namelist ",a," cannot be found!")') '"'//TRIM(cf_nml_sosie)//'"'
          CALL usage()
       END IF
 
