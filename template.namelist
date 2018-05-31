@@ -11,7 +11,7 @@
 !!   
 !! ivect : vector correction control on treated field [integer]
 !!         ivect = 0 : source field is not a component of a vector
-!!         or the target grid is regular (l_reg_trg = T)
+!!         or the target grid is regular (l_reg_trg = .true.)
 !!         * if non-regular distorted target grids (like ORCAX):
 !!         ivect = 1 : source field is a zonal (X) component of a vector
 !!         ivect = 2 : source field is a meridional (Y) component of a vector
@@ -74,7 +74,7 @@
 &ndom_src
 csource    = 'Blabla'
 ivect      = 0
-l_reg_src  = T
+l_reg_src  = .true.
 cf_src     = '/data/toto/my_file.nc'
 cv_src     = 'temp'
 cv_t_src   = 'time'
@@ -142,7 +142,6 @@ ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
 !!    cf_z_trg : file containing the target depth vector (associates a depth to a
 !!               given level). In most cases should be the same file than cf_x_src.
 !!    cv_z_trg : name of the variable for the target depth vector in file 'cf_z_trg'
-!!    cv_z_trg_name: name you wish to give to depth variable in file to be created...
 !!    ctype_z_trg : type of coordinates in target file (currently available z/sigma)
 !!
 !!    ROMS s-coordinates stuff only:
@@ -153,7 +152,7 @@ ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
 !!--------------------------------------------------------------------------
 &ndom_trg
 ctarget    = 'ORCA2'
-l_reg_trg  = F
+l_reg_trg  = .false.
 cf_x_trg   = '/data/toto/coordinates_ORCA_R2.nc'
 cv_lon_trg = 'nav_lon'
 cv_lat_trg = 'nav_lat'
@@ -164,7 +163,6 @@ ewper_trg  = 2
 !! Only required if 3D interpolation (jplev==0):
 cf_z_trg = '/data/toto/mesh_zgr.nc'
 cv_z_trg = 'nav_lev'
-cv_z_trg_name = 'depth'
 ctype_z_trg = 'z'
 !!
 cf_bathy_trg = '/data/toto/roms_grid.nc'
@@ -276,6 +274,10 @@ vmin       = -1.E6
 !! t0    : time to start (if lct is set to .TRUE.) [real]
 !! t_stp : time step (if lct is set to .TRUE.) [real]
 !!
+!! Only required if 3D interpolation (jplev==0):
+!!    cv_z_out: name you wish to give to depth variable in file to be created...
+
+!!
 !!
 &noutput
 cv_out    = 'temp'
@@ -284,10 +286,12 @@ cln_out   = ''
 cv_t_out  = 'time_counter'
 cd_out    = '.'
 cextra    = 'monthly_1998'
-lmout     = T
+lmout     = .true.
 rmiss_val = -9999.
-lct       = F
+lct       = .false.
 t0        = 0.
 t_stp     = 0.
+!! Only required if 3D interpolation (jplev==0):
+cv_z_out  = 'depth'
 /
 !!

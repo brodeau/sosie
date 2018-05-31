@@ -86,6 +86,7 @@ MODULE MOD_CONF
       &    cf_lsm_trg = '', &
       &    cf_out = '',     &
       &    cd_out = '',     &
+      &    cv_z_out = 'depth', &
       &    csource = '',    &
       &    ctarget = '',    &
       &    cextra = '',     &
@@ -101,8 +102,7 @@ MODULE MOD_CONF
       &    cv_lon_src = '',  &
       &    cv_lat_src = '',  &
       &    cv_z_src = '',    &
-      &    cv_z_trg = '',   &
-      &    cv_z_trg_name = '',   &
+      &    cv_z_trg = '',    &
       &    cv_lsm_src = '',  &
       &    cv_src = '',      &
       &    cv_lon_trg = 'lon', &

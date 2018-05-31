@@ -16,13 +16,13 @@ MODULE MOD_INIT
       &                cf_bathy_src, cv_bathy_src, ssig_src
 
    NAMELIST /ndom_trg/ ctarget, l_reg_trg, cf_x_trg, cv_lon_trg, cv_lat_trg, cf_lsm_trg,   &
-      &                cv_lsm_trg, ewper_trg,cf_z_trg, cv_z_trg, cv_z_trg_name, ctype_z_trg, &
+      &                cv_lsm_trg, ewper_trg,cf_z_trg, cv_z_trg, ctype_z_trg, &
       &                cf_bathy_trg, cv_bathy_trg, ssig_trg
    
    NAMELIST /ninterp/  cmethod, idrown, ismooth, jt1, jt2, jplev, vmax, vmin
    
    NAMELIST /noutput/  cv_out, cu_out, cln_out, cv_t_out, cd_out, cextra, &
-      &                lmout, rmiss_val, lct, t0, t_stp
+      &                lmout, rmiss_val, lct, t0, t_stp, cv_z_out
 
    PRIVATE usage
 
@@ -112,10 +112,10 @@ CONTAINS
 
       !! If 3D interpolation:
       IF (jplev == 0) THEN
-         IF ( TRIM(cv_z_trg_name) == '' ) THEN
-            cv_z_trg_name = TRIM(cv_z_trg) ; ! keep same name
+         IF ( TRIM(cv_z_out) == '' ) THEN
+            cv_z_out = TRIM(cv_z_trg) ; ! keep same name
          ELSE
-            PRINT *, '*** Target depth vector in target file will be renamed to: ', TRIM(cv_z_trg_name)
+            PRINT *, '*** Target depth vector in target file will be renamed to: ', TRIM(cv_z_out)
          END IF
       END IF
 
@@ -260,7 +260,7 @@ CONTAINS
             WRITE(6,*)' => name of source depth vector: ',         trim(cv_z_src)
             WRITE(6,*)' => file containing target depth vector: ', trim(cf_z_trg)
             WRITE(6,*)' => name of target depth vector: ',         trim(cv_z_trg)
-            PRINT *,   ' => Target depth vector in output file will be renamed to: ', trim(cv_z_trg_name)
+            PRINT *,   ' => Target depth vector in output file will be renamed to: ', trim(cv_z_out)
             WRITE(6,*)''
          END IF
 

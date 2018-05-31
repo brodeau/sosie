@@ -40,7 +40,6 @@ ewper_trg  = 2
 !! Only required if 3D interpolation (jplev==0):
 cf_z_trg = '../data/mesh_mask_ORCA1v2_light.nc4'
 cv_z_trg = 'gdept_1d'
-cv_z_trg_name = 'deptht'
 ctype_z_trg = 'z'
 /
 !!
@@ -70,5 +69,6 @@ rmiss_val = -9999.
 lct       = F
 t0        = 0.
 t_stp     = 0.
+cv_z_out  = 'deptht'
 /
 !!
