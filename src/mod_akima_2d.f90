@@ -582,7 +582,7 @@ CONTAINS
          DO ji=1, nx
 
             ! Initialisation MB Problem when they are close to zero but not zero
-            m1=0; m2=0; m3=0; m4=0; Wx2=0.; Wx3=0.; Wy2=0.; Wy3=0.
+            m1=0. ; m2=0. ; m3=0. ; m4=0. ; Wx2=0. ; Wx3=0. ; Wy2=0. ; Wy3=0.
 
             ip1 = ji+1
             ip2 = ji+2
