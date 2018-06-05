@@ -174,7 +174,7 @@ CONTAINS
       IF ( l_first_call_interp_routine ) THEN
 
          l_last_y_row_missing = .FALSE.
-         
+
          !! Testing if the file containing weights exists or if we need to create it
          !! (2nd option might be pretty time-consuming!!!
          PRINT*,'';PRINT*,'********************************************************'
@@ -193,7 +193,7 @@ CONTAINS
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
-         
+
          !! We read the mapping metrics in the netcdf file (regardless of
          !! whether the mapping file was just created or not) => maybe not that
          !! smart but ensure that we saved the right stuff in the netcdf mapping
@@ -342,7 +342,7 @@ CONTAINS
       !END IF
 
       ! interpolate with non-masked  values, above target point
-      
+
       IF ( wup == 0. ) THEN
          INTERP_BL = -9998.
       ELSEIF ( (i1<1).OR.(j1<1).OR.(i2<1).OR.(j2<1).OR.(i3<1).OR.(j3<1).OR.(i4<1).OR.(j4<1) ) THEN
@@ -352,7 +352,7 @@ CONTAINS
       ELSE
          INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
-      
+
    END FUNCTION INTERP_BL
 
 
@@ -422,7 +422,7 @@ CONTAINS
       nyo = size(lon_trg,2)
 
       ALLOCATE ( ZAB(nxo,nyo,2), MTRCS(nxo,nyo,3), ID_problem(nxo,nyo), mask_ignore_trg(nxo,nyo), &
-         &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )      
+         &       i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
       ZAB(:,:,:)      = 0.0
       MTRCS(:,:,:)    = 0
       ID_problem(:,:) = 0
@@ -434,15 +434,15 @@ CONTAINS
 
       CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_trg=mask_ignore_trg )
 
-      
+
       idb = 0 ! i-index of point to debug on target domain
       jdb = 0 ! j-index of point to debug on target domain
-      
+
       DO jj = 1, nyo
          DO ji = 1, nxo
 
             IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug:', idb, jdb
-            
+
             IF ( mask_ignore_trg(ji,jj)==1 ) THEN
                !! => exclude regions that do not exist on source domain (mask_ignore_trg==0) and
                !! points for which the nearest point was not found (mask_ignore_trg==-1 or -2)
@@ -454,10 +454,10 @@ CONTAINS
 
                iP = i_nrst_in(ji,jj)
                jP = j_nrst_in(ji,jj)
-               
+
                IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: xP, yP =', xP, yP
                IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
-               
+
                IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)).AND.(jP<nyi) ) THEN   ! jP<ny1 < last upper row was an extrapolation!
 
                   iPm1 = iP-1
@@ -476,7 +476,7 @@ CONTAINS
 
                   IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: iPm1, iPp1 =', iPm1, iPp1
                   IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: jPm1, jPp1 =', jPm1, jPp1
-                  
+
                   IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi)) THEN
                      PRINT *, 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
                      PRINT *, '          iPm1, iPp1, nxi =', iPm1, iPp1, nxi
@@ -535,19 +535,19 @@ CONTAINS
                      !iqdrn0    = iqdrn
                      !iqdrn_old = iqdrn
                      !IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: first find of iqdrn =', iqdrn0
-                     
+
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
                      IF (l_save_distance_to_np) distance_to_np(ji,jj) = DISTANCE(xP, lonP, yP, latP)
-                     
+
                      !! Problem is that sometimes, in the case of really twisted
                      !! meshes this method screws up, iqdrn is not what it
                      !! shoule be, so need the following loop on the value of iqdrn:
-                     !icpt = 0
-                     !lagain = .TRUE.
-                     !DO WHILE ( lagain )
-                     !
+                     icpt = 0
+                     lagain = .TRUE.
+                     DO WHILE ( lagain )
+
                         SELECT CASE ( iqdrn ) ! point 2 3 4 are counter clockwise in the respective sector
                         CASE ( 1 )
                            loni(2) = lonE ; lati(2) = latE
@@ -568,31 +568,31 @@ CONTAINS
                         END SELECT
 
                         WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
-                     !
-                     !   !! The tests!!!
-                     !   l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )    ! $$
-                     !   IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: l_ok =', l_ok
-                     !   
-                     !   IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
-                     !      !! Mhhh... Seems like the "heading()" approach
-                     !      !! screwed up... i.e the point xP,yP is not into the
-                     !      !! mesh corresponding to current iquadran, trying all
-                     !      !! other adjacent meshes to find if it belongs to one
-                     !      !! of them...
-                     !      icpt  = icpt + 1
-                     !      iqdrn = icpt
-                     !   ELSE
-                     !      !! Everything okay! Point is inside the the mesh
-                     !      !! corresponding to current iquadran ! :D
-                     !      lagain = .FALSE.
-                     !      IF ( (icpt>0).AND.(ji==idb).AND.(jj==jdb) ) PRINT *, ' --- iquadran corrected thanks to iterative test (old,new) =>', iqdrn_old, iqdrn
-                     !   END IF
-                     !   IF ( icpt == 5 ) THEN
-                     !      lagain = .FALSE. ! simply give up
-                     !      iqdrn = iqdrn0 ! Giving what first method gave
-                     !   END IF
-                     !END DO !DO WHILE ( lagain )
-                     
+
+                        !! The tests!!!
+                        l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )    ! $$
+                        IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: l_ok =', l_ok
+
+                        IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
+                           !! Mhhh... Seems like the "heading()" approach
+                           !! screwed up... i.e the point xP,yP is not into the
+                           !! mesh corresponding to current iquadran, trying all
+                           !! other adjacent meshes to find if it belongs to one
+                           !! of them...
+                           icpt  = icpt + 1
+                           iqdrn = icpt
+                        ELSE
+                           !! Everything okay! Point is inside the the mesh
+                           !! corresponding to current iquadran ! :D
+                           lagain = .FALSE.
+                           IF ( (icpt>0).AND.(ji==idb).AND.(jj==jdb) ) PRINT *, ' --- iquadran corrected thanks to iterative test (old,new) =>', iqdrn_old, iqdrn
+                        END IF
+                        IF ( icpt == 5 ) THEN
+                           lagain = .FALSE. ! simply give up
+                           iqdrn = iqdrn0 ! Giving what first method gave
+                        END IF
+                     END DO !DO WHILE ( lagain )
+
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
@@ -646,7 +646,7 @@ CONTAINS
       !! Negative values that are actually 0
       WHERE ( ((ZAB(:,:,1) < 0.).AND.(ZAB(:,:,1) > -repsilon)) ) ZAB(:,:,1) = 0.0
       WHERE ( ((ZAB(:,:,2) < 0.).AND.(ZAB(:,:,2) > -repsilon)) ) ZAB(:,:,2) = 0.0
-      
+
       WHERE ( (ZAB(:,:,1) > rflg).AND.(ZAB(:,:,1) < 0.) )
          ZAB(:,:,1) = 0.5
          ID_problem(:,:) = 4
@@ -664,17 +664,17 @@ CONTAINS
          ZAB(:,:,2) = 0.5
          ID_problem(:,:) = 7
       END WHERE
-      
+
       !! iquadran was not found:
       WHERE ( MTRCS(:,:,3) < 1 )
          MTRCS(:,:,3) = 1 ! maybe bad... but at least reported in ID_problem ...
          ID_problem(:,:) = 1
       END WHERE
-      
+
       WHERE (mask_ignore_trg <= -1) ID_problem = -1 ! Nearest point was not found by "FIND_NEAREST"
       WHERE (mask_ignore_trg ==  0) ID_problem = -2 ! No idea if possible... #lolo
       WHERE (mask_ignore_trg <  -2) ID_problem = -3 ! No idea if possible... #lolo
-      
+
       !! Print metrics and weight into a netcdf file 'cf_w':
       CALL P2D_MAPPING_AB(cf_w, lon_trg, lat_trg, MTRCS, ZAB, rflg, ID_problem,  d2np=distance_to_np)
 

@@ -313,6 +313,14 @@ CONTAINS
          STOP
       END IF
 
+      IF ( (jplev == 0).AND.(nk_trg == 1) ) THEN        
+         WRITE(6,*) ''
+         WRITE(6,*) ' ERROR: you want a 3D interpolation (jplev=0) but your target domain'
+         WRITE(6,*) '        has less than 2 levels!!! /  nk_trg =', nk_trg
+         WRITE(6,*) ''
+         STOP
+      END IF
+
       WRITE(6,*) '' ;  WRITE(6,*) ''
       WRITE(6,*) '====================================================='
       WRITE(6,*) '                    Current config:'
