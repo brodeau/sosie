@@ -41,7 +41,7 @@ CONTAINS
 
       IF ( ismooth > 0 ) THEN
          !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
-         WRITE(6,'("     --- ",a,": smoothing ",i2," times!")') TRIM(cv_src), ismooth
+         WRITE(6,'("     --- ",a,": smoothing ",i4," times!")') TRIM(cv_src), ismooth
          PRINT *, ' Smoothing '//TRIM(cv_src)//'!', ismooth, ' times'
          CALL SMOOTH(ewper_src, data_src,  nb_smooth=ismooth, mask_apply=mask_src(:,:,1))
       END IF
@@ -83,6 +83,15 @@ CONTAINS
       END IF
       !lolo.
 
+
+      IF ( ismooth_out > 0 ) THEN
+         WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
+         CALL SMOOTH(ewper_trg, data_trg,  nb_smooth=ismooth_out)
+         PRINT *, ''
+      END IF
+      
+
+      
       !! Masking result if requested
       IF ( lmout ) THEN
          WHERE (mask_trg(:,:,1) == 0)  data_trg = rmiss_val
@@ -357,7 +366,13 @@ CONTAINS
             &   data3d_trg(:,:,jk) = vmax
          WHERE ((data3d_trg(:,:,jk) < vmin).and.(data3d_trg(:,:,jk) /= rmiss_val)) &
             &   data3d_trg(:,:,jk) = vmin
-
+         
+         IF ( ismooth_out > 0 ) THEN
+            WRITE(6,'("     --- ",a,": post-interp smoothing ",i2," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
+            CALL SMOOTH(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out)
+            PRINT *, ''
+         END IF
+         
          !! If target grid is an ORCA grid, calling "lbc_lnk":
          IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data3d_trg(:,:,jk), c_orca_trg, 1.0_8 )
 

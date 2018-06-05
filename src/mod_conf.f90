@@ -71,8 +71,11 @@ MODULE MOD_CONF
    !! Integers
    !! --------
    INTEGER  :: &
-      &    idrown=0, &  ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
-      &    jt1=0, jt2=0, ismooth=0
+      &    idrown=0,    &  ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
+      &    jt1=0,       &
+      &    jt2=0,       &
+      &    ismooth=0,   &
+      &    ismooth_out=0
 
    !! Name of files or directories:
    !! -----------------------------

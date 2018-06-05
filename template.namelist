@@ -229,16 +229,20 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !! vmax    : upper bound not to exceed for treated variable [real]
 !! vmin    : lower bound not to exceed for treated variable [real]
 !!
+!! ismooth_out : smooth the freshly interpolated field on the target grid
+!!               ismooth_out times! (see ismooth above)
+!!
 &ninterp
-cmethod  = 'akima'
+cmethod     = 'akima'
 !! 
-idrown     = 100
-ismooth    = 0
-jt1        = 0
-jt2        = 0
-jplev      = 100
-vmax       =  1.E6
-vmin       = -1.E6
+idrown      = 100
+ismooth     = 0
+jt1         = 0
+jt2         = 0
+jplev       = 100
+vmax        =  1.E6
+vmin        = -1.E6
+ismooth_out = 0
 /
 !!
 !!

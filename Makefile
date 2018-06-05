@@ -52,15 +52,15 @@ MOD_INST= mod/io_ezcdf.mod \
           mod/mod_akima_2d.mod \
           mod/mod_drown.mod
 
-all: bin/sosie.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x bin/ij_from_lon_lat.x
+all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x bin/ij_from_lon_lat.x
 
 gt: bin/interp_to_ground_track.x
 
 test: bin/test_stuffs.x
 
-bin/sosie.x: src/sosie.f90 $(LIB_SOSIE)
+bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
-	$(FC) $(FF) src/sosie.f90 -o bin/sosie.x $(LIB)
+	$(FC) $(FF) src/sosie.f90 -o bin/sosie3.x $(LIB)
 
 bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/corr_vect.f90 -o bin/corr_vect.x $(LIB)
