@@ -37,13 +37,14 @@ ewper_trg  = 2
 &ninterp
 cmethod  = 'bilin'
 !!
-idrown   = 100
-ismooth  = 0
-jt1      = 0    ! we want to interpolate each time record
-jt2      = 0    !           //
-jplev    = 1
-vmax     =  1.E6
-vmin     = -1.E6
+idrown      = 100
+ismooth     = 0
+jt1         = 0    ! we want to interpolate each time record
+jt2         = 0    !           //
+jplev       = 1
+vmax        =  1.E6
+vmin        = -1.E6
+ismooth_out = 0
 /
 !!
 !!
@@ -54,9 +55,9 @@ cln_out   = 'Reynolds Sea Surface Temperature, Long Term Mean, 1971-2000'
 cv_t_out  = 'time_counter'
 cd_out    = '.'
 cextra    = 'REYNOLDS_LTM_bilin'
-lmout     = T
-rmiss_val = -999.
-lct       = F      ! we use time from input file
+lmout     = T      ! We want to mask continents!
+rmiss_val = -9999.
+lct       = F      ! we use time vector from input file
 t0        = 0.
 t_stp     = 0.
 /

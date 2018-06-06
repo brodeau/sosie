@@ -47,13 +47,14 @@ ctype_z_trg = 'z'
 &ninterp
 cmethod  = 'akima'
 !!
-idrown   = 50
-ismooth  = 0
-jt1      = 0
-jt2      = 0
-jplev    = 0  ! we want 3D interpolation
-vmax     =  1.E6
-vmin     = -1.E6
+idrown      = 100
+ismooth     = 0
+jt1         = 0
+jt2         = 0
+jplev       = 0  ! we want 3D interpolation
+vmax        =  1.E6
+vmin        = -1.E6
+ismooth_out = 0
 /
 !!
 !!
@@ -64,9 +65,9 @@ cln_out   = 'Temperature, EN.4.2.0, clim. January: 1990-2010'
 cv_t_out  = 'time_counter'
 cd_out    = '.'
 cextra    = 'january_clim_1990-2010'
-lmout     = T
+lmout     = .true.
 rmiss_val = -9999.
-lct       = F
+lct       = .false.
 t0        = 0.
 t_stp     = 0.
 cv_z_out  = 'depth'

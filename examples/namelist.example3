@@ -9,7 +9,7 @@
 &ndom_src
 csource    = 'ORCA1'
 ivect      = 0
-l_reg_src  = F    ! ORCA grid is irregular
+l_reg_src  = .false.    ! ORCA grid is irregular
 cf_src     = 'data/sst_ORCA1_example.nc'
 cv_src     = 'sosstsst'
 cv_t_src   = 'time_counter'
@@ -24,7 +24,7 @@ ewper_src  = 2
 !!
 &ndom_trg
 ctarget  = '360x180'
-l_reg_trg  = T
+l_reg_trg  = .true.
 cf_x_trg   = 'spheric'
 cv_lon_trg = '1.0'
 cv_lat_trg = '1.0'
@@ -37,13 +37,14 @@ ewper_trg  = 0
 &ninterp
 cmethod  = 'bilin'
 !!
-idrown   = 100
-ismooth  = 0
-jt1      = 0    ! we want to interpolate each time record
-jt2      = 0    !           //
-jplev    = 1
-vmax     =  1.E6
-vmin     = -1.E6
+idrown      = 100
+ismooth     = 0
+jt1         = 0    ! we want to interpolate each time record
+jt2         = 0    !           //
+jplev       = 1
+vmax        =  1.E6
+vmin        = -1.E6
+ismooth_out = 0
 /
 !!
 !!
@@ -54,9 +55,9 @@ cln_out   = 'Sea Surface Temperature'
 cv_t_out  = 'time'
 cd_out    = '.'
 cextra    = 'bilin'
-lmout     = T
+lmout     = .true.
 rmiss_val = -9999.
-lct       = F      ! we use time from input file
+lct       = .false.      ! we use time from input file
 t0        = 0.
 t_stp     = 0.
 /

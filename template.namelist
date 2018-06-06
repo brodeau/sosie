@@ -234,12 +234,12 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!
 &ninterp
 cmethod     = 'akima'
-!! 
+!!
 idrown      = 100
 ismooth     = 0
 jt1         = 0
 jt2         = 0
-jplev       = 100
+jplev       = 1
 vmax        =  1.E6
 vmin        = -1.E6
 ismooth_out = 0
@@ -280,7 +280,6 @@ ismooth_out = 0
 !!
 !! Only required if 3D interpolation (jplev==0):
 !!    cv_z_out: name you wish to give to depth variable in file to be created...
-
 !!
 !!
 &noutput

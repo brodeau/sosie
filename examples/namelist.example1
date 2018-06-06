@@ -37,13 +37,14 @@ ewper_trg  = 2
 &ninterp
 cmethod  = 'akima'
 !!
-idrown   = 100
-ismooth  = 0
-jt1      = 0    ! we want to interpolate each time record
-jt2      = 0    !           //
-jplev    = 1
-vmax     =  1.E6
-vmin     = -1.E6
+idrown      = 100
+ismooth     = 0
+jt1         = 0    ! we want to interpolate each time record
+jt2         = 0    !           //
+jplev       = 1
+vmax        =  1.E6
+vmin        = -1.E6
+ismooth_out = 0
 /
 !!
 !!

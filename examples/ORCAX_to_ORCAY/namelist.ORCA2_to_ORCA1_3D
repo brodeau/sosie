@@ -9,7 +9,7 @@
 &ndom_src
 csource    = 'ORCA2'
 ivect      = 0
-l_reg_src  = F   ! Input grid is ORCA2, it is distorded!
+l_reg_src  = .false   ! Input grid is ORCA2, it is distorded!
 cf_src     = '../data/so_ORCA2_grid_T.nc'
 cv_src     = 'so'
 cv_t_src   = 'time_counter'
@@ -29,7 +29,7 @@ ctype_z_src = 'z'
 !!
 &ndom_trg
 ctarget    = 'ORCA1'
-l_reg_trg  = F
+l_reg_trg  = .false
 cf_x_trg   = '../data/mesh_mask_ORCA1v2_light.nc4'
 cv_lon_trg = 'glamt'
 cv_lat_trg = 'gphit'
@@ -45,15 +45,16 @@ ctype_z_trg = 'z'
 !!
 !!
 &ninterp
-cmethod  = 'bilin'
+cmethod     = 'bilin'
 !!
-idrown   = 50
-ismooth  = 0
-jt1      = 0
-jt2      = 0
-jplev    = 0  ! we want 3D interpolation
-vmax     =  1.E3
-vmin     = -1.E3
+idrown      = 20
+ismooth     = 0
+jt1         = 0
+jt2         = 0
+jplev       = 0  ! we want 3D interpolation
+vmax        =  1.E3
+vmin        = -1.E3
+ismooth_out = 0
 /
 !!
 !!
@@ -64,9 +65,9 @@ cln_out   = 'Salinity'
 cv_t_out  = 'time_counter'
 cd_out    = '.'
 cextra    = 'bilin'
-lmout     = T
+lmout     = .true.
 rmiss_val = -9999.
-lct       = F
+lct       = .false
 t0        = 0.
 t_stp     = 0.
 cv_z_out  = 'deptht'
