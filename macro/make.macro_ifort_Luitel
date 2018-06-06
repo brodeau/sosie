@@ -5,7 +5,7 @@
 FC = ifort
 
 # Root directory for Netcdf:
-NETCDF_DIR = /opt/netcdf4
+NETCDF_DIR = /opt/hdf5_netcdf4_intel_mpi
 
 # netcf libraries are in: <NETCDF_DIR>/lib/
 # netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
