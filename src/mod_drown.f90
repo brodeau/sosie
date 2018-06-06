@@ -403,9 +403,12 @@ CONTAINS
 
       END DO
 
-      !! Time to smooth what's been drowned:
+      !! Time to smooth over land! (what's been drowned):
       mtmp = 1 - mask ! 1 over continents, 0 over seas!
       CALL SMOOTH(k_ew, X,  nb_smooth=nsmooth_max, mask_apply=mtmp)
+      !! *** l_exclude_mask_points=.true. would be stupid here,
+      !!       it's actually good if sea values are used and are
+      !!       propagating inland in the present CASE
 
       !CALL DUMP_2D_FIELD(X, 'drowned_final.nc', 'lsm') ;     !     STOP 'lolo'
 
