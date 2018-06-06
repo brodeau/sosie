@@ -43,7 +43,7 @@ CONTAINS
          !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
          WRITE(6,'("     --- ",a,": smoothing ",i4," times!")') TRIM(cv_src), ismooth
          PRINT *, ' Smoothing '//TRIM(cv_src)//'!', ismooth, ' times'
-         CALL SMOOTH(ewper_src, data_src,  nb_smooth=ismooth, mask_apply=mask_src(:,:,1))
+         CALL SMOOTH(ewper_src, data_src,  nb_smooth=ismooth, mask_apply=mask_src(:,:,1), l_exclude_mask_points=.true.)
       END IF
 
 
@@ -87,7 +87,7 @@ CONTAINS
       
       IF ( ismooth_out > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
-         CALL SMOOTH(ewper_trg, data_trg,  nb_smooth=ismooth_out)
+         CALL SMOOTH(ewper_trg, data_trg,  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,1), l_exclude_mask_points=.true.)
          PRINT *, ''
       END IF
       
@@ -181,7 +181,7 @@ CONTAINS
             END IF
             !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
             WRITE(6,'("     --- ",a,": Smoothing level #",i3.3," ",i2," times!")') TRIM(cv_src), jk, ismooth
-            CALL SMOOTH(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_src(:,:,jk))
+            CALL SMOOTH(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_src(:,:,jk), l_exclude_mask_points=.true.)
          END IF
 
       END DO !DO jk = 1, nk_src
@@ -373,7 +373,7 @@ CONTAINS
          
          IF ( ismooth_out > 0 ) THEN
             WRITE(6,'("     --- ",a,": post-interp smoothing ",i2," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
-            CALL SMOOTH(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out)
+            CALL SMOOTH(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,jk), l_exclude_mask_points=.true.)
             PRINT *, ''
          END IF
          
