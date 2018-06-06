@@ -71,19 +71,20 @@ CONTAINS
       !! extrapolate a bit at bottom and top of the domain :
       IF (l_reg_trg) CALL extrp_hl(data_trg)
 
+
       !! Applying bound corrections
+      !! LOLO should update mask_trg accordingly !!!?
       WHERE ( data_trg > vmax )  data_trg = rmiss_val
       WHERE ( data_trg < vmin )  data_trg = rmiss_val
-
+      
       !lolo:
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF (jj_ex_btm > 0) THEN
          CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1),  nb_inc=idrown, nb_smooth=5)
       END IF
-      !lolo.
-
-
+      !lolo.      
+      
       IF ( ismooth_out > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
          CALL SMOOTH(ewper_trg, data_trg,  nb_smooth=ismooth_out)
@@ -91,6 +92,8 @@ CONTAINS
       END IF
       
 
+
+      
       
       !! Masking result if requested
       IF ( lmout ) THEN
@@ -362,6 +365,7 @@ CONTAINS
       !! RD : replaced out of bounds values by vmin/vmax not rmiss_val
       !! as it induced spval instead of zero on BGC fields
       DO jk=1,nk_trg
+         !! LOLO: make the following consistent with vmin/vmax "bound correction" in 2D case????
          WHERE ((data3d_trg(:,:,jk) > vmax).and.(data3d_trg(:,:,jk) /= rmiss_val)) &
             &   data3d_trg(:,:,jk) = vmax
          WHERE ((data3d_trg(:,:,jk) < vmin).and.(data3d_trg(:,:,jk) /= rmiss_val)) &
