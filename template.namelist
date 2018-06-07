@@ -237,7 +237,7 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 &ninterp
 cmethod     = 'akima'
 !!
-idrown      = 100
+idrown      = 100,90
 l_save_drwn = .false.
 ismooth     = 0
 jt1         = 0

@@ -72,7 +72,6 @@ MODULE MOD_CONF
    !! Integers
    !! --------
    INTEGER  :: &
-      &    idrown=0,    &  ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
       &    jt1=0,       &
       &    jt2=0,       &
       &    ismooth=0,   &
@@ -114,6 +113,15 @@ MODULE MOD_CONF
       &    cv_lsm_trg = '', &
       &    ca_missval
 
+
+   TYPE idrown_info
+      INTEGER :: np_penetr
+      INTEGER :: nt_smooth
+   END TYPE idrown_info
+   TYPE(idrown_info) ::  idrown    ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
+   !                               ! and how many times to smooth the drowned area
+   
+      
    !! S-coordinates specific
    !! -----------------------
    CHARACTER(LEN=80) ::  &

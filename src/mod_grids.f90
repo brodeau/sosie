@@ -501,7 +501,7 @@ CONTAINS
                ELSE
                   WRITE(6,*) 'PROBLEM! You want to interpolate level', jplev
                   WRITE(6,*) 'but your source land-sea mask is not 3D!'
-                  WRITE(6,*) '=> set "idrown" to 0 in the namelist'
+                  WRITE(6,*) '=> set "idrown" to "0,0" in the namelist'
                   WRITE(6,*) 'If you want to "DROWN" a level other than the surface,'
                   WRITE(6,*) 'please provide a 3D source land-sea mask'
                   STOP

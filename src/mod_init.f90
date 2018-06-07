@@ -106,6 +106,10 @@ CONTAINS
       REWIND( numnam )
       READ( numnam, ndom_trg )
 
+
+      idrown%np_penetr = 0 ! defaults
+      idrown%nt_smooth = 5
+      
       !! Reading interpolation section:
       REWIND( numnam )
       READ( numnam, ninterp )
@@ -127,11 +131,11 @@ CONTAINS
 
       
       l_drown_src = .FALSE.
-      IF ( idrown > 0 ) l_drown_src = .TRUE.
+      IF ( idrown%np_penetr > 0 ) l_drown_src = .TRUE.
       
       IF ( (.NOT. l_drown_src).AND.(l_save_drwn) ) THEN
          PRINT *, ' PROBLEM: you cannot save the drowned input field (l_save_drwn) if you'
-         PRINT *, '          do not plan on using DROWN! => set idrown>0 !'
+         PRINT *, '          do not plan on using DROWN! => set idrown>0,0 !'
          STOP
       END IF
       

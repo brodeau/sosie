@@ -47,7 +47,8 @@ ctype_z_trg = 'z'
 &ninterp
 cmethod     = 'bilin'
 !!
-idrown      = 20
+idrown      = 20,50
+l_save_drwn = .true.
 ismooth     = 0
 jt1         = 0
 jt2         = 0
