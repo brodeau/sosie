@@ -33,6 +33,9 @@ CONTAINS
       IF ( l_drown_src ) THEN
          !! Extrapolate sea values over land :
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown)
+
+         IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
+         
       ELSE
          PRINT *, '-------------------'
          PRINT *, 'DROWN NOT CALLED!!!'
@@ -81,7 +84,7 @@ CONTAINS
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF (jj_ex_btm > 0) THEN
-         CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1),  nb_inc=idrown, nb_smooth=5)
+         CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1),  nb_inc=idrown, nb_smooth=10)
       END IF
       !lolo.      
       
@@ -167,7 +170,8 @@ CONTAINS
          IF ( l_drown_src ) THEN
             !! Extrapolate sea values over land :
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
-            CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown, nb_smooth=5 )
+            CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown, nb_smooth=10 )
+            IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
          ELSE
             PRINT *, '-------------------'
             PRINT *, 'DROWN NOT CALLED!!!'

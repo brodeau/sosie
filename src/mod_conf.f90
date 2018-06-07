@@ -63,11 +63,12 @@ MODULE MOD_CONF
    !! Logicals
    !! --------
    LOGICAL :: &
-      &    l_reg_src, & ! whether source grid is regular or not
-      &    l_reg_trg, & ! whether target grid is regular or not
-      &    lmout,     & ! masking output or not
-      &    lct          ! time control
-
+      &    l_reg_src=.TRUE.,    & ! whether source grid is regular or not
+      &    l_reg_trg=.FALSE.,   & ! whether target grid is regular or not
+      &    l_save_drwn=.FALSE., & ! save the input field drowned (on the source grid)
+      &    lmout=.FALSE.,       & ! masking output or not
+      &    lct=.FALSE.            ! time control
+   
    !! Integers
    !! --------
    INTEGER  :: &
@@ -166,9 +167,12 @@ MODULE MOD_CONF
    !! Attribute info for some variables LOLO: move to io_ezcdf instead????
    !! ---------------------------------
    !! Time vector:
-   INTEGER                              :: nb_att_t, nb_att_lon, nb_att_lat, nb_att_z, nb_att_F
-   TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, vatt_info_lon, vatt_info_lat, &
-      &                                    vatt_info_z, vatt_info_F
+   INTEGER     :: nb_att_t, &
+      &           nb_att_lon_src, nb_att_lat_src, nb_att_lon_trg, nb_att_lat_trg, nb_att_z_trg, nb_att_z_src, nb_att_F
+   TYPE(var_attr), DIMENSION(nbatt_max) :: vatt_info_t, &
+      &                                    vatt_info_lon_src, vatt_info_lat_src, &
+      &                                    vatt_info_lon_trg, vatt_info_lat_trg, &
+      &                                    vatt_info_z_trg, vatt_info_z_src, vatt_info_F
 
 
    !! Data arrays
@@ -196,9 +200,10 @@ MODULE MOD_CONF
       &   lat_src
 
    REAL(wpl),  DIMENSION(:,:,:),  ALLOCATABLE ::  &
-      &      data3d_src,  &
+      &      data3d_src, &
       &      data3d_trg, &
-      &      data3d_tmp  ! horizontal target resol. + vertical source resol.
+      &      data3d_tmp, &  ! horizontal target resol. + vertical source resol.
+      &    data_src_drowned
 
    INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0) 
    

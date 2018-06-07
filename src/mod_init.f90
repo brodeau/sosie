@@ -19,7 +19,7 @@ MODULE MOD_INIT
       &                cv_lsm_trg, ewper_trg,cf_z_trg, cv_z_trg, ctype_z_trg, &
       &                cf_bathy_trg, cv_bathy_trg, ssig_trg
    
-   NAMELIST /ninterp/  cmethod, idrown, ismooth, jt1, jt2, jplev, vmax, vmin, ismooth_out
+   NAMELIST /ninterp/  cmethod, idrown, l_save_drwn, ismooth, jt1, jt2, jplev, vmax, vmin, ismooth_out
    
    NAMELIST /noutput/  cv_out, cu_out, cln_out, cv_t_out, cd_out, cextra, &
       &                lmout, rmiss_val, lct, t0, t_stp, cv_z_out
@@ -129,7 +129,12 @@ CONTAINS
       l_drown_src = .FALSE.
       IF ( idrown > 0 ) l_drown_src = .TRUE.
       
-
+      IF ( (.NOT. l_drown_src).AND.(l_save_drwn) ) THEN
+         PRINT *, ' PROBLEM: you cannot save the drowned input field (l_save_drwn) if you'
+         PRINT *, '          do not plan on using DROWN! => set idrown>0 !'
+         STOP
+      END IF
+      
       IF ( iex == 1 ) THEN
 
          !! If this is a vector component, then interpolated files won't be correct

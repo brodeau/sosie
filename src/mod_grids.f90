@@ -36,6 +36,12 @@ CONTAINS
       !! Allocate source arrays with source dimensions :
       ALLOCATE ( data_src(ni_src,nj_src), mask_src(ni_src,nj_src,nk_src), data_src_b(ni_src,nj_src),    &
          &       mask_src_b(ni_src,nj_src,nk_src), vt0(Ntr0), vt(Ntr) )
+
+      IF ( l_save_drwn ) THEN
+         PRINT *, 'LOLO: allocating data_src_drowned !!!'
+         ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
+         PRINT *, 'LOLO: done!'
+      END IF
       
       vt(:) = 0.
 
@@ -89,17 +95,29 @@ CONTAINS
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
       REAL(8) :: zz
 
+
+      IF ( (TRIM(cmethod) == 'no_xy').OR.(l_save_drwn ) ) THEN
+         CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lon_src, nb_att_lon_src, vatt_info_lon_src)
+         CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lat_src, nb_att_lat_src, vatt_info_lat_src)
+      END IF
+
+      
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
          l_reg_trg = l_reg_src
          !! Geting them from source file:
          cv_lon_trg = cv_lon_src
          cv_lat_trg = cv_lat_src
-         CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lon_src, nb_att_lon, vatt_info_lon)
-         CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lat_src, nb_att_lat, vatt_info_lat)
          ni_trg = ni_src
          nj_trg = nj_src
+         nb_att_lon_trg = nb_att_lon_src
+         nb_att_lat_trg = nb_att_lat_src
+         vatt_info_lon_trg = vatt_info_lon_src
+         vatt_info_lat_trg = vatt_info_lat_src         
       END IF
 
+      
+
+      
       CALL know_dim_trg()
 
       !! Allocate target arrays with target dimensions :
@@ -136,7 +154,7 @@ CONTAINS
 
          CALL rd_vgrid(nk_trg, cf_z_trg, cv_z_trg, depth_trg(1,1,:))
          WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_trg(1,1,:) ; WRITE(6,*) ''
-         CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg,  nb_att_z, vatt_info_z)
+         CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg,  nb_att_z_trg, vatt_info_z_trg)
          DO ji=1,ni_trg
             DO jj=1,nj_trg
                depth_trg(ji,jj,:) = depth_trg(1,1,:)
@@ -335,6 +353,7 @@ CONTAINS
                   depth_src(ji,jj,:) = depth_src(1,1,:)
                ENDDO
             ENDDO
+            IF ( l_save_drwn) CALL GETVAR_ATTRIBUTES(cf_z_src, cv_z_src,  nb_att_z_src, vatt_info_z_src)            
          ELSE
             PRINT*,''; PRINT *, 'Not a valid source vertical coordinate' ; PRINT*,''
          ENDIF
@@ -560,23 +579,23 @@ CONTAINS
 
          !! Netcdf attributes for longitude and latitude:
          IF ( TRIM(cf_x_trg) == 'spheric' ) THEN
-            nb_att_lon = 1
-            vatt_info_lon(:)%cname = 'null'
-            vatt_info_lon(1)%cname = 'units'
-            vatt_info_lon(1)%itype = 2 ! char
-            vatt_info_lon(1)%val_char = 'degrees_east'
-            vatt_info_lon(1)%ilength = LEN('degrees_east')
-            nb_att_lat = 1
-            vatt_info_lat(:)%cname = 'null'
-            vatt_info_lat(1)%cname = 'units'
-            vatt_info_lat(1)%itype = 2 ! char
-            vatt_info_lat(1)%val_char = 'degrees_west'
-            vatt_info_lat(1)%ilength = LEN('degrees_west')
+            nb_att_lon_trg = 1
+            vatt_info_lon_trg(:)%cname = 'null'
+            vatt_info_lon_trg(1)%cname = 'units'
+            vatt_info_lon_trg(1)%itype = 2 ! char
+            vatt_info_lon_trg(1)%val_char = 'degrees_east'
+            vatt_info_lon_trg(1)%ilength = LEN('degrees_east')
+            nb_att_lat_trg = 1
+            vatt_info_lat_trg(:)%cname = 'null'
+            vatt_info_lat_trg(1)%cname = 'units'
+            vatt_info_lat_trg(1)%itype = 2 ! char
+            vatt_info_lat_trg(1)%val_char = 'degrees_west'
+            vatt_info_lat_trg(1)%ilength = LEN('degrees_west')
             !!
          ELSE
             !! Geting them from target file:
-            CALL GETVAR_ATTRIBUTES(cf_x_trg, cv_lon_trg, nb_att_lon, vatt_info_lon)
-            CALL GETVAR_ATTRIBUTES(cf_x_trg, cv_lat_trg, nb_att_lat, vatt_info_lat)
+            CALL GETVAR_ATTRIBUTES(cf_x_trg, cv_lon_trg, nb_att_lon_trg, vatt_info_lon_trg)
+            CALL GETVAR_ATTRIBUTES(cf_x_trg, cv_lat_trg, nb_att_lat_trg, vatt_info_lat_trg)
          END IF
 
          lon_trg_b = lon_trg
@@ -597,13 +616,13 @@ CONTAINS
             CALL GETVAR_2D(if0,iv0,cf_bathy_trg, cv_bathy_trg, 0, 0, 0, bathy_trg(:,:))
             !! compute target depth on target grid from bathy_trg and ssig_trg params
             CALL DEPTH_FROM_SCOORD(ssig_trg, bathy_trg, ni_trg, nj_trg, ssig_trg%Nlevels, depth_trg)
-            CALL GETVAR_ATTRIBUTES(cf_bathy_trg, cv_bathy_trg,  nb_att_z, vatt_info_z)
+            CALL GETVAR_ATTRIBUTES(cf_bathy_trg, cv_bathy_trg,  nb_att_z_trg, vatt_info_z_trg)
 
          ELSEIF (trim(ctype_z_trg) == 'z' ) THEN
 
             !! depth vector copied on all grid-points
             CALL rd_vgrid(nk_trg, cf_z_trg, cv_z_trg, depth_trg(1,1,:))
-            CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg,  nb_att_z, vatt_info_z)
+            CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg, nb_att_z_trg, vatt_info_z_trg)
             DO ji=1,ni_trg
                DO jj=1,nj_trg
                   depth_trg(ji,jj,:) = depth_trg(1,1,:)
@@ -628,7 +647,7 @@ CONTAINS
       !RD fix this
       !         CALL rd_vgrid(nk_trg, cf_z_trg, cv_z_trg, depth_trg)
       !         WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_trg ; WRITE(6,*) ''
-      !         CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg,  nb_att_z, vatt_info_z)
+      !         CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg,  nb_att_z_trg, vatt_info_z_trg)
 
       !!  Getting target mask (mandatory doing 3D interpolation!)
       IF ( lmout .OR. l_itrp_3d ) THEN

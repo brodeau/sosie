@@ -196,6 +196,8 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!          such as continental values that contaminate sea values during
 !!          interpolation
 !!
+!! l_save_drwn : save the input field that has been drowned (idrown must be > 0!)
+!!
 !! ismooth : if ismooth > 0 the field to be interpolated will be smoothed
 !!           prior to interpolation. By applying ismooth times a type of
 !!           closest neighboors boxcar smoothing algorithm
@@ -236,6 +238,7 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 cmethod     = 'akima'
 !!
 idrown      = 100
+l_save_drwn = .false.
 ismooth     = 0
 jt1         = 0
 jt2         = 0

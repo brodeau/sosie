@@ -50,7 +50,8 @@ PROGRAM SOSIE
 
    INTEGER    :: &
       &   jt, jte, jct, jcz,  &
-      &   idf_o, idf_i, idv_o, idv_i  !: netcdf ID for source/target file
+      &   idf_o, idf_i, idv_o, idv_i, &  !: netcdf ID for source/target file
+      &   idf_id, idv_id  !: drowned source field...
 
    REAL(4) :: rfct_miss=1.
 
@@ -89,23 +90,23 @@ PROGRAM SOSIE
    END IF
 
    IF ( .NOT. lmout) rfct_miss = 0.
-   
+
    cextinf =                'Horizontal grid read in '//TRIM(cf_x_trg)
    IF (l_itrp_3d) cextinf = TRIM(cextinf)//' / Vertical grid read in '//TRIM(cf_z_trg)
    cextinf = TRIM(cextinf)//' / Source field read in '//TRIM(cf_src)
    cextinf = TRIM(cextinf)//' / Interpolation method: '//TRIM(cmethod)
 
-   
+
    !! Netcdf Atributes of the interpolated field as in input file:
    CALL GETVAR_ATTRIBUTES(cf_src, cv_src,  nb_att_F, vatt_info_F) ; !getting all attributes for treated field !lolo
    !! Overwritting some attributes given in the namelist if /= '':
    IF ( TRIM(cu_out)  /= '' ) CALL FORCE_ATTR('units',      cu_out, vatt_info_F)
-   IF ( TRIM(cln_out) /= '' ) CALL FORCE_ATTR('long_name', cln_out, vatt_info_F)   
+   IF ( TRIM(cln_out) /= '' ) CALL FORCE_ATTR('long_name', cln_out, vatt_info_F)
 
 
 
-   
-   
+
+
 
 
    !!                -------------------------------
@@ -113,11 +114,11 @@ PROGRAM SOSIE
    !!                -------------------------------
 
    l_first_call_interp_routine = .TRUE.
-   
+
    jct = 0 ;  jcz = 0
    IF ( ltime ) jct = 1
    IF (  l3d  ) jcz = 1
-   
+
    DO jt = 1, Ntr
 
       jte = j_start + jt - 1     ! actual time record to extract
@@ -142,7 +143,7 @@ PROGRAM SOSIE
 
 
          CALL INTERP_2D()
-         
+
          !! => data_trg for current time step is ready to be written in netcdf file
 
          !! Print current record into netcdf file
@@ -150,8 +151,17 @@ PROGRAM SOSIE
             &      lon_trg_b, lat_trg, vt, data_trg,    &
             &      cf_out, cv_lon_trg, cv_lat_trg, cv_t_out,    &
             &      cv_out, rfct_miss*REAL(rmiss_val,4), &
-            &      attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_time=vatt_info_t, attr_F=vatt_info_F, &
+            &      attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &      cextrainfo=cextinf)
+
+         !LOLO
+         IF ( l_save_drwn ) THEN
+            CALL P2D_T(idf_id, idv_id, Ntr, jt,    &
+               &       lon_src, lat_src, vt, data_src_drowned(:,:,1),    &
+               &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_t_src,    &
+               &       cv_src, 0., &
+               &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_time=vatt_info_t, attr_F=vatt_info_F )
+         END IF
 
 
       ELSE
@@ -172,36 +182,42 @@ PROGRAM SOSIE
 
          CALL INTERP_3D()
 
-         !PRINT *, 'cf_out => ', TRIM(cf_out)
-         !PRINT *, 'cv_lon_trg => ', TRIM(cv_lon_trg)
-         !PRINT *, 'cv_lat_trg => ', TRIM(cv_lat_trg)
-         !PRINT *, 'cv_z_out => ', TRIM(cv_z_out)
-         !PRINT *, 'cv_t_out => ', TRIM(cv_t_out)
-         !PRINT *, 'cv_out => ', TRIM(cv_out)
-         !PRINT *, 'vatt_info_lon => ', vatt_info_lon
-         
          !! Print current record into netcdf file
          !!  => data3d_trg for current time step is ready to be written in netcdf file
 
-        IF (trim(ctype_z_trg) == 'z') THEN
-          CALL P3D_T(idf_o, idv_o, Ntr, jt, &
-             &       lon_trg_b, lat_trg, REAL(depth_trg(1,1,:),8), vt, data3d_trg,                &
-             &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
-             &       cv_out, rfct_miss*REAL(rmiss_val,4), &
-             &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
-             &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
-             &       cextrainfo=cextinf)
-        ELSEIF (trim(ctype_z_trg) == 'sigma' ) THEN
-          CALL P3D_T(idf_o, idv_o, Ntr, jt, &
-             &       lon_trg_b, lat_trg, Sc_rho(:), vt, data3d_trg,                &
-             &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
-             &       cv_out, rfct_miss*REAL(rmiss_val,4), &
-             &       attr_lon=vatt_info_lon, attr_lat=vatt_info_lat, attr_z=vatt_info_z, &
-             &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
-             &       cextrainfo=cextinf)
-        ELSE
-          PRINT *, 'Unknown vertical coordinate' ; STOP
-        ENDIF
+         IF (trim(ctype_z_trg) == 'z') THEN
+            CALL P3D_T(idf_o, idv_o, Ntr, jt, &
+               &       lon_trg_b, lat_trg, REAL(depth_trg(1,1,:),8), vt, data3d_trg,                &
+               &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
+               &       cv_out, rfct_miss*REAL(rmiss_val,4), &
+               &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
+               &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+               &       cextrainfo=cextinf)
+
+            !LOLO
+            IF ( l_save_drwn ) THEN
+               CALL P3D_T(idf_id, idv_id, Ntr, jt,    &
+                  &       lon_src, lat_src, REAL(depth_src(1,1,:),8), vt, data_src_drowned(:,:,:), &
+                  &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_z_src, cv_t_src,    &
+                  &       cv_src, 0., &
+                  &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_z=vatt_info_z_src, &
+                  &       attr_time=vatt_info_t, attr_F=vatt_info_F )
+            END IF
+
+
+
+
+         ELSEIF (trim(ctype_z_trg) == 'sigma' ) THEN
+            CALL P3D_T(idf_o, idv_o, Ntr, jt, &
+               &       lon_trg_b, lat_trg, Sc_rho(:), vt, data3d_trg,                &
+               &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
+               &       cv_out, rfct_miss*REAL(rmiss_val,4), &
+               &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
+               &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+               &       cextrainfo=cextinf)
+         ELSE
+            PRINT *, 'Unknown vertical coordinate' ; STOP
+         ENDIF
 
       END IF ! .not. l_itrp_3d
 
@@ -210,6 +226,10 @@ PROGRAM SOSIE
    CALL TERMINATE() ! deleting and de-allocating arrays...
 
    PRINT *, ''; PRINT *, TRIM(cf_out), ' is created'; PRINT *, ''
+
+   IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
+
+   PRINT *, ''
 
    CLOSE(6)
 
