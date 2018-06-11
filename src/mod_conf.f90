@@ -77,6 +77,10 @@ MODULE MOD_CONF
       &    ismooth=0,   &
       &    ismooth_out=0
 
+
+   INTEGER, DIMENSION(0:4) :: ibx_xtra_sm = (/ 0, 0,0, 0,0 /)  ! box for exta-smoothing => (/ntimes, i1,j1, i2,j2/)
+
+   
    !! Name of files or directories:
    !! -----------------------------
    CHARACTER(LEN=400) ::    &

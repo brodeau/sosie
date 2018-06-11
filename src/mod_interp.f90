@@ -24,6 +24,9 @@ CONTAINS
       !! 2D INTERPOLATION
       !! ================
 
+      INTEGER :: i1,j1, i2,j2
+
+      
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
       IF ( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_src)
@@ -89,6 +92,18 @@ CONTAINS
       END IF
       !lolo.      
       
+      IF ( ibx_xtra_sm(0) > 0 ) THEN
+         WRITE(6,'("     --- ",a,": post-interp extra smoothing ",i4," times!")') TRIM(cv_out), ibx_xtra_sm(0)
+         i1=ibx_xtra_sm(1)
+         j1=ibx_xtra_sm(2)
+         i2=ibx_xtra_sm(3)
+         j2=ibx_xtra_sm(4)
+         PRINT *, '          => on box:', i1,j1, i2,j2
+         !CALL SMOOTH(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0), mask_apply=mask_trg(i1:i2,j1:j2,1), l_exclude_mask_points=.TRUE.)
+         CALL SMOOTH(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0))
+         PRINT *, ''
+      END IF
+      
       IF ( ismooth_out > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
          CALL SMOOTH(ewper_trg, data_trg,  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,1), l_exclude_mask_points=.true.)
@@ -119,6 +134,7 @@ CONTAINS
       !! 3D INTERPOLATION
       !! ================
 
+      INTEGER :: i1,j1, i2,j2
       INTEGER :: ji, jj, jk, jklast=0
       REAL(8) :: zmax_src, zmax_trg
 

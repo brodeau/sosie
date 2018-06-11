@@ -246,6 +246,7 @@ jplev       = 1
 vmax        =  1.E6
 vmin        = -1.E6
 ismooth_out = 0
+ibx_xtra_sm = (/ 0, 0,0, 0,0 /)  ! (/ntimes, i1,j1, i2,j2/)
 /
 !!
 !!
