@@ -392,7 +392,19 @@ CONTAINS
             &   data3d_trg(:,:,jk) = vmax
          WHERE ((data3d_trg(:,:,jk) < vmin).and.(data3d_trg(:,:,jk) /= rmiss_val)) &
             &   data3d_trg(:,:,jk) = vmin
-         
+
+
+         IF ( ibx_xtra_sm(0) > 0 ) THEN
+            WRITE(6,'("     --- ",a,": post-interp extra smoothing ",i4," times at level ",i3.3,"!")') TRIM(cv_out), ibx_xtra_sm(0), jk
+            i1=ibx_xtra_sm(1)
+            j1=ibx_xtra_sm(2)
+            i2=ibx_xtra_sm(3)
+            j2=ibx_xtra_sm(4)
+            PRINT *, '          => on box:', i1,j1, i2,j2
+            CALL SMOOTH(ewper_trg, data3d_trg(i1:i2,j1:j2,jk),  nb_smooth=ibx_xtra_sm(0))
+            PRINT *, ''
+         END IF
+                  
          IF ( ismooth_out > 0 ) THEN
             WRITE(6,'("     --- ",a,": post-interp smoothing ",i2," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
             CALL SMOOTH(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,jk), l_exclude_mask_points=.true.)
