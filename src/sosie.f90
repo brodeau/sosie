@@ -5,7 +5,7 @@ PROGRAM SOSIE
    !!     SOSIE is Only a Surface Interpolation Environment
    !!     =================================================
    !!
-   !!     Version 3.0 beta, September 2017
+   !!     Version 2.9, September 2017
    !!
    !!
    !!    PURPOSE:

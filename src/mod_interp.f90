@@ -8,7 +8,7 @@ MODULE MOD_INTERP
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
 
    USE mod_nemotools, ONLY: lbc_lnk
-   !USE io_ezcdf ; !LOLOdebug
+   !USE io_ezcdf,      ONLY: DUMP_2D_FIELD ; !LOLOdebug
 
    IMPLICIT NONE
 
@@ -20,7 +20,6 @@ CONTAINS
 
    SUBROUTINE INTERP_2D()
 
-      !USE io_ezcdf ; !LOLOdebug
       !! ================
       !! 2D INTERPOLATION
       !! ================
@@ -115,38 +114,6 @@ CONTAINS
       !! Interpolation of each of the nk_in levels onto the target grid
       !! --------------------------------------------------------------
 
-
-      !! Need to do some sort of vertical drown downward to propagate the bottom
-      !! value (last water pomit mask==1) down into the sea-bed...
-      !DO jj = 1, nj_in
-      !   DO ji = 1, ni_in
-      !      IF ( mask_in(ji,jj,1) == 1 ) THEN  ! ocean at first level!
-      !         IF ((jj==678).AND.(ji==1108)) PRINT *, ' LOLO, before deepening', data3d_in(ji,jj,:) !LOLOdebug
-      !         jk = 1
-      !         DO WHILE ( jk <= nk_in )
-      !            IF ( (jklast == 0).AND.(jk < nk_in) ) THEN
-      !               IF ( (mask_in(ji,jj,jk) == 1).AND.(mask_in(ji,jj,jk+1) == 0) ) THEN
-      !                  jklast = jk ! last point with water before seabed...
-      !                  !IF ((jj==678).AND.(ji==1108)) PRINT *, 'LOLO: bottom point at jk=', jklast
-      !               END IF
-      !            END IF
-      !            IF ( jk > jklast ) data3d_in(ji,jj,jk) = data3d_in(ji,jj,jklast) ! persistence!
-      !            jk = jk + 1
-      !         END DO
-      !      END IF
-      !      IF ((jj==678).AND.(ji==1108)) PRINT *, ' LOLO, after deepening', data3d_in(ji,jj,:) !LOLOdebug
-      !   END DO
-      !END DO
-      !jklast = 0
-      !!LOLOdebug:
-      !DO jk = 1, nk_in
-      !   WRITE(cfdbg,'("data_in_drowned_h+b_lev",i2.2,".nc")') jk ; PRINT *, ' *** saving ', TRIM(cfdbg)
-      !   CALL DUMP_2D_FIELD(data3d_in(:,:,jk), TRIM(cfdbg), 'data')
-      !END DO
-      !!LOLOdebug.
-
-
-
       DO jk = 1, nk_in
 
          PRINT *, '### Preparing source field at level : ', jk
@@ -178,6 +145,17 @@ CONTAINS
 
       END DO !DO jk = 1, nk_in
 
+
+      !! Need to do some sort of vertical drown downward to propagate the bottom
+      !! value (last water pomit mask==1) down into the sea-bed...
+      !! => calling drown vertical slice by vertical slices (zonal vertical slices)
+      PRINT *, ''
+      PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
+      DO jj = 1, nj_in
+         CALL DROWN( -1, data3d_in(:,jj,:), mask_in(:,jj,:), nb_inc=100, nb_smooth=5 )
+      END DO
+      PRINT *, '   => Done!'
+      PRINT *, ''
 
 
       !! Prevent last level to cause problem when not a single water point (last level is only rock!)
