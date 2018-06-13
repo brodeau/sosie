@@ -513,10 +513,10 @@ CONTAINS
 
          IF ( l_emp ) xtmp(:,:) = xtmp(:,:)*REAL(mask_apply(:,:),4)
 
-         !! Center of the domain:         
+         !! Center of the domain:
          IF ( l_emp ) THEN
             !PRINT *, ' -- SMOOTH is excluding masked points...'
-            
+
             rdenom(2:ni-1,2:nj-1) = 1. / MAX( REAL(mask_apply(3:ni,2:nj-1)   + mask_apply(2:ni-1,3:nj)      &
                &                                 + mask_apply(1:ni-2,2:nj-1) + mask_apply(2:ni-1,1:nj-2),4), 0.01 )
 

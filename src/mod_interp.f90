@@ -8,7 +8,7 @@ MODULE MOD_INTERP
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
 
    USE mod_nemotools, ONLY: lbc_lnk
-   !USE io_ezcdf ; !LOLOdebug
+   !USE io_ezcdf,      ONLY: DUMP_2D_FIELD ; !LOLOdebug
 
    IMPLICIT NONE
 
@@ -26,7 +26,7 @@ CONTAINS
 
       INTEGER :: i1,j1, i2,j2
 
-      
+
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
       IF ( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_src)
@@ -39,7 +39,7 @@ CONTAINS
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
 
          IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
-         
+
       ELSE
          PRINT *, '-------------------'
          PRINT *, 'DROWN NOT CALLED!!!'
@@ -83,15 +83,15 @@ CONTAINS
       !! LOLO should update mask_trg accordingly !!!?
       WHERE ( data_trg > vmax )  data_trg = rmiss_val
       WHERE ( data_trg < vmin )  data_trg = rmiss_val
-      
+
       !lolo:
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF (jj_ex_btm > 0) THEN
          CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
       END IF
-      !lolo.      
-      
+      !lolo.
+
       IF ( ibx_xtra_sm(0) > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp extra smoothing ",i4," times!")') TRIM(cv_out), ibx_xtra_sm(0)
          i1=ibx_xtra_sm(1)
@@ -103,17 +103,17 @@ CONTAINS
          CALL SMOOTH(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0))
          PRINT *, ''
       END IF
-      
+
       IF ( ismooth_out > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
          CALL SMOOTH(ewper_trg, data_trg,  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,1), l_exclude_mask_points=.true.)
          PRINT *, ''
       END IF
-      
 
 
-      
-      
+
+
+
       !! Masking result if requested
       IF ( lmout ) THEN
          WHERE (mask_trg(:,:,1) == 0)  data_trg = rmiss_val
@@ -143,74 +143,73 @@ CONTAINS
       !! Interpolation of each of the nk_src levels onto the target grid
       !! --------------------------------------------------------------
 
-
-      !! Need to do some sort of vertical drown downward to propagate the bottom
-      !! value (last water pomit mask==1) down into the sea-bed...
-      !DO jj = 1, nj_src
-      !   DO ji = 1, ni_src
-      !      IF ( mask_src(ji,jj,1) == 1 ) THEN  ! ocean at first level!
-      !         IF ((jj==678).AND.(ji==1108)) PRINT *, ' LOLO, before deepening', data3d_src(ji,jj,:) !LOLOdebug
-      !         jk = 1
-      !         DO WHILE ( jk <= nk_src )
-      !            IF ( (jklast == 0).AND.(jk < nk_src) ) THEN
-      !               IF ( (mask_src(ji,jj,jk) == 1).AND.(mask_src(ji,jj,jk+1) == 0) ) THEN
-      !                  jklast = jk ! last point with water before seabed...
-      !                  !IF ((jj==678).AND.(ji==1108)) PRINT *, 'LOLO: bottom point at jk=', jklast
-      !               END IF
-      !            END IF
-      !            IF ( jk > jklast ) data3d_src(ji,jj,jk) = data3d_src(ji,jj,jklast) ! persistence!
-      !            jk = jk + 1
-      !         END DO
-      !      END IF
-      !      IF ((jj==678).AND.(ji==1108)) PRINT *, ' LOLO, after deepening', data3d_src(ji,jj,:) !LOLOdebug
-      !   END DO
-      !END DO
-      !jklast = 0
-      !!LOLOdebug:
-      !DO jk = 1, nk_src
-      !   WRITE(cfdbg,'("data_src_drowned_h+b_lev",i2.2,".nc")') jk ; PRINT *, ' *** saving ', TRIM(cfdbg)
-      !   CALL DUMP_2D_FIELD(data3d_src(:,:,jk), TRIM(cfdbg), 'data')
-      !END DO
-      !!LOLOdebug.
-
+      !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's')
 
 
       DO jk = 1, nk_src
 
-         PRINT *, '### Preparing source field at level : ', jk
+         !! Only doing something if not entire level is masked:
+         IF ( SUM(mask_src(:,:,jk)) > 0 ) THEN
 
-         IF ( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
-            IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data3d_src(:,:,jk))
-            IF ( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_src(:,:,jk))
-         END IF
+            PRINT *, '### Preparing source field at level : ', jk
 
-         IF ( l_drown_src ) THEN
-            !! Extrapolate sea values over land :
-            WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
-            PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
-            CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
-            IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
-         ELSE
-            PRINT *, '-------------------'
-            PRINT *, 'DROWN NOT CALLED!!!'
-            PRINT *, '-------------------'
-         END IF
-
-         IF ( ismooth > 0 ) THEN
-            IF ( TRIM(cmethod) == 'no_xy' ) THEN
-               PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
-               STOP
+            IF ( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
+               IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data3d_src(:,:,jk))
+               IF ( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_src(:,:,jk))
             END IF
-            !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
-            WRITE(6,'("     --- ",a,": Smoothing level #",i3.3," ",i2," times!")') TRIM(cv_src), jk, ismooth
-            CALL SMOOTH(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_src(:,:,jk), l_exclude_mask_points=.true.)
-         END IF
 
+            IF ( l_drown_src ) THEN
+               !! Extrapolate sea values over land :
+               WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
+               PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+               CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
+               IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
+
+               !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')
+
+            ELSE
+               PRINT *, '-------------------'
+               PRINT *, 'DROWN NOT CALLED!!!'
+               PRINT *, '-------------------'
+            END IF
+
+            IF ( ismooth > 0 ) THEN
+               IF ( TRIM(cmethod) == 'no_xy' ) THEN
+                  PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
+                  STOP
+               END IF
+               !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
+               WRITE(6,'("     --- ",a,": Smoothing level #",i3.3," ",i2," times!")') TRIM(cv_src), jk, ismooth
+               CALL SMOOTH(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_src(:,:,jk), l_exclude_mask_points=.true.)
+            END IF
+
+         ELSE
+            data3d_src(:,:,jk) = 0. ! juste because we prefer zeros to f*up high values...
+         END IF !IF ( SUM(mask_src(:,:,jk)) > 0 )
+         
       END DO !DO jk = 1, nk_src
 
 
 
-      !! Prevent last level to cause problem when not a single water point (last level is only rock!)
+      !! Need to do some sort of vertical drown downward to propagate the bottom
+      !! value (last water pomit mask==1) down into the sea-bed...
+      !! => calling drown vertical slice by vertical slices (zonal vertical slices)
+      PRINT *, ''
+      PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
+      DO jj = 1, nj_src
+         !CALL DUMP_2D_FIELD(data3d_src(:,jj,:), 'slice_before', 's')
+         CALL DROWN( -1, data3d_src(:,jj,:), mask_src(:,jj,:), nb_inc=100, nb_smooth=5 )
+         !CALL DUMP_2D_FIELD(data3d_src(:,jj,:), 'slice_after', 's')
+      END DO
+      PRINT *, '   => Done!'
+      PRINT *, ''
+
+      !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
+
+      
+
+
+      !! Prevent last level to f-word shit up when not a single water point (last level is only rock!)
       IF ( SUM(mask_src(:,:,nk_src)) == 0) data3d_src(:,:,nk_src) = data3d_src(:,:,nk_src-1) ! persistence!
 
       !LOLOdebug:
@@ -225,6 +224,9 @@ CONTAINS
       PRINT *, ' 3D field prepared at all levels, ready to be interpolated...'
       PRINT *, ''
 
+
+
+      !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '03_Slice_in_before_interp.tmp', 's')
 
       !! Now! 3D input field ready to be interpolated...
       DO jk = 1, nk_src
@@ -404,20 +406,20 @@ CONTAINS
             CALL SMOOTH(ewper_trg, data3d_trg(i1:i2,j1:j2,jk),  nb_smooth=ibx_xtra_sm(0))
             PRINT *, ''
          END IF
-                  
+         
          IF ( ismooth_out > 0 ) THEN
-            WRITE(6,'("     --- ",a,": post-interp smoothing ",i2," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
-            CALL SMOOTH(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,jk), l_exclude_mask_points=.true.)
-            PRINT *, ''
+               WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
+               CALL SMOOTH(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,jk), l_exclude_mask_points=.TRUE.)
+               PRINT *, ''
          END IF
          
          !! If target grid is an ORCA grid, calling "lbc_lnk":
          IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data3d_trg(:,:,jk), c_orca_trg, 1.0_8 )
-
+         
          IF ( lmout ) data3d_trg(:,:,jk) = data3d_trg(:,:,jk)*mask_trg(:,:,jk) + (1. - mask_trg(:,:,jk))*rmiss_val
-
+         
       END DO
-
+      
 
 
       PRINT *, ''
