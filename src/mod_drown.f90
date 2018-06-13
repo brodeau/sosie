@@ -525,7 +525,7 @@ CONTAINS
                &                       * rdenom(2:ni-1,2:nj-1)
 
          ELSE
-            IF ( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "mask_apply")'
+            !IF ( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "mask_apply")'
 
             X(2:ni-1,2:nj-1) = w0   *xtmp(2:ni-1,2:nj-1) &
                &           + (1.-w0)*( xtmp(3:ni,2:nj-1) + xtmp(2:ni-1,3:nj) + xtmp(1:ni-2,2:nj-1) + xtmp(2:ni-1,1:nj-2) ) &
