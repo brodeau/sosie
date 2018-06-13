@@ -11,7 +11,7 @@ MODULE MOD_MANIP
 
 
    INTERFACE flip_ud
-      MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i2
+      MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i1
    END INTERFACE flip_ud
 
    INTERFACE degE_to_degWE
@@ -25,7 +25,10 @@ MODULE MOD_MANIP
    INTERFACE extra_2_west
       MODULE PROCEDURE extra_2_west_r4, extra_2_west_r8
    END INTERFACE extra_2_west
-
+   
+   INTERFACE long_reorg_3d
+      MODULE PROCEDURE long_reorg_3d_i1
+   END INTERFACE long_reorg_3d
 
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
@@ -663,12 +666,12 @@ CONTAINS
    END SUBROUTINE FLIP_UD_2D_R4
 
 
-   SUBROUTINE FLIP_UD_3D_I2(XF)
+   SUBROUTINE FLIP_UD_3D_I1(XF)
 
-      INTEGER(2), DIMENSION(:,:,:), INTENT(inout) :: XF
+      INTEGER(1), DIMENSION(:,:,:), INTENT(inout) :: XF
 
       INTEGER :: nx, ny, nz, jj
-      INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
+      INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
 
       nx = SIZE(XF,1) ; ny = SIZE(XF,2) ; nz = SIZE(XF,3)
 
@@ -682,7 +685,7 @@ CONTAINS
 
       DEALLOCATE ( ztmp )
 
-   END SUBROUTINE FLIP_UD_3D_I2
+   END SUBROUTINE FLIP_UD_3D_I1
 
 
 
@@ -715,13 +718,13 @@ CONTAINS
 
 
 
-   SUBROUTINE LONG_REORG_3D(i_chg_x, XF)
+   SUBROUTINE LONG_REORG_3D_I1(i_chg_x, XF)
 
       INTEGER, INTENT(in) :: i_chg_x
-      INTEGER(2), DIMENSION(:,:,:), INTENT(inout) :: XF
+      INTEGER(1), DIMENSION(:,:,:), INTENT(inout) :: XF
 
       INTEGER :: nx, ny, nz, ji
-      INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
+      INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
 
       nx = SIZE(XF,1) ; ny = SIZE(XF,2) ; nz = SIZE(XF,3)
 
@@ -738,7 +741,7 @@ CONTAINS
 
       DEALLOCATE ( ztmp )
 
-   END SUBROUTINE LONG_REORG_3D
+   END SUBROUTINE LONG_REORG_3D_I1
 
 
 

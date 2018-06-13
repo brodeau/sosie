@@ -217,9 +217,8 @@ MODULE MOD_CONF
       &      data3d_tmp, &  ! horizontal target resol. + vertical source resol.
       &    data_src_drowned
 
-   INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0) 
-   
-   INTEGER(2),   DIMENSION(:,:,:),  ALLOCATABLE ::   &
+   INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0)    
+   INTEGER(1),   DIMENSION(:,:,:),  ALLOCATABLE ::   &
       &   mask_src, mask_src_b, &  !: land-sea mask on input grid
       &   mask_trg               !: land-sea mask on output grid
 

@@ -95,8 +95,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
-   INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: imask
-   INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask
+   INTEGER(1), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
    !!
    INTEGER :: jt, it, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!

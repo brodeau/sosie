@@ -44,12 +44,12 @@ CONTAINS
       !! Arguments :
       INTEGER,                       INTENT(in)    :: k_ew
       REAL(4),    DIMENSION(:,:),    INTENT(inout) :: X
-      INTEGER(2), DIMENSION(:,:),    INTENT(in)    :: mask
+      INTEGER(1), DIMENSION(:,:),    INTENT(in)    :: mask
 
       INTEGER,    OPTIONAL,          INTENT(in)    :: nb_inc, nb_smooth
 
       !! Local :
-      INTEGER(2), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
+      INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: dold, xtmp
 
       INTEGER :: &
@@ -449,7 +449,7 @@ CONTAINS
       INTEGER,                    INTENT(in)           :: k_ew
       REAL(4),    DIMENSION(:,:), INTENT(inout)        :: X
       INTEGER,    OPTIONAL,                 INTENT(in) :: nb_smooth
-      INTEGER(2), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_apply
+      INTEGER(1), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_apply
       LOGICAL,    OPTIONAL                , INTENT(in) :: l_exclude_mask_points
 
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: xorig, xtmp, rdenom

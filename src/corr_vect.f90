@@ -71,7 +71,7 @@ PROGRAM CORR_VECT
       &    id_f1, id_v1, &
       &    id_f2, id_v2
 
-   INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
+   INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: ztmp4
 

@@ -710,7 +710,7 @@ CONTAINS
       INTEGER                              :: id_f, id_v
       CHARACTER(len=*),        INTENT(in)  :: cf_in, cv_in
       INTEGER, OPTIONAL,       INTENT(in)  :: jlev
-      INTEGER(2), DIMENSION(:,:), INTENT(out) :: IX
+      INTEGER(1), DIMENSION(:,:), INTENT(out) :: IX
 
       INTEGER :: &
          & lx, &    ! x dimension of the mask
@@ -813,7 +813,7 @@ CONTAINS
       !!------------------------------------------------------------------------
       INTEGER                                :: id_f, id_v
       CHARACTER(len=*),          INTENT(in)  :: cf_in, cv_in
-      INTEGER(2), DIMENSION(:,:,:), INTENT(out) :: IX
+      INTEGER(1), DIMENSION(:,:,:), INTENT(out) :: IX
       INTEGER,       OPTIONAL,    INTENT(in)    :: jz1, jz2
 
       INTEGER :: &
