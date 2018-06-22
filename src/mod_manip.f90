@@ -1662,7 +1662,7 @@ CONTAINS
       !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: YP =', YP(nx/2,:)
       !PRINT *, ''
       !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: FP =', FP(nx/2,:)
-      !STOP'boo'
+      !STOP 'boo'
 
    END SUBROUTINE EXT_NORTH_TO_90_REGG
 
