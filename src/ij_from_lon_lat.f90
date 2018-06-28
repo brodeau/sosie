@@ -322,14 +322,12 @@ PROGRAM IJ_FROM_LON_LAT
    END DO
    PRINT *, ''
 
-
-
-
-
-
-
-
-
+   IF ( npoints == 2 ) THEN
+      PRINT *, ''
+      PRINT *, '  ==> for XIOS-2.0 :'
+      WRITE(*,'("     ibegin=",i4,"  jbegin=",i4," ni=",i4," nj=",i4)') JIidx(1,1)-1, JJidx(1,1)-1, JIidx(1,2)-JIidx(1,1), JJidx(1,2)-JJidx(1,1)
+      PRINT *, ''
+   END IF
 
 
 
