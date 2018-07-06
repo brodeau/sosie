@@ -1025,7 +1025,7 @@ CONTAINS
    SUBROUTINE P2D_T(idx_f, idx_v, lt, lct, xlon, xlat, vtime, x2d, cf_in, &
       &             cv_lo, cv_la, cv_t, cv_in, vflag,      &
       &             attr_lon, attr_lat, attr_time, attr_F, &
-      &             cextrainfo)
+      &             cextrainfo, l_add_valid_min_max)
       !!
       !! INPUT :
       !! -------
@@ -1045,6 +1045,7 @@ CONTAINS
       !!        vflag = flag value or "0."                        [real]
       !!
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
+      !!        l_add_valid_min_max = for each variable write valid_min and valid_max (default=.true.)
       !!
       !!--------------------------------------------------------------------------
       !!
@@ -1058,19 +1059,22 @@ CONTAINS
       !! Optional:
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_time, attr_F
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
+      LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
 
       INTEGER  :: id_x, id_y, id_t
       INTEGER  :: id_lo, id_la
       INTEGER  :: id_tim
       INTEGER  :: lx, ly
       REAL(4)  :: rmin, rmax
-      LOGICAL  :: lcopy_att_F = .FALSE.
+      LOGICAL  :: lcopy_att_F = .FALSE., l_add_extrema=.true.
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
       CHARACTER(len=80), PARAMETER :: crtn = 'P2D_T'
 
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
+      IF ( PRESENT(l_add_valid_min_max) ) l_add_extrema = l_add_valid_min_max
+      
       !! About dimensions of xlon, xlat and x2d:
       cdt = TEST_XYZ(xlon, xlat, x2d)
       lx = size(x2d,1) ; ly = size(x2d,2)
@@ -1114,7 +1118,8 @@ CONTAINS
 
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time)
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time, &
+            &            l_add_valid_min_max=l_add_extrema)
          !!
          !! Variable
          IF ( TRIM(cv_t) /= '' ) THEN
@@ -1884,7 +1889,7 @@ CONTAINS
 
    SUBROUTINE prepare_nc(id_file, cdt0, nx, ny, cv_lon, cv_lat, cv_time, vxtrm,     &
       &                  id_ji, id_jj, id_jt, id_lon, id_lat, id_time, cri,cfi,cvi, &
-      &                  attr_lon, attr_lat, attr_tim)
+      &                  attr_lon, attr_lat, attr_tim, l_add_valid_min_max)
       !!----------------------------------------------------------------------------------
       !!----------------------------------------------------------------------------------
       INTEGER,                 INTENT(in)  :: id_file, nx, ny
@@ -1894,16 +1899,21 @@ CONTAINS
       INTEGER,                 INTENT(out) :: id_ji, id_jj, id_jt, id_lon, id_lat, id_time
 
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_tim
-
+      LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
+      
       LOGICAL ::  &
          &       lcopy_att_lon = .FALSE., &
          &       lcopy_att_lat = .FALSE., &
-         &       lcopy_att_tim = .FALSE.
+         &       lcopy_att_tim = .FALSE., &
+         &       l_add_extrema = .TRUE.
 
       IF ( PRESENT(attr_lon).AND.(attr_lon(1)%itype>0) ) lcopy_att_lon = .TRUE.
       IF ( PRESENT(attr_lat).AND.(attr_lat(1)%itype>0) ) lcopy_att_lat = .TRUE.
       IF ( PRESENT(attr_tim).AND.(attr_tim(1)%itype>0) ) lcopy_att_tim = .TRUE.
 
+      IF ( PRESENT(l_add_valid_min_max) ) l_add_extrema = l_add_valid_min_max
+
+      
       !!    HORIZONTAL
       IF ( (TRIM(cv_lon) /= '').AND.(TRIM(cv_lat) /= '') ) THEN
          !!
@@ -1921,12 +1931,16 @@ CONTAINS
          END IF
          !!
          IF ( lcopy_att_lon )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_lon, attr_lon,  cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_lon, 'valid_min', vxtrm(1,1)), cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_lon, 'valid_max', vxtrm(1,2)), cri,cfi,cvi)
+         IF ( l_add_extrema ) THEN
+            CALL sherr( NF90_PUT_ATT(id_file, id_lon, 'valid_min', vxtrm(1,1)), cri,cfi,cvi)
+            CALL sherr( NF90_PUT_ATT(id_file, id_lon, 'valid_max', vxtrm(1,2)), cri,cfi,cvi)
+         END IF
          !!
          IF ( lcopy_att_lat )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_lat, attr_lat,  cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_lat, 'valid_min', vxtrm(2,1)), cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_lat, 'valid_max', vxtrm(2,2)), cri,cfi,cvi)
+         IF ( l_add_extrema ) THEN
+            CALL sherr( NF90_PUT_ATT(id_file, id_lat, 'valid_min', vxtrm(2,1)), cri,cfi,cvi)
+            CALL sherr( NF90_PUT_ATT(id_file, id_lat, 'valid_max', vxtrm(2,2)), cri,cfi,cvi)
+         END IF
          !!
       ELSE
          CALL sherr( NF90_DEF_DIM(id_file, 'x', nx, id_ji), cri,cfi,cvi)
@@ -1938,8 +1952,10 @@ CONTAINS
          CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_time), NF90_UNLIMITED, id_jt), cri,cfi,cvi)
          CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time, deflate_level=9), cri,cfi,cvi)
          IF ( lcopy_att_tim )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_time, attr_tim,  cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)
-         CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_max',vxtrm(3,2)), cri,cfi,cvi)
+         IF ( l_add_extrema ) THEN
+            CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)
+            CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_max',vxtrm(3,2)), cri,cfi,cvi)
+         END IF
       END IF
       !!
    END SUBROUTINE prepare_nc

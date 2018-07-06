@@ -15,11 +15,9 @@ PROGRAM NEMO_COARSENER
    INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: vpt_lon, vpt_lat
-   !!
-
 
    !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_in, Ftrack_in_np, Ftrack_obs, rcycle_obs, vdistance
+   REAL(8), DIMENSION(:), ALLOCATABLE :: Vt
 
 
    !! Grid, default name :
@@ -46,15 +44,15 @@ PROGRAM NEMO_COARSENER
    !!
    !!
    CHARACTER(len=400)  :: &
-      &    cf_in, cf_mm, cf_get_lat_lon, &
+      &    cf_in='', cf_mm='', cf_get_lat_lon='', cf_out='', &
       &    cf_ascii='file_in.txt'
-   !!
-   CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cf_out
    !!
    INTEGER      :: &
       &    jarg, i1, i2, j1, j2, &
       &    idot, ip1, jp1, im1, jm1, &
-      &    i0=0, j0=0, ifi=0, ivi=0, &
+      &    i0=0, j0=0, &
+      &    ifi=0, ivi=0, &
+      &    ifo=0, ivo=0, &
       &    ni, nj, Nt=0, nk=0, &
       &    ni1, nj1, ni2, nj2, &
       &    iargc, id_f1, id_v1
@@ -77,16 +75,16 @@ PROGRAM NEMO_COARSENER
       &       t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta, t_min, t_max
    !!
-   CHARACTER(LEN=2), DIMENSION(6), PARAMETER :: &
-      &            clist_opt = (/ '-h','-m','-i','-v','-x','-y' /)
+   CHARACTER(LEN=2), DIMENSION(7), PARAMETER :: &
+      &            clist_opt = (/ '-h','-m','-i','-v','-o','-x','-y' /)
 
    REAL(8) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
 
    REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
 
-   INTEGER :: Nb_att_lon, Nb_att_lat, Nb_att_vin
+   INTEGER :: Nb_att_lon, Nb_att_lat, Nb_att_time, Nb_att_vin
    TYPE(var_attr), DIMENSION(nbatt_max) :: &
-      &   v_att_list_lon, v_att_list_lat, v_att_list_vin
+      &   v_att_list_lon, v_att_list_lat, v_att_list_time, v_att_list_vin
 
    !CALL GET_ENVIRONMENT_VARIABLE("HOME", cdir_home)
    !CALL GET_ENVIRONMENT_VARIABLE("TMPDIR", cdir_tmpdir)
@@ -121,6 +119,9 @@ PROGRAM NEMO_COARSENER
       CASE('-v')
          CALL GET_MY_ARG('input file', cv_in)
 
+      CASE('-o')
+         CALL GET_MY_ARG('input file', cf_out)
+
       CASE('-x')
          CALL GET_MY_ARG('longitude', cv_lon)
 
@@ -138,6 +139,12 @@ PROGRAM NEMO_COARSENER
    IF ( (trim(cv_in) == '').OR.(trim(cf_in) == '') ) THEN
       PRINT *, ''
       PRINT *, 'You must at least specify input file (-i) !!!'
+      CALL usage()
+   END IF
+
+   IF ( TRIM(cf_out) == '' ) THEN
+      PRINT *, ''
+      PRINT *, 'You must at least specify output file (-o) !!!'
       CALL usage()
    END IF
 
@@ -251,10 +258,18 @@ PROGRAM NEMO_COARSENER
    !PRINT *, ' *** Maximum latitude on model grid : ', lat_max
 
 
+   CALL GETVAR_ATTRIBUTES(cf_in, 'time_counter',  Nb_att_time, v_att_list_time)
+   PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
+   
    CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
    PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
 
 
+   ALLOCATE ( Vt(Nt) )
+   CALL GETVAR_1D(cf_in, 'time_counter', Vt)
+   
+   PRINT *, 'Vt = ', Vt(:)
+   
    
    DO jt=1, Nt
 
@@ -263,6 +278,14 @@ PROGRAM NEMO_COARSENER
       
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
+      xdum_r4 = xdum_r4*xdum_r4
+      
+      CALL P2D_T( ifo, ivo, Nt, jt, xlont, xlatt, Vt, xdum_r4, cf_out, &
+         &        cv_lon, cv_lat, 'time_counter', cv_in, 0.,     &
+         &        attr_lon=v_att_list_lon, attr_lat=v_att_list_lat, attr_time=v_att_list_time, &
+         &        attr_F=v_att_list_vin, l_add_valid_min_max=.false. )
+
+      
    END DO
 
 
@@ -310,6 +333,8 @@ CONTAINS
       WRITE(6,*) ' -i <input_file.nc>   => input file to coarsen'
       WRITE(6,*) ''
       WRITE(6,*) ' -v <name_field>      => variable to coarsen'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -o <output_file.nc>  => file to be created'
       WRITE(6,*) ''
       WRITE(6,*) '    Optional:'
       WRITE(6,*) ' -h                   => Show this message'
