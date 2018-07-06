@@ -26,8 +26,8 @@ PROGRAM NEMO_COARSENER
    CHARACTER(len=80) :: &
       &    cv_in, &
       &    cv_t   = 'time_counter',  &
-      &    cv_lon = 'glamt',         & ! input grid longitude name, T-points
-      &    cv_lat = 'gphit'            ! input grid latitude name,  T-points
+      &    cv_lon = 'nav_lon',         & ! input grid longitude name, T-points
+      &    cv_lat = 'nav_lat'            ! input grid latitude name,  T-points
 
    CHARACTER(len=256)  :: cr, cunit
    CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
@@ -46,7 +46,7 @@ PROGRAM NEMO_COARSENER
    !!
    !!
    CHARACTER(len=400)  :: &
-      &    cf_in, cf_mm, &
+      &    cf_in, cf_mm, cf_get_lat_lon, &
       &    cf_ascii='file_in.txt'
    !!
    CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cf_out
@@ -84,7 +84,9 @@ PROGRAM NEMO_COARSENER
 
    REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
 
-
+   INTEGER :: Nb_att_lon, Nb_att_lat, Nb_att_vin
+   TYPE(var_attr), DIMENSION(nbatt_max) :: &
+      &   v_att_list_lon, v_att_list_lat, v_att_list_vin
 
    !CALL GET_ENVIRONMENT_VARIABLE("HOME", cdir_home)
    !CALL GET_ENVIRONMENT_VARIABLE("TMPDIR", cdir_tmpdir)
@@ -173,7 +175,10 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
-   CALL DIMS(cf_mm, cv_lon, ni1, nj1, nk, Nt)
+   !cf_get_lat_lon = cf_mm
+   cf_get_lat_lon = cf_in
+   
+   CALL DIMS(cf_get_lat_lon, cv_lon, ni1, nj1, nk, Nt)
    !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
    !IF ( (nj1==-1).AND.(nj2==-1) ) THEN
    !   ni = ni1 ; nj = ni2
@@ -209,12 +214,22 @@ PROGRAM NEMO_COARSENER
 
    !! Getting model longitude & latitude:
    ! Longitude array:
-   CALL GETVAR_2D(i0, j0, cf_mm, cv_lon, 0, 0, 0, xlont)
+   PRINT *, ''
+   PRINT *, ' *** Going to fetch longitude array:'
+   CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lon,  Nb_att_lon, v_att_list_lon)
+   PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)   
+   CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlont)
    i0=0 ; j0=0
+   PRINT *, '  '//TRIM(cv_lon)//' sucessfully fetched!'; PRINT *, ''
    !!
    ! Latitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xlatt)
+   PRINT *, ''
+   PRINT *, ' *** Going to fetch latitude array:'
+   CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lat,  Nb_att_lat, v_att_list_lat)
+   PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)   
+   CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlatt)
    i0=0 ; j0=0
+   PRINT *, '  '//TRIM(cv_lat)//' sucessfully fetched!'; PRINT *, ''
 
    !! Min an max lon:
    !lon_min_1 = MINVAL(xlont)
@@ -235,6 +250,12 @@ PROGRAM NEMO_COARSENER
    !PRINT *, ' *** Minimum latitude on model grid : ', lat_min
    !PRINT *, ' *** Maximum latitude on model grid : ', lat_max
 
+
+   CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
+   PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
+
+
+   
    DO jt=1, Nt
 
       PRINT *, ''
