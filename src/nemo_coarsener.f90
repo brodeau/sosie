@@ -12,9 +12,8 @@ PROGRAM NEMO_COARSENER
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
+   !INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
    !!
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: vpt_lon, vpt_lat
 
    !! Coupe stuff:
    REAL(8), DIMENSION(:), ALLOCATABLE :: Vt
@@ -27,61 +26,51 @@ PROGRAM NEMO_COARSENER
       &    cv_lon = 'nav_lon',         & ! input grid longitude name, T-points
       &    cv_lat = 'nav_lat'            ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, cunit, cmissval_in
-   CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
+   CHARACTER(len=256)  :: cr, cmissval_in
+   !CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
    !!
    !!
    !!******************** End of conf for user ********************************
    !!
    !!               ** don't change anything below **
    !!
-   LOGICAL ::  &
-      &     lmv_in, & ! input field has a missing value attribute
-      &     l_reg_src, &
-      &     l_exist   = .FALSE., &
-      &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
-      &     l_loc1, l_loc2, &
-      &     l_obs_ok
+   LOGICAL :: l_exist, lmv_in ! input field has a missing value attribute
+
    !!
    !!
    CHARACTER(len=400)  :: &
-      &    cf_in='', cf_mm='', cf_get_lat_lon='', cf_out='', &
-      &    cf_ascii='file_in.txt'
+      &    cf_in='', cf_mm='', cf_get_lat_lon='', cf_out=''
    !!
    INTEGER      :: &
-      &    jarg, i1, i2, j1, j2, &
-      &    idot, ip1, jp1, im1, jm1, &
+      &    jarg, &
       &    i0=0, j0=0, &
       &    ifi=0, ivi=0, &
       &    ifo=0, ivo=0, &
       &    ni, nj, Nt=0, nk=0, &
-      &    ni1, nj1, ni2, nj2, &
-      &    iargc, id_f1, id_v1
+      &    ni1, nj1, &
+      &    iargc
    !!
 
    !!
-   INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
+   !INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xvar
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs
-   REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
-      &    xlont, xlatt, xlont_tmp
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask
+   REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
    !!
-   INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
+   INTEGER :: jt
    !!
-   INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o, jb, js
-   !!
-   REAL(8) :: rt, rt0, rdt, &
-      &       t_min_e, t_max_e, t_min_m, t_max_m, &
-      &       alpha, beta, t_min, t_max
+   !REAL(8) :: rt, rt0, rdt, &
+   !   &       t_min_e, t_max_e, t_min_m, t_max_m, &
+   !   &       alpha, beta, t_min, t_max
    !!
    CHARACTER(LEN=2), DIMENSION(7), PARAMETER :: &
       &            clist_opt = (/ '-h','-m','-i','-v','-o','-x','-y' /)
 
-   REAL(8) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
+   !REAL(8) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
 
-   REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
+   !REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
 
    INTEGER :: Nb_att_lon, Nb_att_lat, Nb_att_time, Nb_att_vin
    TYPE(var_attr), DIMENSION(nbatt_max) :: &
@@ -93,7 +82,7 @@ PROGRAM NEMO_COARSENER
 
 
    !cdir_out = TRIM(cdir_tmpdir)//'/EXTRACTED_BOXES' ! where to write data!
-   cdir_out = '.'
+   !cdir_out = '.'
 
 
 
@@ -162,12 +151,11 @@ PROGRAM NEMO_COARSENER
    PRINT *, ''
 
    !! Name of config: lulu
-   idot = SCAN(cf_in, '/', back=.TRUE.)
-   cdum = cf_in(idot+1:)
-   idot = SCAN(cdum, '.', back=.TRUE.)
-   cconf = cdum(:idot-1)
-
-   PRINT *, ' *** CONFIG: cconf ='//TRIM(cconf) ; PRINT *, ''
+   !idot = SCAN(cf_in, '/', back=.TRUE.)
+   !cdum = cf_in(idot+1:)
+   !idot = SCAN(cdum, '.', back=.TRUE.)
+   !cconf = cdum(:idot-1)
+   !PRINT *, ' *** CONFIG: cconf ='//TRIM(cconf) ; PRINT *, ''
 
 
    !! testing longitude and latitude
@@ -184,8 +172,8 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
-   !cf_get_lat_lon = cf_mm
-   cf_get_lat_lon = cf_in
+   cf_get_lat_lon = cf_mm
+   !cf_get_lat_lon = cf_in
    
    CALL DIMS(cf_get_lat_lon, cv_lon, ni1, nj1, nk, Nt)
    !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
@@ -213,8 +201,7 @@ PROGRAM NEMO_COARSENER
    
    
    !ni = ni1 ; nj = ni1
-   ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj) )
-   ALLOCATE ( xlont_tmp(ni,nj) )
+   ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj), imask(ni,nj) )
    PRINT *, ''
 
 
@@ -230,7 +217,7 @@ PROGRAM NEMO_COARSENER
    CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlont)
    i0=0 ; j0=0
    PRINT *, '  '//TRIM(cv_lon)//' sucessfully fetched!'; PRINT *, ''
-   !!
+   
    ! Latitude array:
    PRINT *, ''
    PRINT *, ' *** Going to fetch latitude array:'
@@ -263,15 +250,15 @@ PROGRAM NEMO_COARSENER
    CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
    IF ( .not. lmv_in ) rmissv_in = 0.
    
-   CALL GETVAR_ATTRIBUTES(cf_in, 'time_counter',  Nb_att_time, v_att_list_time)
-   PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
+   CALL GETVAR_ATTRIBUTES(cf_in, cv_t,  Nb_att_time, v_att_list_time)
+   PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_time)   
    
    CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
    PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
 
 
    ALLOCATE ( Vt(Nt) )
-   CALL GETVAR_1D(cf_in, 'time_counter', Vt)
+   CALL GETVAR_1D(cf_in, cv_t, Vt)
    
    PRINT *, 'Vt = ', Vt(:)
    
@@ -283,14 +270,19 @@ PROGRAM NEMO_COARSENER
       
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
+      IF ( jt == 1 ) THEN
+         imask(:,:) = 1
+         WHERE ( xdum_r4 > 10000. ) imask = 0
+      END IF
+      xdum_r4 = xdum_r4*REAL(imask,4)
       xdum_r4 = xdum_r4*xdum_r4
 
       IF ( lmv_in ) THEN
-         WHERE ( xdum_r4 > 100. ) xdum_r4 = rmissv_in
+         WHERE ( imask == 0 ) xdum_r4 = rmissv_in
       END IF
       
       CALL P2D_T( ifo, ivo, Nt, jt, xlont, xlatt, Vt, xdum_r4, cf_out, &
-         &        cv_lon, cv_lat, 'time_counter', cv_in, rmissv_in,     &
+         &        cv_lon, cv_lat, cv_t, cv_in, rmissv_in,     &
          &        attr_lon=v_att_list_lon, attr_lat=v_att_list_lat, attr_time=v_att_list_time, &
          &        attr_F=v_att_list_vin, l_add_valid_min_max=.false. )
 

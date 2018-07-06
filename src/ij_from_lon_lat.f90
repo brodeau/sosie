@@ -12,24 +12,23 @@ PROGRAM IJ_FROM_LON_LAT
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
+   INTEGER :: io,  npoints, jl
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: vpt_lon, vpt_lat
    !!
 
 
    !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs, vdistance
+   !REAL(8), DIMENSION(:), ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs, vdistance
 
 
    !! Grid, default name :
    CHARACTER(len=80) :: &
       &    cv_mod, &
-      &    cv_t   = 'time_counter',  &
       &    cv_lon = 'glamt',         & ! input grid longitude name, T-points
       &    cv_lat = 'gphit'            ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, cunit
+   CHARACTER(len=256)  :: cr
    CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
    !!
    !!
@@ -39,10 +38,8 @@ PROGRAM IJ_FROM_LON_LAT
    !!
    LOGICAL ::  &
       &     l_reg_src, &
-      &     l_exist   = .FALSE., &
-      &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
-      &     l_loc1, l_loc2, &
-      &     l_obs_ok
+      &     l_exist   = .FALSE.
+
    !!
    !!
    CHARACTER(len=400)  :: &
@@ -52,35 +49,30 @@ PROGRAM IJ_FROM_LON_LAT
    CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cf_out
    !!
    INTEGER      :: &
-      &    jarg, i1, i2, j1, j2, &
-      &    idot, ip1, jp1, im1, jm1, &
+      &    jarg, &
+      &    idot, &
       &    i0, j0,  &
       &    ni, nj, Ntm=0, nk=0, &
       &    ni1, nj1, ni2, nj2, &
-      &    iargc, id_f1, id_v1
+      &    iargc
    !!
 
    !!
-   INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xvar
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
       &    xlont, xlatt, xlont_tmp
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
-   INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o, jb, js
+   !INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o, jb, js
    !!
-   REAL(8) :: rt, rt0, rdt, &
-      &       t_min_e, t_max_e, t_min_m, t_max_m, &
-      &       alpha, beta, t_min, t_max
-   !!
+   
    CHARACTER(LEN=2), DIMENSION(5), PARAMETER :: &
       &            clist_opt = (/ '-h','-i','-x','-y','-p' /)
 
-   REAL(8) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
+   REAL(8) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max
 
    REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
 
