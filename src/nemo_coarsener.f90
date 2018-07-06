@@ -54,8 +54,8 @@ PROGRAM NEMO_COARSENER
    INTEGER      :: &
       &    jarg, i1, i2, j1, j2, &
       &    idot, ip1, jp1, im1, jm1, &
-      &    i0, j0,  &
-      &    ni, nj, Ntm=0, nk=0, &
+      &    i0=0, j0=0, ifi=0, ivi=0, &
+      &    ni, nj, Nt=0, nk=0, &
       &    ni1, nj1, ni2, nj2, &
       &    iargc, id_f1, id_v1
    !!
@@ -173,8 +173,8 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
-   CALL DIMS(cf_mm, cv_lon, ni, nj, nk, Ntm)
-   !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Ntm)
+   CALL DIMS(cf_mm, cv_lon, ni1, nj1, nk, Nt)
+   !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
    !IF ( (nj1==-1).AND.(nj2==-1) ) THEN
    !   ni = ni1 ; nj = ni2
    !   PRINT *, 'Grid is 1D: ni, nj =', ni, nj
@@ -189,6 +189,15 @@ PROGRAM NEMO_COARSENER
    !   END IF
    !END IF
 
+
+
+   CALL DIMS(cf_in, cv_in, ni, nj, nk, Nt)
+   PRINT *, ' *** input field: ni, nj, nk, Nt =>', ni, nj, nk, Nt
+   PRINT *, ''
+
+   IF ( (ni/=ni1).OR.(nj/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
+   
+   
    !ni = ni1 ; nj = ni1
    ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj) )
    ALLOCATE ( xlont_tmp(ni,nj) )
@@ -203,6 +212,9 @@ PROGRAM NEMO_COARSENER
    CALL GETVAR_2D(i0, j0, cf_mm, cv_lon, 0, 0, 0, xlont)
    i0=0 ; j0=0
    !!
+   ! Latitude array:
+   CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xlatt)
+   i0=0 ; j0=0
 
    !! Min an max lon:
    !lon_min_1 = MINVAL(xlont)
@@ -217,19 +229,20 @@ PROGRAM NEMO_COARSENER
    !lon_max_2 = MAXVAL(xlont_tmp)
    !PRINT *, ' *** Minimum longitude on model grid: ', lon_min_2
    !PRINT *, ' *** Maximum longitude on model grid: ', lon_max_2
-
-
-   ! Latitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm, cv_lat, 0, 0, 0, xlatt)
-   i0=0 ; j0=0
-
    !! Min an max lat:
    !lat_min = MINVAL(xlatt)
    !lat_max = MAXVAL(xlatt)
    !PRINT *, ' *** Minimum latitude on model grid : ', lat_min
    !PRINT *, ' *** Maximum latitude on model grid : ', lat_max
 
+   DO jt=1, Nt
 
+      PRINT *, ''
+      PRINT *, ' Reading field '//TRIM(cv_in)//' at record #',jt
+      
+      CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
+
+   END DO
 
 
 
