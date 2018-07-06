@@ -27,7 +27,7 @@ PROGRAM NEMO_COARSENER
       &    cv_lon = 'nav_lon',         & ! input grid longitude name, T-points
       &    cv_lat = 'nav_lat'            ! input grid latitude name,  T-points
 
-   CHARACTER(len=256)  :: cr, cunit
+   CHARACTER(len=256)  :: cr, cunit, cmissval_in
    CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
    !!
    !!
@@ -36,6 +36,7 @@ PROGRAM NEMO_COARSENER
    !!               ** don't change anything below **
    !!
    LOGICAL ::  &
+      &     lmv_in, & ! input field has a missing value attribute
       &     l_reg_src, &
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
@@ -86,6 +87,7 @@ PROGRAM NEMO_COARSENER
    TYPE(var_attr), DIMENSION(nbatt_max) :: &
       &   v_att_list_lon, v_att_list_lat, v_att_list_time, v_att_list_vin
 
+   REAL(4) :: rmissv_in
    !CALL GET_ENVIRONMENT_VARIABLE("HOME", cdir_home)
    !CALL GET_ENVIRONMENT_VARIABLE("TMPDIR", cdir_tmpdir)
 
@@ -258,6 +260,9 @@ PROGRAM NEMO_COARSENER
    !PRINT *, ' *** Maximum latitude on model grid : ', lat_max
 
 
+   CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
+   IF ( .not. lmv_in ) rmissv_in = 0.
+   
    CALL GETVAR_ATTRIBUTES(cf_in, 'time_counter',  Nb_att_time, v_att_list_time)
    PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
    
@@ -279,9 +284,13 @@ PROGRAM NEMO_COARSENER
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
       xdum_r4 = xdum_r4*xdum_r4
+
+      IF ( lmv_in ) THEN
+         WHERE ( xdum_r4 > 100. ) xdum_r4 = rmissv_in
+      END IF
       
       CALL P2D_T( ifo, ivo, Nt, jt, xlont, xlatt, Vt, xdum_r4, cf_out, &
-         &        cv_lon, cv_lat, 'time_counter', cv_in, 0.,     &
+         &        cv_lon, cv_lat, 'time_counter', cv_in, rmissv_in,     &
          &        attr_lon=v_att_list_lon, attr_lat=v_att_list_lat, attr_time=v_att_list_time, &
          &        attr_F=v_att_list_vin, l_add_valid_min_max=.false. )
 

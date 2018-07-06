@@ -264,6 +264,9 @@ CONTAINS
             v_att_list(jatt)%cname = cname
 
             CALL sherr( NF90_INQUIRE_ATTRIBUTE(id_f, id_v, TRIM(cname), xtype=iwhat, len=ilg),  crtn,cf_in,cv_in)
+            !PRINT *, 'LOLO: attribute = '//TRIM(cname)
+            !PRINT *, '   iwhat = ', iwhat
+            
             v_att_list(jatt)%itype   = iwhat
             !v_att_list(jatt)%ctype   = vtypes_def(iwhat)
             v_att_list(jatt)%ilength = ilg
@@ -282,7 +285,7 @@ CONTAINS
          END IF
       END DO
       Nb_att = jatt-1
-      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
+      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)      
    END SUBROUTINE GETVAR_ATTRIBUTES
 
 
@@ -1972,6 +1975,7 @@ CONTAINS
       !!
       DO jat = 1, nbatt_max
          cat = vattr(jat)%cname
+         !PRINT *, 'LOLO: will set '//TRIM(cat)//'!'
          IF ( TRIM(cat) == 'null' ) EXIT
          IF ( (TRIM(cat)/='grid_type').AND.(TRIM(cat)/=trim(cmv0)).AND.(TRIM(cat)/='missing_value') &
             & .AND.(TRIM(cat)/='scale_factor').AND.(TRIM(cat)/='add_offset') ) THEN
@@ -1979,6 +1983,7 @@ CONTAINS
                CALL sherr( NF90_PUT_ATT(idx_f, idx_v, TRIM(cat), TRIM(vattr(jat)%val_char)), cri,cfi,cvi)
             ELSE
                il = vattr(jat)%ilength
+               !PRINT *, 'LOLO: will set '//TRIM(cat)//' with:', vattr(jat)%val_num(:il)
                CALL sherr( NF90_PUT_ATT(idx_f, idx_v, TRIM(cat), vattr(jat)%val_num(:il)), cri,cfi,cvi)
             END IF
          END IF
