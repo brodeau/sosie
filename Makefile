@@ -77,6 +77,10 @@ bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
 	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
 
+bin/nemo_coarsener.x: src/nemo_coarsener.f90 obj/io_ezcdf.o obj/mod_manip.o
+	@mkdir -p bin
+	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener.f90 -o bin/nemo_coarsener.x $(LIB_CDF)
+
 
 
 

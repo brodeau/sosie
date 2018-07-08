@@ -10,6 +10,11 @@ PROGRAM NEMO_COARSENER
       &   l_debug    = .FALSE., &
       &   l_drown_in = .FALSE. ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
    !!
+   INTEGER, PARAMETER :: &
+      &  nn_factx = 3,   &
+      &  nn_facty = 3
+   
+   
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
    !INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
@@ -46,7 +51,8 @@ PROGRAM NEMO_COARSENER
       &    i0=0, j0=0, &
       &    ifi=0, ivi=0, &
       &    ifo=0, ivo=0, &
-      &    ni, nj, Nt=0, nk=0, &
+      &    jpiglo, jpjglo, Nt=0, nk=0, &
+      &    jpiglo_crs, jpjglo_crs, &
       &    ni1, nj1, &
       &    iargc
    !!
@@ -58,6 +64,12 @@ PROGRAM NEMO_COARSENER
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4
    REAL(8),    DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
+
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask_crs
+   REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4_crs
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE :: xlont_crs, xlatt_crs
+
+
    !!
    INTEGER :: jt
    !!
@@ -193,17 +205,26 @@ PROGRAM NEMO_COARSENER
 
 
 
-   CALL DIMS(cf_in, cv_in, ni, nj, nk, Nt)
-   PRINT *, ' *** input field: ni, nj, nk, Nt =>', ni, nj, nk, Nt
+   CALL DIMS(cf_in, cv_in, jpiglo, jpjglo, nk, Nt)
+   PRINT *, ' *** input field: jpiglo, jpjglo, nk, Nt =>', jpiglo, jpjglo, nk, Nt
    PRINT *, ''
 
-   IF ( (ni/=ni1).OR.(nj/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
+   IF ( (jpiglo/=ni1).OR.(jpjglo/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
    
    
-   !ni = ni1 ; nj = ni1
-   ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj), imask(ni,nj) )
-   PRINT *, ''
+   !ni = ni1 ; jpjglo = ni1
+   !! Source:
+   ALLOCATE ( xlont(jpiglo,jpjglo), xlatt(jpiglo,jpjglo), xdum_r4(jpiglo,jpjglo), imask(jpiglo,jpjglo) )
 
+   !! Target:
+   !! Coarsening stuff:
+   jpiglo_crs = INT( (jpiglo - 2) / nn_factx ) + 2
+   jpjglo_crs = INT( (jpjglo - MOD(jpjglo, nn_facty)) / nn_facty ) + 3
+
+   PRINT *, 'TARGET coarsened horizontal domain, jpiglo_crs, jpjglo_crs =', jpiglo_crs, jpjglo_crs   
+   ALLOCATE ( xlont_crs(jpiglo_crs,jpjglo_crs), xlatt_crs(jpiglo_crs,jpjglo_crs), xdum_r4_crs(jpiglo_crs,jpjglo_crs), imask_crs(jpiglo_crs,jpjglo_crs) )
+   PRINT *, ''
+   
 
 
 
@@ -262,6 +283,11 @@ PROGRAM NEMO_COARSENER
    
    PRINT *, 'Vt = ', Vt(:)
    
+
+   !! FAKE COARSENING
+   xlont_crs(:,:) = xlont(1:jpiglo,1:jpjglo)
+   xlatt_crs(:,:) = xlatt(1:jpiglo,1:jpjglo)
+   
    
    DO jt=1, Nt
 
@@ -273,15 +299,22 @@ PROGRAM NEMO_COARSENER
       IF ( jt == 1 ) THEN
          imask(:,:) = 1
          WHERE ( xdum_r4 > 10000. ) imask = 0
+         imask_crs(:,:) = imask(1:jpiglo,1:jpjglo)
       END IF
+
       xdum_r4 = xdum_r4*REAL(imask,4)
       xdum_r4 = xdum_r4*xdum_r4
 
+      
+      xdum_r4_crs(:,:) = xdum_r4(1:jpiglo,1:jpjglo)
+
+
+      
       IF ( lmv_in ) THEN
-         WHERE ( imask == 0 ) xdum_r4 = rmissv_in
+         WHERE ( imask_crs == 0 ) xdum_r4_crs = rmissv_in
       END IF
       
-      CALL P2D_T( ifo, ivo, Nt, jt, xlont, xlatt, Vt, xdum_r4, cf_out, &
+      CALL P2D_T( ifo, ivo, Nt, jt, xlont_crs, xlatt_crs, Vt, xdum_r4_crs, cf_out, &
          &        cv_lon, cv_lat, cv_t, cv_in, rmissv_in,     &
          &        attr_lon=v_att_list_lon, attr_lat=v_att_list_lat, attr_time=v_att_list_time, &
          &        attr_F=v_att_list_vin, l_add_valid_min_max=.false. )
