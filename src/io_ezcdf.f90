@@ -85,7 +85,7 @@ MODULE io_ezcdf
    CHARACTER(len=8), PARAMETER :: cdum = 'dummy'
 
    CHARACTER(LEN=400), PARAMETER   ::     &
-      &    cabout = 'Created by SOSIE interpolation environement => https://github.com/brodeau/sosie/'
+      &    cabout = 'Created with SOSIE interpolation environement => https://github.com/brodeau/sosie/'
 
    INTEGER :: ji, jj, jk
 
