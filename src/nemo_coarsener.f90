@@ -26,10 +26,11 @@ PROGRAM NEMO_COARSENER
 
    !! Grid, default name :
    CHARACTER(len=80) :: &
-      &    cv_in, &
-      &    cv_t   = 'time_counter',  &
-      &    cv_lon = 'nav_lon',         & ! input grid longitude name, T-points
-      &    cv_lat = 'nav_lat'            ! input grid latitude name,  T-points
+      &    cv_in, cv_mm, &
+      &    cv_t   = 'time_counter', &
+      &    cv_lon = 'nav_lon',      & ! input grid longitude name, T-points
+      &    cv_lat = 'nav_lat',      & ! input grid latitude name,  T-points
+      &    cv_z   = 'nav_lev'         ! input grid latitude name,  T-points
 
    CHARACTER(len=256)  :: cr, cmissval_in
    !CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
@@ -184,6 +185,9 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
+
+   
+
    cf_get_lat_lon = cf_mm
    !cf_get_lat_lon = cf_in
    
@@ -216,6 +220,16 @@ PROGRAM NEMO_COARSENER
    !! Source:
    ALLOCATE ( xlont(jpiglo,jpjglo), xlatt(jpiglo,jpjglo), xdum_r4(jpiglo,jpjglo), imask(jpiglo,jpjglo) )
 
+
+   !! Getting source land-sea mask:
+   PRINT *, '';
+   PRINT *, ' *** Reading land-sea mask'
+   cv_mm = 'tmask'
+   CALL GETMASK_2D(cf_mm, cv_mm, imask)
+   PRINT *, ' Done!'; PRINT *, ''
+
+
+   
    !! Target:
    !! Coarsening stuff:
    jpiglo_crs = INT( (jpiglo - 2) / nn_factx ) + 2
@@ -285,6 +299,7 @@ PROGRAM NEMO_COARSENER
    
 
    !! FAKE COARSENING
+   imask_crs(:,:) = imask(1:jpiglo,1:jpjglo)
    xlont_crs(:,:) = xlont(1:jpiglo,1:jpjglo)
    xlatt_crs(:,:) = xlatt(1:jpiglo,1:jpjglo)
    
@@ -296,11 +311,11 @@ PROGRAM NEMO_COARSENER
       
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
-      IF ( jt == 1 ) THEN
-         imask(:,:) = 1
-         WHERE ( xdum_r4 > 10000. ) imask = 0
-         imask_crs(:,:) = imask(1:jpiglo,1:jpjglo)
-      END IF
+      !IF ( jt == 1 ) THEN
+      !   imask(:,:) = 1
+      !   WHERE ( xdum_r4 > 10000. ) imask = 0
+      !   imask_crs(:,:) = imask(1:jpiglo,1:jpjglo)
+      !END IF
 
       xdum_r4 = xdum_r4*REAL(imask,4)
       xdum_r4 = xdum_r4*xdum_r4
