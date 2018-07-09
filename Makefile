@@ -56,6 +56,8 @@ all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_tr
 
 gt: bin/interp_to_ground_track.x
 
+crs: bin/nemo_coarsener_2d.x bin/nemo_coarsener_3d.x
+
 test: bin/test_stuffs.x
 
 bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
@@ -77,9 +79,13 @@ bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
 	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
 
-bin/nemo_coarsener.x: src/nemo_coarsener.f90 obj/io_ezcdf.o obj/mod_manip.o
+bin/nemo_coarsener_2d.x: src/nemo_coarsener_2d.f90 obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
-	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener.f90 -o bin/nemo_coarsener.x $(LIB_CDF)
+	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener_2d.f90 -o bin/nemo_coarsener_2d.x $(LIB_CDF)
+
+bin/nemo_coarsener_3d.x: src/nemo_coarsener_3d.f90 obj/io_ezcdf.o obj/mod_manip.o
+	@mkdir -p bin
+	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener_3d.f90 -o bin/nemo_coarsener_3d.x $(LIB_CDF)
 
 
 

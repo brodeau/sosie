@@ -42,7 +42,7 @@ MODULE io_ezcdf
       MODULE PROCEDURE GETVAR_2D_R8, GETVAR_2D_R4
    END INTERFACE GETVAR_2D
 
-   
+
 
 
    !! List of public routines
@@ -68,7 +68,8 @@ MODULE io_ezcdf
       &    get_time_unit_t0, &
       &    l_is_leap_year,   &
       &    test_xyz,         &
-      &    to_epoch_time_scalar, to_epoch_time_vect
+      &    to_epoch_time_scalar, to_epoch_time_vect, &
+      &    coordinates_from_var_attr
    !!===========================
 
 
@@ -266,7 +267,7 @@ CONTAINS
             CALL sherr( NF90_INQUIRE_ATTRIBUTE(id_f, id_v, TRIM(cname), xtype=iwhat, len=ilg),  crtn,cf_in,cv_in)
             !PRINT *, 'LOLO: attribute = '//TRIM(cname)
             !PRINT *, '   iwhat = ', iwhat
-            
+
             v_att_list(jatt)%itype   = iwhat
             !v_att_list(jatt)%ctype   = vtypes_def(iwhat)
             v_att_list(jatt)%ilength = ilg
@@ -285,7 +286,7 @@ CONTAINS
          END IF
       END DO
       Nb_att = jatt-1
-      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)      
+      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_ATTRIBUTES
 
 
@@ -353,7 +354,7 @@ CONTAINS
       IF (ierr2 == NF90_NOERR) VX = VX + rao
       CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_1D_R8
- 
+
 
    SUBROUTINE GETVAR_1D_R4(cf_in, cv_in, VX)
       !!-----------------------------------------------------------------------
@@ -384,9 +385,9 @@ CONTAINS
       IF (ierr2 == NF90_NOERR) VX = VX + rao
       CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_1D_R4
- 
 
-   
+
+
 
    SUBROUTINE GETVAR_2D_R4(idx_f, idx_v, cf_in, cv_in, lt, kz, kt, X, jt1, jt2, lz)
       !!-----------------------------------------------------------------------------
@@ -419,12 +420,12 @@ CONTAINS
       INTEGER,                   INTENT(in)    :: lt, kz, kt
       REAL(4),  DIMENSION (:,:), INTENT(out)   :: X
       INTEGER,       OPTIONAL,   INTENT(in)    :: jt1, jt2, lz
-      
+
       INTEGER :: lx, ly, n1, n2, n3, n4, jlev, its, ite, kz_stop = 0, ierr1, ierr2
       REAL(4) :: rsf, rao
       LOGICAL :: l_okay
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R4'
-      
+
       lx = size(X,1)
       ly = size(X,2)
 
@@ -479,13 +480,13 @@ CONTAINS
                   CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,jlev,kt/), count=(/lx,ly,1,1/)), crtn,cf_in,cv_in)
                END IF
                l_okay = .TRUE.  ! we can exit the WHILE loop...
-            END IF            
+            END IF
          END IF
       END DO
 
       IF (ierr1 == NF90_NOERR) X = rsf*X
       IF (ierr2 == NF90_NOERR) X = X + rao
-      
+
       IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
@@ -504,12 +505,12 @@ CONTAINS
       INTEGER,                   INTENT(in)    :: lt, kz, kt
       REAL(8),  DIMENSION (:,:), INTENT(out)   :: X
       INTEGER,       OPTIONAL,   INTENT(in)    :: jt1, jt2, lz
-      
+
       INTEGER :: lx, ly, n1, n2, n3, n4, jlev, its, ite, kz_stop = 0, ierr1, ierr2
       REAL(4) :: rsf, rao
       LOGICAL :: l_okay
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R8'
-      
+
       lx = size(X,1)
       ly = size(X,2)
 
@@ -564,13 +565,13 @@ CONTAINS
                   CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,jlev,kt/), count=(/lx,ly,1,1/)), crtn,cf_in,cv_in)
                END IF
                l_okay = .TRUE.  ! we can exit the WHILE loop...
-            END IF            
+            END IF
          END IF
       END DO
 
       IF (ierr1 == NF90_NOERR) X = rsf*X
       IF (ierr2 == NF90_NOERR) X = X + rao
-      
+
       IF ( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
@@ -1077,7 +1078,7 @@ CONTAINS
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
       IF ( PRESENT(l_add_valid_min_max) ) l_add_extrema = l_add_valid_min_max
-      
+
       !! About dimensions of xlon, xlat and x2d:
       cdt = TEST_XYZ(xlon, xlat, x2d)
       lx = size(x2d,1) ; ly = size(x2d,2)
@@ -1177,7 +1178,7 @@ CONTAINS
    SUBROUTINE P3D_T(idx_f, idx_v, lt, lct, xlon, xlat, vdpth, vtime, x3d, cf_in, &
       &             cv_lo, cv_la, cv_dpth, cv_t, cv_in, vflag, &
       &             attr_lon, attr_lat, attr_z, attr_time, attr_F, &
-      &             cextrainfo)
+      &             cextrainfo, l_add_valid_min_max)
 
       !! INPUT :
       !! -------
@@ -1214,13 +1215,15 @@ CONTAINS
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_z, &
          &                                                          attr_time, attr_F
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
+      LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
 
       INTEGER          :: id_z
       INTEGER          :: id_x, id_y, id_t, id_lo, id_la, id_tim
       INTEGER          :: lx, ly, lz
       REAL(4)          :: dr, rmin, rmax
       LOGICAL :: lcopy_att_F = .FALSE., &
-         &       lcopy_att_z = .FALSE.
+         &       lcopy_att_z = .FALSE., &
+         &     l_add_extrema = .TRUE.
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
 
       CHARACTER(len=80), PARAMETER :: crtn = 'P3D_T'
@@ -1228,6 +1231,8 @@ CONTAINS
       IF ( PRESENT(attr_z) ) lcopy_att_z = .TRUE.
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
+      IF ( PRESENT(l_add_valid_min_max) ) l_add_extrema = l_add_valid_min_max
+      
       !! About dimensions of xlon, xlat, vdpth and x3d:
       cdt = TEST_XYZ(xlon, xlat, x3d(:,:,1))
 
@@ -1237,7 +1242,7 @@ CONTAINS
       IF ( lct == 1 ) THEN
          PRINT *, ''
          PRINT *, ' --- '//TRIM(crtn)//': creating file '//TRIM(cf_in)//' to write '//TRIM(cv_in)//'!'
-         
+
          IF ( vflag /= 0.) THEN
             rmin =  1.E6 ; rmax = -1.E6
             DO jk=1, lz
@@ -1261,7 +1266,8 @@ CONTAINS
          !!
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time)
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time, &
+            &            l_add_valid_min_max=l_add_extrema)
          !! Depth vector:
          IF ( (TRIM(cv_dpth) == 'lev').OR.(TRIM(cv_dpth) == 'depth') ) THEN
             CALL sherr( NF90_DEF_DIM(idx_f, TRIM(cv_dpth), lz, id_z),  crtn,cf_in,cv_in)
@@ -1529,9 +1535,9 @@ CONTAINS
       INTEGER          :: lx, ly, il0, id_n2, id_n3, id_v1, id_v2, id_v3, id_dnp
       LOGICAL          :: l_save_distance_to_np=.FALSE.
       CHARACTER(len=80), PARAMETER :: crtn = 'P2D_MAPPING_AB'
-      
+
       IF ( PRESENT(d2np) ) l_save_distance_to_np=.TRUE.
-      
+
       lx = size(ralfbet,1) ; ly = size(ralfbet,2)
 
       il0 = size(ralfbet,3)
@@ -1572,7 +1578,7 @@ CONTAINS
          CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'long_name', 'Distance to nearest point'),  crtn,cf_out,cdum)
          CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'units'    , 'km'                       ),  crtn,cf_out,cdum)
       END IF
-      
+
       IF ( vflag /= 0. ) THEN
          CALL sherr( NF90_PUT_ATT(id_f, id_v1,trim(cmv0),INT8(vflag)), crtn,cf_out,'metrics (masking)')
          CALL sherr( NF90_PUT_ATT(id_f, id_v2,trim(cmv0),vflag),       crtn,cf_out,'alphabeta (masking)')
@@ -1903,7 +1909,7 @@ CONTAINS
 
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_tim
       LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
-      
+
       LOGICAL ::  &
          &       lcopy_att_lon = .FALSE., &
          &       lcopy_att_lat = .FALSE., &
@@ -1916,7 +1922,7 @@ CONTAINS
 
       IF ( PRESENT(l_add_valid_min_max) ) l_add_extrema = l_add_valid_min_max
 
-      
+
       !!    HORIZONTAL
       IF ( (TRIM(cv_lon) /= '').AND.(TRIM(cv_lat) /= '') ) THEN
          !!
@@ -2412,6 +2418,69 @@ CONTAINS
       WRITE(6,*) trim(cmess) ; PRINT *, ''
       STOP
    END SUBROUTINE print_err
+
+
+
+
+
+
+
+
+
+   SUBROUTINE coordinates_from_var_attr( cf_in, cv_in, nb_coor, coord_list )
+      !!
+      !! Tests: wcstools:
+      !! => getdate fd2ts   2013-03-31T23:38:38  (to "seconds since 1950)
+      !! => getdate fd2tsu  2013-03-31T23:38:38  (to "seconds since 1970" aka epoch unix...)
+      !!
+      CHARACTER(len=*),                 INTENT(in)  :: cf_in, cv_in
+      INTEGER,                          INTENT(out) :: nb_coor
+      CHARACTER(len=128), DIMENSION(4), INTENT(out) :: coord_list
+      !!
+      INTEGER :: nl, ja, jp, jl, jlp, Natt
+      TYPE(var_attr), DIMENSION(nbatt_max) :: v_att
+      CHARACTER(len=128) :: csc
+
+      nb_coor       = 0   ! 0 => no "coordinates" attribute !
+      coord_list(:) = '0'
+      
+      CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Natt, v_att)
+      PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att(:Natt)
+      
+      !! try to know coordinates the variable depends on from attribute coordinates:
+      DO ja = 1, Natt
+         
+         IF ( TRIM(v_att(ja)%cname) == 'coordinates' ) THEN
+            nb_coor = 1
+            csc = TRIM(v_att(ja)%val_char)
+            PRINT *, ' *** we found "coordinates" attribute for "'//TRIM(cv_in)//'":'
+            PRINT *, '   => ', TRIM(csc); PRINT *, ''
+            nl = LEN(TRIM(csc)) ; PRINT *, nl ; ! length of the string!!
+            
+            jp=0 ; jlp=1
+            DO jl = 2, nl
+               IF(csc(jl:jl)==' ') THEN
+                  jp=jp+1
+                  PRINT *, jl
+                  coord_list(jp) = csc(jlp:jl)
+                  jlp = jl + 1 ! jump the ' '
+                  nb_coor = nb_coor + 1
+               END IF
+            END DO
+            coord_list(jp+1) = csc(jlp:nl) ! the last one (had no ' ' at the end...)
+            PRINT *, ''
+            PRINT *, ' *** Based on argument "coordinates", "'//TRIM(cv_in)//'" depends on these:'
+            DO jl=1, nb_coor
+               PRINT *, ' - ', TRIM(coord_list(jl))
+            END DO
+            PRINT *, ''
+            
+         END IF
+      END DO
+
+      
+   END SUBROUTINE coordinates_from_var_attr
+
 
 
 END MODULE io_ezcdf
