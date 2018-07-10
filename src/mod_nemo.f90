@@ -12,8 +12,8 @@ MODULE mod_nemo
    INTEGER, PUBLIC, PARAMETER ::   jprecj = 1   !: number of rows    for overlap
 
    ! global or zoom domain size                      !!! * computational domain *
-   INTEGER       ::   jpiglo           !: 1st dimension of global domain --> i
-   INTEGER       ::   jpjglo           !: 2nd    -                  -    --> j
+   INTEGER       ::    jpiglo           !: 1st dimension of global domain --> i
+   INTEGER       ::    jpjglo           !: 2nd    -                  -    --> j
 
    INTEGER, PUBLIC            ::   jpni         !: number of processors following i
    INTEGER, PUBLIC            ::   jpnj         !: number of processors following j

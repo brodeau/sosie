@@ -45,8 +45,8 @@ MODULE mod_crs
    PRIVATE
 
    PUBLIC crs_dom_ope
-   !PUBLIC crs_dom_e3, crs_dom_sfc, crs_dom_msk, crs_dom_hgr, crs_dom_coordinates
-   !PUBLIC crs_dom_facvol, crs_dom_def, crs_dom_bat
+   PUBLIC crs_dom_e3, crs_dom_sfc, crs_dom_msk, crs_dom_hgr, crs_dom_coordinates
+   PUBLIC crs_dom_facvol, crs_dom_def, crs_dom_bat
 
    INTERFACE crs_dom_ope
       MODULE PROCEDURE crs_dom_ope_3d, crs_dom_ope_2d

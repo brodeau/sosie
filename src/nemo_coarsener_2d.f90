@@ -4,6 +4,7 @@ PROGRAM NEMO_COARSENER
    USE mod_manip
    USE mod_nemo
    USE mod_crs_def
+   USE mod_crs
 
    IMPLICIT NONE
 
@@ -13,13 +14,13 @@ PROGRAM NEMO_COARSENER
       &   l_drown_in = .FALSE. ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
    !!
    
-   REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
+   REAL(wp), PARAMETER :: res = 0.1  ! resolution in degree
    !!
    !INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
    !!
 
    !! Coupe stuff:
-   REAL(8), DIMENSION(:), ALLOCATABLE :: Vt
+   REAL(wp), DIMENSION(:), ALLOCATABLE :: Vt
 
 
    !! Grid, default name :
@@ -65,26 +66,26 @@ PROGRAM NEMO_COARSENER
 
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4
-   REAL(8),    DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
+   REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
 
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask_crs
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4_crs
-   REAL(8),    DIMENSION(:,:), ALLOCATABLE :: xlont_crs, xlatt_crs
+   REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: xlont_crs, xlatt_crs
 
 
    !!
    INTEGER :: jt
    !!
-   !REAL(8) :: rt, rt0, rdt, &
+   !REAL(wp) :: rt, rt0, rdt, &
    !   &       t_min_e, t_max_e, t_min_m, t_max_m, &
    !   &       alpha, beta, t_min, t_max
    !!
    CHARACTER(LEN=2), DIMENSION(7), PARAMETER :: &
       &            clist_opt = (/ '-h','-m','-i','-v','-o','-x','-y' /)
 
-   !REAL(8) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
+   !REAL(wp) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
 
-   !REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
+   !REAL(wp) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
 
    INTEGER :: Nb_att_lon, Nb_att_lat, Nb_att_time, Nb_att_vin
    TYPE(var_attr), DIMENSION(nbatt_max) :: &
@@ -225,17 +226,18 @@ PROGRAM NEMO_COARSENER
    !   END IF
    !END IF
 
+   jpi = jpiglo
+   jpj = jpjglo   
 
-
-   CALL DIMS(cf_in, cv_in, jpiglo, jpjglo, nk, Nt)
-   PRINT *, ' *** input field: jpiglo, jpjglo, nk, Nt =>', jpiglo, jpjglo, nk, Nt
+   CALL DIMS(cf_in, cv_in, jpi, jpj, nk, Nt)
+   PRINT *, ' *** input field: jpi, jpj, nk, Nt =>', jpi, jpj, nk, Nt
    PRINT *, ''
 
-   IF ( (jpiglo/=ni1).OR.(jpjglo/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
+   IF ( (jpi/=ni1).OR.(jpj/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
    
-   !ni = ni1 ; jpjglo = ni1
+   !ni = ni1 ; jpj = ni1
    !! Source:
-   ALLOCATE ( xlont(jpiglo,jpjglo), xlatt(jpiglo,jpjglo), xdum_r4(jpiglo,jpjglo), imask(jpiglo,jpjglo) )
+   ALLOCATE ( xlont(jpi,jpj), xlatt(jpi,jpj), xdum_r4(jpi,jpj), imask(jpi,jpj) )
 
 
    !! Getting source land-sea mask:
@@ -249,11 +251,14 @@ PROGRAM NEMO_COARSENER
    
    !! Target:
    !! Coarsening stuff:
-   jpiglo_crs = INT( (jpiglo - 2) / nn_factx ) + 2
-   jpjglo_crs = INT( (jpjglo - MOD(jpjglo, nn_facty)) / nn_facty ) + 3
+   jpi_crs = INT( (jpi - 2) / nn_factx ) + 2
+   jpj_crs = INT( (jpj - MOD(jpj, nn_facty)) / nn_facty ) + 3
 
-   PRINT *, 'TARGET coarsened horizontal domain, jpiglo_crs, jpjglo_crs =', jpiglo_crs, jpjglo_crs   
-   ALLOCATE ( xlont_crs(jpiglo_crs,jpjglo_crs), xlatt_crs(jpiglo_crs,jpjglo_crs), xdum_r4_crs(jpiglo_crs,jpjglo_crs), imask_crs(jpiglo_crs,jpjglo_crs) )
+   jpiglo_crs = jpi_crs
+   jpjglo_crs = jpj_crs
+   
+   PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs   
+   ALLOCATE ( xlont_crs(jpi_crs,jpj_crs), xlatt_crs(jpi_crs,jpj_crs), xdum_r4_crs(jpi_crs,jpj_crs), imask_crs(jpi_crs,jpj_crs) )
    PRINT *, ''
    
 
@@ -291,17 +296,45 @@ PROGRAM NEMO_COARSENER
    ALLOCATE ( Vt(Nt) )
    CALL GETVAR_1D(cf_in, cv_t, Vt)   
    PRINT *, 'Vt = ', Vt(:)
+
+
+
+
    
 
    !!LOLO:
+   rfactx_r = 1. / nn_factx
+   rfacty_r = 1. / nn_facty
+
+   !---------------------------------------------------------
+   ! 2. Define Global Dimensions of the coarsened grid
+   !---------------------------------------------------------
+   CALL crs_dom_def
 
 
+   !---------------------------------------------------------
+   ! 3. Mask and Mesh
+   !---------------------------------------------------------
+   !     Set up the masks and meshes
+   !  3.a. Get the masks
+   !CALL crs_dom_msk
+   
+
+   
+   STOP 'LOLO'
+
+   
+
+   
+   CALL crs_dom_coordinates( xlatt, xlont, 'T', xlatt_crs, xlont_crs )
+
+   STOP 'LOLO!'
 
    
    !! FAKE COARSENING
-   imask_crs(:,:) = imask(1:jpiglo,1:jpjglo)
-   xlont_crs(:,:) = xlont(1:jpiglo,1:jpjglo)
-   xlatt_crs(:,:) = xlatt(1:jpiglo,1:jpjglo)
+   imask_crs(:,:) = imask(1:jpi,1:jpj)
+   xlont_crs(:,:) = xlont(1:jpi,1:jpj)
+   xlatt_crs(:,:) = xlatt(1:jpi,1:jpj)
    
    
    DO jt=1, Nt
@@ -314,14 +347,14 @@ PROGRAM NEMO_COARSENER
       !IF ( jt == 1 ) THEN
       !   imask(:,:) = 1
       !   WHERE ( xdum_r4 > 10000. ) imask = 0
-      !   imask_crs(:,:) = imask(1:jpiglo,1:jpjglo)
+      !   imask_crs(:,:) = imask(1:jpi,1:jpj)
       !END IF
 
       xdum_r4 = xdum_r4*REAL(imask,4)
       xdum_r4 = xdum_r4*xdum_r4
 
       
-      xdum_r4_crs(:,:) = xdum_r4(1:jpiglo,1:jpjglo)
+      xdum_r4_crs(:,:) = xdum_r4(1:jpi,1:jpj)
 
 
       
