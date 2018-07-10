@@ -2,6 +2,8 @@ PROGRAM NEMO_COARSENER
 
    USE io_ezcdf
    USE mod_manip
+   USE mod_nemo
+   USE mod_crs_def
 
    IMPLICIT NONE
 
@@ -10,10 +12,6 @@ PROGRAM NEMO_COARSENER
       &   l_debug    = .FALSE., &
       &   l_drown_in = .FALSE. ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
    !!
-   INTEGER, PARAMETER :: &
-      &  nn_factx = 3,   &
-      &  nn_facty = 3
-   
    
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
@@ -56,8 +54,7 @@ PROGRAM NEMO_COARSENER
       &    i0=0, j0=0, &
       &    ifi=0, ivi=0, &
       &    ifo=0, ivo=0, &
-      &    jpiglo, jpjglo, Nt=0, nk=0, &
-      &    jpiglo_crs, jpjglo_crs, &
+      &    Nt=0, nk=0, &
       &    ni1, nj1, &
       &    iargc
    !!
@@ -296,6 +293,11 @@ PROGRAM NEMO_COARSENER
    PRINT *, 'Vt = ', Vt(:)
    
 
+   !!LOLO:
+
+
+
+   
    !! FAKE COARSENING
    imask_crs(:,:) = imask(1:jpiglo,1:jpjglo)
    xlont_crs(:,:) = xlont(1:jpiglo,1:jpjglo)

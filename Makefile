@@ -100,11 +100,11 @@ obj/mod_crs.o: src/mod_crs.f90 obj/mod_crs_def.o
 
 bin/nemo_coarsener_2d.x: src/nemo_coarsener_2d.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
-	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener_2d.f90 -o bin/nemo_coarsener_2d.x $(LIB_CDF)
+	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/nemo_coarsener_2d.f90 -o bin/nemo_coarsener_2d.x $(LIB_CDF)
 
 bin/nemo_coarsener_3d.x: src/nemo_coarsener_3d.f90 obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS)
 	@mkdir -p bin
-	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener_3d.f90 -o bin/nemo_coarsener_3d.x $(LIB_CDF)
+	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/nemo_coarsener_3d.f90 -o bin/nemo_coarsener_3d.x $(LIB_CDF)
 
 
 

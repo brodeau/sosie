@@ -362,7 +362,7 @@ CONTAINS
       REAL(wp), DIMENSION(:,:,:), POINTER     :: zvol, zmask
       !!----------------------------------------------------------------
 
-      CALL wrk_alloc( jpi, jpj, jpk, zvol, zmask )
+      ALLOCATE ( zvol(jpi,jpj,jpk), zmask(jpi,jpj,jpk) )
 
       p_fld1_crs(:,:,:) = 0.0
       p_fld2_crs(:,:,:) = 0.0
@@ -453,7 +453,7 @@ CONTAINS
       !CALL crs_lbc_lnk( p_fld1_crs, cd_type, 1.0 )
       !CALL crs_lbc_lnk( p_fld2_crs, cd_type, 1.0 )
       !
-      CALL wrk_dealloc( jpi, jpj, jpk, zvol, zmask )
+      DEALLOCATE ( zvol, zmask )
       !
    END SUBROUTINE crs_dom_facvol
 
@@ -509,7 +509,7 @@ CONTAINS
 
       CASE ( 'VOL' )
 
-         CALL wrk_alloc( jpi, jpj, jpk, zsurf, zsurfmsk )
+         ALLOCATE ( zsurf(jpi,jpj,jpk), zsurfmsk(jpi,jpj,jpk) )
 
          SELECT CASE ( cd_type )
 
@@ -598,11 +598,11 @@ CONTAINS
             STOP
          END SELECT
 
-         CALL wrk_dealloc( jpi, jpj, jpk, zsurf, zsurfmsk )
+         DEALLOCATE ( zsurf, zsurfmsk )
 
       CASE ( 'SUM' )
 
-         CALL wrk_alloc( jpi, jpj, jpk, zsurfmsk )
+         ALLOCATE ( zsurfmsk(jpi,jpj,jpk) )
 
          SELECT CASE ( cd_type )
          CASE( 'W' )
@@ -776,11 +776,11 @@ CONTAINS
             WHERE ( p_surf_crs /= 0.0 ) p_fld_crs(:,:,:) = p_fld_crs(:,:,:) / p_surf_crs(:,:,:)
          ENDIF
 
-         CALL wrk_dealloc( jpi, jpj, jpk, zsurfmsk )
+         DEALLOCATE ( zsurfmsk )
 
       CASE ( 'MAX' )    !  search the max of unmasked grid cells
 
-         CALL wrk_alloc( jpi, jpj, jpk, zmask )
+         ALLOCATE ( zmask(jpi,jpj,jpk) )
 
          SELECT CASE ( cd_type )
          CASE( 'W' )
@@ -947,11 +947,11 @@ CONTAINS
 
          END SELECT
 
-         CALL wrk_dealloc( jpi, jpj, jpk, zmask )
+         DEALLOCATE ( zmask )
 
       CASE ( 'MIN' )      !   Search the min of unmasked grid cells
 
-         CALL wrk_alloc( jpi, jpj, jpk, zmask )
+         ALLOCATE ( zmask(jpi,jpj,jpk) )
 
          SELECT CASE ( cd_type )
          CASE( 'W' )
@@ -1117,7 +1117,7 @@ CONTAINS
 
          END SELECT
          !
-         CALL wrk_dealloc( jpi, jpj, jpk, zmask )
+         DEALLOCATE ( zmask )
          !
       END SELECT
       !
@@ -1177,7 +1177,7 @@ CONTAINS
 
       CASE ( 'VOL' )
 
-         CALL wrk_alloc( jpi, jpj, zsurfmsk )
+         ALLOCATE ( zsurfmsk(jpi,jpj) )
          zsurfmsk(:,:) =  p_e12(:,:) * p_e3(:,:,1) * p_mask(:,:,1)
 
          IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
@@ -1241,11 +1241,11 @@ CONTAINS
             ENDDO
          ENDDO
 
-         CALL wrk_dealloc( jpi, jpj, zsurfmsk )
+         DEALLOCATE ( zsurfmsk )
 
       CASE ( 'SUM' )
 
-         CALL wrk_alloc( jpi, jpj, zsurfmsk )
+         ALLOCATE ( zsurfmsk(jpi,jpj) )
          IF( PRESENT( p_e3 ) ) THEN
             zsurfmsk(:,:) =  p_e12(:,:) * p_e3(:,:,1) * p_mask(:,:,1)
          ELSE
@@ -1383,7 +1383,7 @@ CONTAINS
             WHERE ( p_surf_crs /= 0.0 ) p_fld_crs(:,:) = p_fld_crs(:,:) / p_surf_crs(:,:)
          ENDIF
 
-         CALL wrk_dealloc( jpi, jpj, zsurfmsk )
+         DEALLOCATE ( zsurfmsk )
 
       CASE ( 'MAX' )
 
@@ -1672,7 +1672,7 @@ CONTAINS
       p_e3_max_crs(:,:,:) = 1.
 
 
-      CALL wrk_alloc( jpi, jpj, jpk, zmask, zsurf )
+      ALLOCATE ( zmask(jpi,jpj,jpk), zsurf(jpi,jpj,jpk) )
 
       SELECT CASE ( cd_type )
       CASE( 'W' )
@@ -1777,7 +1777,7 @@ CONTAINS
       !CALL crs_lbc_lnk( p_e3_crs    , cd_type, 1.0, pval=1.0 )
       !CALL crs_lbc_lnk( p_e3_max_crs, cd_type, 1.0, pval=1.0 )
       !
-      CALL wrk_dealloc( jpi, jpj, jpk, zsurf, zmask )
+      DEALLOCATE ( zsurf, zmask )
       !
    END SUBROUTINE crs_dom_e3
 
@@ -1799,7 +1799,7 @@ CONTAINS
       ! Initialize
 
 
-      CALL wrk_alloc( jpi, jpj, jpk, zsurf, zsurfmsk )
+      ALLOCATE ( zsurf(jpi,jpj,jpk), zsurfmsk(jpi,jpj,jpk) )
       !
       SELECT CASE ( cd_type )
 
@@ -1890,7 +1890,7 @@ CONTAINS
       !CALL crs_lbc_lnk( p_surf_crs    , cd_type, 1.0, pval=1.0 )
       !CALL crs_lbc_lnk( p_surf_crs_msk, cd_type, 1.0, pval=1.0 )
 
-      CALL wrk_dealloc( jpi, jpj, jpk, zsurfmsk, zsurf )
+      DEALLOCATE ( zsurfmsk, zsurf )
 
    END SUBROUTINE crs_dom_sfc
 
@@ -2131,7 +2131,7 @@ CONTAINS
       REAL(wp), DIMENSION(:,:)  , POINTER :: zmbk
       !!----------------------------------------------------------------
 
-      CALL wrk_alloc( jpi_crs, jpj_crs, zmbk )
+      ALLOCATE ( zmbk(jpi_crs,jpj_crs) )
 
       mbathy_crs(:,:) = jpkm1
       mbkt_crs(:,:) = 1
@@ -2182,7 +2182,7 @@ CONTAINS
       !CALL crs_lbc_lnk(zmbk,'V',1.0)
       mbkv_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
       !
-      CALL wrk_dealloc( jpi_crs, jpj_crs, zmbk )
+      DEALLOCATE ( zmbk )
       !
    END SUBROUTINE crs_dom_bat
 

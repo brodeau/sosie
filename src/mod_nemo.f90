@@ -15,7 +15,6 @@ MODULE mod_nemo
    INTEGER       ::   jpiglo           !: 1st dimension of global domain --> i
    INTEGER       ::   jpjglo           !: 2nd    -                  -    --> j
 
-
    INTEGER, PUBLIC            ::   jpni         !: number of processors following i
    INTEGER, PUBLIC            ::   jpnj         !: number of processors following j
    INTEGER, PUBLIC            ::   jpnij        !: nb of local domain = nb of processors ( <= jpni x jpnj )
