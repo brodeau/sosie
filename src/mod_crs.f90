@@ -32,6 +32,7 @@ MODULE mod_crs
 
    !USE dom_oce        ! ocean space and time domain and to get jperio
    !USE wrk_nemo       ! work arrays
+   USE mod_nemo
    USE mod_crs_def            ! domain for coarse grid/ 'crs' in NEMO
    !USE in_out_manager
    !USE par_kind
@@ -124,11 +125,11 @@ CONTAINS
          ENDDO
       ENDDO
 
-      !
-      CALL crs_lbc_lnk( tmask_crs, 'T', 1.0 )
-      CALL crs_lbc_lnk( vmask_crs, 'V', 1.0 )
-      CALL crs_lbc_lnk( umask_crs, 'U', 1.0 )
-      CALL crs_lbc_lnk( fmask_crs, 'F', 1.0 )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk( tmask_crs, 'T', 1.0 )
+      !CALL crs_lbc_lnk( vmask_crs, 'V', 1.0 )
+      !CALL crs_lbc_lnk( umask_crs, 'U', 1.0 )
+      !CALL crs_lbc_lnk( fmask_crs, 'F', 1.0 )
       !
    END SUBROUTINE crs_dom_msk
 
@@ -206,8 +207,9 @@ CONTAINS
       END SELECT
 
       ! Retroactively add back the boundary halo cells.
-      CALL crs_lbc_lnk( p_gphi_crs, cd_type, 1.0 )
-      CALL crs_lbc_lnk( p_glam_crs, cd_type, 1.0 )
+      !LOLO: ADD!
+      !CALL crs_lbc_lnk( p_gphi_crs, cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_glam_crs, cd_type, 1.0 )
 
       ! Fill up jrow=1 which is zeroed out or not handled by lbc_lnk and lbc_nfd
       SELECT CASE ( cd_type )
@@ -296,8 +298,9 @@ CONTAINS
          ENDDO
       ENDDO
 
-      CALL crs_lbc_lnk( p_e1_crs, cd_type, 1.0, pval=1.0 )
-      CALL crs_lbc_lnk( p_e2_crs, cd_type, 1.0, pval=1.0 )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk( p_e1_crs, cd_type, 1.0, pval=1.0 )
+      !CALL crs_lbc_lnk( p_e2_crs, cd_type, 1.0, pval=1.0 )
 
    END SUBROUTINE crs_dom_hgr
 
@@ -446,8 +449,9 @@ CONTAINS
          ENDDO
       ENDDO
       !                                             !  Retroactively add back the boundary halo cells.
-      CALL crs_lbc_lnk( p_fld1_crs, cd_type, 1.0 )
-      CALL crs_lbc_lnk( p_fld2_crs, cd_type, 1.0 )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk( p_fld1_crs, cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_fld2_crs, cd_type, 1.0 )
       !
       CALL wrk_dealloc( jpi, jpj, jpk, zvol, zmask )
       !
@@ -1117,7 +1121,8 @@ CONTAINS
          !
       END SELECT
       !
-      CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
       !
    END SUBROUTINE crs_dom_ope_3d
 
@@ -1639,7 +1644,8 @@ CONTAINS
          !
       END SELECT
       !
-      CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
       !
    END SUBROUTINE crs_dom_ope_2d
 
@@ -1767,8 +1773,9 @@ CONTAINS
          ENDDO
       ENDDO
 
-      CALL crs_lbc_lnk( p_e3_crs    , cd_type, 1.0, pval=1.0 )
-      CALL crs_lbc_lnk( p_e3_max_crs, cd_type, 1.0, pval=1.0 )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk( p_e3_crs    , cd_type, 1.0, pval=1.0 )
+      !CALL crs_lbc_lnk( p_e3_max_crs, cd_type, 1.0, pval=1.0 )
       !
       CALL wrk_dealloc( jpi, jpj, jpk, zsurf, zmask )
       !
@@ -1879,8 +1886,9 @@ CONTAINS
          ENDDO
       ENDDO
 
-      CALL crs_lbc_lnk( p_surf_crs    , cd_type, 1.0, pval=1.0 )
-      CALL crs_lbc_lnk( p_surf_crs_msk, cd_type, 1.0, pval=1.0 )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk( p_surf_crs    , cd_type, 1.0, pval=1.0 )
+      !CALL crs_lbc_lnk( p_surf_crs_msk, cd_type, 1.0, pval=1.0 )
 
       CALL wrk_dealloc( jpi, jpj, jpk, zsurfmsk, zsurf )
 
@@ -1921,6 +1929,7 @@ CONTAINS
 
       ierr = crs_dom_alloc()          ! allocate most coarse grid arrays
 
+      !LOLO: skip:
       ! 2.a Define processor domain
       nimpp_crs  = 1
       njmpp_crs  = 1
@@ -1934,34 +1943,36 @@ CONTAINS
 
 
       !                         Save the parent grid information
-      jpi_full    = jpi
-      jpj_full    = jpj
-      jpim1_full  = jpim1
-      jpjm1_full  = jpjm1
-      nperio_full = nperio
+      !LOLO: not needed...?:
+      !jpi_full    = jpi
+      !jpj_full    = jpj
+      !jpim1_full  = jpim1
+      !jpjm1_full  = jpjm1
+      !nperio_full = nperio
 
-      npolj_full  = npolj
-      jpiglo_full = jpiglo
-      jpjglo_full = jpjglo
+      !npolj_full  = npolj
+      !jpiglo_full = jpiglo
+      !jpjglo_full = jpjglo
 
-      nlcj_full   = nlcj
-      nlci_full   = nlci
-      nldi_full   = nldi
-      nldj_full   = nldj
-      nlei_full   = nlei
-      nlej_full   = nlej
-      nimpp_full  = nimpp
-      njmpp_full  = njmpp
+      !nlcj_full   = nlcj
+      !nlci_full   = nlci
+      !nldi_full   = nldi
+      !nldj_full   = nldj
+      !nlei_full   = nlei
+      !nlej_full   = nlej
+      !nimpp_full  = nimpp
+      !njmpp_full  = njmpp
 
-      nlcit_full(:)  = nlcit(:)
-      nldit_full(:)  = nldit(:)
-      nleit_full(:)  = nleit(:)
-      nimppt_full(:) = nimppt(:)
-      nlcjt_full(:)  = nlcjt(:)
-      nldjt_full(:)  = nldjt(:)
-      nlejt_full(:)  = nlejt(:)
-      njmppt_full(:) = njmppt(:)
-
+      !nlcit_full(:)  = nlcit(:)
+      !nldit_full(:)  = nldit(:)
+      !nleit_full(:)  = nleit(:)
+      !nimppt_full(:) = nimppt(:)
+      !nlcjt_full(:)  = nlcjt(:)
+      !nldjt_full(:)  = nldjt(:)
+      !nlejt_full(:)  = nlejt(:)
+      !njmppt_full(:) = njmppt(:)
+      !LOLO.
+      
       CALL dom_grid_crs  !swich de grille
 
 
@@ -2139,7 +2150,10 @@ CONTAINS
       ENDDO
 
       zmbk(:,:) = 0.0
-      zmbk(:,:) = REAL( mbathy_crs(:,:), wp ) ;   CALL crs_lbc_lnk(zmbk,'T',1.0)   ;   mbathy_crs(:,:) = INT( zmbk(:,:) )
+      zmbk(:,:) = REAL( mbathy_crs(:,:), wp )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk(zmbk,'T',1.0)
+      mbathy_crs(:,:) = INT( zmbk(:,:) )
 
 
       !
@@ -2159,8 +2173,14 @@ CONTAINS
 
       ! convert into REAL to use lbc_lnk ; impose a min value of 1 as a zero can be set in lbclnk
       zmbk(:,:) = 1.e0;
-      zmbk(:,:) = REAL( mbku_crs(:,:), wp )   ;   CALL crs_lbc_lnk(zmbk,'U',1.0) ; mbku_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
-      zmbk(:,:) = REAL( mbkv_crs(:,:), wp )   ;   CALL crs_lbc_lnk(zmbk,'V',1.0) ; mbkv_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
+      zmbk(:,:) = REAL( mbku_crs(:,:), wp )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk(zmbk,'U',1.0)
+      mbku_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
+      zmbk(:,:) = REAL( mbkv_crs(:,:), wp )
+      !LOLO: ADD:
+      !CALL crs_lbc_lnk(zmbk,'V',1.0)
+      mbkv_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
       !
       CALL wrk_dealloc( jpi_crs, jpj_crs, zmbk )
       !

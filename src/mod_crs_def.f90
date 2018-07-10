@@ -9,16 +9,24 @@ MODULE mod_crs_def
    !USE par_oce
    !USE dom_oce
    !USE in_out_manager
-
+   USE mod_nemo
+   
    IMPLICIT NONE
    PUBLIC
 
+   !PUBLIC crs_dom_alloc  ! Called from crsini.F90
+   !PUBLIC crs_dom_alloc2  ! Called from crsini.F90
+   !PUBLIC dom_grid_glo
+   !PUBLIC dom_grid_crs
 
-   PUBLIC crs_dom_alloc  ! Called from crsini.F90
-   PUBLIC crs_dom_alloc2  ! Called from crsini.F90
-   PUBLIC dom_grid_glo
-   PUBLIC dom_grid_crs
 
+   !!Known from dom_oce.F90:
+   !!    nlcit , nlcjt    !: dimensions of every subdomain
+
+
+   
+
+   
    ! Domain variables
    INTEGER  ::  jpiglo_crs ,   &             !: 1st dimension of global coarse grid domain
       jpjglo_crs                   !: 2nd dimension of global coarse grid domain
@@ -80,7 +88,7 @@ MODULE mod_crs_def
    INTEGER, DIMENSION(:), ALLOCATABLE ::   nldit_crs, nldit_full     !: first, last indoor index for each i-domain
    INTEGER, DIMENSION(:), ALLOCATABLE ::   nleit_crs, nleit_full    !: first, last indoor index for each j-domain
    INTEGER, DIMENSION(:), ALLOCATABLE ::   nimppt_crs, nimppt_full    !: first, last indoor index for each j-domain
-   INTEGER, DIMENSION(:), ALLOCATABLE ::   nlcjt_crs, nlcjt_full  !: dimensions of every subdomain
+   !INTEGER, DIMENSION(:), ALLOCATABLE ::   nlcjt_crs, nlcjt_full  !: dimensions of every subdomain
    INTEGER, DIMENSION(:), ALLOCATABLE ::   nldjt_crs, nldjt_full     !: first, last indoor index for each i-domain
    INTEGER, DIMENSION(:), ALLOCATABLE ::   nlejt_crs, nlejt_full    !: first, last indoor index for each j-domain
    INTEGER, DIMENSION(:), ALLOCATABLE ::   njmppt_crs, njmppt_full    !: first, last indoor index for each j-domain
@@ -139,25 +147,6 @@ MODULE mod_crs_def
    REAL(wp)     ::  rfactxy
 
    ! Physical and dynamical ocean fields for output or passing to TOP, time-mean fields
-   REAL(wp), DIMENSION(:,:,:,:), ALLOCATABLE      :: tsn_crs
-   REAL(wp), DIMENSION(:,:,:)  , ALLOCATABLE      :: un_crs, vn_crs, wn_crs, rke_crs
-   REAL(wp), DIMENSION(:,:,:)  , ALLOCATABLE      :: hdivn_crs
-   REAL(wp), DIMENSION(:,:)    , ALLOCATABLE      :: sshn_crs
-   !
-   ! Surface fluxes to pass to TOP
-   REAL(wp), PUBLIC, DIMENSION(:,:)  , ALLOCATABLE :: qsr_crs, fr_i_crs, wndm_crs
-   REAL(wp), PUBLIC, DIMENSION(:,:)  , ALLOCATABLE :: emp_crs, emp_b_crs, sfx_crs
-   REAL(wp), PUBLIC, DIMENSION(:,:)  , ALLOCATABLE :: utau_crs, vtau_crs
-   REAL(wp), PUBLIC, DIMENSION(:,:)  , ALLOCATABLE :: rnf_crs
-
-   ! Vertical diffusion
-   REAL(wp), PUBLIC, ALLOCATABLE, DIMENSION(:,:,:)  ::  avt_crs           !: vert. diffusivity coef. [m2/s] at w-point for temp
-# if defined key_zdfddm
-   REAL(wp), PUBLIC, ALLOCATABLE, DIMENSION(:,:,:)  ::  avs_crs           !: salinity vertical diffusivity coeff. [m2/s] at w-point
-# endif
-
-   ! Mixing and Mixed Layer Depth
-   INTEGER,  PUBLIC, ALLOCATABLE, DIMENSION(:,:)    ::  nmln_crs, hmld_crs, hmlp_crs, hmlpt_crs
 
    ! Direction of lateral diffusion
 
@@ -212,10 +201,10 @@ CONTAINS
          &      e3v_max_crs(jpi_crs,jpj_crs,jpk), STAT=ierr(6))
 
 
-      ALLOCATE( facsurfv(jpi_crs,jpj_crs,jpk), facsurfu(jpi_crs,jpj_crs,jpk) , &
-         &      facvol_t(jpi_crs,jpj_crs,jpk), facvol_w(jpi_crs,jpj_crs,jpk) , &
-         &      ocean_volume_crs_t(jpi_crs,jpj_crs,jpk), ocean_volume_crs_w(jpi_crs,jpj_crs,jpk), &
-         &      bt_crs(jpi_crs,jpj_crs,jpk)  , r1_bt_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(7))
+      !ALLOCATE( facsurfv(jpi_crs,jpj_crs,jpk), facsurfu(jpi_crs,jpj_crs,jpk) , &
+      !   &      facvol_t(jpi_crs,jpj_crs,jpk), facvol_w(jpi_crs,jpj_crs,jpk) , &
+      !   &      ocean_volume_crs_t(jpi_crs,jpj_crs,jpk), ocean_volume_crs_w(jpi_crs,jpj_crs,jpk), &
+      !   &      bt_crs(jpi_crs,jpj_crs,jpk)  , r1_bt_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(7))
 
 
       ALLOCATE( crs_surfu_wgt(jpi_crs,jpj_crs,jpk), crs_surfv_wgt(jpi_crs,jpj_crs,jpk) , &
@@ -229,29 +218,16 @@ CONTAINS
          &      gdepv_crs(jpi_crs,jpj_crs,jpk), gdepw_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(10) )
 
 
-      ALLOCATE( un_crs(jpi_crs,jpj_crs,jpk) , vn_crs(jpi_crs,jpj_crs,jpk) , &
-         &      wn_crs(jpi_crs,jpj_crs,jpk) , hdivn_crs(jpi_crs,jpj_crs,jpk),&
-         &      rke_crs(jpi_crs,jpj_crs,jpk),                                STAT=ierr(11))
 
-      ALLOCATE( sshn_crs(jpi_crs,jpj_crs), emp_crs (jpi_crs,jpj_crs), emp_b_crs(jpi_crs,jpj_crs), &
-         &     qsr_crs(jpi_crs ,jpj_crs), wndm_crs(jpi_crs,jpj_crs), utau_crs(jpi_crs,jpj_crs) , &
-         &     vtau_crs(jpi_crs,jpj_crs), rnf_crs(jpi_crs ,jpj_crs), &
-         &     fr_i_crs(jpi_crs,jpj_crs), sfx_crs(jpi_crs ,jpj_crs),  STAT=ierr(12)  )
+      !ALLOCATE( nmln_crs(jpi_crs,jpj_crs) , hmld_crs(jpi_crs,jpj_crs) , &
+      !   &      hmlp_crs(jpi_crs,jpj_crs) , hmlpt_crs(jpi_crs,jpj_crs) , STAT=ierr(14) )
 
-      ALLOCATE( tsn_crs(jpi_crs,jpj_crs,jpk,jpts), avt_crs(jpi_crs,jpj_crs,jpk),    &
-# if defined key_zdfddm
-         &      avs_crs(jpi_crs,jpj_crs,jpk),    &
-# endif
-         &      STAT=ierr(13) )
-
-      ALLOCATE( nmln_crs(jpi_crs,jpj_crs) , hmld_crs(jpi_crs,jpj_crs) , &
-         &      hmlp_crs(jpi_crs,jpj_crs) , hmlpt_crs(jpi_crs,jpj_crs) , STAT=ierr(14) )
-
-      ALLOCATE( nimppt_crs(jpnij) , nlcit_crs(jpnij) , nldit_crs(jpnij) , nleit_crs(jpnij), &
-         &  nimppt_full(jpnij) , nlcit_full(jpnij) , nldit_full(jpnij) , nleit_full(jpnij),   &
-         njmppt_crs(jpnij) , nlcjt_crs(jpnij) , nldjt_crs(jpnij) , nlejt_crs(jpnij), &
-         &  njmppt_full(jpnij) , nlcjt_full(jpnij) , nldjt_full(jpnij) , nlejt_full(jpnij)  , STAT=ierr(15) )
-
+      !! LOLO: only mpp stuff: not needed!
+      ! ALLOCATE( nimppt_crs(jpnij) , nlcit_crs(jpnij) , nldit_crs(jpnij) , nleit_crs(jpnij), &
+      !    &  nimppt_full(jpnij) , nlcit_full(jpnij) , nldit_full(jpnij) , nleit_full(jpnij),   &
+      !    njmppt_crs(jpnij) , nlcjt_crs(jpnij) , nldjt_crs(jpnij) , nlejt_crs(jpnij), &
+      !    &  njmppt_full(jpnij) , nlcjt_full(jpnij) , nldjt_full(jpnij) , nlejt_full(jpnij)  , STAT=ierr(15) )
+      
 
       crs_dom_alloc = MAXVAL(ierr)
 
@@ -280,33 +256,6 @@ CONTAINS
       !!---------------------------------------------------------------------
 
       !                         Return to parent grid domain
-      jpi    = jpi_full
-      jpj    = jpj_full
-      jpim1  = jpim1_full
-      jpjm1  = jpjm1_full
-      nperio = nperio_full
-
-      npolj  = npolj_full
-      jpiglo = jpiglo_full
-      jpjglo = jpjglo_full
-
-      nlci   = nlci_full
-      nlcj   = nlcj_full
-      nldi   = nldi_full
-      nldj   = nldj_full
-      nlei   = nlei_full
-      nlej   = nlej_full
-      nimpp  = nimpp_full
-      njmpp  = njmpp_full
-
-      nlcit(:)  = nlcit_full(:)
-      nldit(:)  = nldit_full(:)
-      nleit(:)  = nleit_full(:)
-      nimppt(:) = nimppt_full(:)
-      nlcjt(:)  = nlcjt_full(:)
-      nldjt(:)  = nldjt_full(:)
-      nlejt(:)  = nlejt_full(:)
-      njmppt(:) = njmppt_full(:)
 
    END SUBROUTINE dom_grid_glo
 
@@ -330,25 +279,26 @@ CONTAINS
       jpjglo = jpjglo_crs
 
 
-      nlci   = nlci_crs
-      nlcj   = nlcj_crs
-      nldi   = nldi_crs
-      nlei   = nlei_crs
-      nlej   = nlej_crs
-      nldj   = nldj_crs
-      nimpp  = nimpp_crs
-      njmpp  = njmpp_crs
+      !! LOLO: mpp stuff:
+      !nlci   = nlci_crs
+      !nlcj   = nlcj_crs
+      !nldi   = nldi_crs
+      !nlei   = nlei_crs
+      !nlej   = nlej_crs
+      !nldj   = nldj_crs
+      !nimpp  = nimpp_crs
+      !njmpp  = njmpp_crs
 
-      nlcit(:)  = nlcit_crs(:)
-      nldit(:)  = nldit_crs(:)
-      nleit(:)  = nleit_crs(:)
-      nimppt(:) = nimppt_crs(:)
-      nlcjt(:)  = nlcjt_crs(:)
-      nldjt(:)  = nldjt_crs(:)
-      nlejt(:)  = nlejt_crs(:)
-      njmppt(:) = njmppt_crs(:)
-
-
+      !nlcit(:)  = nlcit_crs(:)
+      !nldit(:)  = nldit_crs(:)
+      !nleit(:)  = nleit_crs(:)
+      !nimppt(:) = nimppt_crs(:)
+      !nlcjt(:)  = nlcjt_crs(:)
+      !nldjt(:)  = nldjt_crs(:)
+      !nlejt(:)  = nlejt_crs(:)
+      !njmppt(:) = njmppt_crs(:)
+      !LOLO.
+      
       !
    END SUBROUTINE dom_grid_crs
 

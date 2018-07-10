@@ -38,13 +38,14 @@ OBJ = obj/io_ezcdf.o \
       obj/mod_nemotools.o \
       obj/mod_poly.o
 
-
 OBJ_I2GT = obj/io_ezcdf.o \
            obj/mod_conf.o \
            obj/mod_manip.o \
            obj/mod_drown.o \
            obj/mod_bilin_2d.o \
            obj/mod_poly.o
+
+OBJ_CRS = obj/mod_nemo.o obj/mod_crs_def.o obj/mod_crs.o
 
 
 # Modules to install in $INSTALL_DIR/include :
@@ -79,11 +80,29 @@ bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
 	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
 
-bin/nemo_coarsener_2d.x: src/nemo_coarsener_2d.f90 obj/io_ezcdf.o obj/mod_manip.o
+
+### CRS:
+obj/mod_nemo.o: src/mod_nemo.f90
+	@mkdir -p obj
+	@mkdir -p mod
+	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_nemo.f90 -o obj/mod_nemo.o
+
+obj/mod_crs_def.o: src/mod_crs_def.f90 obj/mod_nemo.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_crs_def.f90 -o obj/mod_crs_def.o
+
+obj/mod_crs.o: src/mod_crs.f90 obj/mod_crs_def.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_crs.f90 -o obj/mod_crs.o
+
+
+
+
+
+
+bin/nemo_coarsener_2d.x: src/nemo_coarsener_2d.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
 	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener_2d.f90 -o bin/nemo_coarsener_2d.x $(LIB_CDF)
 
-bin/nemo_coarsener_3d.x: src/nemo_coarsener_3d.f90 obj/io_ezcdf.o obj/mod_manip.o
+bin/nemo_coarsener_3d.x: src/nemo_coarsener_3d.f90 obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS)
 	@mkdir -p bin
 	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/nemo_coarsener_3d.f90 -o bin/nemo_coarsener_3d.x $(LIB_CDF)
 
