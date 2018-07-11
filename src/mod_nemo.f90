@@ -7,6 +7,9 @@ MODULE mod_nemo
    INTEGER, PUBLIC, PARAMETER ::   wp = dp                              !: working precision
 
    INTEGER ::   numout          =    6      !: logical unit for output print; Set to stdout to ensure any early
+
+   LOGICAL, PARAMETER :: lk_mpp = .FALSE. ! NO MPP!!!
+
    
    INTEGER, PUBLIC, PARAMETER ::   jpreci = 1   !: number of columns for overlap
    INTEGER, PUBLIC, PARAMETER ::   jprecj = 1   !: number of rows    for overlap
@@ -31,6 +34,8 @@ MODULE mod_nemo
    INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   nldit , nldjt    !: first, last indoor index for each i-domain
    INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   nleit , nlejt    !: first, last indoor index for each j-domain
 
+
+   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   ibonit, ibonjt   !: i-, j- processor neighbour existence
    INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   nimppt, njmppt   !: i-, j-indexes for each processor
    !! eNATL4:
    !&    jpiglo=559, &

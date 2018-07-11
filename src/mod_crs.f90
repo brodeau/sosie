@@ -1,4 +1,7 @@
 MODULE mod_crs
+
+   !! => crsdom.F90
+   
    !!===================================================================
    !!                  ***  crs.F90 ***
    !!  Purpose: Interface for calculating quantities from a
@@ -1936,17 +1939,19 @@ CONTAINS
 
       !LOLO: skip:
       ! 2.a Define processor domain
-      nimpp_crs  = 1
-      njmpp_crs  = 1
-      nlci_crs   = jpi_crs
-      nlcj_crs   = jpj_crs
-      nldi_crs   = 1
-      nldj_crs   = 1
-      nlei_crs   = jpi_crs
-      nlej_crs   = jpj_crs
-
-
-
+      IF( .NOT. lk_mpp ) THEN
+         nimpp_crs  = 1
+         njmpp_crs  = 1
+         nlci_crs   = jpi_crs
+         nlcj_crs   = jpj_crs
+         nldi_crs   = 1
+         nldj_crs   = 1
+         nlei_crs   = jpi_crs
+         nlej_crs   = jpj_crs
+      ELSE
+         STOP 'MPP not supported!'
+      END IF
+      
       !                         Save the parent grid information
       jpi_full    = jpi
       jpj_full    = jpj
@@ -1958,14 +1963,14 @@ CONTAINS
       jpiglo_full = jpiglo
       jpjglo_full = jpjglo
 
-      !nlcj_full   = nlcj
-      !nlci_full   = nlci
-      !nldi_full   = nldi
-      !nldj_full   = nldj
-      !nlei_full   = nlei
-      !nlej_full   = nlej
-      !nimpp_full  = nimpp
-      !njmpp_full  = njmpp
+      nlcj_full   = nlcj
+      nlci_full   = nlci
+      nldi_full   = nldi
+      nldj_full   = nldj
+      nlei_full   = nlei
+      nlej_full   = nlej
+      nimpp_full  = nimpp
+      njmpp_full  = njmpp
 
       !nlcit_full(:)  = nlcit(:)
       !nldit_full(:)  = nldit(:)
@@ -1975,7 +1980,6 @@ CONTAINS
       !nldjt_full(:)  = nldjt(:)
       !nlejt_full(:)  = nlejt(:)
       !njmppt_full(:) = njmppt(:)
-      !LOLO.
 
 
       PRINT *, ' ### mod_crs.f90 ### jpiglo_crs, jpjglo_crs = ', jpiglo_crs, jpjglo_crs
@@ -2121,11 +2125,14 @@ CONTAINS
       mje2_crs(2) = mjs2_crs(3)-1 ;  mje2_crs(jpjglo_crs) = jpjglo
       mjs2_crs(2) = 1             ;  mjs2_crs(jpjglo_crs) = mje2_crs(jpjglo_crs) - nn_facty + 1
 
-
-      mis_crs(:) = mis2_crs(:)
-      mie_crs(:) = mie2_crs(:)
-      mjs_crs(:) = mjs2_crs(:)
-      mje_crs(:) = mje2_crs(:)
+      IF( .NOT. lk_mpp ) THEN
+         mis_crs(:) = mis2_crs(:)
+         mie_crs(:) = mie2_crs(:)
+         mjs_crs(:) = mjs2_crs(:)
+         mje_crs(:) = mje2_crs(:)
+      ELSE
+         STOP 'MPP not supported!'
+      END IF
       !
       nistr = mis_crs(2)  ;   niend = mis_crs(nlci_crs - 1)
       njstr = mjs_crs(3)  ;   njend = mjs_crs(nlcj_crs - 1)

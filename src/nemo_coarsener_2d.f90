@@ -309,6 +309,21 @@ PROGRAM NEMO_COARSENER
    jpnj  = 1
    jpnij = 1
    
+   npolj  = 0
+   nperio = 0
+
+  
+   nlci  = jpi
+   nlcj  = jpj
+
+   nimpp = 1
+   njmpp = 1
+
+   nldi   =   1
+   nldj   =   1
+   nlei   = jpi
+   nlej   = jpj
+   
    
    rfactx_r = 1. / nn_factx
    rfacty_r = 1. / nn_facty
