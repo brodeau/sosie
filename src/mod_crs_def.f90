@@ -17,7 +17,7 @@ MODULE mod_crs_def
    !PUBLIC crs_dom_alloc  ! Called from crsini.F90
    !PUBLIC crs_dom_alloc2  ! Called from crsini.F90
    !PUBLIC dom_grid_glo
-   !PUBLIC dom_grid_crs
+   PUBLIC dom_grid_crs
 
 
    !!Known from dom_oce.F90:

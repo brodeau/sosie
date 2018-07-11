@@ -226,6 +226,9 @@ PROGRAM NEMO_COARSENER
    !   END IF
    !END IF
 
+   jpiglo = ni1
+   jpjglo = nj1
+   
    jpi = jpiglo
    jpj = jpjglo   
 
@@ -251,15 +254,12 @@ PROGRAM NEMO_COARSENER
    
    !! Target:
    !! Coarsening stuff:
-   jpi_crs = INT( (jpi - 2) / nn_factx ) + 2
-   jpj_crs = INT( (jpj - MOD(jpj, nn_facty)) / nn_facty ) + 3
+   !jpi_crs = INT( (jpi - 2) / nn_factx ) + 2
+   !jpj_crs = INT( (jpj - MOD(jpj, nn_facty)) / nn_facty ) + 3
 
-   jpiglo_crs = jpi_crs
-   jpjglo_crs = jpj_crs
+   !jpiglo_crs = jpi_crs
+   !jpjglo_crs = jpj_crs
    
-   PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs   
-   ALLOCATE ( xlont_crs(jpi_crs,jpj_crs), xlatt_crs(jpi_crs,jpj_crs), xdum_r4_crs(jpi_crs,jpj_crs), imask_crs(jpi_crs,jpj_crs) )
-   PRINT *, ''
    
 
 
@@ -303,6 +303,13 @@ PROGRAM NEMO_COARSENER
    
 
    !!LOLO:
+   noso = -1 !lolo
+   !! No mpp:
+   jpni  = 1
+   jpnj  = 1
+   jpnij = 1
+   
+   
    rfactx_r = 1. / nn_factx
    rfacty_r = 1. / nn_facty
 
@@ -311,7 +318,15 @@ PROGRAM NEMO_COARSENER
    !---------------------------------------------------------
    CALL crs_dom_def
 
+   PRINT *, ' *** After crs_dom_def: jpi_crs, jpj_crs =', jpi_crs, jpj_crs
 
+   PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs   
+   !ALLOCATE ( xlont_crs(jpi_crs,jpj_crs), xlatt_crs(jpi_crs,jpj_crs), xdum_r4_crs(jpi_crs,jpj_crs), imask_crs(jpi_crs,jpj_crs) )
+   PRINT *, ''
+
+
+   
+   stop
    !---------------------------------------------------------
    ! 3. Mask and Mesh
    !---------------------------------------------------------

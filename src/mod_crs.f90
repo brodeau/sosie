@@ -1909,6 +1909,11 @@ CONTAINS
       INTEGER  :: ierr                                ! allocation error status
 
 
+      PRINT *, ''
+      PRINT *, ' ### mod_crs.f90 ### jpiglo, jpjglo = ', jpiglo, jpjglo
+      PRINT *, ' ### mod_crs.f90 ### jpi, jpj = ', jpi, jpj
+      PRINT *, ''
+      
       ! 1.a. Define global domain indices  : take into account the interior domain only ( removes i/j=1 , i/j=jpiglo/jpjglo ) then add 2/3 grid points
       jpiglo_crs   = INT( (jpiglo - 2) / nn_factx ) + 2
       !    jpjglo_crs   = INT( (jpjglo - 2) / nn_facty ) + 2  ! the -2 removes j=1, j=jpj
@@ -1943,16 +1948,15 @@ CONTAINS
 
 
       !                         Save the parent grid information
-      !LOLO: not needed...?:
-      !jpi_full    = jpi
-      !jpj_full    = jpj
-      !jpim1_full  = jpim1
-      !jpjm1_full  = jpjm1
-      !nperio_full = nperio
+      jpi_full    = jpi
+      jpj_full    = jpj
+      jpim1_full  = jpim1
+      jpjm1_full  = jpjm1
+      nperio_full = nperio
 
-      !npolj_full  = npolj
-      !jpiglo_full = jpiglo
-      !jpjglo_full = jpjglo
+      npolj_full  = npolj
+      jpiglo_full = jpiglo
+      jpjglo_full = jpjglo
 
       !nlcj_full   = nlcj
       !nlci_full   = nlci
@@ -1972,9 +1976,17 @@ CONTAINS
       !nlejt_full(:)  = nlejt(:)
       !njmppt_full(:) = njmppt(:)
       !LOLO.
-      
-      CALL dom_grid_crs  !swich de grille
 
+
+      PRINT *, ' ### mod_crs.f90 ### jpiglo_crs, jpjglo_crs = ', jpiglo_crs, jpjglo_crs
+      
+      !STOP 'mod_crs.f90'
+      
+      PRINT *, ''
+      PRINT *, 'Achtung! CALLING dom_grid_crs !!!'
+      CALL dom_grid_crs  !swich de grille
+      PRINT *, ''
+      
 
       IF(lwp) THEN
          WRITE(numout,*)
