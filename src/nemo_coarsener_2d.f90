@@ -67,6 +67,7 @@ PROGRAM NEMO_COARSENER
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt, imasku, imaskv, imaskf
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xlon, xlat, xdum_r4
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
+   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f
 
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt_crs, imasku_crs, imaskv_crs, imaskf_crs
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4_crs
@@ -243,8 +244,8 @@ PROGRAM NEMO_COARSENER
    !ni = ni1 ; jpj = ni1
    !! Source:
    ALLOCATE ( xlon(jpi,jpj), xlat(jpi,jpj), xdum_r4(jpi,jpj), &
-      &       glamt(jpi,jpj), gphit(jpi,jpj), glamu(jpi,jpj), gphiu(jpi,jpj), glamv(jpi,jpj), gphiv(jpi,jpj), &
-      &       glamf(jpi,jpj), gphif(jpi,jpj),  &
+      &       glamt(jpi,jpj), gphit(jpi,jpj), glamu(jpi,jpj), gphiu(jpi,jpj), glamv(jpi,jpj), gphiv(jpi,jpj), glamf(jpi,jpj), gphif(jpi,jpj),  &
+      &       e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj),  &
       &       imaskt(jpi,jpj),imasku(jpi,jpj),imaskv(jpi,jpj),imaskf(jpi,jpj) )
 
 
@@ -344,7 +345,6 @@ PROGRAM NEMO_COARSENER
    PRINT *, ' *** After crs_dom_def: jpi_crs, jpj_crs =', jpi_crs, jpj_crs
 
    PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs
-   !ALLOCATE ( glamt_crs(jpi_crs,jpj_crs), gphit_crs(jpi_crs,jpj_crs), xdum_r4_crs(jpi_crs,jpj_crs), imaskt_crs(jpi_crs,jpj_crs) )
 
    PRINT *, ' *** nn_factx, nn_facty'
 
@@ -369,11 +369,27 @@ PROGRAM NEMO_COARSENER
    CALL GETVAR_2D(i0, j0, cf_mm, 'glamf', 0, 0, 0, glamf) ; i0=0 ; j0=0
    CALL GETVAR_2D(i0, j0, cf_mm, 'gphif', 0, 0, 0, gphif) ; i0=0 ; j0=0
 
-   
+
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e1t', 0, 0, 0, e1t) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e2t', 0, 0, 0, e2t) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e1u', 0, 0, 0, e1u) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e2u', 0, 0, 0, e2u) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e1v', 0, 0, 0, e1v) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e2v', 0, 0, 0, e2v) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e1f', 0, 0, 0, e1f) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e2f', 0, 0, 0, e2f) ; i0=0 ; j0=0
+
+
+
+
+
 
    CALL DUMP_2D_FIELD(REAL(tmask(:,:,1),4), 'tmask.tmp', 'tmask' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    CALL DUMP_2D_FIELD(REAL(glamt(:,:)  ,4), 'glamt.tmp', 'glamt' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    CALL DUMP_2D_FIELD(REAL(gphit(:,:)  ,4), 'gphit.tmp', 'gphit' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e1t(:,:)  ,4), 'e1t.tmp', 'e1t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e2t(:,:)  ,4), 'e2t.tmp', 'e2t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+
 
 
    !---------------------------------------------------------
@@ -397,7 +413,14 @@ PROGRAM NEMO_COARSENER
 
    gphit_crs = 0.0
    glamt_crs = 0.0
-   PRINT *, glamt_crs
+   gphiu_crs = 0.0
+   glamu_crs = 0.0
+   gphiv_crs = 0.0
+   glamv_crs = 0.0
+   gphif_crs = 0.0
+   glamf_crs = 0.0
+
+
 
    IF ( nresty /= 0 .AND. nrestx /= 0 ) THEN
       CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
@@ -424,17 +447,43 @@ PROGRAM NEMO_COARSENER
 
    CALL DUMP_2D_FIELD(REAL(glamt_crs(:,:),4), 'glamt_crs.tmp', 'glamt_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    CALL DUMP_2D_FIELD(REAL(gphit_crs(:,:),4), 'gphit_crs.tmp', 'gphit_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(glamu_crs(:,:),4), 'glamu_crs.tmp', 'glamu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(gphiu_crs(:,:),4), 'gphiu_crs.tmp', 'gphiu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(glamv_crs(:,:),4), 'glamv_crs.tmp', 'glamv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(gphiv_crs(:,:),4), 'gphiv_crs.tmp', 'gphiv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(glamf_crs(:,:),4), 'glamf_crs.tmp', 'glamf_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(gphif_crs(:,:),4), 'gphif_crs.tmp', 'gphif_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
 
 
-   
+
+
+   e1t_crs = 0.0
+   e2t_crs = 0.0
+   e1u_crs = 0.0
+   e2u_crs = 0.0
+   e1v_crs = 0.0
+   e2v_crs = 0.0
+   e1f_crs = 0.0
+   e2f_crs = 0.0
+
+   CALL crs_dom_hgr( e1t, e2t, 'T', e1t_crs, e2t_crs )
+   CALL crs_dom_hgr( e1u, e2u, 'U', e1u_crs, e2u_crs )
+   CALL crs_dom_hgr( e1v, e2v, 'V', e1v_crs, e2v_crs )
+   CALL crs_dom_hgr( e1f, e2f, 'F', e1f_crs, e2f_crs )
+
+   CALL DUMP_2D_FIELD(REAL(e1t_crs(:,:),4), 'e1t_crs.tmp', 'e1t_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e2t_crs(:,:),4), 'e2t_crs.tmp', 'e2t_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e1u_crs(:,:),4), 'e1u_crs.tmp', 'e1u_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e2u_crs(:,:),4), 'e2u_crs.tmp', 'e2u_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e1v_crs(:,:),4), 'e1v_crs.tmp', 'e1v_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e2v_crs(:,:),4), 'e2v_crs.tmp', 'e2v_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e1f_crs(:,:),4), 'e1f_crs.tmp', 'e1f_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(e2f_crs(:,:),4), 'e2f_crs.tmp', 'e2f_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+
+
+
+
    STOP 'LOLO'
-
-
-
-
-   CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
-
-   STOP 'LOLO!'
 
 
    !! FAKE COARSENING
