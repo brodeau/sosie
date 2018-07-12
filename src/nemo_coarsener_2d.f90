@@ -230,7 +230,8 @@ PROGRAM NEMO_COARSENER
    jpjglo = nj1
    
    jpi = jpiglo
-   jpj = jpjglo   
+   jpj = jpjglo
+   jpk = 1 ! 2D
 
    CALL DIMS(cf_in, cv_in, jpi, jpj, nk, Nt)
    PRINT *, ' *** input field: jpi, jpj, nk, Nt =>', jpi, jpj, nk, Nt
@@ -340,16 +341,24 @@ PROGRAM NEMO_COARSENER
    PRINT *, ''
 
 
+
+   ALLOCATE ( tmask(jpi,jpj,jpk) )
+
+   tmask(:,:,1) = imask(:,:)
    
-   stop
+   CALL DUMP_2D_FIELD(REAL(tmask(:,:,1),4), 'tmask.tmp', 'tmask' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+
+   
    !---------------------------------------------------------
    ! 3. Mask and Mesh
    !---------------------------------------------------------
    !     Set up the masks and meshes
    !  3.a. Get the masks
-   !CALL crs_dom_msk
+   CALL crs_dom_msk
    
 
+   CALL DUMP_2D_FIELD(REAL(tmask_crs(:,:,1),4), 'tmask_crs.tmp', 'tmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   
    
    STOP 'LOLO'
 

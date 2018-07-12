@@ -192,9 +192,11 @@ CONTAINS
 
 
       ! Set up Mask and Mesh
+      PRINT *, ' ### crs_dom_alloc@mod_crs_def => allocating tmask_crs:',jpi_crs,jpj_crs,jpk
       ALLOCATE( tmask_crs(jpi_crs,jpj_crs,jpk) , fmask_crs(jpi_crs,jpj_crs,jpk) ,  &
          &      umask_crs(jpi_crs,jpj_crs,jpk) , vmask_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(2))
-
+      
+      
       ALLOCATE( tmask_i_crs(jpi_crs,jpj_crs)   , rnfmsk_crs(jpi_crs,jpj_crs), &
          &         tpol_crs(jpiglo_crs,jpjglo_crs), fpol_crs(jpiglo_crs,jpjglo_crs), STAT=ierr(3) )
 
