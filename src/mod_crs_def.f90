@@ -273,6 +273,8 @@ CONTAINS
 
       ierr(:) = 0
 
+      PRINT *, '### crs_dom_alloc2@mod_crs_def.f90 => allocating m*_crs with nlej_crs, nlei_crs =', nlej_crs, nlei_crs
+      
       ALLOCATE( mjs_crs(nlej_crs) , mje_crs(nlej_crs), mis_crs(nlei_crs) , mie_crs(nlei_crs), STAT=ierr(1) )
       crs_dom_alloc2 = MAXVAL(ierr)
 

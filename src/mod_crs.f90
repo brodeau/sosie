@@ -77,12 +77,22 @@ CONTAINS
       umask_crs(:,:,:) = 0.0
       fmask_crs(:,:,:) = 0.0
 
-
+      PRINT *, ' ### crs_dom_msk CTRL: nldj_crs, nlei_crs =', nldj_crs, nlei_crs
+      PRINT *, ' ### crs_dom_msk CTRL: mje_crs, mjs_crs =', mje_crs, mjs_crs
+      PRINT *, ' ### crs_dom_msk CTRL: mie_crs, mis_crs =', mie_crs, mis_crs
+      
+      
+      
+      !je_2 = mje_crs(2)   ;  ij = 1  !lolo no idea! they need to be given a value!!
+      je_2 = mje_crs(2)   ;  ij = mje_crs(2)  !lolo no idea! they need to be given a value!!
+      
       IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
+         PRINT *, 'Boo1'
          IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
             je_2 = mje_crs(2)   ;  ij = je_2
          ENDIF
       ELSE
+         PRINT *, 'Boo2'
          je_2 = mje_crs(2)      ;  ij = mjs_crs(2)
       ENDIF
       DO jk = 1, jpkm1

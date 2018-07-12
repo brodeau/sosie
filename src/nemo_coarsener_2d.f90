@@ -13,7 +13,7 @@ PROGRAM NEMO_COARSENER
       &   l_debug    = .FALSE., &
       &   l_drown_in = .FALSE. ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
    !!
-   
+
    REAL(wp), PARAMETER :: res = 0.1  ! resolution in degree
    !!
    !INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
@@ -33,7 +33,7 @@ PROGRAM NEMO_COARSENER
 
 
    CHARACTER(len=128), DIMENSION(4)  :: vlist_coor
-   
+
    CHARACTER(len=256)  :: cr, cmissval_in
    !CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
    !!
@@ -64,13 +64,13 @@ PROGRAM NEMO_COARSENER
    !INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
 
-   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask
-   REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4
-   REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt, imasku, imaskv, imaskf
+   REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xlon, xlat, xdum_r4
+   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
 
-   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask_crs
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt_crs, imasku_crs, imaskv_crs, imaskf_crs
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4_crs
-   REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: xlont_crs, xlatt_crs
+   !REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: glamt_crs, gphit_crs
 
 
    !!
@@ -118,7 +118,7 @@ PROGRAM NEMO_COARSENER
 
       CASE('-m')
          CALL GET_MY_ARG('mesh_mask', cf_mm)
-         
+
       CASE('-i')
          CALL GET_MY_ARG('input file', cf_in)
 
@@ -198,7 +198,7 @@ PROGRAM NEMO_COARSENER
       cv_t   = TRIM(vlist_coor(1))
       cv_lat = TRIM(vlist_coor(2))
       cv_lon = TRIM(vlist_coor(3))
-      
+
       PRINT *, '    cv_t   = ', TRIM(cv_t)
       PRINT *, '    cv_lat = ', TRIM(cv_lat)
       PRINT *, '    cv_lon = ', TRIM(cv_lon)
@@ -206,10 +206,10 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
-   
+
    !cf_get_lat_lon = cf_mm
    cf_get_lat_lon = cf_in
-   
+
    CALL DIMS(cf_get_lat_lon, cv_lon, ni1, nj1, nk, Nt)
    !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
    !IF ( (nj1==-1).AND.(nj2==-1) ) THEN
@@ -228,31 +228,37 @@ PROGRAM NEMO_COARSENER
 
    jpiglo = ni1
    jpjglo = nj1
-   
+
    jpi = jpiglo
    jpj = jpjglo
    jpk = 1 ! 2D
+   jpkm1 = MAX(jpk-1,1)
 
    CALL DIMS(cf_in, cv_in, jpi, jpj, nk, Nt)
    PRINT *, ' *** input field: jpi, jpj, nk, Nt =>', jpi, jpj, nk, Nt
    PRINT *, ''
 
    IF ( (jpi/=ni1).OR.(jpj/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
-   
+
    !ni = ni1 ; jpj = ni1
    !! Source:
-   ALLOCATE ( xlont(jpi,jpj), xlatt(jpi,jpj), xdum_r4(jpi,jpj), imask(jpi,jpj) )
+   ALLOCATE ( xlon(jpi,jpj), xlat(jpi,jpj), xdum_r4(jpi,jpj), &
+      &       glamt(jpi,jpj), gphit(jpi,jpj), glamu(jpi,jpj), gphiu(jpi,jpj), glamv(jpi,jpj), gphiv(jpi,jpj), &
+      &       glamf(jpi,jpj), gphif(jpi,jpj),  &
+      &       imaskt(jpi,jpj),imasku(jpi,jpj),imaskv(jpi,jpj),imaskf(jpi,jpj) )
 
 
    !! Getting source land-sea mask:
    PRINT *, '';
    PRINT *, ' *** Reading land-sea mask'
-   cv_mm = 'tmask'
-   CALL GETMASK_2D(cf_mm, cv_mm, imask)
+   CALL GETMASK_2D(cf_mm, 'tmask', imaskt)
+   CALL GETMASK_2D(cf_mm, 'umask', imasku)
+   CALL GETMASK_2D(cf_mm, 'vmask', imaskv)
+   CALL GETMASK_2D(cf_mm, 'fmask', imaskf)
    PRINT *, ' Done!'; PRINT *, ''
 
 
-   
+
    !! Target:
    !! Coarsening stuff:
    !jpi_crs = INT( (jpi - 2) / nn_factx ) + 2
@@ -260,8 +266,8 @@ PROGRAM NEMO_COARSENER
 
    !jpiglo_crs = jpi_crs
    !jpjglo_crs = jpj_crs
-   
-   
+
+
 
 
 
@@ -271,49 +277,50 @@ PROGRAM NEMO_COARSENER
    PRINT *, ''
    PRINT *, ' *** Going to fetch longitude array:'
    CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lon,  Nb_att_lon, v_att_list_lon)
-   !PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)   
-   CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlont)
-   i0=0 ; j0=0
+   !PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)
+   CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlon) ; i0=0 ; j0=0
    PRINT *, '  '//TRIM(cv_lon)//' sucessfully fetched!'; PRINT *, ''
-   
+
    ! Latitude array:
    PRINT *, ''
    PRINT *, ' *** Going to fetch latitude array:'
    CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lat,  Nb_att_lat, v_att_list_lat)
-   !PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)   
-   CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlatt)
+   !PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)
+   CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlat)
    i0=0 ; j0=0
    PRINT *, '  '//TRIM(cv_lat)//' sucessfully fetched!'; PRINT *, ''
-   
+
    CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
    IF ( .not. lmv_in ) rmissv_in = 0.
-   
+
    CALL GETVAR_ATTRIBUTES(cf_in, cv_t,  Nb_att_time, v_att_list_time)
-   !PRINT *, '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)      
+   !PRINT *, '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)
    CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
-   !PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
+   !PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)
 
 
    ALLOCATE ( Vt(Nt) )
-   CALL GETVAR_1D(cf_in, cv_t, Vt)   
+   CALL GETVAR_1D(cf_in, cv_t, Vt)
    PRINT *, 'Vt = ', Vt(:)
 
 
 
 
-   
+
 
    !!LOLO:
+   jperio = 0
+
    noso = -1 !lolo
    !! No mpp:
    jpni  = 1
    jpnj  = 1
    jpnij = 1
-   
+
    npolj  = 0
    nperio = 0
 
-  
+
    nlci  = jpi
    nlcj  = jpj
 
@@ -324,8 +331,8 @@ PROGRAM NEMO_COARSENER
    nldj   =   1
    nlei   = jpi
    nlej   = jpj
-   
-   
+
+
    rfactx_r = 1. / nn_factx
    rfacty_r = 1. / nn_facty
 
@@ -336,77 +343,137 @@ PROGRAM NEMO_COARSENER
 
    PRINT *, ' *** After crs_dom_def: jpi_crs, jpj_crs =', jpi_crs, jpj_crs
 
-   PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs   
-   !ALLOCATE ( xlont_crs(jpi_crs,jpj_crs), xlatt_crs(jpi_crs,jpj_crs), xdum_r4_crs(jpi_crs,jpj_crs), imask_crs(jpi_crs,jpj_crs) )
+   PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs
+   !ALLOCATE ( glamt_crs(jpi_crs,jpj_crs), gphit_crs(jpi_crs,jpj_crs), xdum_r4_crs(jpi_crs,jpj_crs), imaskt_crs(jpi_crs,jpj_crs) )
+
+   PRINT *, ' *** nn_factx, nn_facty'
+
    PRINT *, ''
 
 
 
-   ALLOCATE ( tmask(jpi,jpj,jpk) )
+   ALLOCATE ( tmask(jpi,jpj,jpk), umask(jpi,jpj,jpk), vmask(jpi,jpj,jpk), fmask(jpi,jpj,jpk) )
 
-   tmask(:,:,1) = imask(:,:)
+   tmask(:,:,1) = imaskt(:,:)
+   umask(:,:,1) = imasku(:,:)
+   vmask(:,:,1) = imaskv(:,:)
+   fmask(:,:,1) = imaskf(:,:)
+
+
+   CALL GETVAR_2D(i0, j0, cf_mm, 'glamt', 0, 0, 0, glamt) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'gphit', 0, 0, 0, gphit) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'glamu', 0, 0, 0, glamu) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'gphiu', 0, 0, 0, gphiu) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'glamv', 0, 0, 0, glamv) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'gphiv', 0, 0, 0, gphiv) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'glamf', 0, 0, 0, glamf) ; i0=0 ; j0=0
+   CALL GETVAR_2D(i0, j0, cf_mm, 'gphif', 0, 0, 0, gphif) ; i0=0 ; j0=0
+
    
+
    CALL DUMP_2D_FIELD(REAL(tmask(:,:,1),4), 'tmask.tmp', 'tmask' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(glamt(:,:)  ,4), 'glamt.tmp', 'glamt' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(gphit(:,:)  ,4), 'gphit.tmp', 'gphit' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
 
-   
+
    !---------------------------------------------------------
    ! 3. Mask and Mesh
    !---------------------------------------------------------
    !     Set up the masks and meshes
    !  3.a. Get the masks
    CALL crs_dom_msk
-   
+
 
    CALL DUMP_2D_FIELD(REAL(tmask_crs(:,:,1),4), 'tmask_crs.tmp', 'tmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   
+   CALL DUMP_2D_FIELD(REAL(umask_crs(:,:,1),4), 'umask_crs.tmp', 'umask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(vmask_crs(:,:,1),4), 'vmask_crs.tmp', 'vmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(fmask_crs(:,:,1),4), 'fmask_crs.tmp', 'fmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+
+
+
+   PRINT *, ''
+   PRINT *, ' nrestx, nresty = ', nrestx, nresty
+   PRINT *, ''
+
+   gphit_crs = 0.0
+   glamt_crs = 0.0
+   PRINT *, glamt_crs
+
+   IF ( nresty /= 0 .AND. nrestx /= 0 ) THEN
+      CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+      CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
+      CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
+   ELSEIF ( nresty /= 0 .AND. nrestx == 0 ) THEN
+      CALL crs_dom_coordinates( gphiu, glamu, 'T', gphit_crs, glamt_crs )
+      CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'V', gphiv_crs, glamv_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
+   ELSEIF ( nresty == 0 .AND. nrestx /= 0 ) THEN
+      CALL crs_dom_coordinates( gphiv, glamv, 'T', gphit_crs, glamt_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'U', gphiu_crs, glamu_crs )
+      CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
+   ELSE
+      CALL crs_dom_coordinates( gphif, glamf, 'T', gphit_crs, glamt_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'U', gphiu_crs, glamu_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'V', gphiv_crs, glamv_crs )
+      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
+   ENDIF
+
+
+   CALL DUMP_2D_FIELD(REAL(glamt_crs(:,:),4), 'glamt_crs.tmp', 'glamt_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   CALL DUMP_2D_FIELD(REAL(gphit_crs(:,:),4), 'gphit_crs.tmp', 'gphit_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+
+
    
    STOP 'LOLO'
 
-   
 
-   
-   CALL crs_dom_coordinates( xlatt, xlont, 'T', xlatt_crs, xlont_crs )
+
+
+   CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
 
    STOP 'LOLO!'
 
-   
+
    !! FAKE COARSENING
-   imask_crs(:,:) = imask(1:jpi,1:jpj)
-   xlont_crs(:,:) = xlont(1:jpi,1:jpj)
-   xlatt_crs(:,:) = xlatt(1:jpi,1:jpj)
-   
-   
+   imaskt_crs(:,:) = imaskt(1:jpi,1:jpj)
+   glamt_crs(:,:) = glamt(1:jpi,1:jpj)
+   gphit_crs(:,:) = gphit(1:jpi,1:jpj)
+
+
    DO jt=1, Nt
 
       PRINT *, ''
       PRINT *, ' Reading field '//TRIM(cv_in)//' at record #',jt
-      
+
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
       !IF ( jt == 1 ) THEN
-      !   imask(:,:) = 1
-      !   WHERE ( xdum_r4 > 10000. ) imask = 0
-      !   imask_crs(:,:) = imask(1:jpi,1:jpj)
+      !   imaskt(:,:) = 1
+      !   WHERE ( xdum_r4 > 10000. ) imaskt = 0
+      !   imaskt_crs(:,:) = imaskt(1:jpi,1:jpj)
       !END IF
 
-      xdum_r4 = xdum_r4*REAL(imask,4)
+      xdum_r4 = xdum_r4*REAL(imaskt,4)
       xdum_r4 = xdum_r4*xdum_r4
 
-      
+
       xdum_r4_crs(:,:) = xdum_r4(1:jpi,1:jpj)
 
 
-      
+
       IF ( lmv_in ) THEN
-         WHERE ( imask_crs == 0 ) xdum_r4_crs = rmissv_in
+         WHERE ( imaskt_crs == 0 ) xdum_r4_crs = rmissv_in
       END IF
-      
-      CALL P2D_T( ifo, ivo, Nt, jt, xlont_crs, xlatt_crs, Vt, xdum_r4_crs, cf_out, &
+
+      CALL P2D_T( ifo, ivo, Nt, jt, glamt_crs, gphit_crs, Vt, xdum_r4_crs, cf_out, &
          &        cv_lon, cv_lat, cv_t, cv_in, rmissv_in,     &
          &        attr_lon=v_att_list_lon, attr_lat=v_att_list_lat, attr_time=v_att_list_time, &
          &        attr_F=v_att_list_vin, l_add_valid_min_max=.false. )
 
-      
+
    END DO
 
 
@@ -450,7 +517,7 @@ CONTAINS
       WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       WRITE(6,*) ''
       WRITE(6,*) ' -m <mesh_mask.nc>    => file containing grid metrics of model'
-      WRITE(6,*) ''      
+      WRITE(6,*) ''
       WRITE(6,*) ' -i <input_file.nc>   => input file to coarsen'
       WRITE(6,*) ''
       WRITE(6,*) ' -v <name_field>      => variable to coarsen'
