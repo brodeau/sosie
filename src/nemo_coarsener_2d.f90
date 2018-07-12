@@ -68,9 +68,12 @@ PROGRAM NEMO_COARSENER
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xlon, xlat, xdum_r4
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f
+   
+   REAL(wp),   DIMENSION(:,:,:), ALLOCATABLE :: e3t, e3u, e3v
 
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt_crs, imasku_crs, imaskv_crs, imaskf_crs
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4_crs
+   REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: xdum_r8_crs
    !REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: glamt_crs, gphit_crs
 
 
@@ -248,6 +251,10 @@ PROGRAM NEMO_COARSENER
       &       e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj),  &
       &       imaskt(jpi,jpj),imasku(jpi,jpj),imaskv(jpi,jpj),imaskf(jpi,jpj) )
 
+   ALLOCATE ( e3t(jpi,jpj,jpk) )
+
+
+   
 
    !! Getting source land-sea mask:
    PRINT *, '';
@@ -379,6 +386,8 @@ PROGRAM NEMO_COARSENER
    CALL GETVAR_2D(i0, j0, cf_mm, 'e1f', 0, 0, 0, e1f) ; i0=0 ; j0=0
    CALL GETVAR_2D(i0, j0, cf_mm, 'e2f', 0, 0, 0, e2f) ; i0=0 ; j0=0
 
+   !! Should get from VVL! Not meshmask:
+   CALL GETVAR_2D(i0, j0, cf_mm, 'e3t_0', 0, 1, 0, e3t(:,:,1)) ; i0=0 ; j0=0
 
 
 
@@ -483,14 +492,12 @@ PROGRAM NEMO_COARSENER
 
 
 
-   STOP 'LOLO'
+   PRINT *, ''
+   PRINT *, ''
+   PRINT *, ''
 
 
-   !! FAKE COARSENING
-   imaskt_crs(:,:) = imaskt(1:jpi,1:jpj)
-   glamt_crs(:,:) = glamt(1:jpi,1:jpj)
-   gphit_crs(:,:) = gphit(1:jpi,1:jpj)
-
+   ALLOCATE ( xdum_r4_crs(jpi_crs,jpj_crs), xdum_r8_crs(jpi_crs,jpj_crs) )
 
    DO jt=1, Nt
 
@@ -499,22 +506,40 @@ PROGRAM NEMO_COARSENER
 
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
+      xdum_r4 = xdum_r4*REAL(imaskt,4)
+      
+
+
+      SELECT CASE (TRIM(cv_in))
+         
+      CASE('sossheig')
+         PRINT *, 'boo ope'
+         CALL crs_dom_ope( REAL(xdum_r4,8), 'VOL', 'T', REAL(tmask,8), xdum_r8_crs, p_e12=e1t*e2t, p_e3=e3t, psgn=1.0_wp )
+         
+      CASE DEFAULT
+         PRINT *, 'Unknown variable: ', TRIM(cv_in) ; PRINT *, ''
+         STOP
+         
+      END SELECT
+
+      xdum_r4_crs = REAL(xdum_r8_crs,4)
+      
       !IF ( jt == 1 ) THEN
       !   imaskt(:,:) = 1
       !   WHERE ( xdum_r4 > 10000. ) imaskt = 0
       !   imaskt_crs(:,:) = imaskt(1:jpi,1:jpj)
       !END IF
 
-      xdum_r4 = xdum_r4*REAL(imaskt,4)
-      xdum_r4 = xdum_r4*xdum_r4
+      !xdum_r4 = xdum_r4*REAL(imaskt,4)
+      !xdum_r4 = xdum_r4*xdum_r4
 
 
-      xdum_r4_crs(:,:) = xdum_r4(1:jpi,1:jpj)
+      !xdum_r4_crs(:,:) = xdum_r4(1:jpi,1:jpj)
 
 
 
       IF ( lmv_in ) THEN
-         WHERE ( imaskt_crs == 0 ) xdum_r4_crs = rmissv_in
+         WHERE ( tmask_crs(:,:,1) == 0 ) xdum_r4_crs = rmissv_in
       END IF
 
       CALL P2D_T( ifo, ivo, Nt, jt, glamt_crs, gphit_crs, Vt, xdum_r4_crs, cf_out, &
@@ -525,6 +550,10 @@ PROGRAM NEMO_COARSENER
 
    END DO
 
+
+
+
+   STOP 'LOLO'
 
 
 
