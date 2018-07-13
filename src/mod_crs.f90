@@ -1,7 +1,7 @@
 MODULE mod_crs
 
    !! => crsdom.F90
-   
+
    !!===================================================================
    !!                  ***  crs.F90 ***
    !!  Purpose: Interface for calculating quantities from a
@@ -55,71 +55,59 @@ MODULE mod_crs
       MODULE PROCEDURE crs_dom_ope_3d, crs_dom_ope_2d
    END INTERFACE crs_dom_ope
 
-   REAL(wp) :: r_inf = 1e+36
+   REAL(wp),PUBLIC :: r_inf = 1e+7 !cbr 1e+36
 
    !! Substitutions
-   !!#  include "domzgr_substitute.h90"
+#  include "domzgr_substitute.h90"
 
-   !! $Id: mod_crs.F90 5302 2015-05-28 07:11:24Z smasson $
 CONTAINS
 
 
    SUBROUTINE crs_dom_msk
-
+      !!===================================================================
+      !
+      !
+      !
+      !!===================================================================
       INTEGER  ::  ji, jj, jk                   ! dummy loop indices
-      INTEGER  ::  ijie,ijis,ijje,ijjs,ij,je_2
+      INTEGER  ::  ijis,ijie,ijjs,ijje
       REAL(wp) ::  zmask
+      !!-------------------------------------------------------------------
 
       ! Initialize
-
       tmask_crs(:,:,:) = 0.0
       vmask_crs(:,:,:) = 0.0
       umask_crs(:,:,:) = 0.0
       fmask_crs(:,:,:) = 0.0
-
+      !
       PRINT *, ' ### crs_dom_msk CTRL: nldj_crs, nlei_crs =', nldj_crs, nlei_crs
       PRINT *, ' ### crs_dom_msk CTRL: mje_crs, mjs_crs =', mje_crs, mjs_crs
       PRINT *, ' ### crs_dom_msk CTRL: mie_crs, mis_crs =', mie_crs, mis_crs
-      
-      
-      
+
+
+
       !je_2 = mje_crs(2)   ;  ij = 1  !lolo no idea! they need to be given a value!!
-      je_2 = mje_crs(2)   ;  ij = mje_crs(2)  !lolo no idea! they need to be given a value!!
-      
-      IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-         PRINT *, 'Boo1'
-         IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-            je_2 = mje_crs(2)   ;  ij = je_2
-         ENDIF
-      ELSE
-         PRINT *, 'Boo2'
-         je_2 = mje_crs(2)      ;  ij = mjs_crs(2)
-      ENDIF
-      DO jk = 1, jpkm1
-         DO ji = 2, nlei_crs
-            ijis = mis_crs(ji)  ;  ijie = mie_crs(ji)
-            !
-            zmask = 0.0
-            zmask = SUM( tmask(ijis:ijie,ij:je_2,jk) )
-            IF ( zmask > 0.0 ) tmask_crs(ji,2,jk) = 1.0
-
-            zmask = 0.0
-            zmask = SUM( vmask(ijis:ijie,je_2     ,jk) )
-            IF ( zmask > 0.0 ) vmask_crs(ji,2,jk) = 1.0
-
-            zmask = 0.0
-            zmask = SUM(umask(ijie,ij:je_2,jk))
-            IF ( zmask > 0.0 ) umask_crs(ji,2,jk) = 1.0
-
-            fmask_crs(ji,je_2,jk) = fmask(ijie,2,jk)
-         ENDDO
-      ENDDO
+      !je_2 = mje_crs(2)   ;  ij = mje_crs(2)  !lolo no idea! they need to be given a value!!
       !
+      !IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
+      !   PRINT *, 'Boo1'
+      !   IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
+      !      je_2 = mje_crs(2)   ;  ij = je_2
+      !   ENDIF
+      !ELSE
+      !   PRINT *, 'Boo2'
+      !   je_2 = mje_crs(2)      ;  ij = mjs_crs(2)
+      !ENDIF
       DO jk = 1, jpkm1
-         DO ji = 2, nlei_crs
-            ijis = mis_crs(ji)     ;   ijie = mie_crs(ji)
-            DO jj = 3, nlej_crs
-               ijjs = mjs_crs(jj)  ;   ijje = mje_crs(jj)
+         DO ji = nldi_crs, nlei_crs
+
+            ijis = mis_crs(ji)
+            ijie = mie_crs(ji)
+
+            DO jj = nldj_crs, nlej_crs
+
+               ijjs = mjs_crs(jj)
+               ijje = mje_crs(jj)
 
                zmask = 0.0
                zmask = SUM( tmask(ijis:ijie,ijjs:ijje,jk) )
@@ -134,6 +122,7 @@ CONTAINS
                IF ( zmask > 0.0 ) umask_crs(ji,jj,jk) = 1.0
 
                fmask_crs(ji,jj,jk) = fmask(ijie,ijje,jk)
+
             ENDDO
          ENDDO
       ENDDO
@@ -177,68 +166,58 @@ CONTAINS
 
       !! Local variables
       INTEGER :: ji, jj, jk                   ! dummy loop indices
-      INTEGER :: ijis, ijjs
+      INTEGER :: iji, ijj
+      INTEGER  :: ir,jr
+      !!----------------------------------------------------------------
+      p_gphi_crs(:,:)=0._wp
+      p_glam_crs(:,:)=0._wp
 
 
       SELECT CASE ( cd_type )
       CASE ( 'T' )
          DO jj =  nldj_crs, nlej_crs
-            ijjs = mjs_crs(jj) + mybinctr
-            DO ji = 2, nlei_crs
-               ijis = mis_crs(ji) + mxbinctr
-               p_gphi_crs(ji,jj) = p_gphi(ijis,ijjs)
-               p_glam_crs(ji,jj) = p_glam(ijis,ijjs)
+            ijj = mjs_crs(jj) + + INT(0.5*nfacty(jj))
+            DO ji = nldi_crs, nlei_crs
+               iji = mis_crs(ji) + INT(0.5*nfactx(ji))
+               p_gphi_crs(ji,jj) = p_gphi(iji,ijj)
+               p_glam_crs(ji,jj) = p_glam(iji,ijj)
             ENDDO
          ENDDO
       CASE ( 'U' )
          DO jj =  nldj_crs, nlej_crs
-            ijjs = mjs_crs(jj) + mybinctr
-            DO ji = 2, nlei_crs
-               ijis = mis_crs(ji)
-               p_gphi_crs(ji,jj) = p_gphi(ijis,ijjs)
-               p_glam_crs(ji,jj) = p_glam(ijis,ijjs)
+            ijj = mjs_crs(jj) + INT(0.5*nfacty(jj))
+            DO ji = nldi_crs, nlei_crs
+               iji = mie_crs(ji)
+               p_gphi_crs(ji,jj) = p_gphi(iji,ijj)
+               p_glam_crs(ji,jj) = p_glam(iji,ijj)
+
             ENDDO
          ENDDO
       CASE ( 'V' )
          DO jj =  nldj_crs, nlej_crs
-            ijjs = mjs_crs(jj)
-            DO ji = 2, nlei_crs
-               ijis = mis_crs(ji) + mxbinctr
-               p_gphi_crs(ji,jj) = p_gphi(ijis,ijjs)
-               p_glam_crs(ji,jj) = p_glam(ijis,ijjs)
+            ijj = mje_crs(jj)
+            DO ji = nldi_crs, nlei_crs
+               iji = mis_crs(ji) + INT(0.5*nfactx(ji))
+               p_gphi_crs(ji,jj) = p_gphi(iji,ijj)
+               p_glam_crs(ji,jj) = p_glam(iji,ijj)
             ENDDO
          ENDDO
       CASE ( 'F' )
          DO jj =  nldj_crs, nlej_crs
-            ijjs = mjs_crs(jj)
-            DO ji = 2, nlei_crs
-               ijis = mis_crs(ji)
-               p_gphi_crs(ji,jj) = p_gphi(ijis,ijjs)
-               p_glam_crs(ji,jj) = p_glam(ijis,ijjs)
+            ijj = mje_crs(jj)
+            DO ji = nldi_crs, nlei_crs
+               iji = mie_crs(ji)
+               p_gphi_crs(ji,jj) = p_gphi(iji,ijj)
+               p_glam_crs(ji,jj) = p_glam(iji,ijj)
             ENDDO
          ENDDO
       END SELECT
+      WRITE(narea+1000-1,*)"end glam_crs gphi_crs ",p_glam_crs(1,2),p_gphi_crs(1,2)
 
       ! Retroactively add back the boundary halo cells.
-      !LOLO: ADD!
-      !CALL crs_lbc_lnk( p_gphi_crs, cd_type, 1.0 )
-      !CALL crs_lbc_lnk( p_glam_crs, cd_type, 1.0 )
-
-      ! Fill up jrow=1 which is zeroed out or not handled by lbc_lnk and lbc_nfd
-      SELECT CASE ( cd_type )
-      CASE ( 'T', 'V' )
-         DO ji = 2, nlei_crs
-            ijis = mis_crs(ji) + mxbinctr
-            p_gphi_crs(ji,1) = p_gphi(ijis,1)
-            p_glam_crs(ji,1) = p_glam(ijis,1)
-         ENDDO
-      CASE ( 'U', 'F' )
-         DO ji = 2, nlei_crs
-            ijis = mis_crs(ji)
-            p_gphi_crs(ji,1) = p_gphi(ijis,1)
-            p_glam_crs(ji,1) = p_glam(ijis,1)
-         ENDDO
-      END SELECT
+      !????      CALL crs_lbc_lnk( p_gphi_crs, cd_type, 1.0 )
+      !????      CALL crs_lbc_lnk( p_glam_crs, cd_type, 1.0 )
+      WRITE(narea+1000-1,*)"end1 glam_crs gphi_crs ",p_glam_crs(1,2),p_gphi_crs(1,2)
       !
    END SUBROUTINE crs_dom_coordinates
 
@@ -270,44 +249,41 @@ CONTAINS
 
       !! Local variables
       INTEGER :: ji, jj, jk     ! dummy loop indices
-      INTEGER :: ijie,ijje,ijrs
+      INTEGER :: ijis,ijie,ijjs,ijje
+      INTEGER :: i1, j1
 
       !!----------------------------------------------------------------
       ! Initialize
 
-      DO jk = 1, jpk
-         DO ji = 2, nlei_crs
-            ijie = mie_crs(ji)
-            DO jj = nldj_crs, nlej_crs
-               ijje = mje_crs(jj)   ;   ijrs =  mje_crs(jj) - mjs_crs(jj)
-               ! Only for a factro 3 coarsening
-               SELECT CASE ( cd_type )
-               CASE ( 'T' )
-                  IF( ijrs == 0 .OR. ijrs == 1 ) THEN
-                     ! Si à la frontière sud on a pas assez de maille de la grille mère
-                     p_e1_crs(ji,jj) = p_e1(ijie-1,ijje) * nn_factx
-                     p_e2_crs(ji,jj) = p_e2(ijie-1,ijje) * nn_facty
-                  ELSE
-                     p_e1_crs(ji,jj) = p_e1(ijie-1,ijje-1) * nn_factx
-                     p_e2_crs(ji,jj) = p_e2(ijie-1,ijje-1) * nn_facty
-                  ENDIF
-               CASE ( 'U' )
-                  IF( ijrs == 0 .OR. ijrs == 1 ) THEN
-                     ! Si à la frontière sud on a pas assez de maille de la grille mère
-                     p_e1_crs(ji,jj) = p_e1(ijie,ijje) * nn_factx
-                     p_e2_crs(ji,jj) = p_e2(ijie,ijje) * nn_facty
-                  ELSE
-                     p_e1_crs(ji,jj) = p_e1(ijie,ijje-1) * nn_factx
-                     p_e2_crs(ji,jj) = p_e2(ijie,ijje-1) * nn_facty
-                  ENDIF
-               CASE ( 'V' )
-                  p_e1_crs(ji,jj) = p_e1(ijie-1,ijje) * nn_factx
-                  p_e2_crs(ji,jj) = p_e2(ijie-1,ijje) * nn_facty
-               CASE ( 'F' )
-                  p_e1_crs(ji,jj) = p_e1(ijie,ijje) * nn_factx
-                  p_e2_crs(ji,jj) = p_e2(ijie,ijje) * nn_facty
-               END SELECT
-            ENDDO
+      DO ji = nldi_crs, nlei_crs
+
+         ijis = mis_crs(ji)
+         ijie = mie_crs(ji)
+
+         DO jj = nldj_crs, nlej_crs
+
+            ijjs = mjs_crs(jj)
+            ijje = mje_crs(jj)
+
+            i1=INT(0.5*nfactx(ji))
+            j1=INT(0.5*nfacty(jj))
+
+            ! Only for a factro 3 coarsening
+            SELECT CASE ( cd_type )
+            CASE ( 'T' )
+               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijjs+j1)
+               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijis+i1,ijjs+j1)
+            CASE ( 'U' )
+               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijjs+j1)
+               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijie   ,ijjs+j1)
+
+            CASE ( 'V' )
+               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijje   )
+               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijis+i1,ijjs+j1)
+            CASE ( 'F' )
+               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijje   )
+               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijie   ,ijjs+j1)
+            END SELECT
          ENDDO
       ENDDO
 
@@ -370,94 +346,36 @@ CONTAINS
 
       !! Local variables
       REAL(wp)                                :: zdAm
-      INTEGER                                 :: ji, jj, jk , ii, ij, je_2
+      INTEGER                                 :: ji, jj, jk
+      INTEGER :: ijis,ijie,ijjs,ijje
 
       REAL(wp), DIMENSION(:,:,:), POINTER     :: zvol, zmask
       !!----------------------------------------------------------------
 
-      ALLOCATE ( zvol(jpi,jpj,jpk), zmask(jpi,jpj,jpk) )
+      CALL wrk_alloc( jpi, jpj, jpk, zvol, zmask )
 
       p_fld1_crs(:,:,:) = 0.0
       p_fld2_crs(:,:,:) = 0.0
 
       DO jk = 1, jpk
-         zvol(:,:,jk) =  p_e1(:,:) * p_e2(:,:) * p_e3(:,:,jk)
+         zvol (:,:,jk) = p_e1(:,:) * p_e2(:,:) * p_e3(:,:,jk)
+         zmask(:,:,jk) = p_mask(:,:,jk)
       ENDDO
 
-      zmask(:,:,:) = 0.0
-      IF( cd_type == 'W' ) THEN
-         zmask(:,:,1) = p_mask(:,:,1)
-         DO jk = 2, jpk
-            zmask(:,:,jk) = p_mask(:,:,jk-1)
-         ENDDO
-      ELSE
-         DO jk = 1, jpk
-            zmask(:,:,jk) = p_mask(:,:,jk)
-         ENDDO
-      ENDIF
-
-      IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-         IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-            je_2 = mje_crs(2)
-            DO jk = 1, jpk
-               DO ji = nistr, niend, nn_factx
-                  ii   = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                  p_fld1_crs(ii,2,jk) =  zvol(ji,je_2  ,jk) + zvol(ji+1,je_2  ,jk) + zvol(ji+2,je_2  ,jk)  &
-                     &                 + zvol(ji,je_2-1,jk) + zvol(ji+1,je_2-1,jk) + zvol(ji+2,je_2-1,jk)
-                  !
-                  zdAm =  zvol(ji  ,je_2,jk) * zmask(ji  ,je_2,jk)  &
-                     &   + zvol(ji+1,je_2,jk) * zmask(ji+1,je_2,jk)  &
-                     &   + zvol(ji+2,je_2,jk) * zmask(ji+2,je_2,jk)
-                  !
-                  p_fld2_crs(ii,2,jk) = zdAm / p_fld1_crs(ii,2,jk)
-               ENDDO
-            ENDDO
-         ENDIF
-      ELSE
-         je_2 = mjs_crs(2)
-         DO jk = 1, jpk
-            DO ji = nistr, niend, nn_factx
-               ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-               p_fld1_crs(ii,2,jk) =  zvol(ji,je_2  ,jk) + zvol(ji+1,je_2  ,jk) + zvol(ji+2,je_2  ,jk)  &
-                  &                + zvol(ji,je_2+1,jk) + zvol(ji+1,je_2+1,jk) + zvol(ji+2,je_2+1,jk)  &
-                  &                + zvol(ji,je_2+2,jk) + zvol(ji+1,je_2+2,jk) + zvol(ji+2,je_2+2,jk)
-               !
-               zdAm = zvol(ji  ,je_2  ,jk) * zmask(ji  ,je_2  ,jk)  &
-                  &  + zvol(ji+1,je_2  ,jk) * zmask(ji+1,je_2  ,jk)  &
-                  &  + zvol(ji+2,je_2  ,jk) * zmask(ji+2,je_2  ,jk)  &
-                  &  + zvol(ji  ,je_2+1,jk) * zmask(ji  ,je_2+1,jk)  &
-                  &  + zvol(ji+1,je_2+1,jk) * zmask(ji+1,je_2+1,jk)  &
-                  &  + zvol(ji+2,je_2+1,jk) * zmask(ji+2,je_2+1,jk)  &
-                  &  + zvol(ji  ,je_2+2,jk) * zmask(ji  ,je_2+2,jk)  &
-                  &  + zvol(ji+1,je_2+2,jk) * zmask(ji+1,je_2+2,jk)  &
-                  &  + zvol(ji+2,je_2+2,jk) * zmask(ji+2,je_2+2,jk)
-               !
-               p_fld2_crs(ii,2,jk) = zdAm / p_fld1_crs(ii,2,jk)
-            ENDDO
-         ENDDO
-      ENDIF
-
       DO jk = 1, jpk
-         DO jj  = njstr, njend, nn_facty
-            DO ji = nistr, niend, nn_factx
-               ii  = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-               ij  = ( jj - njstr ) * rfacty_r + 3
-               !
-               p_fld1_crs(ii,ij,jk) =  zvol(ji,jj  ,jk) + zvol(ji+1,jj  ,jk) + zvol(ji+2,jj  ,jk)  &
-                  &                 + zvol(ji,jj+1,jk) + zvol(ji+1,jj+1,jk) + zvol(ji+2,jj+1,jk)  &
-                  &                 + zvol(ji,jj+2,jk) + zvol(ji+1,jj+2,jk) + zvol(ji+2,jj+2,jk)
-               !
-               zdAm =  zvol(ji  ,jj  ,jk) * zmask(ji  ,jj  ,jk)  &
-                  &   + zvol(ji+1,jj  ,jk) * zmask(ji+1,jj  ,jk)  &
-                  &   + zvol(ji+2,jj  ,jk) * zmask(ji+2,jj  ,jk)  &
-                  &   + zvol(ji  ,jj+1,jk) * zmask(ji  ,jj+1,jk)  &
-                  &   + zvol(ji+1,jj+1,jk) * zmask(ji+1,jj+1,jk)  &
-                  &   + zvol(ji+2,jj+1,jk) * zmask(ji+2,jj+1,jk)  &
-                  &   + zvol(ji  ,jj+2,jk) * zmask(ji  ,jj+2,jk)  &
-                  &   + zvol(ji+1,jj+2,jk) * zmask(ji+1,jj+2,jk)  &
-                  &   + zvol(ji+2,jj+2,jk) * zmask(ji+2,jj+2,jk)
-               !
-               p_fld2_crs(ii,ij,jk) = zdAm / p_fld1_crs(ii,ij,jk)
+         DO ji = nldi_crs, nlei_crs
+
+            ijis = mis_crs(ji)
+            ijie = mie_crs(ji)
+
+            DO jj = nldj_crs, nlej_crs
+
+               ijjs = mjs_crs(jj)
+               ijje = mje_crs(jj)
+
+               p_fld1_crs(ji,jj,jk) =  SUM( zvol(ijis:ijie,ijjs:ijje,jk) )
+               zdAm                 =  SUM( zvol(ijis:ijie,ijjs:ijje,jk) * zmask(ijis:ijie,ijjs:ijje,jk) )
+               p_fld2_crs(ji,jj,jk) = zdAm / p_fld1_crs(ji,jj,jk)
             ENDDO
          ENDDO
       ENDDO
@@ -496,8 +414,8 @@ CONTAINS
       !!----------------------------------------------------------------
       !!
       !!  Arguments
-      REAL(wp), DIMENSION(jpi,jpj,jpk),         INTENT(in)           :: p_fld   ! T, U, V or W on parent grid
-      CHARACTER(len=3),                         INTENT(in)           :: cd_op    ! Operation SUM, MAX or MIN
+      REAL(wp), DIMENSION(jpi,jpj,jpk),         INTENT(in)        :: p_fld   ! T, U, V or W on parent grid
+      CHARACTER(len=*),                         INTENT(in)           :: cd_op    ! Operation SUM, MAX or MIN
       CHARACTER(len=1),                         INTENT(in)           :: cd_type    ! grid type U,V
       REAL(wp), DIMENSION(jpi,jpj,jpk),         INTENT(in)           :: p_mask    ! Parent grid T,U,V mask
       REAL(wp), DIMENSION(jpi,jpj),             INTENT(in), OPTIONAL :: p_e12    ! Parent grid T,U,V scale factors (e1 or e2)
@@ -506,14 +424,20 @@ CONTAINS
       REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(in), OPTIONAL :: p_mask_crs    ! Coarse grid T,U,V maska
       REAL(wp),                                 INTENT(in)           :: psgn    ! sign
 
-
       REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(out)          :: p_fld_crs ! Coarse grid box 3D quantity
 
       !! Local variables
       INTEGER  :: ji, jj, jk
-      INTEGER  :: ii, ij, ijie, ijje, je_2
+      INTEGER  :: ijis, ijie, ijjs, ijje
+      INTEGER  :: ini, inj
       REAL(wp) :: zflcrs, zsfcrs
-      REAL(wp), DIMENSION(:,:,:), POINTER :: zsurf, zsurfmsk, zmask
+      REAL(wp), DIMENSION(:,:,:), POINTER :: zsurf, zsurfmsk, zmask,ztabtmp
+      INTEGER  :: ir,jr
+      REAL(wp), DIMENSION(nn_factx,nn_facty):: ztmp
+      REAL(wp), DIMENSION(nn_factx*nn_facty):: ztmp1
+      REAL(wp), DIMENSION(:), ALLOCATABLE   :: ztmp2
+      INTEGER , DIMENSION(1)  :: zdim1
+      REAL(wp) :: zmin,zmax
       !!----------------------------------------------------------------
 
       p_fld_crs(:,:,:) = 0.0
@@ -522,88 +446,69 @@ CONTAINS
 
       CASE ( 'VOL' )
 
-         ALLOCATE ( zsurf(jpi,jpj,jpk), zsurfmsk(jpi,jpj,jpk) )
+         CALL wrk_alloc( jpi, jpj, jpk, zsurf, zsurfmsk )
+
+         SELECT CASE ( cd_type )
+
+         CASE( 'T', 'W','U','V' )
+            DO jk = 1, jpk
+               zsurf   (:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk) *  p_mask(:,:,jk)
+               zsurfmsk(:,:,jk) =  zsurf(:,:,jk)
+            ENDDO
+            !
+            DO jk = 1, jpk
+               DO jj  = nldj_crs,nlej_crs
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  DO ji = nldi_crs, nlei_crs
+
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+
+                     zflcrs = SUM( p_fld(ijis:ijie,ijjs:ijje,jk) * zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+                     zsfcrs = SUM(                                 zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+
+                     p_fld_crs(ji,jj,jk) = zflcrs
+                     IF( zsfcrs /= 0.0 )  p_fld_crs(ji,jj,jk) = zflcrs / zsfcrs
+                  ENDDO
+               ENDDO
+            ENDDO
+            !
+         CASE DEFAULT
+            STOP
+         END SELECT
+
+         DEALLOCATE ( zsurf, zsurfmsk )
+
+      CASE ( 'LOGVOL' )
+
+         CALL wrk_alloc( jpi, jpj, jpk, zsurf, zsurfmsk, ztabtmp )
+
+         ztabtmp(:,:,:)=0._wp
+         WHERE(p_fld* p_mask .NE. 0._wp ) ztabtmp =  LOG10(p_fld * p_mask)*p_mask
+         ztabtmp = ztabtmp * p_mask
 
          SELECT CASE ( cd_type )
 
          CASE( 'T', 'W' )
-            IF( cd_type == 'T' ) THEN
-               DO jk = 1, jpk
-                  zsurf   (:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk) *  p_mask(:,:,jk)
-                  zsurfmsk(:,:,jk) =  zsurf(:,:,jk)
-               ENDDO
-            ELSE
-               zsurf   (:,:,1) =  p_e12(:,:) * p_e3(:,:,1)
-               zsurfmsk(:,:,1) =  zsurf(:,:,1) *  p_mask(:,:,1)
-               DO jk = 2, jpk
-                  zsurf   (:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk)
-                  zsurfmsk(:,:,jk) =  zsurf(:,:,jk) * p_mask(:,:,jk-1)
-               ENDDO
-            ENDIF
 
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  je_2 = mje_crs(2)
-                  DO jk = 1, jpk
-                     DO ji = nistr, niend, nn_factx
-                        ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                        zflcrs =  p_fld(ji  ,je_2,jk) * zsurfmsk(ji  ,je_2,jk)   &
-                           &     + p_fld(ji+1,je_2,jk) * zsurfmsk(ji+1,je_2,jk)   &
-                           &     + p_fld(ji+2,je_2,jk) * zsurfmsk(ji+2,je_2,jk)
-
-                        zsfcrs =  zsurf(ji,je_2,jk) + zsurf(ji+1,je_2,jk) + zsurf(ji+2,je_2,jk)
-                        !
-                        p_fld_crs(ii,2,jk) = zflcrs
-                        IF( zsfcrs /= 0.0 )  p_fld_crs(ii,2,jk) = zflcrs / zsfcrs
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ELSE
-               je_2 = mjs_crs(2)
-               DO jk = 1, jpk
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     zflcrs =  p_fld(ji  ,je_2  ,jk) * zsurfmsk(ji  ,je_2  ,jk) &
-                        &     + p_fld(ji+1,je_2  ,jk) * zsurfmsk(ji+1,je_2  ,jk) &
-                        &     + p_fld(ji+2,je_2  ,jk) * zsurfmsk(ji+2,je_2  ,jk) &
-                        &     + p_fld(ji  ,je_2+1,jk) * zsurfmsk(ji  ,je_2+1,jk) &
-                        &     + p_fld(ji+1,je_2+1,jk) * zsurfmsk(ji+1,je_2+1,jk) &
-                        &     + p_fld(ji+2,je_2+1,jk) * zsurfmsk(ji+2,je_2+1,jk) &
-                        &     + p_fld(ji  ,je_2+2,jk) * zsurfmsk(ji  ,je_2+2,jk) &
-                        &     + p_fld(ji+1,je_2+2,jk) * zsurfmsk(ji+1,je_2+2,jk) &
-                        &     + p_fld(ji+2,je_2+2,jk) * zsurfmsk(ji+2,je_2+2,jk)
-
-                     zsfcrs =  zsurf(ji,je_2  ,jk) + zsurf(ji+1,je_2  ,jk) + zsurf(ji+2,je_2  ,jk) &
-                        &     + zsurf(ji,je_2+1,jk) + zsurf(ji+1,je_2+1,jk) + zsurf(ji+2,je_2+1,jk) &
-                        &     + zsurf(ji,je_2+2,jk) + zsurf(ji+1,je_2+2,jk) + zsurf(ji+2,je_2+2,jk)
-                     !
-                     p_fld_crs(ii,2,jk) = zflcrs
-                     IF( zsfcrs /= 0.0 )  p_fld_crs(ii,2,jk) = zflcrs / zsfcrs
-                  ENDDO
-               ENDDO
-            ENDIF
+            DO jk = 1, jpk
+               zsurf   (:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk) *  p_mask(:,:,jk)
+               zsurfmsk(:,:,jk) =  zsurf(:,:,jk)
+            ENDDO
             !
             DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                     ij = ( jj - njstr ) * rfacty_r + 3
-                     zflcrs =  p_fld(ji  ,jj  ,jk) * zsurfmsk(ji  ,jj  ,jk) &
-                        &     + p_fld(ji+1,jj  ,jk) * zsurfmsk(ji+1,jj  ,jk) &
-                        &     + p_fld(ji+2,jj  ,jk) * zsurfmsk(ji+2,jj  ,jk) &
-                        &     + p_fld(ji  ,jj+1,jk) * zsurfmsk(ji  ,jj+1,jk) &
-                        &     + p_fld(ji+1,jj+1,jk) * zsurfmsk(ji+1,jj+1,jk) &
-                        &     + p_fld(ji+2,jj+1,jk) * zsurfmsk(ji+2,jj+1,jk) &
-                        &     + p_fld(ji  ,jj+2,jk) * zsurfmsk(ji  ,jj+2,jk) &
-                        &     + p_fld(ji+1,jj+2,jk) * zsurfmsk(ji+1,jj+2,jk) &
-                        &     + p_fld(ji+2,jj+2,jk) * zsurfmsk(ji+2,jj+2,jk)
-
-                     zsfcrs =  zsurf(ji,jj  ,jk) + zsurf(ji+1,jj  ,jk) + zsurf(ji+2,jj  ,jk) &
-                        &     + zsurf(ji,jj+1,jk) + zsurf(ji+1,jj+1,jk) + zsurf(ji+2,jj+1,jk) &
-                        &     + zsurf(ji,jj+2,jk) + zsurf(ji+1,jj+2,jk) + zsurf(ji+2,jj+2,jk)
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     IF( zsfcrs /= 0.0 )  p_fld_crs(ii,ij,jk) = zflcrs / zsfcrs
+               DO jj  = nldj_crs,nlej_crs
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  DO ji = nldi_crs, nlei_crs
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+                     zflcrs = SUM( ztabtmp(ijis:ijie,ijjs:ijje,jk) * zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+                     zsfcrs = SUM(                                   zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+                     p_fld_crs(ji,jj,jk) = zflcrs
+                     IF( zsfcrs /= 0.0 )  p_fld_crs(ji,jj,jk) = zflcrs / zsfcrs
+                     p_fld_crs(ji,jj,jk) = 10 ** ( p_fld_crs(ji,jj,jk) *  p_mask_crs(ji,jj,jk) ) * p_mask_crs(ji,jj,jk)
                   ENDDO
                ENDDO
             ENDDO
@@ -611,174 +516,125 @@ CONTAINS
             STOP
          END SELECT
 
-         DEALLOCATE ( zsurf, zsurfmsk )
+         CALL wrk_dealloc( jpi, jpj, jpk, zsurf, zsurfmsk ,ztabtmp )
+
+      CASE ( 'MED' )
+
+         CALL wrk_alloc( jpi, jpj, jpk, zsurf, zsurfmsk )
+
+         SELECT CASE ( cd_type )
+
+         CASE( 'T', 'W' )
+            DO jk = 1, jpk
+               zsurf   (:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk) *  p_mask(:,:,jk)
+               zsurfmsk(:,:,jk) =  zsurf(:,:,jk)
+            ENDDO
+            !
+            DO jk = 1, jpk
+
+               DO jj  = nldj_crs,nlej_crs
+
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  inj  = ijje-ijjs+1
+
+                  DO ji = nldi_crs, nlei_crs
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+                     ini  = ijie-ijis+1
+
+                     ztmp(1:ini,1:inj)= p_fld(ijis:ijie,ijjs:ijje,jk)
+                     zdim1(1) = nn_factx*nn_facty
+                     ztmp1(:) = RESHAPE( ztmp(:,:) , zdim1 )
+                     CALL PIKSRT(nn_factx*nn_facty,ztmp1)
+
+                     ir=0
+                     jr=1
+                     DO WHILE( jr .LE. nn_factx*nn_facty )
+                        IF( ztmp1(jr) == 0. ) THEN
+                           ir=jr
+                           jr=jr+1
+                        ELSE
+                           EXIT
+                        ENDIF
+                     ENDDO
+                     IF( ir .LE. nn_factx*nn_facty-1 )THEN
+                        ALLOCATE( ztmp2(nn_factx*nn_facty-ir) )
+                        ztmp2(1:nn_factx*nn_facty-ir) = ztmp1(1+ir:nn_factx*nn_facty)
+                        jr=INT( 0.5 * REAL(nn_factx*nn_facty-ir,wp) )+1
+                        p_fld_crs(ji,jj,jk) = ztmp2(jr)
+                        DEALLOCATE( ztmp2 )
+                     ELSE
+                        p_fld_crs(ji,jj,jk) = 0._wp
+                     ENDIF
+
+                  ENDDO
+               ENDDO
+            ENDDO
+         CASE DEFAULT
+            STOP
+         END SELECT
+
+         CALL wrk_dealloc( jpi, jpj, jpk, zsurf, zsurfmsk )
 
       CASE ( 'SUM' )
 
-         ALLOCATE ( zsurfmsk(jpi,jpj,jpk) )
+         CALL wrk_alloc( jpi, jpj, jpk, zsurfmsk )
 
-         SELECT CASE ( cd_type )
-         CASE( 'W' )
-            IF( PRESENT( p_e3 ) ) THEN
-               zsurfmsk(:,:,1) =  p_e12(:,:) * p_e3(:,:,1) * p_mask(:,:,1)
-               DO jk = 2, jpk
-                  zsurfmsk(:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk) * p_mask(:,:,jk-1)
-               ENDDO
-            ELSE
-               zsurfmsk(:,:,1) =  p_e12(:,:) * p_mask(:,:,1)
-               DO jk = 2, jpk
-                  zsurfmsk(:,:,jk) =  p_e12(:,:) * p_mask(:,:,jk-1)
-               ENDDO
-            ENDIF
-         CASE DEFAULT
-            IF( PRESENT( p_e3 ) ) THEN
-               DO jk = 1, jpk
-                  zsurfmsk(:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk) * p_mask(:,:,jk)
-               ENDDO
-            ELSE
-               DO jk = 1, jpk
-                  zsurfmsk(:,:,jk) =  p_e12(:,:) * p_mask(:,:,jk)
-               ENDDO
-            ENDIF
-         END SELECT
+         IF( PRESENT( p_e3 ) ) THEN
+            DO jk = 1, jpk
+               zsurfmsk(:,:,jk) =  p_e12(:,:) * p_e3(:,:,jk) * p_mask(:,:,jk)
+            ENDDO
+         ELSE
+            DO jk = 1, jpk
+               zsurfmsk(:,:,jk) =  p_e12(:,:) * p_mask(:,:,jk)
+            ENDDO
+         ENDIF
 
          SELECT CASE ( cd_type )
 
          CASE( 'T', 'W' )
 
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  je_2 = mje_crs(2)
-                  DO jk = 1, jpk
-                     DO ji = nistr, niend, nn_factx
-                        ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                        zflcrs  =  p_fld(ji  ,je_2,jk) * zsurfmsk(ji  ,je_2,jk) &
-                           &      + p_fld(ji+1,je_2,jk) * zsurfmsk(ji+1,je_2,jk) &
-                           &      + p_fld(ji+2,je_2,jk) * zsurfmsk(ji+2,je_2,jk)
-                        !
-                        p_fld_crs(ii,2,jk) = zflcrs
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ELSE
-               je_2 = mjs_crs(2)
-               DO jk = 1, jpk
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     zflcrs  =  p_fld(ji  ,je_2  ,jk) * zsurfmsk(ji  ,je_2  ,jk)  &
-                        &      + p_fld(ji+1,je_2  ,jk) * zsurfmsk(ji+1,je_2  ,jk)  &
-                        &      + p_fld(ji+2,je_2  ,jk) * zsurfmsk(ji+2,je_2  ,jk)  &
-                        &      + p_fld(ji  ,je_2+1,jk) * zsurfmsk(ji  ,je_2+1,jk)  &
-                        &      + p_fld(ji+1,je_2+1,jk) * zsurfmsk(ji+1,je_2+1,jk)  &
-                        &      + p_fld(ji+2,je_2+1,jk) * zsurfmsk(ji+2,je_2+1,jk)  &
-                        &      + p_fld(ji  ,je_2+2,jk) * zsurfmsk(ji  ,je_2+2,jk)  &
-                        &      + p_fld(ji+1,je_2+2,jk) * zsurfmsk(ji+1,je_2+2,jk)  &
-                        &      + p_fld(ji+2,je_2+2,jk) * zsurfmsk(ji+2,je_2+2,jk)
-                     !
-                     p_fld_crs(ii,2,jk) = zflcrs
-                  ENDDO
-               ENDDO
-            ENDIF
-            !
             DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii  = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                     ij  = ( jj - njstr ) * rfacty_r + 3
-                     zflcrs  =  p_fld(ji  ,jj  ,jk) * zsurfmsk(ji  ,jj  ,jk)  &
-                        &      + p_fld(ji+1,jj  ,jk) * zsurfmsk(ji+1,jj  ,jk)  &
-                        &      + p_fld(ji+2,jj  ,jk) * zsurfmsk(ji+2,jj  ,jk)  &
-                        &      + p_fld(ji  ,jj+1,jk) * zsurfmsk(ji  ,jj+1,jk)  &
-                        &      + p_fld(ji+1,jj+1,jk) * zsurfmsk(ji+1,jj+1,jk)  &
-                        &      + p_fld(ji+2,jj+1,jk) * zsurfmsk(ji+2,jj+1,jk)  &
-                        &      + p_fld(ji  ,jj+2,jk) * zsurfmsk(ji  ,jj+2,jk)  &
-                        &      + p_fld(ji+1,jj+2,jk) * zsurfmsk(ji+1,jj+2,jk)  &
-                        &      + p_fld(ji+2,jj+2,jk) * zsurfmsk(ji+2,jj+2,jk)
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
+               DO jj  = nldj_crs,nlej_crs
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  DO ji = nldi_crs, nlei_crs
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+
+                     p_fld_crs(ji,jj,jk) = SUM( p_fld(ijis:ijie,ijjs:ijje,jk) * zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
                   ENDDO
                ENDDO
             ENDDO
 
          CASE( 'V' )
 
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  ijje = mje_crs(2)
-               ENDIF
-            ELSE
-               ijje = mjs_crs(2)
-            ENDIF
-            !
+
             DO jk = 1, jpk
-               DO ji = nistr, niend, nn_factx
-                  ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                  zflcrs  =  p_fld(ji  ,ijje,jk) * zsurfmsk(ji  ,ijje,jk) &
-                     &      + p_fld(ji+1,ijje,jk) * zsurfmsk(ji+1,ijje,jk) &
-                     &      + p_fld(ji+2,ijje,jk) * zsurfmsk(ji+2,ijje,jk)
-                  !
-                  p_fld_crs(ii,2,jk) = zflcrs
-               ENDDO
-            ENDDO
-            !
-            DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                     ij   = ( jj - njstr ) * rfacty_r + 3
-                     ijje = mje_crs(ij)
-                     zflcrs  =  p_fld(ji  ,ijje,jk) * zsurfmsk(ji  ,ijje,jk) &
-                        &      + p_fld(ji+1,ijje,jk) * zsurfmsk(ji+1,ijje,jk) &
-                        &      + p_fld(ji+2,ijje,jk) * zsurfmsk(ji+2,ijje,jk)
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
+               DO jj  = nldj_crs,nlej_crs
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  DO ji = nldi_crs, nlei_crs
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+
+                     p_fld_crs(ji,jj,jk) = SUM( p_fld(ijis:ijie,ijje,jk) * zsurfmsk(ijis:ijie,ijje,jk) )
                   ENDDO
                ENDDO
             ENDDO
 
          CASE( 'U' )
 
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  je_2 = mje_crs(2)
-                  DO jk = 1, jpk
-                     DO ji = nistr, niend, nn_factx
-                        ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                        ijie = mie_crs(ii)
-                        zflcrs  =  p_fld(ijie,je_2,jk) * zsurfmsk(ijie,je_2,jk)
-                        p_fld_crs(ii,2,jk) = zflcrs
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ELSE
-               je_2 = mjs_crs(2)
-               DO jk = 1, jpk
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     ijie = mie_crs(ii)
-                     zflcrs =  p_fld(ijie,je_2  ,jk) * zsurfmsk(ijie,je_2  ,jk)  &
-                        &     + p_fld(ijie,je_2+1,jk) * zsurfmsk(ijie,je_2+1,jk)  &
-                        &     + p_fld(ijie,je_2+2,jk) * zsurfmsk(ijie,je_2+2,jk)
-
-                     p_fld_crs(ii,2,jk) = zflcrs
-                  ENDDO
-               ENDDO
-            ENDIF
-            !
             DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     ij   = ( jj - njstr ) * rfacty_r + 3
-                     ijie = mie_crs(ii)
-                     zflcrs =  p_fld(ijie,jj  ,jk) * zsurfmsk(ijie,jj  ,jk)  &
-                        &    + p_fld(ijie,jj+1,jk) * zsurfmsk(ijie,jj+1,jk)  &
-                        &    + p_fld(ijie,jj+2,jk) * zsurfmsk(ijie,jj+2,jk)
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
+               DO jj  = nldj_crs,nlej_crs
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  DO ji = nldi_crs, nlei_crs
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+
+                     p_fld_crs(ji,jj,jk) = SUM( p_fld(ijie,ijjs:ijje,jk) * zsurfmsk(ijie,ijjs:ijje,jk) )
                   ENDDO
                ENDDO
             ENDDO
@@ -789,344 +645,74 @@ CONTAINS
             WHERE ( p_surf_crs /= 0.0 ) p_fld_crs(:,:,:) = p_fld_crs(:,:,:) / p_surf_crs(:,:,:)
          ENDIF
 
-         DEALLOCATE ( zsurfmsk )
+         CALL wrk_dealloc( jpi, jpj, jpk, zsurfmsk )
 
       CASE ( 'MAX' )    !  search the max of unmasked grid cells
 
-         ALLOCATE ( zmask(jpi,jpj,jpk) )
+         CALL wrk_alloc( jpi, jpj, jpk, zmask )
 
-         SELECT CASE ( cd_type )
-         CASE( 'W' )
-            zmask(:,:,1) = p_mask(:,:,1)
-            DO jk = 2, jpk
-               zmask(:,:,jk) = p_mask(:,:,jk-1)
-            ENDDO
-         CASE ( 'T' )
-            DO jk = 1, jpk
-               zmask(:,:,jk) = p_mask(:,:,jk)
-            ENDDO
-         END SELECT
+         DO jk = 1, jpk
+            zmask(:,:,jk) = p_mask(:,:,jk)
+         ENDDO
 
          SELECT CASE ( cd_type )
 
          CASE( 'T', 'W' )
 
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  je_2 = mje_crs(2)
-                  DO jk = 1, jpk
-                     DO ji = nistr, niend, nn_factx
-                        ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                        zflcrs =  &
-                           & MAX( p_fld(ji  ,je_2,jk) * zmask(ji  ,je_2,jk) - ( 1.- zmask(ji  ,je_2,jk) ) * r_inf ,  &
-                           &      p_fld(ji+1,je_2,jk) * zmask(ji+1,je_2,jk) - ( 1.- zmask(ji+1,je_2,jk) ) * r_inf ,  &
-                           &      p_fld(ji+2,je_2,jk) * zmask(ji+2,je_2,jk) - ( 1.- zmask(ji+2,je_2,jk) ) * r_inf  )
-                        !
-                        p_fld_crs(ii,2,jk) = zflcrs
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ELSE
-               je_2 = mjs_crs(2)
-               DO jk = 1, jpk
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     zflcrs =  &
-                        & MAX( p_fld(ji  ,je_2  ,jk) * zmask(ji  ,je_2  ,jk) - ( 1.- zmask(ji  ,je_2  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,je_2  ,jk) * zmask(ji+1,je_2  ,jk) - ( 1.- zmask(ji+1,je_2  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,je_2  ,jk) * zmask(ji+2,je_2  ,jk) - ( 1.- zmask(ji+2,je_2  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,je_2+1,jk) * zmask(ji  ,je_2+1,jk) - ( 1.- zmask(ji  ,je_2+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,je_2+1,jk) * zmask(ji+1,je_2+1,jk) - ( 1.- zmask(ji+1,je_2+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,je_2+1,jk) * zmask(ji+2,je_2+1,jk) - ( 1.- zmask(ji+2,je_2+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,je_2+2,jk) * zmask(ji  ,je_2+2,jk) - ( 1.- zmask(ji  ,je_2+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,je_2+2,jk) * zmask(ji+1,je_2+2,jk) - ( 1.- zmask(ji+1,je_2+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,je_2+2,jk) * zmask(ji+2,je_2+2,jk) - ( 1.- zmask(ji+2,je_2+2,jk) ) * r_inf   )
-                     !
-                     p_fld_crs(ii,2,jk) = zflcrs
-                  ENDDO
-               ENDDO
-            ENDIF
-            !
             DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii  = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                     ij  = ( jj - njstr ) * rfacty_r + 3
-                     zflcrs =  &
-                        & MAX( p_fld(ji  ,jj  ,jk) * zmask(ji  ,jj  ,jk) - ( 1.- zmask(ji  ,jj  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,jj  ,jk) * zmask(ji+1,jj  ,jk) - ( 1.- zmask(ji+1,jj  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,jj  ,jk) * zmask(ji+2,jj  ,jk) - ( 1.- zmask(ji+2,jj  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,jj+1,jk) * zmask(ji  ,jj+1,jk) - ( 1.- zmask(ji  ,jj+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,jj+1,jk) * zmask(ji+1,jj+1,jk) - ( 1.- zmask(ji+1,jj+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,jj+1,jk) * zmask(ji+2,jj+1,jk) - ( 1.- zmask(ji+2,jj+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,jj+2,jk) * zmask(ji  ,jj+2,jk) - ( 1.- zmask(ji  ,jj+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,jj+2,jk) * zmask(ji+1,jj+2,jk) - ( 1.- zmask(ji+1,jj+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,jj+2,jk) * zmask(ji+2,jj+2,jk) - ( 1.- zmask(ji+2,jj+2,jk) ) * r_inf   )
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
+               DO jj  = nldj_crs,nlej_crs
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  DO ji = nldi_crs, nlei_crs
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+                     p_fld_crs(ji,jj,jk) = MAXVAL( p_fld(ijis:ijie,ijjs:ijje,jk) * zmask(ijis:ijie,ijjs:ijje,jk) - &
+                        & ( ( 1._wp - zmask(ijis:ijie,ijjs:ijje,jk))* r_inf )                )
                   ENDDO
                ENDDO
             ENDDO
 
          CASE( 'V' )
-
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  ijje = mje_crs(2)
-               ENDIF
-            ELSE
-               ijje = mjs_crs(2)
-            ENDIF
-
-            DO jk = 1, jpk
-               DO ji = nistr, niend, nn_factx
-                  ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                  zflcrs = &
-                     & MAX( p_fld(ji  ,ijje,jk) * p_mask(ji  ,ijje,jk) - ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                     &      p_fld(ji+1,ijje,jk) * p_mask(ji+1,ijje,jk) - ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                     &      p_fld(ji+2,ijje,jk) * p_mask(ji+2,ijje,jk) - ( 1.- p_mask(ji,ijje,jk) ) * r_inf )
-                  !
-                  p_fld_crs(ii,2,jk) = zflcrs
-               ENDDO
-            ENDDO
-            !
-            DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii  = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                     ij  = ( jj - njstr ) * rfacty_r + 3
-                     ijje = mje_crs(ij)
-                     !
-                     zflcrs = &
-                        & MAX( p_fld(ji  ,ijje,jk) * p_mask(ji  ,ijje,jk) - ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,ijje,jk) * p_mask(ji+1,ijje,jk) - ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,ijje,jk) * p_mask(ji+2,ijje,jk) - ( 1.- p_mask(ji,ijje,jk) ) * r_inf )
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
-                  ENDDO
-               ENDDO
-            ENDDO
-
+            CALL ctl_stop('MAX operator and V case not available')
 
          CASE( 'U' )
-
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  je_2 = mje_crs(2)
-                  DO jk = 1, jpk
-                     DO ji = nistr, niend, nn_factx
-                        ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                        ijie = mie_crs(ii)
-                        zflcrs = p_fld(ijie,je_2,jk) * p_mask(ijie,je_2,jk) - ( 1.- p_mask(ijie,je_2,jk) ) * r_inf
-                        !
-                        p_fld_crs(ii,2,jk) = zflcrs
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ELSE
-               je_2 = mjs_crs(2)
-               DO jk = 1, jpk
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     ijie = mie_crs(ii)
-                     zflcrs = &
-                        & MAX( p_fld(ijie,je_2  ,jk) * p_mask(ijie,je_2  ,jk) - ( 1.- p_mask(ijie,je_2,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,je_2+1,jk) * p_mask(ijie,je_2+1,jk) - ( 1.- p_mask(ijie,je_2,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,je_2+2,jk) * p_mask(ijie,je_2+2,jk) - ( 1.- p_mask(ijie,je_2,jk) ) * r_inf  )
-                     !
-                     p_fld_crs(ii,2,jk) = zflcrs
-                  ENDDO
-               ENDDO
-            ENDIF
-            !
-            DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     ij   = ( jj - njstr ) * rfacty_r + 3
-                     ijie = mie_crs(ii)
-                     zflcrs =  &
-                        & MAX( p_fld(ijie,jj  ,jk) * p_mask(ijie,jj  ,jk) - ( 1.- p_mask(ijie,jj,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,jj+1,jk) * p_mask(ijie,jj+1,jk) - ( 1.- p_mask(ijie,jj,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,jj+2,jk) * p_mask(ijie,jj+2,jk) - ( 1.- p_mask(ijie,jj,jk) ) * r_inf  )
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
-                  ENDDO
-               ENDDO
-            ENDDO
+            CALL ctl_stop('MAX operator and U case not available')
 
          END SELECT
 
-         DEALLOCATE ( zmask )
+         CALL wrk_dealloc( jpi, jpj, jpk, zmask )
 
       CASE ( 'MIN' )      !   Search the min of unmasked grid cells
 
-         ALLOCATE ( zmask(jpi,jpj,jpk) )
-
-         SELECT CASE ( cd_type )
-         CASE( 'W' )
-            zmask(:,:,1) = p_mask(:,:,1)
-            DO jk = 2, jpk
-               zmask(:,:,jk) = p_mask(:,:,jk-1)
-            ENDDO
-         CASE ( 'T' )
-            DO jk = 1, jpk
-               zmask(:,:,jk) = p_mask(:,:,jk)
-            ENDDO
-         END SELECT
+         CALL wrk_alloc( jpi, jpj, jpk, zmask )
+         DO jk = 1, jpk
+            zmask(:,:,jk) = p_mask(:,:,jk)
+         ENDDO
 
          SELECT CASE ( cd_type )
 
          CASE( 'T', 'W' )
 
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  je_2 = mje_crs(2)
-                  DO jk = 1, jpk
-                     DO ji = nistr, niend, nn_factx
-                        ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                        zflcrs =  &
-                           & MIN( p_fld(ji  ,je_2,jk) * zmask(ji  ,je_2,jk) + ( 1.- zmask(ji  ,je_2,jk) ) * r_inf ,  &
-                           &      p_fld(ji+1,je_2,jk) * zmask(ji+1,je_2,jk) + ( 1.- zmask(ji+1,je_2,jk) ) * r_inf ,  &
-                           &      p_fld(ji+2,je_2,jk) * zmask(ji+2,je_2,jk) + ( 1.- zmask(ji+2,je_2,jk) ) * r_inf  )
-                        !
-                        p_fld_crs(ii,2,jk) = zflcrs
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ELSE
-               je_2 = mjs_crs(2)
-               DO jk = 1, jpk
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     zflcrs =  &
-                        & MIN( p_fld(ji  ,je_2  ,jk) * zmask(ji  ,je_2  ,jk) + ( 1.- zmask(ji  ,je_2  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,je_2  ,jk) * zmask(ji+1,je_2  ,jk) + ( 1.- zmask(ji+1,je_2  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,je_2  ,jk) * zmask(ji+2,je_2  ,jk) + ( 1.- zmask(ji+2,je_2  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,je_2+1,jk) * zmask(ji  ,je_2+1,jk) + ( 1.- zmask(ji  ,je_2+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,je_2+1,jk) * zmask(ji+1,je_2+1,jk) + ( 1.- zmask(ji+1,je_2+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,je_2+1,jk) * zmask(ji+2,je_2+1,jk) + ( 1.- zmask(ji+2,je_2+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,je_2+2,jk) * zmask(ji  ,je_2+2,jk) + ( 1.- zmask(ji  ,je_2+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,je_2+2,jk) * zmask(ji+1,je_2+2,jk) + ( 1.- zmask(ji+1,je_2+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,je_2+2,jk) * zmask(ji+2,je_2+2,jk) + ( 1.- zmask(ji+2,je_2+2,jk) ) * r_inf   )
-                     !
-                     p_fld_crs(ii,2,jk) = zflcrs
-                  ENDDO
-               ENDDO
-            ENDIF
-            !
             DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii  = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                     ij  = ( jj - njstr ) * rfacty_r + 3
-                     zflcrs =  &
-                        & MIN( p_fld(ji  ,jj  ,jk) * zmask(ji  ,jj  ,jk) + ( 1.- zmask(ji  ,jj  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,jj  ,jk) * zmask(ji+1,jj  ,jk) + ( 1.- zmask(ji+1,jj  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,jj  ,jk) * zmask(ji+2,jj  ,jk) + ( 1.- zmask(ji+2,jj  ,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,jj+1,jk) * zmask(ji  ,jj+1,jk) + ( 1.- zmask(ji  ,jj+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,jj+1,jk) * zmask(ji+1,jj+1,jk) + ( 1.- zmask(ji+1,jj+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,jj+1,jk) * zmask(ji+2,jj+1,jk) + ( 1.- zmask(ji+2,jj+1,jk) ) * r_inf ,  &
-                        &      p_fld(ji  ,jj+2,jk) * zmask(ji  ,jj+2,jk) + ( 1.- zmask(ji  ,jj+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,jj+2,jk) * zmask(ji+1,jj+2,jk) + ( 1.- zmask(ji+1,jj+2,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,jj+2,jk) * zmask(ji+2,jj+2,jk) + ( 1.- zmask(ji+2,jj+2,jk) ) * r_inf   )
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
+               DO jj  = nldj_crs,nlej_crs
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  DO ji = nldi_crs, nlei_crs
+                     ijis = mis_crs(ji)
+                     ijie = mie_crs(ji)
+
+                     p_fld_crs(ji,jj,jk) = MINVAL( p_fld(ijis:ijie,ijjs:ijje,jk) * zmask(ijis:ijie,ijjs:ijje,jk) + &
+                        & ( 1._wp - zmask(ijis:ijie,ijjs:ijje,jk)* r_inf )                )
                   ENDDO
                ENDDO
             ENDDO
+
 
          CASE( 'V' )
-
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  ijje = mje_crs(2)
-               ENDIF
-            ELSE
-               ijje = mjs_crs(2)
-            ENDIF
-
-            DO jk = 1, jpk
-               DO ji = nistr, niend, nn_factx
-                  ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                  zflcrs = &
-                     & MIN( p_fld(ji  ,ijje,jk) * p_mask(ji  ,ijje,jk) + ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                     &      p_fld(ji+1,ijje,jk) * p_mask(ji+1,ijje,jk) + ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                     &      p_fld(ji+2,ijje,jk) * p_mask(ji+2,ijje,jk) + ( 1.- p_mask(ji,ijje,jk) ) * r_inf )
-                  !
-                  p_fld_crs(ii,2,jk) = zflcrs
-               ENDDO
-            ENDDO
-            !
-            DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii  = ( ji - mis_crs(2) ) * rfactx_r + 2                 ! cordinate in parent grid
-                     ij  = ( jj - njstr ) * rfacty_r + 3
-                     ijje = mje_crs(ij)
-                     zflcrs = &
-                        & MIN( p_fld(ji  ,ijje,jk) * p_mask(ji  ,ijje,jk) + ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                        &      p_fld(ji+1,ijje,jk) * p_mask(ji+1,ijje,jk) + ( 1.- p_mask(ji,ijje,jk) ) * r_inf ,  &
-                        &      p_fld(ji+2,ijje,jk) * p_mask(ji+2,ijje,jk) + ( 1.- p_mask(ji,ijje,jk) ) * r_inf )
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
-                  ENDDO
-               ENDDO
-            ENDDO
-
+            CALL ctl_stop('MIN operator and V case not available')
 
          CASE( 'U' )
-
-            IF( nldj_crs == 1 .AND. ( ( mje_crs(2) - mjs_crs(2) ) < 2 ) ) THEN     !!cc bande du sud style ORCA2
-               IF( mje_crs(2) - mjs_crs(2) == 1 ) THEN
-                  je_2 = mje_crs(2)
-                  DO jk = 1, jpk
-                     DO ji = nistr, niend, nn_factx
-                        ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                        ijie = mie_crs(ii)
-                        zflcrs = p_fld(ijie,je_2,jk) * p_mask(ijie,je_2,jk) + ( 1.- p_mask(ijie,je_2,jk) ) * r_inf
-                        !
-                        p_fld_crs(ii,2,jk) = zflcrs
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ELSE
-               je_2 = mjs_crs(2)
-               DO jk = 1, jpk
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     ijie = mie_crs(ii)
-                     zflcrs = &
-                        & MIN( p_fld(ijie,je_2  ,jk) * p_mask(ijie,je_2  ,jk) + ( 1.- p_mask(ijie,je_2,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,je_2+1,jk) * p_mask(ijie,je_2+1,jk) + ( 1.- p_mask(ijie,je_2,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,je_2+2,jk) * p_mask(ijie,je_2+2,jk) + ( 1.- p_mask(ijie,je_2,jk) ) * r_inf  )
-                     !
-                     p_fld_crs(ii,2,jk) = zflcrs
-                  ENDDO
-               ENDDO
-            ENDIF
-            !
-            DO jk = 1, jpk
-               DO jj  = njstr, njend, nn_facty
-                  DO ji = nistr, niend, nn_factx
-                     ii   = ( ji - mis_crs(2) ) * rfactx_r + 2
-                     ij   = ( jj - njstr ) * rfacty_r + 3
-                     ijie = mie_crs(ii)
-                     zflcrs = &
-                        & MIN( p_fld(ijie,jj  ,jk) * p_mask(ijie,jj  ,jk) + ( 1.- p_mask(ijie,jj,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,jj+1,jk) * p_mask(ijie,jj+1,jk) + ( 1.- p_mask(ijie,jj,jk) ) * r_inf ,  &
-                        &      p_fld(ijie,jj+2,jk) * p_mask(ijie,jj+2,jk) + ( 1.- p_mask(ijie,jj,jk) ) * r_inf  )
-                     !
-                     p_fld_crs(ii,ij,jk) = zflcrs
-                     !
-                  ENDDO
-               ENDDO
-            ENDDO
+            CALL ctl_stop('MIN operator and U case not available')
 
          END SELECT
          !
@@ -1926,7 +1512,7 @@ CONTAINS
       PRINT *, ' ### mod_crs.f90 ### jpiglo, jpjglo = ', jpiglo, jpjglo
       PRINT *, ' ### mod_crs.f90 ### jpi, jpj = ', jpi, jpj
       PRINT *, ''
-      
+
       ! 1.a. Define global domain indices  : take into account the interior domain only ( removes i/j=1 , i/j=jpiglo/jpjglo ) then add 2/3 grid points
       jpiglo_crs   = INT( (jpiglo - 2) / nn_factx ) + 2
       !    jpjglo_crs   = INT( (jpjglo - 2) / nn_facty ) + 2  ! the -2 removes j=1, j=jpj
@@ -1961,7 +1547,7 @@ CONTAINS
       ELSE
          STOP 'MPP not supported!'
       END IF
-      
+
       !                         Save the parent grid information
       jpi_full    = jpi
       jpj_full    = jpj
@@ -1993,14 +1579,14 @@ CONTAINS
 
 
       PRINT *, ' ### mod_crs.f90 ### jpiglo_crs, jpjglo_crs = ', jpiglo_crs, jpjglo_crs
-      
+
       !STOP 'mod_crs.f90'
-      
+
       PRINT *, ''
       PRINT *, 'Achtung! CALLING dom_grid_crs !!!'
       CALL dom_grid_crs  !swich de grille
       PRINT *, ''
-      
+
 
       IF(lwp) THEN
          WRITE(numout,*)
