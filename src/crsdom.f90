@@ -90,10 +90,10 @@ CONTAINS
          ENDDO
       ENDDO
 
-      CALL crs_lbc_lnk( tmask_crs, 'T', 1.0 )
-      CALL crs_lbc_lnk( vmask_crs, 'V', 1.0 )
-      CALL crs_lbc_lnk( umask_crs, 'U', 1.0 )
-      CALL crs_lbc_lnk( fmask_crs, 'F', 1.0 )
+      !CALL crs_lbc_lnk( tmask_crs, 'T', 1.0 )
+      !CALL crs_lbc_lnk( vmask_crs, 'V', 1.0 )
+      !CALL crs_lbc_lnk( umask_crs, 'U', 1.0 )
+      !CALL crs_lbc_lnk( fmask_crs, 'F', 1.0 )
       !
    END SUBROUTINE crs_dom_msk
 
@@ -177,8 +177,8 @@ CONTAINS
       WRITE(narea+1000-1,*)"end glam_crs gphi_crs ",p_glam_crs(1,2),p_gphi_crs(1,2)
 
       ! Retroactively add back the boundary halo cells.
-      !????      CALL crs_lbc_lnk( p_gphi_crs, cd_type, 1.0 )
-      !????      CALL crs_lbc_lnk( p_glam_crs, cd_type, 1.0 )
+      !????      !CALL crs_lbc_lnk( p_gphi_crs, cd_type, 1.0 )
+      !????      !CALL crs_lbc_lnk( p_glam_crs, cd_type, 1.0 )
       WRITE(narea+1000-1,*)"end1 glam_crs gphi_crs ",p_glam_crs(1,2),p_gphi_crs(1,2)
       !
    END SUBROUTINE crs_dom_coordinates
@@ -250,8 +250,8 @@ CONTAINS
       ENDDO
 
 
-      CALL crs_lbc_lnk( p_e1_crs, cd_type, 1.0 )
-      CALL crs_lbc_lnk( p_e2_crs, cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_e1_crs, cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_e2_crs, cd_type, 1.0 )
 
    END SUBROUTINE crs_dom_hgr
 
@@ -342,8 +342,8 @@ CONTAINS
          ENDDO
       ENDDO
       !                                             !  Retroactively add back the boundary halo cells.
-      CALL crs_lbc_lnk( p_fld1_crs, cd_type, 1.0 )
-      CALL crs_lbc_lnk( p_fld2_crs, cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_fld1_crs, cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_fld2_crs, cd_type, 1.0 )
       !
       DEALLOCATE ( zvol, zmask )
       !
@@ -634,10 +634,10 @@ CONTAINS
             ENDDO
 
          CASE( 'V' )
-            CALL ctl_stop('MAX operator and V case not available')
+            PRINT *, 'ctl_stop ERROR: MAX OPERATOR and V CASE not available'; STOP
 
          CASE( 'U' )
-            CALL ctl_stop('MAX operator and U case not available')
+            PRINT *, 'ctl_stop ERROR: MAX operator and U case not available'; STOP
 
          END SELECT
 
@@ -670,10 +670,10 @@ CONTAINS
 
 
          CASE( 'V' )
-            CALL ctl_stop('MIN operator and V case not available')
+            PRINT *, 'ctl_stop ERROR: MIN operator and V case not available'; STOP
 
          CASE( 'U' )
-            CALL ctl_stop('MIN operator and U case not available')
+            PRINT *, 'ctl_stop ERROR: MIN operator and U case not available'; STOP
 
          END SELECT
          !
@@ -681,7 +681,7 @@ CONTAINS
          !
       END SELECT
       !
-      CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
+      !CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
       !
    END SUBROUTINE crs_dom_ope_3d
 
@@ -829,10 +829,10 @@ CONTAINS
             ENDDO
 
          CASE( 'V' )
-            CALL ctl_stop('MAX operator and V case not available')
+            PRINT *, 'ctl_stop ERROR: MAX operator and V case not available'; STOP
 
          CASE( 'U' )
-            CALL ctl_stop('MAX operator and U case not available')
+            PRINT *, 'ctl_stop ERROR: MAX operator and U case not available'; STOP
 
          END SELECT
 
@@ -854,16 +854,16 @@ CONTAINS
             ENDDO
 
          CASE( 'V' )
-            CALL ctl_stop('MIN operator and V case not available')
+            PRINT *, 'ctl_stop ERROR: MIN operator and V case not available'; STOP
 
          CASE( 'U' )
-            CALL ctl_stop('MIN operator and U case not available')
+            PRINT *, 'ctl_stop ERROR: MIN operator and U case not available'; STOP
 
          END SELECT
          !
       END SELECT
       !
-      CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
+      !CALL crs_lbc_lnk( p_fld_crs, cd_type, psgn )
       !
    END SUBROUTINE crs_dom_ope_2d
 
@@ -985,8 +985,8 @@ CONTAINS
 
       END SELECT
 
-      CALL crs_lbc_lnk( p_e3_max_crs, cd_type, 1.0 )
-      CALL crs_lbc_lnk( p_e3_crs    , cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_e3_max_crs, cd_type, 1.0 )
+      !CALL crs_lbc_lnk( p_e3_crs    , cd_type, 1.0 )
 
    END SUBROUTINE crs_dom_e3
 
@@ -1090,8 +1090,8 @@ CONTAINS
 
       END SELECT
 
-      CALL crs_lbc_lnk( p_surf_crs    , cd_type , 1. )
-      CALL crs_lbc_lnk( p_surf_crs_msk, cd_type , 1. )
+      !CALL crs_lbc_lnk( p_surf_crs    , cd_type , 1. )
+      !CALL crs_lbc_lnk( p_surf_crs_msk, cd_type , 1. )
 
       DEALLOCATE ( zsurf, zsurfmsk )
 
@@ -1192,7 +1192,7 @@ CONTAINS
       !#LOLO_BUG! ALLOCATE ( zmbk(jpi_crs,jpj_crs) )
 
       zmbk(:,:) = 0.0
-      zmbk(:,:) = REAL( mbathy_crs(:,:), wp ) ;   CALL crs_lbc_lnk(zmbk,'T',1.0)   ;   mbathy_crs(:,:) = INT( zmbk(:,:) )
+      zmbk(:,:) = REAL( mbathy_crs(:,:), wp ) ;   !CALL crs_lbc_lnk(zmbk,'T',1.0)   ;   mbathy_crs(:,:) = INT( zmbk(:,:) )
 
 
       !
@@ -1212,8 +1212,10 @@ CONTAINS
 
       ! convert into REAL to use lbc_lnk ; impose a min value of 1 as a zero can be set in lbclnk
       zmbk(:,:) = 1.e0;
-      zmbk(:,:) = REAL( mbku_crs(:,:), wp )   ;   CALL crs_lbc_lnk(zmbk,'U',1.0) ; mbku_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
-      zmbk(:,:) = REAL( mbkv_crs(:,:), wp )   ;   CALL crs_lbc_lnk(zmbk,'V',1.0) ; mbkv_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
+      zmbk(:,:) = REAL( mbku_crs(:,:), wp )   ;   !CALL crs_lbc_lnk(zmbk,'U',1.0) ;
+      mbku_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
+      zmbk(:,:) = REAL( mbkv_crs(:,:), wp )   ;   !CALL crs_lbc_lnk(zmbk,'V',1.0)
+      mbkv_crs  (:,:) = MAX( INT( zmbk(:,:) ), 1 )
       !
       DEALLOCATE ( zmbk )
       !
