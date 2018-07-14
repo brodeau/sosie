@@ -16,7 +16,7 @@ PROGRAM NEMO_COARSENER
 
    REAL(wp), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   !INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
+   INTEGER :: ji, jj
    !!
 
    !! Coupe stuff:
@@ -330,8 +330,20 @@ PROGRAM NEMO_COARSENER
    jpnj  = 1
    jpnij = 1
    narea = 1 ! (1 proc)
-   ALLOCATE ( nfipproc(jpni,jpnj) )
+   ALLOCATE ( nfipproc(jpni,jpnj), mig(jpi), mjg(jpj) )
    nfipproc(:,:) = 0 !???
+   jpizoom = 1
+   jpjzoom = 1
+   nimpp = 1
+   njmpp =1
+   DO ji = 1, jpi                 ! local domain indices ==> data domain indices
+      mig(ji) = ji + jpizoom - 1 + nimpp - 1
+   END DO
+   DO jj = 1, jpj
+      mjg(jj) = jj + jpjzoom - 1 + njmpp - 1
+   END DO
+   
+
    
    npolj  = 0
    nperio = 0

@@ -1572,6 +1572,11 @@ CONTAINS
          !---------------------------------------------------------------------------------------
          ! J-8 CRS to physic grid: local indices mis_crs and mie_crs and local coarsening factor
          !---------------------------------------------------------------------------------------
+
+         !PRINT *, 'mjg = ', mjg(:)
+         !PRINT *, ' SIZE(mjg,1) = ', SIZE(mjg,1)         
+         !STOP'LOLO! mjg must be allocated!!!'
+         
          DO jj = 1, nlej_crs
             mjs_crs(jj) = mjs2_crs(mjg_crs(jj)) - njmpp + 1
             mje_crs(jj) = mje2_crs(mjg_crs(jj)) - njmpp + 1
