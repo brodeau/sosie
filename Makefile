@@ -1,5 +1,5 @@
 
-#         Makefile for SOSIE 
+#         Makefile for SOSIE
 #         ******************
 
 # Version: trunk
@@ -24,34 +24,41 @@ LIB_CDF = -L$(NCDF_LIB) $(L_NCDF)
 LIB     = -L./lib -lsosie $(LIB_CDF)
 
 
+# Disable implicit rules to speedup build
+.SUFFIXES:
+SUFFIXES :=
+%.o:
+%.mod:
+
+
 OBJ = obj/io_ezcdf.o \
-      obj/mod_conf.o \
-      obj/mod_init.o \
-      obj/mod_manip.o \
-      obj/mod_grids.o \
-      obj/mod_drown.o \
-      obj/mod_akima_2d.o \
-      obj/mod_bilin_2d.o \
-      obj/mod_akima_1d.o \
-      obj/mod_scoord.o \
-      obj/mod_interp.o \
-      obj/mod_nemotools.o \
-      obj/mod_poly.o
+obj/mod_conf.o \
+obj/mod_init.o \
+obj/mod_manip.o \
+obj/mod_grids.o \
+obj/mod_drown.o \
+obj/mod_akima_2d.o \
+obj/mod_bilin_2d.o \
+obj/mod_akima_1d.o \
+obj/mod_scoord.o \
+obj/mod_interp.o \
+obj/mod_nemotools.o \
+obj/mod_poly.o
 
 OBJ_I2GT = obj/io_ezcdf.o \
-           obj/mod_conf.o \
-           obj/mod_manip.o \
-           obj/mod_drown.o \
-           obj/mod_bilin_2d.o \
-           obj/mod_poly.o
+obj/mod_conf.o \
+obj/mod_manip.o \
+obj/mod_drown.o \
+obj/mod_bilin_2d.o \
+obj/mod_poly.o
 
 OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o
 
 
 # Modules to install in $INSTALL_DIR/include :
 MOD_INST= mod/io_ezcdf.mod \
-          mod/mod_akima_2d.mod \
-          mod/mod_drown.mod
+mod/mod_akima_2d.mod \
+mod/mod_drown.mod
 
 all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x bin/ij_from_lon_lat.x
 
@@ -105,7 +112,6 @@ bin/nemo_coarsener_2d.x: src/nemo_coarsener_2d.f90 $(OBJ_CRS) obj/io_ezcdf.o obj
 bin/nemo_coarsener_3d.x: src/nemo_coarsener_3d.f90 obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS)
 	@mkdir -p bin
 	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/nemo_coarsener_3d.f90 -o bin/nemo_coarsener_3d.x $(LIB_CDF)
-
 
 
 
@@ -190,8 +196,3 @@ clean:
 	rm -f bin/* $(LIB_SOSIE) *.out mod/*.mod *.x *~ *\# src/*~ src/*\# *.log
 	rm -rf bin mod lib obj
 	rm -f examples/*.nc4
-
-
-
-
-

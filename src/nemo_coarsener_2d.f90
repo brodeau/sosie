@@ -323,11 +323,16 @@ PROGRAM NEMO_COARSENER
    jperio = 0
 
    noso = -1 !lolo
-   !! No mpp:
+
+   
+   !! We need to fake a MPP with only 1 proc...
    jpni  = 1
    jpnj  = 1
    jpnij = 1
-
+   narea = 1 ! (1 proc)
+   ALLOCATE ( nfipproc(jpni,jpnj) )
+   nfipproc(:,:) = 0 !???
+   
    npolj  = 0
    nperio = 0
 
@@ -347,6 +352,7 @@ PROGRAM NEMO_COARSENER
    rfactx_r = 1. / nn_factx
    rfacty_r = 1. / nn_facty
 
+
    !---------------------------------------------------------
    ! 2. Define Global Dimensions of the coarsened grid
    !---------------------------------------------------------
@@ -360,7 +366,7 @@ PROGRAM NEMO_COARSENER
 
    PRINT *, ''
 
-
+   STOP 'LULU'
 
    ALLOCATE ( tmask(jpi,jpj,jpk), umask(jpi,jpj,jpk), vmask(jpi,jpj,jpk), fmask(jpi,jpj,jpk) )
 
@@ -411,6 +417,8 @@ PROGRAM NEMO_COARSENER
    !  3.a. Get the masks
    CALL crs_dom_msk
 
+   
+   STOP'lulu'
 
    CALL DUMP_2D_FIELD(REAL(tmask_crs(:,:,1),4), 'tmask_crs.tmp', 'tmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    CALL DUMP_2D_FIELD(REAL(umask_crs(:,:,1),4), 'umask_crs.tmp', 'umask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)

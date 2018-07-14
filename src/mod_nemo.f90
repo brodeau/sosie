@@ -8,7 +8,7 @@ MODULE mod_nemo
 
    INTEGER ::   numout          =    6      !: logical unit for output print; Set to stdout to ensure any early
 
-   LOGICAL, PARAMETER :: lk_mpp = .FALSE. ! NO MPP!!!
+   LOGICAL, PARAMETER :: lk_mpp = .TRUE. ! NO MPP!!!
 
    
    INTEGER, PUBLIC, PARAMETER ::   jpreci = 1   !: number of columns for overlap
@@ -73,6 +73,6 @@ MODULE mod_nemo
    INTEGER       ::   jpizoom          !: left bottom (i,j) indices of the zoom
    INTEGER       ::   jpjzoom          !: in data domain indices 
 
-
+   INTEGER, PUBLIC                                  ::   nsndto, nfsloop, nfeloop
 
 END MODULE mod_nemo
