@@ -1,7 +1,4 @@
-MODULE mod_crs_def
-
-   !!     => crs.F90
-
+MODULE crs
    !!======================================================================
    !!                         ***  MODULE crs_dom  ***
    !!        Declare the coarse grid domain and other public variables
@@ -354,7 +351,6 @@ CONTAINS
       jpj    = jpj_full
       jpim1  = jpim1_full
       jpjm1  = jpjm1_full
-      !nperio = nperio_full
 
       npolj  = npolj_full
       jpiglo = jpiglo_full
@@ -391,14 +387,12 @@ CONTAINS
       !!
       !! ** Purpose :  Save the parent grid information & Switch to coarse grid domain
       !!---------------------------------------------------------------------
-
       !
       !                        Switch to coarse grid domain
       jpi    = jpi_crs
       jpj    = jpj_crs
       jpim1  = jpi_crsm1
       jpjm1  = jpj_crsm1
-      nperio = nperio_crs
 
       npolj  = npolj_crs
       jpiglo = jpiglo_crs
@@ -434,4 +428,4 @@ CONTAINS
 
    !!======================================================================
 
-END MODULE mod_crs_def
+END MODULE crs
