@@ -3,8 +3,8 @@ PROGRAM NEMO_COARSENER
    USE io_ezcdf
    USE mod_manip
    USE mod_nemo
-   USE mod_crs_def
-   USE mod_crs
+   USE crs
+   USE crsdom
 
    IMPLICIT NONE
 
@@ -23,6 +23,9 @@ PROGRAM NEMO_COARSENER
    REAL(wp), DIMENSION(:), ALLOCATABLE :: Vt
 
 
+   CHARACTER(len=8), DIMENSION(3), PARAMETER :: csurf_var1 = (/ 'sosstsst', 'sosaline', 'sossheig' /)
+
+   
    !! Grid, default name :
    CHARACTER(len=80) :: &
       &    cv_in, cv_mm, &
@@ -507,21 +510,14 @@ PROGRAM NEMO_COARSENER
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
       xdum_r4 = xdum_r4*REAL(imaskt,4)
+
       
-
-
-      SELECT CASE (TRIM(cv_in))
-         
-      CASE('sossheig')
-         PRINT *, 'boo ope'
-         CALL crs_dom_ope( REAL(xdum_r4,8), 'VOL', 'T', REAL(tmask,8), xdum_r8_crs, p_e12=e1t*e2t, p_e3=e3t, psgn=1.0_wp )
-         
-      CASE DEFAULT
+      IF ( ANY( csurf_var1 == TRIM(cv_in) ) ) THEN
+         CALL crs_dom_ope( REAL(xdum_r4,8), 'VOL', 'T', REAL(tmask,8), xdum_r8_crs, p_e12=e1t*e2t, p_e3=e3t, psgn=1.0_wp )         
+      ELSE
          PRINT *, 'Unknown variable: ', TRIM(cv_in) ; PRINT *, ''
-         STOP
-         
-      END SELECT
-
+      END IF
+      
       xdum_r4_crs = REAL(xdum_r8_crs,4)
       
       !IF ( jt == 1 ) THEN

@@ -45,7 +45,7 @@ OBJ_I2GT = obj/io_ezcdf.o \
            obj/mod_bilin_2d.o \
            obj/mod_poly.o
 
-OBJ_CRS = obj/mod_nemo.o obj/mod_crs_def.o obj/mod_crs.o
+OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o
 
 
 # Modules to install in $INSTALL_DIR/include :
@@ -87,11 +87,11 @@ obj/mod_nemo.o: src/mod_nemo.f90
 	@mkdir -p mod
 	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_nemo.f90 -o obj/mod_nemo.o
 
-obj/mod_crs_def.o: src/mod_crs_def.f90 obj/mod_nemo.o
-	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_crs_def.f90 -o obj/mod_crs_def.o
+obj/crs.o: src/crs.f90 obj/mod_nemo.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/crs.f90 -o obj/crs.o
 
-obj/mod_crs.o: src/mod_crs.f90 obj/mod_crs_def.o
-	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_crs.f90 -o obj/mod_crs.o
+obj/crsdom.o: src/crsdom.f90 obj/crs.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/crsdom.f90 -o obj/crsdom.o
 
 
 
