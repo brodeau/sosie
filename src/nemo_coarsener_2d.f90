@@ -330,7 +330,7 @@ PROGRAM NEMO_COARSENER
    jpnj  = 1
    jpnij = 1
    narea = 1 ! (1 proc)
-   ALLOCATE ( nfipproc(jpni,jpnj), mig(jpi), mjg(jpj) )
+   ALLOCATE ( nfipproc(jpni,jpnj), mig(jpi), mjg(jpj), nimppt(jpnij), njmppt(jpnij) )
    nfipproc(:,:) = 0 !???
    jpizoom = 1
    jpjzoom = 1
@@ -374,11 +374,11 @@ PROGRAM NEMO_COARSENER
 
    PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs
 
-   PRINT *, ' *** nn_factx, nn_facty'
+   PRINT *, ' *** nn_factx, nn_facty', nn_factx, nn_facty
 
    PRINT *, ''
 
-   STOP 'LULU'
+   !STOP 'LULU'
 
    ALLOCATE ( tmask(jpi,jpj,jpk), umask(jpi,jpj,jpk), vmask(jpi,jpj,jpk), fmask(jpi,jpj,jpk) )
 
@@ -430,13 +430,12 @@ PROGRAM NEMO_COARSENER
    CALL crs_dom_msk
 
    
-   STOP'lulu'
+
 
    CALL DUMP_2D_FIELD(REAL(tmask_crs(:,:,1),4), 'tmask_crs.tmp', 'tmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    CALL DUMP_2D_FIELD(REAL(umask_crs(:,:,1),4), 'umask_crs.tmp', 'umask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    CALL DUMP_2D_FIELD(REAL(vmask_crs(:,:,1),4), 'vmask_crs.tmp', 'vmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    CALL DUMP_2D_FIELD(REAL(fmask_crs(:,:,1),4), 'fmask_crs.tmp', 'fmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-
 
 
    PRINT *, ''
@@ -531,12 +530,16 @@ PROGRAM NEMO_COARSENER
 
       xdum_r4 = xdum_r4*REAL(imaskt,4)
 
-      
-      IF ( ANY( csurf_var1 == TRIM(cv_in) ) ) THEN
-         CALL crs_dom_ope( REAL(xdum_r4,8), 'VOL', 'T', REAL(tmask,8), xdum_r8_crs, p_e12=e1t*e2t, p_e3=e3t, psgn=1.0_wp )         
-      ELSE
-         PRINT *, 'Unknown variable: ', TRIM(cv_in) ; PRINT *, ''
+      IF ( TRIM(cv_in) == 'sossheig' ) THEN
+         e3t(:,:,:) = 1._wp
+         CALL crs_dom_ope( REAL(xdum_r4,8) , 'VOL', 'T', REAL(tmask,8), xdum_r8_crs , p_e12=e1t*e2t, p_e3=e3t, psgn=1.0_wp )
       END IF
+      
+      !IF ( ANY( csurf_var1 == TRIM(cv_in) ) ) THEN
+      !   CALL crs_dom_ope( REAL(xdum_r4,8), 'VOL', 'T', REAL(tmask,8), xdum_r8_crs, p_e12=e1t*e2t, p_e3=e3t, psgn=1.0_wp )         
+      !ELSE
+      !   PRINT *, 'Unknown variable: ', TRIM(cv_in) ; PRINT *, ''
+      !END IF
       
       xdum_r4_crs = REAL(xdum_r8_crs,4)
       

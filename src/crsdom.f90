@@ -1664,19 +1664,23 @@ CONTAINS
          nimpp_full  = nimpp
          njmpp_full  = njmpp
 
-         nlcit_full(:)  = nlcit(:)
-         nldit_full(:)  = nldit(:)
-         nleit_full(:)  = nleit(:)
-         nimppt_full(:) = nimppt(:)
-         nlcjt_full(:)  = nlcjt(:)
-         nldjt_full(:)  = nldjt(:)
-         nlejt_full(:)  = nlejt(:)
-         njmppt_full(:) = njmppt(:)
+         !PRINT *, 'nimppt = ', nimppt(:)
+         !PRINT *, ' SIZE(nimppt,1) = ', SIZE(nimppt,1)
+         !STOP'LOLO! mjg must be allocated!!!'
+         
+         !nlcit_full(:)  = nlcit(:)
+         !nldit_full(:)  = nldit(:)
+         !nleit_full(:)  = nleit(:)
+         !nimppt_full(:) = nimppt(:)
+         !nlcjt_full(:)  = nlcjt(:)
+         !nldjt_full(:)  = nldjt(:)
+         !nlejt_full(:)  = nlejt(:)
+         !njmppt_full(:) = njmppt(:)
 
-         nfsloop_full = nfsloop
-         nfeloop_full = nfeloop
+         !nfsloop_full = nfsloop
+         !nfeloop_full = nfeloop
 
-         nfiimpp_full(:,:) = nfiimpp(:,:)
+         !nfiimpp_full(:,:) = nfiimpp(:,:)
 
 
          !==========================================================================
