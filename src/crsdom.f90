@@ -76,9 +76,6 @@ CONTAINS
                ijjs = mjs_crs(jj)
                ijje = mje_crs(jj)
 
-               PRINT *, 'lolo: ijis, ijie =', ijis, ijie
-               PRINT *, 'lolo: ijjs, ijje =', ijjs, ijje
-               
                zmask = 0.0
                zmask = SUM( tmask(ijis:ijie,ijjs:ijje,jk) )
                IF ( zmask > 0.0 ) tmask_crs(ji,jj,jk) = 1.0
