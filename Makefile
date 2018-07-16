@@ -64,7 +64,7 @@ all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_tr
 
 gt: bin/interp_to_ground_track.x
 
-crs: bin/nemo_coarsener_2d.x bin/nemo_coarsener_3d.x
+crs: bin/nemo_coarsener.x bin/nemo_coarsener_2d.x bin/nemo_coarsener_3d.x
 
 test: bin/test_stuffs.x
 
@@ -104,6 +104,10 @@ obj/crsdom.o: src/crsdom.f90 obj/crs.o
 
 
 
+
+bin/nemo_coarsener.x: src/nemo_coarsener.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
+	@mkdir -p bin
+	$(FC) $(FF) -I$(NCDF_INC) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/nemo_coarsener.f90 -o bin/nemo_coarsener.x $(LIB_CDF)
 
 bin/nemo_coarsener_2d.x: src/nemo_coarsener_2d.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin

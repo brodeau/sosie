@@ -1,11 +1,15 @@
 #!/bin/bash
 
-FMM="/MEDIA/data/eNATL4/eNATL4-I/mesh_mask_eNATL4_3.6.nc"
-FIN="/MEDIA/data/eNATL4/sossheig_snap_eNATL4.nc"
+#FMM="/MEDIA/data/eNATL4/eNATL4-I/mesh_mask_eNATL4_3.6.nc"
+#FIN="/MEDIA/data/eNATL4/sossheig_snap_eNATL4.nc"
+
+FMM="/data/gcm_setup/eNATL4/eNATL4-I/mesh_mask_eNATL4_3.6.nc"
+FIN="/data/gcm_output/NEMO/eNATL4/eNATL4-BLB400_1h_20080101_20080110_gridT_merg.nc"
 
 #for cv in "sossheig" "sosaline" "sosstsst"; do
 for cv in "sossheig" ; do
 
-    ./bin/nemo_coarsener_2d.x -m ${FMM} -i ${FIN} -v ${cv} -o ${cv}_test.nc
+    #./bin/nemo_coarsener_2d.x -m ${FMM} -i ${FIN} -v ${cv} -o ${cv}_test.nc
+    ./bin/nemo_coarsener.x -m ${FMM} -i ${FIN} -v ${cv} -o ${cv}_test.nc
 
 done
