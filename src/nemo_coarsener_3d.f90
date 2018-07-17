@@ -13,8 +13,8 @@ PROGRAM NEMO_COARSENER
    INTEGER, PARAMETER :: &
       &  nn_factx = 3,   &
       &  nn_facty = 3
-   
-   
+
+
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
    !INTEGER :: Nt0, Nti, Ntf, io, idx, iP, jP, npoints, jl, imgnf
@@ -34,7 +34,7 @@ PROGRAM NEMO_COARSENER
 
 
    CHARACTER(len=128), DIMENSION(4)  :: vlist_coor
-   
+
    CHARACTER(len=256)  :: cr, cmissval_in
    !CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
    !!
@@ -120,7 +120,7 @@ PROGRAM NEMO_COARSENER
 
       CASE('-m')
          CALL GET_MY_ARG('mesh_mask', cf_mm)
-         
+
       CASE('-i')
          CALL GET_MY_ARG('input file', cf_in)
 
@@ -201,7 +201,7 @@ PROGRAM NEMO_COARSENER
       cv_z   = TRIM(vlist_coor(2))
       cv_lat = TRIM(vlist_coor(3))
       cv_lon = TRIM(vlist_coor(4))
-      
+
       PRINT *, '    cv_t   = ', TRIM(cv_t)
       PRINT *, '    cv_z   = ', TRIM(cv_z)
       PRINT *, '    cv_lat = ', TRIM(cv_lat)
@@ -210,10 +210,10 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
-   
+
    !cf_get_lat_lon = cf_mm
    cf_get_lat_lon = cf_in
-   
+
    CALL DIMS(cf_get_lat_lon, cv_lon, ni1, nj1, nk, Nt)
    !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
    !IF ( (nj1==-1).AND.(nj2==-1) ) THEN
@@ -237,7 +237,7 @@ PROGRAM NEMO_COARSENER
    PRINT *, ''
 
    IF ( (jpiglo/=ni1).OR.(jpjglo/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
-   
+
    !ni = ni1 ; jpjglo = ni1
    !! Source:
    ALLOCATE ( vdepth(nk), xlont(jpiglo,jpjglo), xlatt(jpiglo,jpjglo), xdum_r4(jpiglo,jpjglo,nk), imask(jpiglo,jpjglo,nk) )
@@ -253,21 +253,21 @@ PROGRAM NEMO_COARSENER
 
 
    !! Getting depth vector in input file:
-   CALL GETVAR_1D(cf_in, cv_z, vdepth)   
+   CALL GETVAR_1D(cf_in, cv_z, vdepth)
    PRINT *, 'vdepth = ', vdepth(:) ; PRINT *, ''
 
 
-   
-   
+
+
    !! Target:
    !! Coarsening stuff:
    jpiglo_crs = INT( (jpiglo - 2) / nn_factx ) + 2
    jpjglo_crs = INT( (jpjglo - MOD(jpjglo, nn_facty)) / nn_facty ) + 3
 
-   PRINT *, 'TARGET coarsened horizontal domain, jpiglo_crs, jpjglo_crs =', jpiglo_crs, jpjglo_crs   
+   PRINT *, 'TARGET coarsened horizontal domain, jpiglo_crs, jpjglo_crs =', jpiglo_crs, jpjglo_crs
    ALLOCATE ( xlont_crs(jpiglo_crs,jpjglo_crs), xlatt_crs(jpiglo_crs,jpjglo_crs), xdum_r4_crs(jpiglo_crs,jpjglo_crs,nk), imask_crs(jpiglo_crs,jpjglo_crs,nk) )
    PRINT *, ''
-   
+
 
 
 
@@ -277,47 +277,47 @@ PROGRAM NEMO_COARSENER
    PRINT *, ''
    PRINT *, ' *** Going to fetch longitude array:'
    CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lon,  Nb_att_lon, v_att_list_lon)
-   !PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)   
+   !PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)
    CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlont)
    i0=0 ; j0=0
    PRINT *, '  '//TRIM(cv_lon)//' sucessfully fetched!'; PRINT *, ''
-   
+
    ! Latitude array:
    PRINT *, ''
    PRINT *, ' *** Going to fetch latitude array:'
    CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lat,  Nb_att_lat, v_att_list_lat)
-   !PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)   
+   !PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)
    CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlatt)
    i0=0 ; j0=0
    PRINT *, '  '//TRIM(cv_lat)//' sucessfully fetched!'; PRINT *, ''
-   
+
    CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
    IF ( .not. lmv_in ) rmissv_in = 0.
 
    CALL GETVAR_ATTRIBUTES(cf_in, cv_z,  Nb_att_depth, v_att_list_depth)
-   !PRINT *, '  => attributes of '//TRIM(cv_z)//' are:', v_att_list_depth(:Nb_att_depth)      
+   !PRINT *, '  => attributes of '//TRIM(cv_z)//' are:', v_att_list_depth(:Nb_att_depth)
    CALL GETVAR_ATTRIBUTES(cf_in, cv_t,  Nb_att_time, v_att_list_time)
-   !PRINT *, '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)      
+   !PRINT *, '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)
    CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
-   !PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)   
+   !PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)
 
 
    ALLOCATE ( Vt(Nt) )
-   CALL GETVAR_1D(cf_in, cv_t, Vt)   
+   CALL GETVAR_1D(cf_in, cv_t, Vt)
    PRINT *, 'Vt = ', Vt(:)
-   
+
 
    !! FAKE COARSENING
    imask_crs(:,:,:) = imask(1:jpiglo,1:jpjglo,:)
    xlont_crs(:,:) = xlont(1:jpiglo,1:jpjglo)
    xlatt_crs(:,:) = xlatt(1:jpiglo,1:jpjglo)
-   
-   
+
+
    DO jt=1, Nt
 
       PRINT *, ''
       PRINT *, ' Reading field '//TRIM(cv_in)//' at record #',jt
-      
+
       CALL GETVAR_3D(ifi, ivi, cf_in, cv_in, Nt, jt, xdum_r4)
 
       !IF ( jt == 1 ) THEN
@@ -329,21 +329,21 @@ PROGRAM NEMO_COARSENER
       xdum_r4 = xdum_r4*REAL(imask,4)
       xdum_r4 = xdum_r4*xdum_r4
 
-      
+
       xdum_r4_crs(:,:,:) = xdum_r4(1:jpiglo,1:jpjglo,:)
 
 
-      
+
       IF ( lmv_in ) THEN
          WHERE ( imask_crs == 0 ) xdum_r4_crs = rmissv_in
       END IF
-      
+
       CALL P3D_T( ifo, ivo, Nt, jt, xlont_crs, xlatt_crs, REAL(vdepth,8), Vt, xdum_r4_crs, cf_out, &
          &        cv_lon, cv_lat, cv_z, cv_t, cv_in, rmissv_in,                                    &
          &        attr_lon=v_att_list_lon, attr_lat=v_att_list_lat, attr_z=v_att_list_depth,       &
          &        attr_time=v_att_list_time, attr_F=v_att_list_vin, l_add_valid_min_max=.FALSE.     )
 
-      
+
    END DO
 
 
@@ -387,7 +387,7 @@ CONTAINS
       WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       WRITE(6,*) ''
       WRITE(6,*) ' -m <mesh_mask.nc>    => file containing grid metrics of model'
-      WRITE(6,*) ''      
+      WRITE(6,*) ''
       WRITE(6,*) ' -i <input_file.nc>   => input file to coarsen'
       WRITE(6,*) ''
       WRITE(6,*) ' -v <name_field>      => variable to coarsen'

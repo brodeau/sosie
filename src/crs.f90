@@ -261,18 +261,18 @@ CONTAINS
          &      STAT=ierr(6))
 
 
-      ALLOCATE( facsurfv(jpi_crs,jpj_crs,jpk), facsurfu(jpi_crs,jpj_crs,jpk) , &
-         &      facvol_t(jpi_crs,jpj_crs,jpk), facvol_w(jpi_crs,jpj_crs,jpk) , &
-         &      ocean_volume_crs_t(jpi_crs,jpj_crs,jpk), ocean_volume_crs_w(jpi_crs,jpj_crs,jpk), &
-         &      bt_crs(jpi_crs,jpj_crs,jpk)  , r1_bt_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(7))
+      !ALLOCATE( facsurfv(jpi_crs,jpj_crs,jpk), facsurfu(jpi_crs,jpj_crs,jpk) , &
+      !   &      facvol_t(jpi_crs,jpj_crs,jpk), facvol_w(jpi_crs,jpj_crs,jpk) , &
+      !   &      ocean_volume_crs_t(jpi_crs,jpj_crs,jpk), ocean_volume_crs_w(jpi_crs,jpj_crs,jpk), &
+      !   &      bt_crs(jpi_crs,jpj_crs,jpk)  , r1_bt_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(7))
 
 
-      ALLOCATE( crs_surfu_wgt(jpi_crs,jpj_crs,jpk), crs_surfv_wgt(jpi_crs,jpj_crs,jpk) , &
-         &      crs_surfw_wgt(jpi_crs,jpj_crs,jpk), crs_volt_wgt(jpi_crs,jpj_crs,jpk) , STAT=ierr(8))
+      !ALLOCATE( crs_surfu_wgt(jpi_crs,jpj_crs,jpk), crs_surfv_wgt(jpi_crs,jpj_crs,jpk) , &
+      !   &      crs_surfw_wgt(jpi_crs,jpj_crs,jpk), crs_volt_wgt(jpi_crs,jpj_crs,jpk) , STAT=ierr(8))
 
 
-      ALLOCATE( mbathy_crs(jpi_crs,jpj_crs), mbkt_crs(jpi_crs,jpj_crs) , &
-         &      mbku_crs(jpi_crs,jpj_crs)  , mbkv_crs(jpi_crs,jpj_crs) , STAT=ierr(9))
+      !ALLOCATE( mbathy_crs(jpi_crs,jpj_crs), mbkt_crs(jpi_crs,jpj_crs) , &
+      !   &      mbku_crs(jpi_crs,jpj_crs)  , mbkv_crs(jpi_crs,jpj_crs) , STAT=ierr(9))
 
       ALLOCATE( gdept_0_crs(jpi_crs,jpj_crs,jpk), gdepu_0_crs(jpi_crs,jpj_crs,jpk) , &
          &      gdepv_0_crs(jpi_crs,jpj_crs,jpk), gdepw_0_crs(jpi_crs,jpj_crs,jpk) , &

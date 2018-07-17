@@ -22,12 +22,12 @@ PROGRAM NEMO_COARSENER
    INTEGER :: chunksize = 3200000, &
       &       deflate_level = 5
    !!
-   INTEGER :: ji, jj, jv
+   INTEGER :: ji, jj, jv, nb_normal
    !!
 
 
    CHARACTER(LEN=nf90_max_name) :: filebase, suffix, attname, dimname, varname, time, date, zone, timestamp
-   INTEGER :: ncid, ndims, nvars, natts, outid, idim, istop, attid, ntype, varid,  dimlen, rbdims
+   INTEGER :: ncid, ndims, nvars, natts, outid, idim, attid, ntype, varid,  dimlen, rbdims
    INTEGER :: nmax_unlimited
    INTEGER :: dimid, unlimitedDimId
 
@@ -49,11 +49,12 @@ PROGRAM NEMO_COARSENER
    CHARACTER(LEN=nf90_max_name), DIMENSION(:), ALLOCATABLE :: indimnames
    CHARACTER(LEN=nf90_max_name), DIMENSION(2) :: cdims
 
-   LOGICAL :: l_findDims = .false.
+   LOGICAL :: l_3d, l_findDims = .FALSE.
 
 
    !! Coupe stuff:
    REAL(wp), DIMENSION(:), ALLOCATABLE :: Vt
+   REAL(4), DIMENSION(:), ALLOCATABLE :: vdepth
 
 
    CHARACTER(len=8), DIMENSION(3), PARAMETER :: csurf_var1 = (/ 'sosstsst', 'sosaline', 'sossheig' /)
@@ -93,13 +94,13 @@ PROGRAM NEMO_COARSENER
       &    ifi=0, ivi=0, &
       &    ifo=0, ivo=0, &
       &    Nt=0, nk=0, &
-      &    ni1, nj1, &
+      &    ni1, nj1, nk1, &
       &    iargc
    !!
    REAL(sp), DIMENSION(1) :: r4
    REAL(wp), DIMENSION(1) :: r8
 
-   INTEGER :: id_x, id_y, id_t, id_dim_extra, nlextra
+   INTEGER :: id_x, id_y, id_z, id_t, id_dim_extra, nlextra
    !!
    !INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
@@ -122,8 +123,8 @@ PROGRAM NEMO_COARSENER
    !   &       t_min_e, t_max_e, t_min_m, t_max_m, &
    !   &       alpha, beta, t_min, t_max
    !!
-   CHARACTER(LEN=2), DIMENSION(7), PARAMETER :: &
-      &            clist_opt = (/ '-h','-m','-i','-v','-o','-x','-y' /)
+   CHARACTER(LEN=2), DIMENSION(6), PARAMETER :: &
+      &            clist_opt = (/ '-h','-m','-i','-o','-x','-y' /)
 
    !REAL(wp) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
 
@@ -164,9 +165,9 @@ PROGRAM NEMO_COARSENER
       CASE('-i')
          CALL GET_MY_ARG('input file', cf_in)
 
-      CASE('-v')
-         CALL GET_MY_ARG('input file', cv_in)
-
+      !CASE('-v')
+      !   CALL GET_MY_ARG('input file', cv_in)
+         !
       CASE('-o')
          CALL GET_MY_ARG('input file', cf_out)
 
@@ -184,7 +185,8 @@ PROGRAM NEMO_COARSENER
 
    END DO
 
-   IF ( (trim(cv_in) == '').OR.(trim(cf_in) == '') ) THEN
+   !IF ( (TRIM(cv_in) == '').OR.(TRIM(cf_in) == '') ) THEN
+   IF (TRIM(cf_in) == '') THEN
       PRINT *, ''
       PRINT *, 'You must at least specify input file (-i) !!!'
       CALL usage()
@@ -229,30 +231,29 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
+   !CALL coordinates_from_var_attr(cf_in, cv_in, nb_coor, vlist_coor)
+   !IF ( nb_coor > 0 ) THEN
+   !   l_coor_info = .TRUE.
+   !   IF ( nb_coor /= 3 ) STOP 'ERROR: since this is the 2D version we expect nb_coor == 3'
+   !   PRINT *, ''
+   !   PRINT *, ' *** We update names of coordinates as follows:'
+   !   cv_t   = TRIM(vlist_coor(1))
+   !   cv_lat = TRIM(vlist_coor(2))
+   !   cv_lon = TRIM(vlist_coor(3))
+
+   !   PRINT *, '    cv_t   = ', TRIM(cv_t)
+   !   PRINT *, '    cv_lat = ', TRIM(cv_lat)
+   !   PRINT *, '    cv_lon = ', TRIM(cv_lon)
+   !   PRINT *, ''
+   !END IF
 
 
-   CALL coordinates_from_var_attr(cf_in, cv_in, nb_coor, vlist_coor)
-   IF ( nb_coor > 0 ) THEN
-      l_coor_info = .TRUE.
-      IF ( nb_coor /= 3 ) STOP 'ERROR: since this is the 2D version we expect nb_coor == 3'
-      PRINT *, ''
-      PRINT *, ' *** We update names of coordinates as follows:'
-      cv_t   = TRIM(vlist_coor(1))
-      cv_lat = TRIM(vlist_coor(2))
-      cv_lon = TRIM(vlist_coor(3))
-
-      PRINT *, '    cv_t   = ', TRIM(cv_t)
-      PRINT *, '    cv_lat = ', TRIM(cv_lat)
-      PRINT *, '    cv_lon = ', TRIM(cv_lon)
-      PRINT *, ''
-   END IF
+   
+   ! there's always a 'nav_lon' in a NEMO file right?   
+   CALL DIMS(cf_in, 'nav_lon', ni1, nj1, nk1, Nt)
 
 
 
-   !cf_get_lat_lon = cf_mm
-   cf_get_lat_lon = cf_in
-
-   CALL DIMS(cf_get_lat_lon, cv_lon, ni1, nj1, nk, Nt)
    !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
    !IF ( (nj1==-1).AND.(nj2==-1) ) THEN
    !   ni = ni1 ; nj = ni2
@@ -267,20 +268,109 @@ PROGRAM NEMO_COARSENER
    !      PRINT *, 'ERROR: problem with grid!' ; STOP
    !   END IF
    !END IF
-
-   jpiglo = ni1
-   jpjglo = nj1
-
-   jpi = jpiglo
-   jpj = jpjglo
-   jpk = 1 ! 2D
-   jpkm1 = MAX(jpk-1,1)
-
-   CALL DIMS(cf_in, cv_in, jpi, jpj, nk, Nt)
-   PRINT *, ' *** input field: jpi, jpj, nk, Nt =>', jpi, jpj, nk, Nt
+   
+   CALL DIMS(cf_mm, 'tmask', jpi, jpj, jpk, Nt)
+   PRINT *, ' *** 3D domain size from meshmask is:'
+   PRINT *, '     jpi, jpj, jpk =>', jpi, jpj, jpk
    PRINT *, ''
 
    IF ( (jpi/=ni1).OR.(jpj/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
+
+   
+   jpiglo = jpi
+   jpjglo = jpj
+
+
+
+   !!LILI
+   !! Need to know if there is at least one file with the vertical dimension in the input file!
+
+   CALL check_nf90( NF90_OPEN( TRIM(cf_in), nf90_share, ncid ) )
+   CALL check_nf90( NF90_INQUIRE( ncid, ndims, nvars, natts ) )
+
+   PRINT *, ' ncid, ndims, nvars, natts =', ncid, ndims, nvars, natts
+
+   CALL check_nf90( NF90_INQUIRE( ncid, unlimitedDimId = id_t ) )
+
+   WRITE(numout,*) ''
+   WRITE(numout,'(" *** input file contains ",i1," dimensions of which time has id ",i1," !")') ndims, id_t
+
+   
+   ALLOCATE(indimlens(ndims), indimnames(ndims), outdimlens(ndims))
+
+   l_3d = .FALSE.
+   
+   DO idim = 1, ndims
+      CALL check_nf90( nf90_inquire_dimension( ncid, idim, dimname, dimlen ) )
+      indimlens(idim) = dimlen
+      indimnames(idim) = dimname
+
+      outdimlens(idim) = dimlen
+      !! We're going to write a coarsened file so x & y dimension must be set accordingly!
+      IF ( TRIM(dimname) == 'x' ) THEN
+         id_x = idim
+         IF ( .NOT. (dimlen == jpi) ) STOP 'PROBLEM #1'
+         outdimlens(idim) = jpi_crs
+      ELSEIF ( TRIM(dimname) == 'y' ) THEN
+         id_y = idim
+         IF ( .NOT. (dimlen == jpj) ) STOP 'PROBLEM #2'
+         outdimlens(idim) = jpj_crs
+      ELSEIF ( TRIM(dimname) == 'deptht' ) THEN
+         id_z = idim
+         IF ( .NOT. (dimlen == jpk) ) STOP 'PROBLEM #3'
+         IF ( dimlen > 1 ) l_3d = .TRUE.
+      END IF
+
+      IF ( idim == id_t ) Nt = dimlen
+      
+      WRITE(numout,'(" *** dimension #",i1," => ",a," (len = ",i4.4,")")') idim, TRIM(indimnames(idim)), indimlens(idim)
+      
+   END DO
+
+   nb_normal = 4 ; ! x,y,z,t
+   IF ( .NOT. l_3d ) THEN
+      jpk = 1
+      nb_normal = 3 ; ! x,y,t
+      id_z = -1
+   END IF
+   
+   IF ( ndims > nb_normal ) THEN
+      !! There is this annoying extra dimension:
+      IF ( ndims == nb_normal+1 ) THEN
+         DO idim = 1, ndims
+            IF ( .NOT. ANY( (/id_x,id_y,id_z,id_t/) == idim ) ) THEN
+               id_dim_extra = idim
+               EXIT
+            END IF
+         END DO
+         nlextra = outdimlens(id_dim_extra)
+      ELSE
+         STOP 'PROBLEM: there is more than 1 extra weird dimension!!!'
+      END IF
+   END IF
+
+   
+   WRITE(numout,*) ''
+   WRITE(numout,*) '  *** id_x =', id_x, jpi
+   WRITE(numout,*) '  *** id_y =', id_y, jpj
+   IF ( l_3d ) WRITE(numout,*) '  *** id_z =', id_z, jpk
+   WRITE(numout,*) '  *** id_t =', id_t, Nt, ' time records!'
+   WRITE(numout,*) '  *** id_dim_extra =', id_dim_extra, nlextra
+   WRITE(numout,*) ''
+
+
+   
+
+
+   
+   STOP
+
+   
+
+   
+   jpk = 1 ! 2D
+   jpkm1 = MAX(jpk-1,1)
+
 
    !ni = ni1 ; jpj = ni1
    !! Source:
@@ -556,12 +646,8 @@ PROGRAM NEMO_COARSENER
 
 
    !2. Read in the global dimensions from the input file and set up the output file
-   CALL check_nf90( nf90_open( TRIM(cf_in), nf90_share, ncid ) )
-
-   CALL check_nf90( nf90_inquire( ncid, ndims, nvars, natts ) )
 
 
-   PRINT *, ' ncid, ndims, nvars, natts =', ncid, ndims, nvars, natts
 
 
 
@@ -580,42 +666,25 @@ PROGRAM NEMO_COARSENER
 
 
    !2.2.1 Copy the dimensions into the output file apart from rebuild_dims() which are dimensioned globally
-   ALLOCATE(indimlens(ndims), indimnames(ndims), outdimlens(ndims))
-   CALL check_nf90( nf90_inquire( ncid, unlimitedDimId = unlimitedDimId ) )
-   istop = 0
+
+
+   !! Defining dimention in output file:
    DO idim = 1, ndims
       CALL check_nf90( nf90_inquire_dimension( ncid, idim, dimname, dimlen ) )
-      !CALL check_nf90( nf90_get_att( ncid, nf90_global, 'DOMAIN_size_local', local_sizes ) )
-      indimlens(idim) = dimlen
-      indimnames(idim) = dimname
-
-
-
-
-      !! We're going to write a coarsened file so x & y dimension must be set accordingly!
-      IF ( TRIM(dimname) == 'x' ) THEN
-         id_x = idim
-         IF ( .NOT. (dimlen == jpi) ) STOP 'PROBLEM #1'
-         outdimlens(idim) = jpi_crs
-      ELSEIF ( TRIM(dimname) == 'y' ) THEN
-         id_y = idim
-         IF ( .NOT. (dimlen == jpj) ) STOP 'PROBLEM #2'
-         outdimlens(idim) = jpj_crs
-      ELSE
-         outdimlens(idim) = dimlen
-      END IF
-
-      WRITE(numout,'(" *** dimension #",i1," => ",a," (len = ",i4.4,")")') idim, TRIM(indimnames(idim)), indimlens(idim)
-      IF( idim == unlimitedDimId ) THEN
-         id_t = idim
+      
+      IF( idim == id_t ) THEN
          CALL check_nf90( nf90_def_dim( outid, dimname, nf90_unlimited, dimid) )
          nmax_unlimited = dimlen
       ELSE
          CALL check_nf90( nf90_def_dim( outid, dimname, outdimlens(idim), dimid) )
       ENDIF
-
-
    END DO
+
+
+
+
+   
+   
    ! nmax_unlimited is only used for time-chunking so we set it to be at least 1 to
    ! account for files with no record dimension or zero length record dimension(!)
    nmax_unlimited = max(nmax_unlimited,1)
@@ -632,12 +701,6 @@ PROGRAM NEMO_COARSENER
    END IF
 
 
-   WRITE(numout,*) ''
-   WRITE(numout,*) '  *** id_x =', id_x, jpi
-   WRITE(numout,*) '  *** id_y =', id_y, jpj
-   WRITE(numout,*) '  *** id_t =', id_t, Nt
-   WRITE(numout,*) '  *** id_dim_extra =', id_dim_extra, nlextra
-   WRITE(numout,*) ''
 
 
 
@@ -710,7 +773,7 @@ PROGRAM NEMO_COARSENER
    l_var_is_done(:) = .FALSE.
 
    ! A. Writing all variables that do not have a time record:
-   !PRINT *, ' *** ID of unlimited (record) dimension is:', unlimitedDimId
+   !PRINT *, ' *** ID of unlimited (record) dimension is:', id_t
 
    DO jv = 1, nvars
 
@@ -720,7 +783,7 @@ PROGRAM NEMO_COARSENER
       nbdim       = i_list_var_ndims(jv)
       indimids(:) = i_list_var_dim_ids(:,jv)
 
-      IF ( .NOT. ANY(indimids == unlimitedDimId) ) THEN
+      IF ( .NOT. ANY(indimids == id_t) ) THEN
          PRINT *, '  *** Variable '//TRIM(cv_in)//' does not have a time record, writing it before time loop!'
 
          ! LOLO add 1D like depth here !!!! IF( nbdim == 1 ) THEN
@@ -914,8 +977,8 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) ' -i <input_file.nc>   => input file to coarsen'
       WRITE(6,*) ''
-      WRITE(6,*) ' -v <name_field>      => variable to coarsen'
-      WRITE(6,*) ''
+      !WRITE(6,*) ' -v <name_field>      => variable to coarsen'
+      !WRITE(6,*) ''
       WRITE(6,*) ' -o <output_file.nc>  => file to be created'
       WRITE(6,*) ''
       WRITE(6,*) '    Optional:'
