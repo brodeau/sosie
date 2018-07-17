@@ -55,6 +55,7 @@ PROGRAM NEMO_COARSENER
    !! Coupe stuff:
    REAL(wp), DIMENSION(:), ALLOCATABLE :: Vt
    REAL(4), DIMENSION(:), ALLOCATABLE :: vdepth
+   REAL(4), DIMENSION(:,:), ALLOCATABLE :: vdepth_b
 
 
    CHARACTER(len=8), DIMENSION(3), PARAMETER :: csurf_var1 = (/ 'sosstsst', 'sosaline', 'sossheig' /)
@@ -105,7 +106,6 @@ PROGRAM NEMO_COARSENER
    !INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
 
-   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt, imasku, imaskv, imaskf
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xlon, xlat, xdum_r4
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f
@@ -165,8 +165,8 @@ PROGRAM NEMO_COARSENER
       CASE('-i')
          CALL GET_MY_ARG('input file', cf_in)
 
-      !CASE('-v')
-      !   CALL GET_MY_ARG('input file', cv_in)
+         !CASE('-v')
+         !   CALL GET_MY_ARG('input file', cv_in)
          !
       CASE('-o')
          CALL GET_MY_ARG('input file', cf_out)
@@ -248,8 +248,8 @@ PROGRAM NEMO_COARSENER
    !END IF
 
 
-   
-   ! there's always a 'nav_lon' in a NEMO file right?   
+
+   ! there's always a 'nav_lon' in a NEMO file right?
    CALL DIMS(cf_in, 'nav_lon', ni1, nj1, nk1, Nt)
 
 
@@ -268,7 +268,7 @@ PROGRAM NEMO_COARSENER
    !      PRINT *, 'ERROR: problem with grid!' ; STOP
    !   END IF
    !END IF
-   
+
    CALL DIMS(cf_mm, 'tmask', jpi, jpj, jpk, Nt)
    PRINT *, ' *** 3D domain size from meshmask is:'
    PRINT *, '     jpi, jpj, jpk =>', jpi, jpj, jpk
@@ -276,7 +276,7 @@ PROGRAM NEMO_COARSENER
 
    IF ( (jpi/=ni1).OR.(jpj/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
 
-   
+
    jpiglo = jpi
    jpjglo = jpj
 
@@ -295,11 +295,11 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) ''
    WRITE(numout,'(" *** input file contains ",i1," dimensions of which time has id ",i1," !")') ndims, id_t
 
-   
+
    ALLOCATE(indimlens(ndims), indimnames(ndims), outdimlens(ndims))
 
    l_3d = .FALSE.
-   
+
    DO idim = 1, ndims
       CALL check_nf90( nf90_inquire_dimension( ncid, idim, dimname, dimlen ) )
       indimlens(idim) = dimlen
@@ -310,11 +310,9 @@ PROGRAM NEMO_COARSENER
       IF ( TRIM(dimname) == 'x' ) THEN
          id_x = idim
          IF ( .NOT. (dimlen == jpi) ) STOP 'PROBLEM #1'
-         outdimlens(idim) = jpi_crs
       ELSEIF ( TRIM(dimname) == 'y' ) THEN
          id_y = idim
          IF ( .NOT. (dimlen == jpj) ) STOP 'PROBLEM #2'
-         outdimlens(idim) = jpj_crs
       ELSEIF ( TRIM(dimname) == 'deptht' ) THEN
          id_z = idim
          IF ( .NOT. (dimlen == jpk) ) STOP 'PROBLEM #3'
@@ -322,18 +320,19 @@ PROGRAM NEMO_COARSENER
       END IF
 
       IF ( idim == id_t ) Nt = dimlen
-      
+
       WRITE(numout,'(" *** dimension #",i1," => ",a," (len = ",i4.4,")")') idim, TRIM(indimnames(idim)), indimlens(idim)
-      
+
    END DO
 
    nb_normal = 4 ; ! x,y,z,t
-   IF ( .NOT. l_3d ) THEN
+
+   IF ( .NOT. l_3d) THEN
       jpk = 1
       nb_normal = 3 ; ! x,y,t
       id_z = -1
    END IF
-   
+
    IF ( ndims > nb_normal ) THEN
       !! There is this annoying extra dimension:
       IF ( ndims == nb_normal+1 ) THEN
@@ -349,26 +348,19 @@ PROGRAM NEMO_COARSENER
       END IF
    END IF
 
-   
+
    WRITE(numout,*) ''
    WRITE(numout,*) '  *** id_x =', id_x, jpi
    WRITE(numout,*) '  *** id_y =', id_y, jpj
    IF ( l_3d ) WRITE(numout,*) '  *** id_z =', id_z, jpk
    WRITE(numout,*) '  *** id_t =', id_t, Nt, ' time records!'
    WRITE(numout,*) '  *** id_dim_extra =', id_dim_extra, nlextra
-   WRITE(numout,*) ''
+   WRITE(numout,*) '' ; WRITE(numout,*) ''
 
 
-   
+   IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(jpk,nlextra) )
 
 
-   
-   STOP
-
-   
-
-   
-   jpk = 1 ! 2D
    jpkm1 = MAX(jpk-1,1)
 
 
@@ -376,8 +368,7 @@ PROGRAM NEMO_COARSENER
    !! Source:
    ALLOCATE ( xlon(jpi,jpj), xlat(jpi,jpj), xdum_r4(jpi,jpj), &
       &       glamt(jpi,jpj), gphit(jpi,jpj), glamu(jpi,jpj), gphiu(jpi,jpj), glamv(jpi,jpj), gphiv(jpi,jpj), glamf(jpi,jpj), gphif(jpi,jpj),  &
-      &       e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj),  &
-      &       imaskt(jpi,jpj),imasku(jpi,jpj),imaskv(jpi,jpj),imaskf(jpi,jpj) )
+      &       e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj) )
 
    ALLOCATE ( e3t(jpi,jpj,jpk) )
 
@@ -385,23 +376,18 @@ PROGRAM NEMO_COARSENER
 
 
    !! Getting source land-sea mask:
-   PRINT *, '';
+   PRINT *, ''
+   ALLOCATE ( tmask(jpi,jpj,jpk), umask(jpi,jpj,jpk), vmask(jpi,jpj,jpk), fmask(jpi,jpj,jpk) )
    PRINT *, ' *** Reading land-sea mask'
-   CALL GETMASK_2D(cf_mm, 'tmask', imaskt)
-   CALL GETMASK_2D(cf_mm, 'umask', imasku)
-   CALL GETMASK_2D(cf_mm, 'vmask', imaskv)
-   CALL GETMASK_2D(cf_mm, 'fmask', imaskf)
+   CALL GETMASK_3D(cf_mm, 'tmask', tmask, jz1=1, jz2=jpk)
+   CALL GETMASK_3D(cf_mm, 'umask', umask, jz1=1, jz2=jpk)
+   CALL GETMASK_3D(cf_mm, 'vmask', vmask, jz1=1, jz2=jpk)
+   CALL GETMASK_3D(cf_mm, 'fmask', fmask, jz1=1, jz2=jpk)
    PRINT *, ' Done!'; PRINT *, ''
 
 
 
-   !! Target:
-   !! Coarsening stuff:
-   !jpi_crs = INT( (jpi - 2) / nn_factx ) + 2
-   !jpj_crs = INT( (jpj - MOD(jpj, nn_facty)) / nn_facty ) + 3
 
-   !jpiglo_crs = jpi_crs
-   !jpjglo_crs = jpj_crs
 
 
 
@@ -410,28 +396,28 @@ PROGRAM NEMO_COARSENER
 
    !! Getting model longitude & latitude:
    ! Longitude array:
-   PRINT *, ''
-   PRINT *, ' *** Going to fetch longitude array:'
-   CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lon,  Nb_att_lon, v_att_list_lon)
-   !PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)
-   CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlon) ; i0=0 ; j0=0
-   PRINT *, '  '//TRIM(cv_lon)//' sucessfully fetched!'; PRINT *, ''
+   !PRINT *, ''
+   !PRINT *, ' *** Going to fetch longitude array:'
+   !CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lon,  Nb_att_lon, v_att_list_lon)
+   !!PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)
+   !CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlon) ; i0=0 ; j0=0
+   !PRINT *, '  '//TRIM(cv_lon)//' sucessfully fetched!'; PRINT *, ''
 
-   ! Latitude array:
-   PRINT *, ''
-   PRINT *, ' *** Going to fetch latitude array:'
-   CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lat,  Nb_att_lat, v_att_list_lat)
-   !PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)
-   CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlat)
-   i0=0 ; j0=0
-   PRINT *, '  '//TRIM(cv_lat)//' sucessfully fetched!'; PRINT *, ''
+   !! Latitude array:
+   !PRINT *, ''
+   !PRINT *, ' *** Going to fetch latitude array:'
+   !CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lat,  Nb_att_lat, v_att_list_lat)
+   !!PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)
+   !CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlat)
+   !i0=0 ; j0=0
+   !PRINT *, '  '//TRIM(cv_lat)//' sucessfully fetched!'; PRINT *, ''
 
-   CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
-   IF ( .not. lmv_in ) rmissv_in = 0.
+   !CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
+   !IF ( .not. lmv_in ) rmissv_in = 0.
 
-   CALL GETVAR_ATTRIBUTES(cf_in, cv_t,  Nb_att_time, v_att_list_time)
+   !CALL GETVAR_ATTRIBUTES(cf_in, cv_t,  Nb_att_time, v_att_list_time)
    !PRINT *, '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)
-   CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
+   !CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
    !PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)
 
 
@@ -503,14 +489,6 @@ PROGRAM NEMO_COARSENER
 
    PRINT *, ''
 
-   !STOP 'LULU'
-
-   ALLOCATE ( tmask(jpi,jpj,jpk), umask(jpi,jpj,jpk), vmask(jpi,jpj,jpk), fmask(jpi,jpj,jpk) )
-
-   tmask(:,:,1) = imaskt(:,:)
-   umask(:,:,1) = imasku(:,:)
-   vmask(:,:,1) = imaskv(:,:)
-   fmask(:,:,1) = imaskf(:,:)
 
 
    CALL GETVAR_2D(i0, j0, cf_mm, 'glamt', 0, 0, 0, glamt) ; i0=0 ; j0=0
@@ -668,14 +646,19 @@ PROGRAM NEMO_COARSENER
    !2.2.1 Copy the dimensions into the output file apart from rebuild_dims() which are dimensioned globally
 
 
+
    !! Defining dimention in output file:
+
+   outdimlens(id_x) = jpi_crs
+   outdimlens(id_y) = jpj_crs
+
    DO idim = 1, ndims
       CALL check_nf90( nf90_inquire_dimension( ncid, idim, dimname, dimlen ) )
-      
       IF( idim == id_t ) THEN
          CALL check_nf90( nf90_def_dim( outid, dimname, nf90_unlimited, dimid) )
          nmax_unlimited = dimlen
       ELSE
+         PRINT *, ' nf90_def_dim( outid, dimname, outdimlens(idim), dimid)'
          CALL check_nf90( nf90_def_dim( outid, dimname, outdimlens(idim), dimid) )
       ENDIF
    END DO
@@ -683,8 +666,8 @@ PROGRAM NEMO_COARSENER
 
 
 
-   
-   
+
+
    ! nmax_unlimited is only used for time-chunking so we set it to be at least 1 to
    ! account for files with no record dimension or zero length record dimension(!)
    nmax_unlimited = max(nmax_unlimited,1)
@@ -711,6 +694,10 @@ PROGRAM NEMO_COARSENER
       &      l_var_is_done(nvars) )
 
    ALLOCATE ( xr8(nlextra) )
+
+
+
+
 
    i_list_var_dim_ids(:,:) = 0
    mdiVals(:)=0
@@ -761,7 +748,6 @@ PROGRAM NEMO_COARSENER
 
 
 
-
    ALLOCATE ( xdum_r4_crs(jpi_crs,jpj_crs), xdum_r8_crs(jpi_crs,jpj_crs) )
 
 
@@ -788,8 +774,15 @@ PROGRAM NEMO_COARSENER
 
          ! LOLO add 1D like depth here !!!! IF( nbdim == 1 ) THEN
 
+         IF( nbdim == 1 ) THEN
+            IF ( (TRIM(cv_in)=='deptht').OR.(TRIM(cv_in)=='depthw') ) THEN
+               CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth ) )!lili
+               CALL check_nf90( nf90_put_var( outid, id_v, vdepth ) )
+               l_var_is_done(jv) = .TRUE.
+            END IF
 
-         IF( nbdim == 2 ) THEN
+
+         ELSEIF( nbdim == 2 ) THEN
             IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') ) THEN
                ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
                WRITE(numout,*) '   *** writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
@@ -800,15 +793,27 @@ PROGRAM NEMO_COARSENER
                WRITE(numout,*) '   *** writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
                CALL check_nf90( nf90_put_var( outid, jv, gphit_crs ) )
                l_var_is_done(jv) = .TRUE.
-            END IF
+            ELSEIF ( (TRIM(cv_in)=='deptht_bounds').OR.(TRIM(cv_in)=='depthw_bounds') ) THEN
+               !CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth_b ) )
+               !CALL check_nf90( nf90_put_var( outid, id_v, vdepth_b ) )
+               l_var_is_done(jv) = .TRUE.
+
+            ELSE
+               WRITE(numout,*) 'ERROR: unknown variable without time)!!!'; STOP
+            END IF !IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') )
+
          ELSE
-            WRITE(numout,*) 'ERROR: unknown number of dimmensions!!!'; STOP
-         END IF
-      END IF
+
+            WRITE(numout,*) 'ERROR: unknown number of dimensions for variable without time)!!!'; STOP
+
+         END IF ! IF( nbdim == 1 )
+
+      END IF ! IF ( .NOT. ANY(indimids == id_t) )
+
    END DO  ! DO jv = 1, nvars
 
 
-
+   STOP 'lala'
 
 
    !! Everything that depends on time record:
@@ -853,7 +858,7 @@ PROGRAM NEMO_COARSENER
                WRITE(numout,*) ''
             END IF
 
-            
+
             ! 1D+T
             IF( nbdim == 2 ) THEN
                IF ( .NOT. ((indimids(1)==id_dim_extra).AND.(indimids(2)==id_t)) ) STOP 'ERROR: we do not know wthat this 2D field is! '
@@ -882,7 +887,7 @@ PROGRAM NEMO_COARSENER
                IF ( .NOT. ((indimids(1)==id_x).AND.(indimids(2)==id_y).AND.(indimids(3)==id_t)) ) STOP 'ERROR: we do not know wthat this 3D field is! '
                SELECT CASE( itype )
                CASE( NF90_FLOAT )
-                  CALL check_nf90( NF90_GET_VAR(ncid, id_v, xdum_r4, start=(/1,1,jt/), count=(/jpi,jpj,1/)) )                  
+                  CALL check_nf90( NF90_GET_VAR(ncid, id_v, xdum_r4, start=(/1,1,jt/), count=(/jpi,jpj,1/)) )
                CASE DEFAULT
                   WRITE(numout,*) 'ERROR: unknown netcdf type!!! We should not have 2D+T arrays as double precision!'; STOP
                END SELECT
