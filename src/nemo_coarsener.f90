@@ -31,11 +31,18 @@ PROGRAM NEMO_COARSENER
    INTEGER :: nmax_unlimited
    INTEGER :: dimid, unlimitedDimId
 
+   INTEGER :: nbdim, itype
+
+   CHARACTER(LEN=nf90_max_name), DIMENSION(:),   ALLOCATABLE :: c_list_var_names
+   INTEGER,                      DIMENSION(:),   ALLOCATABLE :: i_list_var_types, i_list_var_ndims, i_list_var_ids
+   INTEGER,                      DIMENSION(:,:), ALLOCATABLE :: i_list_var_dim_ids
+   LOGICAL, DIMENSION(:),   ALLOCATABLE :: l_var_is_done
+
    INTEGER, DIMENSION(2) :: local_sizes
    INTEGER, DIMENSION(:), ALLOCATABLE  :: global_sizes, rebuild_dims
    REAL(sp) :: ValMin, ValMax, InMin, InMax, rmdi
 
-   INTEGER, DIMENSION(4) :: dimids
+   INTEGER, DIMENSION(4) :: indimids
    INTEGER, DIMENSION(:), ALLOCATABLE  :: outdimids, outdimlens, indimlens, inncids
    REAL(wp), DIMENSION(:), ALLOCATABLE :: mdiVals
 
@@ -81,6 +88,7 @@ PROGRAM NEMO_COARSENER
    !!
    INTEGER      :: &
       &    jarg, nb_coor, &
+      &    id_v, &
       &    i0=0, j0=0, &
       &    ifi=0, ivi=0, &
       &    ifo=0, ivo=0, &
@@ -103,10 +111,7 @@ PROGRAM NEMO_COARSENER
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt_crs, imasku_crs, imaskv_crs, imaskf_crs
    REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4_crs
    REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: xdum_r8_crs
-   !REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: glamt_crs, gphit_crs
 
-
-   !!
    INTEGER :: jt
    !!
    !REAL(wp) :: rt, rt0, rdt, &
@@ -548,10 +553,13 @@ PROGRAM NEMO_COARSENER
 
    !2. Read in the global dimensions from the input file and set up the output file
    CALL check_nf90( nf90_open( TRIM(cf_in), nf90_share, ncid ) )
+
    CALL check_nf90( nf90_inquire( ncid, ndims, nvars, natts ) )
 
 
    PRINT *, ' ncid, ndims, nvars, natts =', ncid, ndims, nvars, natts
+
+
 
 
    !2.1 Set up the output file
@@ -559,7 +567,7 @@ PROGRAM NEMO_COARSENER
 
 
    !2.2.0 Find out how many dimensions are required to be rebuilt and which ones they are
-   !CALL check_nf90( nf90_inquire_attribute( ncid, nf90_global, 'DOMAIN_dimensions_ids', xtype, rbdims, attid ) )
+   !CALL check_nf90( nf90_inquire_attribute( ncid, nf90_global, 'DOMAIN_dimensions_ids', itype, rbdims, attid ) )
    !ALLOCATE(rebuild_dims(rbdims))
    !CALL check_nf90( nf90_get_att( ncid, nf90_global, 'DOMAIN_dimensions_ids', rebuild_dims ) )
    !ALLOCATE(global_sizes(rbdims))
@@ -577,14 +585,24 @@ PROGRAM NEMO_COARSENER
       indimlens(idim) = dimlen
       indimnames(idim) = dimname
 
+      !! We're going to write a coarsened file so x & y dimension must be set accordingly!
+      IF ( TRIM(dimname) == 'x' ) THEN
+         outdimlens(idim) = jpi_crs
+      ELSEIF ( TRIM(dimname) == 'y' ) THEN
+         outdimlens(idim) = jpj_crs
+      ELSE
+         outdimlens(idim) = dimlen
+      END IF
+
       WRITE(numout,'(" *** dimension #",i1," => ",a," (len = ",i4.4,")")') idim, TRIM(indimnames(idim)), indimlens(idim)
       IF( idim == unlimitedDimId ) THEN
          CALL check_nf90( nf90_def_dim( outid, dimname, nf90_unlimited, dimid) )
          nmax_unlimited = dimlen
       ELSE
-         CALL check_nf90( nf90_def_dim( outid, dimname, dimlen, dimid) )
+         CALL check_nf90( nf90_def_dim( outid, dimname, outdimlens(idim), dimid) )
       ENDIF
-      outdimlens(idim) = dimlen
+
+
    END DO
    ! nmax_unlimited is only used for time-chunking so we set it to be at least 1 to
    ! account for files with no record dimension or zero length record dimension(!)
@@ -594,15 +612,30 @@ PROGRAM NEMO_COARSENER
 
 
    !2.2.3 Copy the variable definitions and attributes into the output file.
-   ALLOCATE(mdiVals(nvars))
+   ALLOCATE( mdiVals(nvars), c_list_var_names(nvars), i_list_var_types(nvars), &
+      &      i_list_var_ndims(nvars), i_list_var_ids(nvars), i_list_var_dim_ids(4,nvars), &
+      &      l_var_is_done(nvars) )
+
    mdiVals(:)=0
 
    DO jv = 1, nvars
-      CALL check_nf90( nf90_inquire_variable( ncid, jv, varname, ntype, ndims, dimids, natts ) )
+
+      id_v = jv ! lolo!
+
+      CALL check_nf90( nf90_inquire_variable( ncid, id_v, varname, ntype, ndims, indimids, natts ) )
+      c_list_var_names(jv)     = TRIM(varname)
+      i_list_var_types(jv)     = ntype
+      i_list_var_ndims(jv)     = ndims
+      i_list_var_dim_ids(:,jv) = indimids(:)
+      !CALL check_nf90( nf90_inquire_variable( ncid, id_v) !, ndims=nd)
+      i_list_var_ids(jv)   = id_v
+
       ALLOCATE(outdimids(ndims))
       DO idim = 1, ndims
-         outdimids(idim) = dimids(idim)
+         outdimids(idim) = indimids(idim)
       END DO
+
+
 
       CALL check_nf90( nf90_def_var( outid, varname, ntype, outdimids, varid, &
          deflate_level=deflate_level ) )
@@ -631,24 +664,119 @@ PROGRAM NEMO_COARSENER
 
 
 
-
-
-
-
-
-
-
-
-   STOP'lili'
-
-
-
    ALLOCATE ( xdum_r4_crs(jpi_crs,jpj_crs), xdum_r8_crs(jpi_crs,jpj_crs) )
+
+
+
+
+
+   PRINT *, ''
+
+   l_var_is_done(:) = .FALSE.   
+   
+   ! A. Writing all variables that do not have a time record:
+   !PRINT *, ' *** ID of unlimited (record) dimension is:', unlimitedDimId
+   
+   DO jv = 1, nvars
+      
+      cv_in = TRIM(c_list_var_names(jv))
+      id_v        = i_list_var_ids(jv)
+      itype       = i_list_var_types(jv)
+      nbdim       = i_list_var_ndims(jv)
+      indimids(:) = i_list_var_dim_ids(:,jv)
+
+      IF ( .NOT. ANY(indimids == unlimitedDimId) ) THEN
+         PRINT *, '  *** Variable '//TRIM(cv_in)//' does not have a time record, writing it before time loop!'
+         !! Reading field at record jt:
+         IF( nbdim == 2 ) THEN
+            IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') ) THEN
+               ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+               WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+               CALL check_nf90( nf90_put_var( outid, jv, glamt_crs ) )
+               l_var_is_done(jv) = .TRUE.
+            ELSEIF ( (TRIM(cv_in)=='nav_lat').OR.(TRIM(cv_in)=='gphit') ) THEN
+               ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+               WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+               CALL check_nf90( nf90_put_var( outid, jv, gphit_crs ) )
+               l_var_is_done(jv) = .TRUE.
+            END IF
+         ELSE
+            WRITE(numout,*) 'ERROR: unknown number of dimmensions!!!'; STOP
+         END IF
+      END IF
+   END DO
+
+
+   CALL check_nf90( nf90_close( outid ) )
+   stop 'lolo#0'
+
+
+
+
+
 
    DO jt=1, Nt
 
       PRINT *, ''
-      PRINT *, ' Reading field '//TRIM(cv_in)//' at record #',jt
+
+      DO jv = 1, nvars
+         PRINT *, ''
+
+         cv_in = TRIM(c_list_var_names(jv))
+
+         id_v        = i_list_var_ids(jv)
+         itype       = i_list_var_types(jv)
+         nbdim       = i_list_var_ndims(jv)
+         indimids(:) = i_list_var_dim_ids(:,jv)
+
+         PRINT *, ' ### Reading field '//TRIM(cv_in)//' at record #',jt
+         PRINT *, ' * var ID         =>', id_v
+         PRINT *, ' * var type       =>', itype
+         PRINT *, ' * var nb of dims =>', nbdim
+         PRINT *, ' * dim ids        =>', indimids(:)
+         PRINT *, ''
+
+
+         !! Reading field at record jt:
+         IF( nbdim == 2 ) THEN
+
+            SELECT CASE( itype )
+
+            CASE( NF90_FLOAT )
+               CALL check_nf90( NF90_GET_VAR(ncid, id_v, xdum_r4_crs ) )
+
+
+            CASE DEFAULT
+               WRITE(numout,*) 'ERROR: unknown netcdf type!!!'
+               STOP
+            END SELECT
+
+         ELSE
+            WRITE(numout,*) 'ERROR: unknown number of dimmensions!!!'
+            STOP
+         END IF
+
+         WRITE(numout,*) '   *** just read '//TRIM(cv_in)//' at record #',jt
+
+
+         PRINT *, ''
+
+         IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') ) THEN
+            ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+            WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+            CALL check_nf90( nf90_put_var( outid, jv, glamt_crs ) )
+
+         ELSEIF ( (TRIM(cv_in)=='nav_lat').OR.(TRIM(cv_in)=='gphit') ) THEN
+            ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+            WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+            CALL check_nf90( nf90_put_var( outid, jv, gphit_crs ) )
+         END IF
+
+
+         !CALL check_nf90( NF90_GET_VAR(ncid, id_v, xdum_r4_crs, start=(/1,1/), count=(/lx,ly/))
+         STOP'lili'
+      END DO
+
 
       CALL GETVAR_2D   (ifi, ivi, cf_in, cv_in, Nt, 0, jt, xdum_r4)
 
