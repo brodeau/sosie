@@ -69,6 +69,11 @@ MODULE mod_nemo
 
    INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: tmask, umask, vmask, fmask
 
+   REAL(wp),   DIMENSION(:,:,:), ALLOCATABLE :: e3t, e3u, e3v, e3t_0   
+   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
+   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f
+   
+
    ! zoom starting position
    INTEGER       ::   jpizoom          !: left bottom (i,j) indices of the zoom
    INTEGER       ::   jpjzoom          !: in data domain indices 

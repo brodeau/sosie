@@ -64,7 +64,9 @@ all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_tr
 
 gt: bin/interp_to_ground_track.x
 
-crs: bin/nemo_coarsener.x bin/nemo_coarsener_2d.x bin/nemo_coarsener_3d.x
+crs: bin/nemo_coarsener.x
+
+#bin/nemo_coarsener_2d.x bin/nemo_coarsener_3d.x
 
 
 test: bin/test_stuffs.x

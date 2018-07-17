@@ -405,6 +405,10 @@ CONTAINS
       REAL(wp) :: zmin,zmax
       !!----------------------------------------------------------------
 
+
+      !PRINT *, ' LOLO: this is crs_dom_ope_3d !!!, jpk = ', jpk
+      !PRINT *, ' LOLO: pe3 column:', p_e3(jpi/2,jpj/2,:)
+      
       p_fld_crs(:,:,:) = 0.0
 
       SELECT CASE ( cd_op )

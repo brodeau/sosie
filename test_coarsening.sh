@@ -13,7 +13,7 @@ else
 fi
 
 
-./bin/nemo_coarsener.x -m ${FMM} -i ${FIN} -o 2d_test.nc
+./bin/nemo_coarsener.x -m ${FMM} -i ${FIN} -o test.nc
 
 #for cv in "sossheig" "sosaline" "sosstsst"; do
 #for cv in "sossheig" ; do

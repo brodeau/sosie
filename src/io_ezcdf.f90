@@ -42,6 +42,10 @@ MODULE io_ezcdf
       MODULE PROCEDURE GETVAR_2D_R8, GETVAR_2D_R4
    END INTERFACE GETVAR_2D
 
+   INTERFACE GETVAR_3D
+      MODULE PROCEDURE GETVAR_3D_R8, GETVAR_3D_R4
+   END INTERFACE GETVAR_3D
+
 
 
 
@@ -596,7 +600,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GETVAR_3D(idx_f, idx_v, cf_in, cv_in, lt, kt, X, jt1, jt2, jz1, jz2)
+   SUBROUTINE GETVAR_3D_R4(idx_f, idx_v, cf_in, cv_in, lt, kt, X, jt1, jt2, jz1, jz2)
 
       !!------------------------------------------------------------------
       !! This routine extract a 3D field from a netcdf file
@@ -639,7 +643,7 @@ CONTAINS
       INTEGER :: n1, n2, n3, n4, its, ite, izs, ize
       INTEGER :: ierr1, ierr2
       REAL(4) :: rsf, rao
-      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_3D'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_3D_R4'
 
       lx = size(X,1)
       ly = size(X,2)
@@ -661,7 +665,7 @@ CONTAINS
 
       IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
          PRINT *, ''
-         PRINT *, ' --- GETVAR_3D: opening file '//TRIM(cf_in)//' !'
+         PRINT *, ' --- GETVAR_3D_R4: opening file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE,  idx_f),  crtn,cf_in,cv_in)
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
@@ -683,12 +687,69 @@ CONTAINS
       IF (ierr2 == NF90_NOERR) X = X + rao
 
       IF ( ( kt == ite ).OR.( kt == 0 ) )  THEN
-         PRINT *, ' --- GETVAR_3D: closing file '//TRIM(cf_in)//' !'
+         PRINT *, ' --- GETVAR_3D_R4: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
          idx_f = 0 ; idx_v = 0
       END IF
 
-   END SUBROUTINE GETVAR_3D
+   END SUBROUTINE GETVAR_3D_R4
+
+   SUBROUTINE GETVAR_3D_R8(idx_f, idx_v, cf_in, cv_in, lt, kt, X, jt1, jt2, jz1, jz2)
+      INTEGER,                    INTENT(inout) :: idx_f, idx_v
+      CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_in
+      INTEGER,                    INTENT(in)    :: lt, kt
+      REAL(8), DIMENSION (:,:,:), INTENT(out)   :: X
+      INTEGER,       OPTIONAL,    INTENT(in)    :: jt1, jt2
+      INTEGER,       OPTIONAL,    INTENT(in)    :: jz1, jz2
+      INTEGER ::  &
+         & lx,  &        ! x dimension of the variable        (integer)
+         & ly,  &        ! y dimension of the variable        (integer)
+         & lz            ! z dimension of the variable        (integer)
+      INTEGER :: n1, n2, n3, n4, its, ite, izs, ize
+      INTEGER :: ierr1, ierr2
+      REAL(4) :: rsf, rao
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_3D_R8'
+      lx = SIZE(X,1)
+      ly = size(X,2)
+      lz = size(X,3)
+      CALL DIMS(cf_in, cv_in, n1, n2, n3, n4)
+      IF ( (lx /= n1).OR.(ly /= n2) ) CALL print_err(crtn, ' PROBLEM #1 => '//TRIM(cv_in)//' in '//TRIM(cf_in))
+      its = 1 ; ite = lt
+      IF ( PRESENT(jt1) ) its = jt1
+      IF ( PRESENT(jt2) ) ite = jt2
+      IF ( PRESENT(jz1).AND.PRESENT(jz2) ) THEN
+         izs = jz1 ; ize = jz2
+      ELSE
+         izs = 1   ; ize = lz
+      END IF
+      IF ( (kt == its).OR.(kt == 0) ) THEN   ! Opening file and defining variable :
+         PRINT *, ''
+         PRINT *, ' --- GETVAR_3D_R8: opening file '//TRIM(cf_in)//' !'
+         CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE,  idx_f),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
+      END IF
+      IF ( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
+      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
+      IF ( kt == 0 ) THEN
+         CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs/), count=(/lx,ly,ize/)), &
+            &      crtn,cf_in,cv_in)
+      ELSEIF ( kt > 0 ) THEN
+         CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs,kt/), count=(/lx,ly,ize,1/)), &
+            &      crtn,cf_in,cv_in)
+      END IF
+      IF (ierr1 == NF90_NOERR) X = rsf*X
+      IF (ierr2 == NF90_NOERR) X = X + rao
+      IF ( ( kt == ite ).OR.( kt == 0 ) )  THEN
+         PRINT *, ' --- GETVAR_3D_R8: closing file '//TRIM(cf_in)//' !'
+         CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
+         idx_f = 0 ; idx_v = 0
+      END IF
+   END SUBROUTINE GETVAR_3D_R8
+
+
+
+
 
 
 
@@ -1232,7 +1293,7 @@ CONTAINS
       IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
       IF ( PRESENT(l_add_valid_min_max) ) l_add_extrema = l_add_valid_min_max
-      
+
       !! About dimensions of xlon, xlat, vdpth and x3d:
       cdt = TEST_XYZ(xlon, xlat, x3d(:,:,1))
 
@@ -2443,20 +2504,20 @@ CONTAINS
 
       nb_coor       = 0   ! 0 => no "coordinates" attribute !
       coord_list(:) = '0'
-      
+
       CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Natt, v_att)
       PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att(:Natt)
-      
+
       !! try to know coordinates the variable depends on from attribute coordinates:
       DO ja = 1, Natt
-         
+
          IF ( TRIM(v_att(ja)%cname) == 'coordinates' ) THEN
             nb_coor = 1
             csc = TRIM(v_att(ja)%val_char)
             PRINT *, ' *** we found "coordinates" attribute for "'//TRIM(cv_in)//'":'
             PRINT *, '   => ', TRIM(csc); PRINT *, ''
             nl = LEN(TRIM(csc)) ; PRINT *, nl ; ! length of the string!!
-            
+
             jp=0 ; jlp=1
             DO jl = 2, nl
                IF(csc(jl:jl)==' ') THEN
@@ -2474,11 +2535,11 @@ CONTAINS
                PRINT *, ' - ', TRIM(coord_list(jl))
             END DO
             PRINT *, ''
-            
+
          END IF
       END DO
 
-      
+
    END SUBROUTINE coordinates_from_var_attr
 
 

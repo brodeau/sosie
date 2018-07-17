@@ -27,7 +27,7 @@ PROGRAM NEMO_COARSENER
 
 
    CHARACTER(LEN=nf90_max_name) :: filebase, suffix, attname, dimname, varname, time, date, zone, timestamp
-   INTEGER :: ncid, ndims, nvars, natts, outid, idim, attid, ntype, varid,  dimlen, rbdims
+   INTEGER :: idf_src, ndims, nvars, natts, idf_trg, idim, attid, ntype, varid,  dimlen, rbdims
    INTEGER :: nmax_unlimited
    INTEGER :: dimid, unlimitedDimId
 
@@ -43,7 +43,7 @@ PROGRAM NEMO_COARSENER
    REAL(sp) :: ValMin, ValMax, InMin, InMax, rmdi
 
    INTEGER, DIMENSION(4) :: indimids
-   INTEGER, DIMENSION(:), ALLOCATABLE  :: outdimids, outdimlens, indimlens, inncids
+   INTEGER, DIMENSION(:), ALLOCATABLE  :: outdimids, outdimlens, indimlens, inidf_srcs
    REAL(wp), DIMENSION(:), ALLOCATABLE :: mdiVals
 
    CHARACTER(LEN=nf90_max_name), DIMENSION(:), ALLOCATABLE :: indimnames
@@ -106,16 +106,11 @@ PROGRAM NEMO_COARSENER
    !INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
 
-   REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xlon, xlat, xdum_r4
-   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
-   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f
-
-   REAL(wp),   DIMENSION(:,:,:), ALLOCATABLE :: e3t, e3u, e3v
-
-   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imaskt_crs, imasku_crs, imaskv_crs, imaskf_crs
-   REAL(4),    DIMENSION(:,:), ALLOCATABLE :: xdum_r4_crs
-   REAL(wp),    DIMENSION(:,:), ALLOCATABLE :: xdum_r8_crs
-   REAL(wp),    DIMENSION(:),   ALLOCATABLE :: xr8
+   REAL(4),  DIMENSION(:,:),   ALLOCATABLE :: x2d_r4, x2d_r4_crs
+   REAL(wp), DIMENSION(:,:),   ALLOCATABLE :: x2d_r8_crs
+   REAL(4),  DIMENSION(:,:,:), ALLOCATABLE :: x3d_r4, x3d_r4_crs
+   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs
+   REAL(wp), DIMENSION(:),     ALLOCATABLE :: xr8
 
    INTEGER :: jt
    !!
@@ -285,12 +280,12 @@ PROGRAM NEMO_COARSENER
    !!LILI
    !! Need to know if there is at least one file with the vertical dimension in the input file!
 
-   CALL check_nf90( NF90_OPEN( TRIM(cf_in), nf90_share, ncid ) )
-   CALL check_nf90( NF90_INQUIRE( ncid, ndims, nvars, natts ) )
+   CALL check_nf90( NF90_OPEN( TRIM(cf_in), nf90_share, idf_src ) )
+   CALL check_nf90( NF90_INQUIRE( idf_src, ndims, nvars, natts ) )
 
-   WRITE(numout,*) ' ncid, ndims, nvars, natts =', ncid, ndims, nvars, natts
+   WRITE(numout,*) ' idf_src, ndims, nvars, natts =', idf_src, ndims, nvars, natts
 
-   CALL check_nf90( NF90_INQUIRE( ncid, unlimitedDimId = id_t ) )
+   CALL check_nf90( NF90_INQUIRE( idf_src, unlimitedDimId = id_t ) )
 
    WRITE(numout,*) ''
    WRITE(numout,'(" *** input file contains ",i1," dimensions of which time has id ",i1," !")') ndims, id_t
@@ -301,7 +296,7 @@ PROGRAM NEMO_COARSENER
    l_3d = .FALSE.
 
    DO idim = 1, ndims
-      CALL check_nf90( nf90_inquire_dimension( ncid, idim, dimname, dimlen ) )
+      CALL check_nf90( nf90_inquire_dimension( idf_src, idim, dimname, dimlen ) )
       indimlens(idim) = dimlen
       indimnames(idim) = dimname
 
@@ -358,7 +353,7 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) '' ; WRITE(numout,*) ''
 
 
-   IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(nlextra,jpk) )
+
 
 
    jpkm1 = MAX(jpk-1,1)
@@ -366,11 +361,14 @@ PROGRAM NEMO_COARSENER
 
    !ni = ni1 ; jpj = ni1
    !! Source:
-   ALLOCATE ( xlon(jpi,jpj), xlat(jpi,jpj), xdum_r4(jpi,jpj), &
+   ALLOCATE ( x2d_r4(jpi,jpj), e3t_0(jpi,jpj,jpk), &
       &       glamt(jpi,jpj), gphit(jpi,jpj), glamu(jpi,jpj), gphiu(jpi,jpj), glamv(jpi,jpj), gphiv(jpi,jpj), glamf(jpi,jpj), gphif(jpi,jpj),  &
       &       e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj) )
 
-   ALLOCATE ( e3t(jpi,jpj,jpk) )
+
+
+   IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(nlextra,jpk) , x3d_r4(jpi,jpj,jpk) ) !, e3t(jpi,jpj,jpk) )
+
 
 
 
@@ -511,8 +509,8 @@ PROGRAM NEMO_COARSENER
    CALL GETVAR_2D(i0, j0, cf_mm, 'e2f', 0, 0, 0, e2f) ; i0=0 ; j0=0
 
    !! Should get from VVL! Not meshmask:
-   CALL GETVAR_2D(i0, j0, cf_mm, 'e3t_0', 0, 1, 0, e3t(:,:,1)) ; i0=0 ; j0=0
-
+   !CALL GETVAR_2D(i0, j0, cf_mm, 'e3t_0', 0, 1, 0, e3t_0(:,:,1)) ; i0=0 ; j0=0
+   CALL GETVAR_3D(i0, j0, cf_mm, 'e3t_0', 0, 1,    e3t_0(:,:,:), jz1=1, jz2=jpk)
 
 
 
@@ -631,15 +629,15 @@ PROGRAM NEMO_COARSENER
 
 
    !2.1 Set up the output file
-   CALL check_nf90( nf90_create( TRIM(cf_out), nf90_netcdf4, outid, chunksize=chunksize ) )
+   CALL check_nf90( nf90_create( TRIM(cf_out), nf90_netcdf4, idf_trg, chunksize=chunksize ) )
 
 
    !2.2.0 Find out how many dimensions are required to be rebuilt and which ones they are
-   !CALL check_nf90( nf90_inquire_attribute( ncid, nf90_global, 'DOMAIN_dimensions_ids', itype, rbdims, attid ) )
+   !CALL check_nf90( nf90_inquire_attribute( idf_src, nf90_global, 'DOMAIN_dimensions_ids', itype, rbdims, attid ) )
    !ALLOCATE(rebuild_dims(rbdims))
-   !CALL check_nf90( nf90_get_att( ncid, nf90_global, 'DOMAIN_dimensions_ids', rebuild_dims ) )
+   !CALL check_nf90( nf90_get_att( idf_src, nf90_global, 'DOMAIN_dimensions_ids', rebuild_dims ) )
    !ALLOCATE(global_sizes(rbdims))
-   !CALL check_nf90( nf90_get_att( ncid, nf90_global, 'DOMAIN_size_global', global_sizes ) )
+   !CALL check_nf90( nf90_get_att( idf_src, nf90_global, 'DOMAIN_size_global', global_sizes ) )
    !IF (l_verbose) WRITE(numout,*) 'Size of global arrays: ', global_sizes
 
 
@@ -653,13 +651,13 @@ PROGRAM NEMO_COARSENER
    outdimlens(id_y) = jpj_crs
 
    DO idim = 1, ndims
-      CALL check_nf90( nf90_inquire_dimension( ncid, idim, dimname, dimlen ) )
+      CALL check_nf90( nf90_inquire_dimension( idf_src, idim, dimname, dimlen ) )
       IF( idim == id_t ) THEN
-         CALL check_nf90( nf90_def_dim( outid, dimname, nf90_unlimited, dimid) )
+         CALL check_nf90( nf90_def_dim( idf_trg, dimname, nf90_unlimited, dimid) )
          nmax_unlimited = dimlen
       ELSE
-         WRITE(numout,*) ' nf90_def_dim( outid, dimname, outdimlens(idim), dimid)'
-         CALL check_nf90( nf90_def_dim( outid, dimname, outdimlens(idim), dimid) )
+         WRITE(numout,*) ' nf90_def_dim( idf_trg, dimname, outdimlens(idim), dimid)'
+         CALL check_nf90( nf90_def_dim( idf_trg, dimname, outdimlens(idim), dimid) )
       ENDIF
    END DO
 
@@ -707,12 +705,12 @@ PROGRAM NEMO_COARSENER
       id_v = jv ! lolo!
       indimids(:) = 0
 
-      CALL check_nf90( nf90_inquire_variable( ncid, id_v, varname, ntype, ndims, indimids, natts ) )
+      CALL check_nf90( nf90_inquire_variable( idf_src, id_v, varname, ntype, ndims, indimids, natts ) )
       c_list_var_names(jv)     = TRIM(varname)
       i_list_var_types(jv)     = ntype
       i_list_var_ndims(jv)     = ndims
       i_list_var_dim_ids(:,jv) = indimids(:)
-      !CALL check_nf90( nf90_inquire_variable( ncid, id_v) !, ndims=nd)
+      !CALL check_nf90( nf90_inquire_variable( idf_src, id_v) !, ndims=nd)
       i_list_var_ids(jv)   = id_v
 
       ALLOCATE(outdimids(ndims))
@@ -722,33 +720,32 @@ PROGRAM NEMO_COARSENER
 
 
 
-      CALL check_nf90( nf90_def_var( outid, varname, ntype, outdimids, varid, &
+      CALL check_nf90( nf90_def_var( idf_trg, varname, ntype, outdimids, varid, &
          deflate_level=deflate_level ) )
       DEALLOCATE(outdimids)
       WRITE(numout,*) 'Defining variable '//TRIM(varname)//'...'
       IF( natts > 0 ) THEN
          DO attid = 1, natts
-            CALL check_nf90( nf90_inq_attname( ncid, varid, attid, attname ) )
+            CALL check_nf90( nf90_inq_attname( idf_src, varid, attid, attname ) )
             IF ( attname == "_FillValue" ) THEN
-               CALL check_nf90( nf90_get_att( ncid, varid, attname, rmdi ) )
+               CALL check_nf90( nf90_get_att( idf_src, varid, attname, rmdi ) )
                mdiVals(jv)=rmdi
             ENDIF
-            CALL check_nf90( nf90_copy_att( ncid, varid, attname, outid, varid ) )
+            CALL check_nf90( nf90_copy_att( idf_src, varid, attname, idf_trg, varid ) )
          END DO
       ENDIF
    END DO
 
 
 
-   !2.3 End definitions in output file and copy 1st file ncid to the inncids array
+   !2.3 End definitions in output file and copy 1st file idf_src to the inidf_srcs array
 
-   CALL check_nf90( nf90_enddef( outid ) )
-   !inncids(1) = ncid
+   CALL check_nf90( nf90_enddef( idf_trg ) )
+   !inidf_srcs(1) = idf_src
    !WRITE(numout,*) 'Finished defining output file.'
 
-
-
-   ALLOCATE ( xdum_r4_crs(jpi_crs,jpj_crs), xdum_r8_crs(jpi_crs,jpj_crs) )
+   ALLOCATE ( x2d_r4_crs(jpi_crs,jpj_crs), x2d_r8_crs(jpi_crs,jpj_crs) )
+   IF ( l_3d ) ALLOCATE ( x3d_r4_crs(jpi_crs,jpj_crs,jpk), x3d_r8_crs(jpi_crs,jpj_crs,jpk) )
 
 
 
@@ -757,7 +754,7 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) ''
 
    l_var_is_done(:) = .FALSE.
-   
+
    ! A. Writing all variables that do not have a time record:
 
    DO jv = 1, nvars
@@ -775,28 +772,28 @@ PROGRAM NEMO_COARSENER
 
          IF( nbdim == 1 ) THEN
             IF ( (TRIM(cv_in)=='deptht').OR.(TRIM(cv_in)=='depthw') ) THEN
-               CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth ) )
-               CALL check_nf90( nf90_put_var( outid, id_v, vdepth ) )
+               CALL check_nf90( nf90_get_var( idf_src,  id_v, vdepth ) )
+               CALL check_nf90( nf90_put_var( idf_trg, id_v, vdepth ) )
                l_var_is_done(jv) = .TRUE.
             ELSE
                WRITE(numout,*) 'ERROR: unknown 1D variable without time!!!'; STOP
             END IF
-            
+
          ELSEIF( nbdim == 2 ) THEN
             IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') ) THEN
                ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
                WRITE(numout,*) '      ==> writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
-               CALL check_nf90( nf90_put_var( outid, id_v, glamt_crs ) )
+               CALL check_nf90( nf90_put_var( idf_trg, id_v, glamt_crs ) )
                l_var_is_done(jv) = .TRUE.
             ELSEIF ( (TRIM(cv_in)=='nav_lat').OR.(TRIM(cv_in)=='gphit') ) THEN
                ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
                WRITE(numout,*) '      ==> writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
-               CALL check_nf90( nf90_put_var( outid, id_v, gphit_crs ) )
+               CALL check_nf90( nf90_put_var( idf_trg, id_v, gphit_crs ) )
                l_var_is_done(jv) = .TRUE.
-               
+
             ELSEIF ( (TRIM(cv_in)=='deptht_bounds').OR.(TRIM(cv_in)=='depthw_bounds') ) THEN
-               CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth_b ) )
-               CALL check_nf90( nf90_put_var( outid, id_v, vdepth_b ) )
+               CALL check_nf90( nf90_get_var( idf_src,  id_v, vdepth_b ) )
+               CALL check_nf90( nf90_put_var( idf_trg, id_v, vdepth_b ) )
                l_var_is_done(jv) = .TRUE.
 
             ELSE
@@ -811,16 +808,16 @@ PROGRAM NEMO_COARSENER
 
          WRITE(numout,*) ''
       END IF ! IF ( .NOT. ANY(indimids == id_t) )
-      
+
    END DO  ! DO jv = 1, nvars
 
-   
-   STOP 'lala => fix 3D+T case in the following!!!'
+
+
 
 
    !! B. Will read, coarsen (if / x,y), and write, everything that depends on time record:
 
-   e3t(:,:,:) = 1._wp
+   !e3t_0(:,:,:) = 1._wp
 
    DO jt=1, Nt
 
@@ -848,11 +845,11 @@ PROGRAM NEMO_COARSENER
                IF ( .NOT. (indimids(1)==id_t) ) STOP 'ERROR: we should only have record-dependant vectors here!!!'
                SELECT CASE( itype )
                CASE( NF90_DOUBLE )
-                  CALL check_nf90( nf90_get_var( ncid,  id_v, r8, start=(/jt/), count=(/1/)) )
-                  CALL check_nf90( nf90_put_var( outid, id_v, r8, start=(/jt/), count=(/1/)) )
+                  CALL check_nf90( nf90_get_var( idf_src,  id_v, r8, start=(/jt/), count=(/1/)) )
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v, r8, start=(/jt/), count=(/1/)) )
                CASE( NF90_FLOAT )
-                  CALL check_nf90( nf90_get_var( ncid,  id_v, r4, start=(/jt/), count=(/1/)) )
-                  CALL check_nf90( nf90_put_var( outid, id_v, r4, start=(/jt/), count=(/1/)) )
+                  CALL check_nf90( nf90_get_var( idf_src,  id_v, r4, start=(/jt/), count=(/1/)) )
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v, r4, start=(/jt/), count=(/1/)) )
                CASE DEFAULT
                   WRITE(numout,*) 'ERROR: unknown netcdf type!!!'; STOP
                END SELECT
@@ -866,8 +863,8 @@ PROGRAM NEMO_COARSENER
                IF ( .NOT. ((indimids(1)==id_dim_extra).AND.(indimids(2)==id_t)) ) STOP 'ERROR: we do not know wthat this 2D field is! '
                SELECT CASE( itype )
                CASE( NF90_DOUBLE )
-                  CALL check_nf90( NF90_GET_VAR(ncid,  id_v, xr8, start=(/1,jt/), count=(/nlextra,1/)) )
-                  CALL check_nf90( NF90_PUT_VAR(outid, id_v, xr8, start=(/1,jt/), count=(/nlextra,1/)) )
+                  CALL check_nf90( NF90_GET_VAR(idf_src,  id_v, xr8, start=(/1,jt/), count=(/nlextra,1/)) )
+                  CALL check_nf90( NF90_PUT_VAR(idf_trg, id_v, xr8, start=(/1,jt/), count=(/nlextra,1/)) )
 
                CASE DEFAULT
                   WRITE(numout,*) 'ERROR: unknown netcdf type!!!'; STOP
@@ -889,7 +886,7 @@ PROGRAM NEMO_COARSENER
                IF ( .NOT. ((indimids(1)==id_x).AND.(indimids(2)==id_y).AND.(indimids(3)==id_t)) ) STOP 'ERROR: we do not know wthat this 3D field is! '
                SELECT CASE( itype )
                CASE( NF90_FLOAT )
-                  CALL check_nf90( NF90_GET_VAR(ncid, id_v, xdum_r4, start=(/1,1,jt/), count=(/jpi,jpj,1/)) )
+                  CALL check_nf90( NF90_GET_VAR(idf_src, id_v, x2d_r4, start=(/1,1,jt/), count=(/jpi,jpj,1/)) )
                CASE DEFAULT
                   WRITE(numout,*) 'ERROR: unknown netcdf type!!! We should not have 2D+T arrays as double precision!'; STOP
                END SELECT
@@ -898,15 +895,53 @@ PROGRAM NEMO_COARSENER
                ! Time for coarsening! Use different routines depending on the type of field!
                IF ( (TRIM(cv_in)=='sossheig').OR.(TRIM(cv_in)=='sosstsst').OR.(TRIM(cv_in)=='sosaline') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
-                  CALL crs_dom_ope( REAL(xdum_r4,8) , 'VOL', 'T', REAL(tmask,8), xdum_r8_crs , p_e12=e1t*e2t, p_e3=e3t, psgn=1.0_wp )
+                  CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'T', REAL(tmask,8), x2d_r8_crs , p_e12=e1t*e2t, p_e3=e3t_0, psgn=1.0_wp )
                   WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
-                  xdum_r4_crs = xdum_r8_crs
-1                 WHERE ( tmask_crs(:,:,1) == 0 ) xdum_r4_crs = 1.e+20
-                  CALL check_nf90( nf90_put_var( outid, id_v,  xdum_r4_crs, start=(/1,1,jt/), count=(/jpi_crs,jpj_crs,1/)) )
+                  x2d_r4_crs = x2d_r8_crs
+                  WHERE ( tmask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x2d_r4_crs, start=(/1,1,jt/), count=(/jpi_crs,jpj_crs,1/)) )
                   WRITE(numout,*) '   ***  written!'
                END IF
 
             END IF !IF( nbdim == 3 )
+
+
+
+            IF( nbdim == 4 ) THEN
+
+               PRINT *, ' indimids =', indimids(:)
+
+
+               IF ( .NOT. ((indimids(1)==id_x).AND.(indimids(2)==id_y).AND.(indimids(3)==id_z).AND.(indimids(4)==id_t)) ) STOP 'ERROR: we do not know wthat this 4D field is! '
+               SELECT CASE( itype )
+               CASE( NF90_FLOAT )
+                  CALL check_nf90( NF90_GET_VAR(idf_src, id_v, x3d_r4, start=(/1,1,1,jt/), count=(/jpi,jpj,jpk,1/)) )
+               CASE DEFAULT
+                  WRITE(numout,*) 'ERROR: unknown netcdf type!!! We should not have 3D+T arrays as double precision!'; STOP
+               END SELECT
+               WRITE(numout,*) '   *** just read '//TRIM(cv_in)//' at record #',jt
+
+
+               IF ( (TRIM(cv_in)=='e3t') ) THEN
+                  WRITE(numout,*) '   *** Doing nothing for '//TRIM(cv_in)//' for now !'
+               END IF
+                           
+               ! Time for coarsening! Use different routines depending on the type of field!
+               IF ( (TRIM(cv_in)=='votemper').OR.(TRIM(cv_in)=='vosaline') ) THEN
+                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'VOL', 'T', REAL(tmask,8), x3d_r8_crs , p_e12=e1t*e2t, p_e3=e3t_0, psgn=1.0_wp )
+
+                  WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+                  x3d_r4_crs = x3d_r8_crs
+                  WHERE ( tmask_crs == 0 ) x3d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+                  WRITE(numout,*) '   ***  written!'
+               END IF
+
+            END IF !IF( nbdim == 4 )
+
+
+
 
             !WRITE(numout,*) 'ERROR: unknown number of dimmensions!!!'
 
@@ -914,7 +949,7 @@ PROGRAM NEMO_COARSENER
 
 
 
-            !CALL check_nf90( NF90_GET_VAR(ncid, id_v, xdum_r4_crs, start=(/1,1/), count=(/lx,ly/))
+            !CALL check_nf90( NF90_GET_VAR(idf_src, id_v, x2d_r4_crs, start=(/1,1/), count=(/lx,ly/))
 
 
          END IF ! IF ( .NOT. l_var_is_done(jv) )
@@ -927,7 +962,7 @@ PROGRAM NEMO_COARSENER
 
 
       !IF ( lmv_in ) THEN
-      !WHERE ( tmask_crs(:,:,1) == 0 ) xdum_r4_crs = rmissv_in
+      !WHERE ( tmask_crs(:,:,1) == 0 ) x2d_r4_crs = rmissv_in
       !END IF
 
 
@@ -935,12 +970,15 @@ PROGRAM NEMO_COARSENER
    END DO !DO jt=1, Nt
 
 
-   CALL check_nf90( nf90_close( outid ) )
-   !STOP'lili'
+   CALL check_nf90( nf90_close( idf_trg ) )
+   CALL check_nf90( nf90_close( idf_src ) )
 
 
-   STOP 'LOLO'
 
+
+   WRITE(numout,*) ''
+   WRITE(numout,*) 'Over!'
+   WRITE(numout,*) ''
 
 
 
