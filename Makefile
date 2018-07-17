@@ -66,6 +66,7 @@ gt: bin/interp_to_ground_track.x
 
 crs: bin/nemo_coarsener.x bin/nemo_coarsener_2d.x bin/nemo_coarsener_3d.x
 
+
 test: bin/test_stuffs.x
 
 bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
@@ -197,6 +198,6 @@ uninstall:
 
 
 clean:
-	rm -f bin/* $(LIB_SOSIE) *.out mod/*.mod *.x *~ *\# src/*~ src/*\# *.log
+	rm -f bin/* $(LIB_SOSIE) *.out mod/*.mod *.x *~ *\# src/*~ src/*\# *.log *.tmp fort.*
 	rm -rf bin mod lib obj
 	rm -f examples/*.nc4
