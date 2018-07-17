@@ -178,7 +178,7 @@ PROGRAM NEMO_COARSENER
          CALL GET_MY_ARG('latitude', cv_lat)
 
       CASE DEFAULT
-         PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
+         WRITE(numout,*) 'Unknown option: ', trim(cr) ; WRITE(numout,*) ''
          CALL usage()
 
       END SELECT
@@ -187,46 +187,46 @@ PROGRAM NEMO_COARSENER
 
    !IF ( (TRIM(cv_in) == '').OR.(TRIM(cf_in) == '') ) THEN
    IF (TRIM(cf_in) == '') THEN
-      PRINT *, ''
-      PRINT *, 'You must at least specify input file (-i) !!!'
+      WRITE(numout,*) ''
+      WRITE(numout,*) 'You must at least specify input file (-i) !!!'
       CALL usage()
    END IF
 
    IF ( TRIM(cf_out) == '' ) THEN
-      PRINT *, ''
-      PRINT *, 'You must at least specify output file (-o) !!!'
+      WRITE(numout,*) ''
+      WRITE(numout,*) 'You must at least specify output file (-o) !!!'
       CALL usage()
    END IF
 
-   PRINT *, ''
-   PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
-   PRINT *, ''
+   WRITE(numout,*) ''
+   WRITE(numout,*) ''; WRITE(numout,*) 'Use "-h" for help'; WRITE(numout,*) ''
+   WRITE(numout,*) ''
 
-   PRINT *, ' * Input file = ', trim(cf_in)
-   !PRINT *, '   => associated variable names = ', TRIM(cv_in)
-   !PRINT *, '   => associated longitude/latitude/time = ', trim(cv_lon), ', ', trim(cv_lat)
+   WRITE(numout,*) ' * Input file = ', trim(cf_in)
+   !WRITE(numout,*) '   => associated variable names = ', TRIM(cv_in)
+   !WRITE(numout,*) '   => associated longitude/latitude/time = ', trim(cv_lon), ', ', trim(cv_lat)
 
 
-   PRINT *, ''
+   WRITE(numout,*) ''
 
    !! Name of config: lulu
    !idot = SCAN(cf_in, '/', back=.TRUE.)
    !cdum = cf_in(idot+1:)
    !idot = SCAN(cdum, '.', back=.TRUE.)
    !cconf = cdum(:idot-1)
-   !PRINT *, ' *** CONFIG: cconf ='//TRIM(cconf) ; PRINT *, ''
+   !WRITE(numout,*) ' *** CONFIG: cconf ='//TRIM(cconf) ; WRITE(numout,*) ''
 
 
    !! testing longitude and latitude
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    INQUIRE(FILE=TRIM(cf_in), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
-      PRINT *, 'ERROR: input file not found! ', TRIM(cf_in)
+      WRITE(numout,*) 'ERROR: input file not found! ', TRIM(cf_in)
       call usage()
    END IF
    INQUIRE(FILE=TRIM(cf_mm), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
-      PRINT *, 'ERROR: mesh_mask file not found! ', TRIM(cf_mm)
+      WRITE(numout,*) 'ERROR: mesh_mask file not found! ', TRIM(cf_mm)
       call usage()
    END IF
 
@@ -235,16 +235,16 @@ PROGRAM NEMO_COARSENER
    !IF ( nb_coor > 0 ) THEN
    !   l_coor_info = .TRUE.
    !   IF ( nb_coor /= 3 ) STOP 'ERROR: since this is the 2D version we expect nb_coor == 3'
-   !   PRINT *, ''
-   !   PRINT *, ' *** We update names of coordinates as follows:'
+   !   WRITE(numout,*) ''
+   !   WRITE(numout,*) ' *** We update names of coordinates as follows:'
    !   cv_t   = TRIM(vlist_coor(1))
    !   cv_lat = TRIM(vlist_coor(2))
    !   cv_lon = TRIM(vlist_coor(3))
 
-   !   PRINT *, '    cv_t   = ', TRIM(cv_t)
-   !   PRINT *, '    cv_lat = ', TRIM(cv_lat)
-   !   PRINT *, '    cv_lon = ', TRIM(cv_lon)
-   !   PRINT *, ''
+   !   WRITE(numout,*) '    cv_t   = ', TRIM(cv_t)
+   !   WRITE(numout,*) '    cv_lat = ', TRIM(cv_lat)
+   !   WRITE(numout,*) '    cv_lon = ', TRIM(cv_lon)
+   !   WRITE(numout,*) ''
    !END IF
 
 
@@ -257,22 +257,22 @@ PROGRAM NEMO_COARSENER
    !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
    !IF ( (nj1==-1).AND.(nj2==-1) ) THEN
    !   ni = ni1 ; nj = ni2
-   !   PRINT *, 'Grid is 1D: ni, nj =', ni, nj
+   !   WRITE(numout,*) 'Grid is 1D: ni, nj =', ni, nj
    !   l_reg_src = .TRUE.
    !ELSE
    !   IF ( (ni1==ni2).AND.(nj1==nj2) ) THEN
    !      ni = ni1 ; nj = nj1
-   !      PRINT *, 'Grid is 2D: ni, nj =', ni, nj
+   !      WRITE(numout,*) 'Grid is 2D: ni, nj =', ni, nj
    !      l_reg_src = .FALSE.
    !   ELSE
-   !      PRINT *, 'ERROR: problem with grid!' ; STOP
+   !      WRITE(numout,*) 'ERROR: problem with grid!' ; STOP
    !   END IF
    !END IF
 
    CALL DIMS(cf_mm, 'tmask', jpi, jpj, jpk, Nt)
-   PRINT *, ' *** 3D domain size from meshmask is:'
-   PRINT *, '     jpi, jpj, jpk =>', jpi, jpj, jpk
-   PRINT *, ''
+   WRITE(numout,*) ' *** 3D domain size from meshmask is:'
+   WRITE(numout,*) '     jpi, jpj, jpk =>', jpi, jpj, jpk
+   WRITE(numout,*) ''
 
    IF ( (jpi/=ni1).OR.(jpj/=nj1) ) STOP 'Problem of shape between input field and mesh_mask!'
 
@@ -288,7 +288,7 @@ PROGRAM NEMO_COARSENER
    CALL check_nf90( NF90_OPEN( TRIM(cf_in), nf90_share, ncid ) )
    CALL check_nf90( NF90_INQUIRE( ncid, ndims, nvars, natts ) )
 
-   PRINT *, ' ncid, ndims, nvars, natts =', ncid, ndims, nvars, natts
+   WRITE(numout,*) ' ncid, ndims, nvars, natts =', ncid, ndims, nvars, natts
 
    CALL check_nf90( NF90_INQUIRE( ncid, unlimitedDimId = id_t ) )
 
@@ -358,7 +358,7 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) '' ; WRITE(numout,*) ''
 
 
-   IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(jpk,nlextra) )
+   IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(nlextra,jpk) )
 
 
    jpkm1 = MAX(jpk-1,1)
@@ -376,14 +376,14 @@ PROGRAM NEMO_COARSENER
 
 
    !! Getting source land-sea mask:
-   PRINT *, ''
+   WRITE(numout,*) ''
    ALLOCATE ( tmask(jpi,jpj,jpk), umask(jpi,jpj,jpk), vmask(jpi,jpj,jpk), fmask(jpi,jpj,jpk) )
-   PRINT *, ' *** Reading land-sea mask'
+   WRITE(numout,*) ' *** Reading land-sea mask'
    CALL GETMASK_3D(cf_mm, 'tmask', tmask, jz1=1, jz2=jpk)
    CALL GETMASK_3D(cf_mm, 'umask', umask, jz1=1, jz2=jpk)
    CALL GETMASK_3D(cf_mm, 'vmask', vmask, jz1=1, jz2=jpk)
    CALL GETMASK_3D(cf_mm, 'fmask', fmask, jz1=1, jz2=jpk)
-   PRINT *, ' Done!'; PRINT *, ''
+   WRITE(numout,*) ' Done!'; WRITE(numout,*) ''
 
 
 
@@ -396,34 +396,34 @@ PROGRAM NEMO_COARSENER
 
    !! Getting model longitude & latitude:
    ! Longitude array:
-   !PRINT *, ''
-   !PRINT *, ' *** Going to fetch longitude array:'
+   !WRITE(numout,*) ''
+   !WRITE(numout,*) ' *** Going to fetch longitude array:'
    !CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lon,  Nb_att_lon, v_att_list_lon)
-   !!PRINT *, '  => attributes are:', v_att_list_lon(:Nb_att_lon)
+   !!WRITE(numout,*) '  => attributes are:', v_att_list_lon(:Nb_att_lon)
    !CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlon) ; i0=0 ; j0=0
-   !PRINT *, '  '//TRIM(cv_lon)//' sucessfully fetched!'; PRINT *, ''
+   !WRITE(numout,*) '  '//TRIM(cv_lon)//' sucessfully fetched!'; WRITE(numout,*) ''
 
    !! Latitude array:
-   !PRINT *, ''
-   !PRINT *, ' *** Going to fetch latitude array:'
+   !WRITE(numout,*) ''
+   !WRITE(numout,*) ' *** Going to fetch latitude array:'
    !CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lat,  Nb_att_lat, v_att_list_lat)
-   !!PRINT *, '  => attributes are:', v_att_list_lat(:Nb_att_lat)
+   !!WRITE(numout,*) '  => attributes are:', v_att_list_lat(:Nb_att_lat)
    !CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlat)
    !i0=0 ; j0=0
-   !PRINT *, '  '//TRIM(cv_lat)//' sucessfully fetched!'; PRINT *, ''
+   !WRITE(numout,*) '  '//TRIM(cv_lat)//' sucessfully fetched!'; WRITE(numout,*) ''
 
    !CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
    !IF ( .not. lmv_in ) rmissv_in = 0.
 
    !CALL GETVAR_ATTRIBUTES(cf_in, cv_t,  Nb_att_time, v_att_list_time)
-   !PRINT *, '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)
+   !WRITE(numout,*) '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)
    !CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
-   !PRINT *, '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)
+   !WRITE(numout,*) '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)
 
 
    ALLOCATE ( Vt(Nt) )
    CALL GETVAR_1D(cf_in, cv_t, Vt)
-   PRINT *, 'Vt = ', Vt(:)
+   WRITE(numout,*) 'Vt = ', Vt(:)
 
 
 
@@ -481,13 +481,13 @@ PROGRAM NEMO_COARSENER
    !---------------------------------------------------------
    CALL crs_dom_def
 
-   PRINT *, ' *** After crs_dom_def: jpi_crs, jpj_crs =', jpi_crs, jpj_crs
+   WRITE(numout,*) ' *** After crs_dom_def: jpi_crs, jpj_crs =', jpi_crs, jpj_crs
 
-   PRINT *, 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs
+   WRITE(numout,*) 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs
 
-   PRINT *, ' *** nn_factx, nn_facty', nn_factx, nn_facty
+   WRITE(numout,*) ' *** nn_factx, nn_facty', nn_factx, nn_facty
 
-   PRINT *, ''
+   WRITE(numout,*) ''
 
 
 
@@ -541,9 +541,9 @@ PROGRAM NEMO_COARSENER
    CALL DUMP_2D_FIELD(REAL(fmask_crs(:,:,1),4), 'fmask_crs.tmp', 'fmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
 
 
-   PRINT *, ''
-   PRINT *, ' nrestx, nresty = ', nrestx, nresty
-   PRINT *, ''
+   WRITE(numout,*) ''
+   WRITE(numout,*) ' nrestx, nresty = ', nrestx, nresty
+   WRITE(numout,*) ''
 
    gphit_crs = 0.0
    glamt_crs = 0.0
@@ -617,9 +617,9 @@ PROGRAM NEMO_COARSENER
 
 
 
-   PRINT *, ''
-   PRINT *, ''
-   PRINT *, ''
+   WRITE(numout,*) ''
+   WRITE(numout,*) ''
+   WRITE(numout,*) ''
 
 
 
@@ -658,7 +658,7 @@ PROGRAM NEMO_COARSENER
          CALL check_nf90( nf90_def_dim( outid, dimname, nf90_unlimited, dimid) )
          nmax_unlimited = dimlen
       ELSE
-         PRINT *, ' nf90_def_dim( outid, dimname, outdimlens(idim), dimid)'
+         WRITE(numout,*) ' nf90_def_dim( outid, dimname, outdimlens(idim), dimid)'
          CALL check_nf90( nf90_def_dim( outid, dimname, outdimlens(idim), dimid) )
       ENDIF
    END DO
@@ -754,12 +754,11 @@ PROGRAM NEMO_COARSENER
 
 
 
-   PRINT *, ''
+   WRITE(numout,*) ''
 
    l_var_is_done(:) = .FALSE.
-
+   
    ! A. Writing all variables that do not have a time record:
-   !PRINT *, ' *** ID of unlimited (record) dimension is:', id_t
 
    DO jv = 1, nvars
 
@@ -770,36 +769,38 @@ PROGRAM NEMO_COARSENER
       indimids(:) = i_list_var_dim_ids(:,jv)
 
       IF ( .NOT. ANY(indimids == id_t) ) THEN
-         PRINT *, '  *** Variable '//TRIM(cv_in)//' does not have a time record, writing it before time loop!'
+         WRITE(numout,*) '  *** Variable '//TRIM(cv_in)//': no time record, writing before time loop!'
 
          ! LOLO add 1D like depth here !!!! IF( nbdim == 1 ) THEN
 
          IF( nbdim == 1 ) THEN
             IF ( (TRIM(cv_in)=='deptht').OR.(TRIM(cv_in)=='depthw') ) THEN
-               CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth ) )!lili
+               CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth ) )
                CALL check_nf90( nf90_put_var( outid, id_v, vdepth ) )
                l_var_is_done(jv) = .TRUE.
+            ELSE
+               WRITE(numout,*) 'ERROR: unknown 1D variable without time!!!'; STOP
             END IF
-
-
+            
          ELSEIF( nbdim == 2 ) THEN
             IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') ) THEN
                ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
-               WRITE(numout,*) '   *** writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
-               CALL check_nf90( nf90_put_var( outid, jv, glamt_crs ) )
+               WRITE(numout,*) '      ==> writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
+               CALL check_nf90( nf90_put_var( outid, id_v, glamt_crs ) )
                l_var_is_done(jv) = .TRUE.
             ELSEIF ( (TRIM(cv_in)=='nav_lat').OR.(TRIM(cv_in)=='gphit') ) THEN
                ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
-               WRITE(numout,*) '   *** writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
-               CALL check_nf90( nf90_put_var( outid, jv, gphit_crs ) )
+               WRITE(numout,*) '      ==> writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
+               CALL check_nf90( nf90_put_var( outid, id_v, gphit_crs ) )
                l_var_is_done(jv) = .TRUE.
+               
             ELSEIF ( (TRIM(cv_in)=='deptht_bounds').OR.(TRIM(cv_in)=='depthw_bounds') ) THEN
-               !CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth_b ) )
-               !CALL check_nf90( nf90_put_var( outid, id_v, vdepth_b ) )
+               CALL check_nf90( nf90_get_var( ncid,  id_v, vdepth_b ) )
+               CALL check_nf90( nf90_put_var( outid, id_v, vdepth_b ) )
                l_var_is_done(jv) = .TRUE.
 
             ELSE
-               WRITE(numout,*) 'ERROR: unknown variable without time)!!!'; STOP
+               WRITE(numout,*) 'ERROR: unknown 2D variable without time!!!'; STOP
             END IF !IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') )
 
          ELSE
@@ -808,38 +809,39 @@ PROGRAM NEMO_COARSENER
 
          END IF ! IF( nbdim == 1 )
 
+         WRITE(numout,*) ''
       END IF ! IF ( .NOT. ANY(indimids == id_t) )
-
+      
    END DO  ! DO jv = 1, nvars
 
+   
+   STOP 'lala => fix 3D+T case in the following!!!'
 
-   STOP 'lala'
 
-
-   !! Everything that depends on time record:
+   !! B. Will read, coarsen (if / x,y), and write, everything that depends on time record:
 
    e3t(:,:,:) = 1._wp
 
    DO jt=1, Nt
 
-      PRINT *, ''
+      WRITE(numout,*) ''
 
       DO jv = 1, nvars
          IF ( .NOT. l_var_is_done(jv) ) THEN
 
-            PRINT *, ''
+            WRITE(numout,*) ''
             cv_in = TRIM(c_list_var_names(jv))
             id_v        = i_list_var_ids(jv)
             itype       = i_list_var_types(jv)
             nbdim       = i_list_var_ndims(jv)
             indimids(:) = i_list_var_dim_ids(:,jv)
 
-            PRINT *, ' ### Reading field '//TRIM(cv_in)//' at record #',jt
-            PRINT *, ' * var ID         =>', id_v
-            PRINT *, ' * var type       =>', itype
-            PRINT *, ' * var nb of dims =>', nbdim
-            PRINT *, ' * dim ids        =>', indimids(:)
-            PRINT *, ''
+            WRITE(numout,*) ' ### Reading field '//TRIM(cv_in)//' at record #',jt
+            WRITE(numout,*) ' * var ID         =>', id_v
+            WRITE(numout,*) ' * var type       =>', itype
+            WRITE(numout,*) ' * var nb of dims =>', nbdim
+            WRITE(numout,*) ' * dim ids        =>', indimids(:)
+            WRITE(numout,*) ''
 
             ! T
             IF( nbdim == 1 ) THEN
@@ -955,11 +957,11 @@ CONTAINS
       CHARACTER(len=*), INTENT(inout) :: cvalue
       !!
       IF ( jarg + 1 > iargc() ) THEN
-         PRINT *, 'ERROR: Missing ',trim(cname),' name!' ; call usage()
+         WRITE(numout,*) 'ERROR: Missing ',trim(cname),' name!' ; call usage()
       ELSE
          jarg = jarg + 1 ;  CALL getarg(jarg,cr)
          IF ( ANY(clist_opt == trim(cr)) ) THEN
-            PRINT *, 'ERROR: Missing',trim(cname),' name!'; call usage()
+            WRITE(numout,*) 'ERROR: Missing',trim(cname),' name!'; call usage()
          ELSE
             cvalue = trim(cr)
          END IF
