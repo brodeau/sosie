@@ -3,55 +3,58 @@ MODULE mod_nemo
    IMPLICIT NONE
    PUBLIC
 
-   INTEGER, PUBLIC, PARAMETER ::   dp = SELECTED_REAL_KIND(12,307)   !: double precision (real 8)
-   INTEGER, PUBLIC, PARAMETER ::   wp = dp                              !: working precision
+   INTEGER, PARAMETER ::   dp = SELECTED_REAL_KIND(12,307)   !: double precision (real 8)
+   INTEGER, PARAMETER ::   wp = dp                              !: working precision
 
    INTEGER ::   numout          =    6      !: logical unit for output print; Set to stdout to ensure any early
 
    LOGICAL, PARAMETER :: lk_mpp = .TRUE. ! NO MPP!!!
 
-   
-   INTEGER, PUBLIC, PARAMETER ::   jpreci = 1   !: number of columns for overlap
-   INTEGER, PUBLIC, PARAMETER ::   jprecj = 1   !: number of rows    for overlap
+   REAL(wp), PARAMETER ::   rpi = 3.141592653589793_wp             !: pi
+   REAL(wp), PARAMETER ::   rad = 3.141592653589793_wp / 180._wp   !: conversion from degre into radian
+   REAL(wp), PARAMETER :: omega = 7.292115083046062E-005        !: earth rotation parameter           [s-1]
+
+   INTEGER, PARAMETER ::   jpreci = 1   !: number of columns for overlap
+   INTEGER, PARAMETER ::   jprecj = 1   !: number of rows    for overlap
 
    ! global or zoom domain size                      !!! * computational domain *
    INTEGER       ::    jpiglo           !: 1st dimension of global domain --> i
    INTEGER       ::    jpjglo           !: 2nd    -                  -    --> j
 
-   INTEGER, PUBLIC            ::   jpni         !: number of processors following i
-   INTEGER, PUBLIC            ::   jpnj         !: number of processors following j
-   INTEGER, PUBLIC            ::   jpnij        !: nb of local domain = nb of processors ( <= jpni x jpnj )
+   INTEGER            ::   jpni         !: number of processors following i
+   INTEGER            ::   jpnj         !: number of processors following j
+   INTEGER            ::   jpnij        !: nb of local domain = nb of processors ( <= jpni x jpnj )
 
 
-   INTEGER, PUBLIC ::   noso, nono        !: east, west, south and north directions
+   INTEGER ::   noso, nono        !: east, west, south and north directions
 
-   INTEGER, PUBLIC ::   nlci, nldi, nlei  !: i-dimensions of the local subdomain and its first and last indoor indices    
-   INTEGER, PUBLIC ::   nlcj, nldj, nlej  !: i-dimensions of the local subdomain and its first and last indoor indices
-   INTEGER, PUBLIC ::   noea, nowe        !: index of the local neighboring processors in
+   INTEGER ::   nlci, nldi, nlei  !: i-dimensions of the local subdomain and its first and last indoor indices
+   INTEGER ::   nlcj, nldj, nlej  !: i-dimensions of the local subdomain and its first and last indoor indices
+   INTEGER ::   noea, nowe        !: index of the local neighboring processors in
 
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   mig        !: local  ==> global domain i-index
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   mjg        !: local  ==> global domain j-index
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:) ::   mig        !: local  ==> global domain i-index
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:) ::   mjg        !: local  ==> global domain j-index
 
-   INTEGER, PUBLIC ::   nimpp, njmpp      !: i- & j-indexes for mpp-subdomain left bottom
+   INTEGER ::   nimpp, njmpp      !: i- & j-indexes for mpp-subdomain left bottom
 
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   nlcit , nlcjt    !: dimensions of every subdomain
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   nldit , nldjt    !: first, last indoor index for each i-domain
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   nleit , nlejt    !: first, last indoor index for each j-domain
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) :: nfiimpp, nfipproc, nfilcit
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:) ::   nlcit , nlcjt    !: dimensions of every subdomain
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:) ::   nldit , nldjt    !: first, last indoor index for each i-domain
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:) ::   nleit , nlejt    !: first, last indoor index for each j-domain
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:,:) :: nfiimpp, nfipproc, nfilcit
 
 
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   ibonit, ibonjt   !: i-, j- processor neighbour existence
-   INTEGER, PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:) ::   nimppt, njmppt   !: i-, j-indexes for each processor
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:) ::   ibonit, ibonjt   !: i-, j- processor neighbour existence
+   INTEGER, ALLOCATABLE, SAVE, DIMENSION(:) ::   nimppt, njmppt   !: i-, j-indexes for each processor
    !! eNATL4:
    !&    jpiglo=559, &
    !   &    jpjglo=313
 
 
-   INTEGER, PUBLIC ::   nproc             !: number for local processor
-   INTEGER, PUBLIC ::   narea             !: number for local area 
-   
+   INTEGER ::   nproc             !: number for local processor
+   INTEGER ::   narea             !: number for local area
+
    LOGICAL, PARAMETER :: lwp = .true.
-   
+
    INTEGER ::  jpi, jpj, jpim1, jpjm1, jpk, jpkm1
 
    INTEGER :: nperio, jperio
@@ -69,15 +72,17 @@ MODULE mod_nemo
 
    INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: tmask, umask, vmask, fmask
 
-   REAL(wp),   DIMENSION(:,:,:), ALLOCATABLE :: e3t, e3u, e3v, e3t_0   
+   REAL(wp),   DIMENSION(:,:,:), ALLOCATABLE :: e3t, e3u, e3v, e3t_0, e3u_0, e3v_0, e3w_0
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f
-   
+
 
    ! zoom starting position
    INTEGER       ::   jpizoom          !: left bottom (i,j) indices of the zoom
-   INTEGER       ::   jpjzoom          !: in data domain indices 
+   INTEGER       ::   jpjzoom          !: in data domain indices
 
-   INTEGER, PUBLIC                                  ::   nsndto, nfsloop, nfeloop
+   INTEGER                                  ::   nsndto, nfsloop, nfeloop
+
+   INTEGER :: jphgr_msh
 
 END MODULE mod_nemo

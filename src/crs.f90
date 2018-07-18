@@ -271,8 +271,8 @@ CONTAINS
       !   &      crs_surfw_wgt(jpi_crs,jpj_crs,jpk), crs_volt_wgt(jpi_crs,jpj_crs,jpk) , STAT=ierr(8))
 
 
-      !ALLOCATE( mbathy_crs(jpi_crs,jpj_crs), mbkt_crs(jpi_crs,jpj_crs) , &
-      !   &      mbku_crs(jpi_crs,jpj_crs)  , mbkv_crs(jpi_crs,jpj_crs) , STAT=ierr(9))
+      ALLOCATE( mbathy_crs(jpi_crs,jpj_crs), mbkt_crs(jpi_crs,jpj_crs) , &
+         &      mbku_crs(jpi_crs,jpj_crs)  , mbkv_crs(jpi_crs,jpj_crs) , STAT=ierr(9))
 
       ALLOCATE( gdept_0_crs(jpi_crs,jpj_crs,jpk), gdepu_0_crs(jpi_crs,jpj_crs,jpk) , &
          &      gdepv_0_crs(jpi_crs,jpj_crs,jpk), gdepw_0_crs(jpi_crs,jpj_crs,jpk) , &

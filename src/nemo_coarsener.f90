@@ -11,7 +11,7 @@ PROGRAM NEMO_COARSENER
 
    !! ************************ Configurable part ****************************
    LOGICAL, PARAMETER :: &
-      &   l_debug    = .FALSE., &
+      &   l_debug    = .TRUE., &
       &   l_drown_in = .FALSE. ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
    !!
    INTEGER,PARAMETER :: sp=SELECTED_REAL_KIND(6,37)      ! NF90_FLOAT
@@ -109,7 +109,7 @@ PROGRAM NEMO_COARSENER
    REAL(4),  DIMENSION(:,:),   ALLOCATABLE :: x2d_r4, x2d_r4_crs
    REAL(wp), DIMENSION(:,:),   ALLOCATABLE :: x2d_r8_crs
    REAL(4),  DIMENSION(:,:,:), ALLOCATABLE :: x3d_r4, x3d_r4_crs
-   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs
+   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs, zfse3t, zfse3u, zfse3v, zfse3w
    REAL(wp), DIMENSION(:),     ALLOCATABLE :: xr8
 
    INTEGER :: jt
@@ -361,7 +361,7 @@ PROGRAM NEMO_COARSENER
 
    !ni = ni1 ; jpj = ni1
    !! Source:
-   ALLOCATE ( x2d_r4(jpi,jpj), e3t_0(jpi,jpj,jpk), &
+   ALLOCATE ( x2d_r4(jpi,jpj), e3t_0(jpi,jpj,jpk), e3u_0(jpi,jpj,jpk), e3v_0(jpi,jpj,jpk), e3w_0(jpi,jpj,jpk), &
       &       glamt(jpi,jpj), gphit(jpi,jpj), glamu(jpi,jpj), gphiu(jpi,jpj), glamv(jpi,jpj), gphiv(jpi,jpj), glamf(jpi,jpj), gphif(jpi,jpj),  &
       &       e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj) )
 
@@ -457,6 +457,7 @@ PROGRAM NEMO_COARSENER
    npolj  = 0
    nperio = 0
 
+   jphgr_msh = 0
 
    nlci  = jpi
    nlcj  = jpj
@@ -480,11 +481,8 @@ PROGRAM NEMO_COARSENER
    CALL crs_dom_def
 
    WRITE(numout,*) ' *** After crs_dom_def: jpi_crs, jpj_crs =', jpi_crs, jpj_crs
-
    WRITE(numout,*) 'TARGET coarsened horizontal domain, jpi_crs, jpj_crs =', jpi_crs, jpj_crs
-
    WRITE(numout,*) ' *** nn_factx, nn_facty', nn_factx, nn_facty
-
    WRITE(numout,*) ''
 
 
@@ -508,49 +506,177 @@ PROGRAM NEMO_COARSENER
    CALL GETVAR_2D(i0, j0, cf_mm, 'e1f', 0, 0, 0, e1f) ; i0=0 ; j0=0
    CALL GETVAR_2D(i0, j0, cf_mm, 'e2f', 0, 0, 0, e2f) ; i0=0 ; j0=0
 
-   !! Should get from VVL! Not meshmask:
-   !CALL GETVAR_2D(i0, j0, cf_mm, 'e3t_0', 0, 1, 0, e3t_0(:,:,1)) ; i0=0 ; j0=0
+
    CALL GETVAR_3D(i0, j0, cf_mm, 'e3t_0', 0, 1,    e3t_0(:,:,:), jz1=1, jz2=jpk)
+   CALL GETVAR_3D(i0, j0, cf_mm, 'e3u_0', 0, 1,    e3u_0(:,:,:), jz1=1, jz2=jpk)
+   CALL GETVAR_3D(i0, j0, cf_mm, 'e3v_0', 0, 1,    e3v_0(:,:,:), jz1=1, jz2=jpk)
+   CALL GETVAR_3D(i0, j0, cf_mm, 'e3w_0', 0, 1,    e3w_0(:,:,:), jz1=1, jz2=jpk)
 
 
 
 
-   CALL DUMP_2D_FIELD(REAL(tmask(:,:,1),4), 'tmask.tmp', 'tmask' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(glamt(:,:)  ,4), 'glamt.tmp', 'glamt' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(gphit(:,:)  ,4), 'gphit.tmp', 'gphit' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e1t(:,:)  ,4), 'e1t.tmp', 'e1t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e2t(:,:)  ,4), 'e2t.tmp', 'e2t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_2D_FIELD(REAL(tmask(:,:,1),4), 'tmask.tmp', 'tmask' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_2D_FIELD(REAL(glamt(:,:)  ,4), 'glamt.tmp', 'glamt' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_2D_FIELD(REAL(gphit(:,:)  ,4), 'gphit.tmp', 'gphit' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_2D_FIELD(REAL(e1t(:,:)  ,4), 'e1t.tmp', 'e1t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_2D_FIELD(REAL(e2t(:,:)  ,4), 'e2t.tmp', 'e2t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+
+
 
 
 
    !---------------------------------------------------------
    ! 3. Mask and Mesh
    !---------------------------------------------------------
-   !     Set up the masks and meshes
+
    !  3.a. Get the masks
+   tmask_crs(:,:,:) = 0 ; umask_crs(:,:,:) = 0 ; vmask_crs(:,:,:) = 0 ; fmask_crs(:,:,:) = 0 
+   
    CALL crs_dom_msk
+   
+   IF ( l_debug ) THEN
+      CALL DUMP_2D_FIELD(REAL(tmask_crs(:,:,1),4), 'tmask_crs.tmp', 'tmask_crs' )
+      CALL DUMP_2D_FIELD(REAL(umask_crs(:,:,1),4), 'umask_crs.tmp', 'umask_crs' )
+      CALL DUMP_2D_FIELD(REAL(vmask_crs(:,:,1),4), 'vmask_crs.tmp', 'vmask_crs' )
+      CALL DUMP_2D_FIELD(REAL(fmask_crs(:,:,1),4), 'fmask_crs.tmp', 'fmask_crs' )
+   END IF
+
+
+   !  3.b. Get the coordinates
+   !      Odd-numbered reduction factor, center coordinate on T-cell
+   !      Even-numbered reduction factor, center coordinate on U-,V- faces or f-corner.
+   !
+   gphit_crs = 0.0 ; glamt_crs = 0.0 ; gphiu_crs = 0.0 ; glamu_crs = 0.0
+   gphiv_crs = 0.0 ; glamv_crs = 0.0 ; gphif_crs = 0.0 ; glamf_crs = 0.0
+
+   CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+   CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
+   CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
+   CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
+
+   IF ( l_debug ) THEN
+      CALL DUMP_2D_FIELD(REAL(glamt_crs(:,:),4), 'glamt_crs.tmp', 'glamt_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_2D_FIELD(REAL(gphit_crs(:,:),4), 'gphit_crs.tmp', 'gphit_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_2D_FIELD(REAL(glamu_crs(:,:),4), 'glamu_crs.tmp', 'glamu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_2D_FIELD(REAL(gphiu_crs(:,:),4), 'gphiu_crs.tmp', 'gphiu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_2D_FIELD(REAL(glamv_crs(:,:),4), 'glamv_crs.tmp', 'glamv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_2D_FIELD(REAL(gphiv_crs(:,:),4), 'gphiv_crs.tmp', 'gphiv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_2D_FIELD(REAL(glamf_crs(:,:),4), 'glamf_crs.tmp', 'glamf_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_2D_FIELD(REAL(gphif_crs(:,:),4), 'gphif_crs.tmp', 'gphif_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   END IF
+
+
+   !  3.c. Get the horizontal mesh
+
+   !      3.c.1 Horizontal scale factors
+
+   e1t_crs(:,:) = 0.0 ; e2t_crs(:,:) = 0.0 ; e1u_crs(:,:) = 0.0 ; e2u_crs(:,:) = 0.0
+   e1v_crs(:,:) = 0.0 ; e2v_crs(:,:) = 0.0 ; e1f_crs(:,:) = 0.0 ; e2f_crs(:,:) = 0.0
+
+   CALL crs_dom_hgr( e1t, e2t, 'T', e1t_crs, e2t_crs )
+   CALL crs_dom_hgr( e1u, e2u, 'U', e1u_crs, e2u_crs )
+   CALL crs_dom_hgr( e1v, e2v, 'V', e1v_crs, e2v_crs )
+   CALL crs_dom_hgr( e1f, e2f, 'F', e1f_crs, e2f_crs )
+
+   WHERE(e1t_crs == 0._wp) e1t_crs=r_inf
+   WHERE(e1u_crs == 0._wp) e1u_crs=r_inf
+   WHERE(e1v_crs == 0._wp) e1v_crs=r_inf
+   WHERE(e1f_crs == 0._wp) e1f_crs=r_inf
+   WHERE(e2t_crs == 0._wp) e2t_crs=r_inf
+   WHERE(e2u_crs == 0._wp) e2u_crs=r_inf
+   WHERE(e2v_crs == 0._wp) e2v_crs=r_inf
+   WHERE(e2f_crs == 0._wp) e2f_crs=r_inf
+   
+   e1e2t_crs(:,:) = e1t_crs(:,:) * e2t_crs(:,:)
+   
+   IF ( l_debug ) THEN
+      CALL DUMP_2D_FIELD(REAL(e1t_crs(:,:),4), 'e1t_crs.tmp', 'e1t_crs' )
+      CALL DUMP_2D_FIELD(REAL(e2t_crs(:,:),4), 'e2t_crs.tmp', 'e2t_crs' )
+      CALL DUMP_2D_FIELD(REAL(e1u_crs(:,:),4), 'e1u_crs.tmp', 'e1u_crs' )
+      CALL DUMP_2D_FIELD(REAL(e2u_crs(:,:),4), 'e2u_crs.tmp', 'e2u_crs' )
+      CALL DUMP_2D_FIELD(REAL(e1v_crs(:,:),4), 'e1v_crs.tmp', 'e1v_crs' )
+      CALL DUMP_2D_FIELD(REAL(e2v_crs(:,:),4), 'e2v_crs.tmp', 'e2v_crs' )
+      CALL DUMP_2D_FIELD(REAL(e1f_crs(:,:),4), 'e1f_crs.tmp', 'e1f_crs' )
+      CALL DUMP_2D_FIELD(REAL(e2f_crs(:,:),4), 'e2f_crs.tmp', 'e2f_crs' )
+      CALL DUMP_2D_FIELD(REAL(e1e2t_crs(:,:),4), 'e1e2t_crs.tmp', 'e1e2t_crs' )
+   END IF
+
+
+   !      3.c.2 Coriolis factor
+
+   SELECT CASE( jphgr_msh )   ! type of horizontal mesh
+
+   CASE ( 0, 1, 4 )           ! mesh on the sphere
+      ff_crs(:,:) = 2. * omega * SIN( rad * gphif_crs(:,:) )
+   CASE DEFAULT
+      IF(lwp)    WRITE(numout,*) 'nemo_coarsener.f90. crs_init. Only jphgr_msh = 0, 1 or 4 supported'
+   END SELECT
+   
+   IF ( l_debug ) CALL DUMP_2D_FIELD(REAL(ff_crs(:,:),4), 'ff_crs.tmp', 'ff_crs' )
+      
+
+   
+   !    3.d.1 mbathy ( vertical k-levels of bathymetry )
+
+   CALL crs_dom_bat
+   
+   IF ( l_debug ) CALL DUMP_2D_FIELD(REAL(mbathy_crs(:,:),4), 'mbathy_crs.tmp', 'mbathy_crs' )
 
 
 
 
-   CALL DUMP_2D_FIELD(REAL(tmask_crs(:,:,1),4), 'tmask_crs.tmp', 'tmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(umask_crs(:,:,1),4), 'umask_crs.tmp', 'umask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(vmask_crs(:,:,1),4), 'vmask_crs.tmp', 'vmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(fmask_crs(:,:,1),4), 'fmask_crs.tmp', 'fmask_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   ALLOCATE (zfse3t(jpi,jpj,jpk), zfse3u(jpi,jpj,jpk), zfse3v(jpi,jpj,jpk), zfse3w(jpi,jpj,jpk) )
+   !
+   zfse3t(:,:,:) = e3t_0(:,:,:) !fse3t(:,:,:)
+   zfse3u(:,:,:) = e3u_0(:,:,:) !fse3u(:,:,:)
+   zfse3v(:,:,:) = e3v_0(:,:,:) !fse3v(:,:,:)
+   zfse3w(:,:,:) = e3w_0(:,:,:) !fse3w(:,:,:)
+
+   !    3.d.2   Surfaces
+   e2e3u_crs(:,:,:)=0._wp
+   e2e3u_msk(:,:,:)=0._wp
+   e1e3v_crs(:,:,:)=0._wp
+   e1e3v_msk(:,:,:)=0._wp
+   CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
+   CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
+   CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
+   
+   IF ( l_debug ) THEN
+      CALL DUMP_2D_FIELD(REAL(e1e2w_crs(:,:,1),4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
+   END IF
+
+   
+   STOP 'lili'
 
 
-   WRITE(numout,*) ''
-   WRITE(numout,*) ' nrestx, nresty = ', nrestx, nresty
-   WRITE(numout,*) ''
 
-   gphit_crs = 0.0
-   glamt_crs = 0.0
-   gphiu_crs = 0.0
-   glamu_crs = 0.0
-   gphiv_crs = 0.0
-   glamv_crs = 0.0
-   gphif_crs = 0.0
-   glamf_crs = 0.0
+
+
+
+
+
+
+
+
+
+   !    3.d.2   Surfaces
+   !e2e3u_crs(:,:,:)=0._wp
+   !e2e3u_msk(:,:,:)=0._wp
+   !e1e3v_crs(:,:,:)=0._wp
+   !e1e3v_msk(:,:,:)=0._wp
+   !CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
+   !CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
+   !CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
+
+
+
+
+
+
+   !WRITE(numout,*) ''
+   !WRITE(numout,*) ' nrestx, nresty = ', nrestx, nresty
+   !WRITE(numout,*) ''
+
 
 
 
@@ -577,40 +703,16 @@ PROGRAM NEMO_COARSENER
    ENDIF
 
 
-   CALL DUMP_2D_FIELD(REAL(glamt_crs(:,:),4), 'glamt_crs.tmp', 'glamt_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(gphit_crs(:,:),4), 'gphit_crs.tmp', 'gphit_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(glamu_crs(:,:),4), 'glamu_crs.tmp', 'glamu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(gphiu_crs(:,:),4), 'gphiu_crs.tmp', 'gphiu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(glamv_crs(:,:),4), 'glamv_crs.tmp', 'glamv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(gphiv_crs(:,:),4), 'gphiv_crs.tmp', 'gphiv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(glamf_crs(:,:),4), 'glamf_crs.tmp', 'glamf_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(gphif_crs(:,:),4), 'gphif_crs.tmp', 'gphif_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
 
 
 
 
-   e1t_crs = 0.0
-   e2t_crs = 0.0
-   e1u_crs = 0.0
-   e2u_crs = 0.0
-   e1v_crs = 0.0
-   e2v_crs = 0.0
-   e1f_crs = 0.0
-   e2f_crs = 0.0
 
    CALL crs_dom_hgr( e1t, e2t, 'T', e1t_crs, e2t_crs )
    CALL crs_dom_hgr( e1u, e2u, 'U', e1u_crs, e2u_crs )
    CALL crs_dom_hgr( e1v, e2v, 'V', e1v_crs, e2v_crs )
    CALL crs_dom_hgr( e1f, e2f, 'F', e1f_crs, e2f_crs )
 
-   CALL DUMP_2D_FIELD(REAL(e1t_crs(:,:),4), 'e1t_crs.tmp', 'e1t_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e2t_crs(:,:),4), 'e2t_crs.tmp', 'e2t_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e1u_crs(:,:),4), 'e1u_crs.tmp', 'e1u_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e2u_crs(:,:),4), 'e2u_crs.tmp', 'e2u_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e1v_crs(:,:),4), 'e1v_crs.tmp', 'e1v_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e2v_crs(:,:),4), 'e2v_crs.tmp', 'e2v_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e1f_crs(:,:),4), 'e1f_crs.tmp', 'e1f_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   CALL DUMP_2D_FIELD(REAL(e2f_crs(:,:),4), 'e2f_crs.tmp', 'e2f_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
 
 
 
@@ -923,9 +1025,27 @@ PROGRAM NEMO_COARSENER
 
 
                IF ( (TRIM(cv_in)=='e3t') ) THEN
-                  WRITE(numout,*) '   *** Doing nothing for '//TRIM(cv_in)//' for now !'
+!!!WRITE(numout,*) '   *** Doing nothing for '//TRIM(cv_in)//' for now !'
+                  WRITE(numout,*) '   *** WOW doing '//TRIM(cv_in)//' !!!'
+
+                  !CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=tmask, p_e3_crs=e3t_b_crs, p_e3_max_crs=zs_crs)
+                  !CALL crs_dom_e3( e1t, e2t, REAL(x3d_r4,8), p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=tmask, p_e3_crs=e3t_b_crs, p_e3_max_crs=zs_crs)
+
+
+                  !crs_dom_e3
+                  !CHARACTER(len=1),                         INTENT(in)          :: cd_type           ! grid type T, W ( U, V, F)
+                  !REAL(wp), DIMENSION(jpi,jpj,jpk),         INTENT(in)          :: p_mask            ! Parent grid T mask
+                  !REAL(wp), DIMENSION(jpi,jpj)    ,         INTENT(in)          :: p_e1, p_e2        ! 2D tracer T or W on parent grid
+                  !REAL(wp), DIMENSION(jpi,jpj,jpk),         INTENT(in)          :: p_e3              ! 3D tracer T or W on parent grid
+                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs)    , INTENT(in),OPTIONAL :: p_sfc_2d_crs      ! Coarse grid box east or north face quantity
+                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(in),OPTIONAL :: p_sfc_3d_crs      ! Coarse grid box east or north face quantity
+                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(inout)       :: p_e3_crs          ! Coarse grid box east or north face quantity
+                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(inout)       :: p_e3_max_crs      ! Coarse grid box east or north face quantity
+
+
+                  STOP 'e3t'
                END IF
-                           
+
                ! Time for coarsening! Use different routines depending on the type of field!
                IF ( (TRIM(cv_in)=='votemper').OR.(TRIM(cv_in)=='vosaline') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
