@@ -22,7 +22,7 @@ PROGRAM NEMO_COARSENER
    INTEGER :: chunksize = 3200000, &
       &       deflate_level = 5
    !!
-   INTEGER :: ji, jj, jv, nb_normal
+   INTEGER :: ji, jj, jk, jv, nb_normal
    !!
 
 
@@ -101,7 +101,7 @@ PROGRAM NEMO_COARSENER
    REAL(sp), DIMENSION(1) :: r4
    REAL(wp), DIMENSION(1) :: r8
 
-   INTEGER :: id_x, id_y, id_z, id_t, id_dim_extra, nlextra
+   INTEGER :: id_x, id_y, id_z, id_t, id_dim_axbnd, nlaxbnd
    !!
    !INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
@@ -329,17 +329,17 @@ PROGRAM NEMO_COARSENER
    END IF
 
    IF ( ndims > nb_normal ) THEN
-      !! There is this annoying extra dimension:
+      !! There is this annoying axbnd dimension:
       IF ( ndims == nb_normal+1 ) THEN
          DO idim = 1, ndims
             IF ( .NOT. ANY( (/id_x,id_y,id_z,id_t/) == idim ) ) THEN
-               id_dim_extra = idim
+               id_dim_axbnd = idim
                EXIT
             END IF
          END DO
-         nlextra = outdimlens(id_dim_extra)
+         nlaxbnd = outdimlens(id_dim_axbnd)
       ELSE
-         STOP 'PROBLEM: there is more than 1 extra weird dimension!!!'
+         STOP 'PROBLEM: there is more than 1 axbnd weird dimension!!!'
       END IF
    END IF
 
@@ -349,7 +349,7 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) '  *** id_y =', id_y, jpj
    IF ( l_3d ) WRITE(numout,*) '  *** id_z =', id_z, jpk
    WRITE(numout,*) '  *** id_t =', id_t, Nt, ' time records!'
-   WRITE(numout,*) '  *** id_dim_extra =', id_dim_extra, nlextra
+   WRITE(numout,*) '  *** id_dim_axbnd =', id_dim_axbnd, nlaxbnd
    WRITE(numout,*) '' ; WRITE(numout,*) ''
 
 
@@ -363,11 +363,11 @@ PROGRAM NEMO_COARSENER
    !! Source:
    ALLOCATE ( x2d_r4(jpi,jpj), e3t_0(jpi,jpj,jpk), e3u_0(jpi,jpj,jpk), e3v_0(jpi,jpj,jpk), e3w_0(jpi,jpj,jpk), &
       &       glamt(jpi,jpj), gphit(jpi,jpj), glamu(jpi,jpj), gphiu(jpi,jpj), glamv(jpi,jpj), gphiv(jpi,jpj), glamf(jpi,jpj), gphif(jpi,jpj),  &
-      &       e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj) )
+      &       e1e2t(jpi,jpj), e1t(jpi,jpj), e2t(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj) )
 
 
 
-   IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(nlextra,jpk) , x3d_r4(jpi,jpj,jpk) ) !, e3t(jpi,jpj,jpk) )
+   IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(nlaxbnd,jpk) , x3d_r4(jpi,jpj,jpk) ) !, e3t(jpi,jpj,jpk) )
 
 
 
@@ -499,6 +499,7 @@ PROGRAM NEMO_COARSENER
 
    CALL GETVAR_2D(i0, j0, cf_mm, 'e1t', 0, 0, 0, e1t) ; i0=0 ; j0=0
    CALL GETVAR_2D(i0, j0, cf_mm, 'e2t', 0, 0, 0, e2t) ; i0=0 ; j0=0
+   e1e2t(:,:) = e1t(:,:)*e2t(:,:)
    CALL GETVAR_2D(i0, j0, cf_mm, 'e1u', 0, 0, 0, e1u) ; i0=0 ; j0=0
    CALL GETVAR_2D(i0, j0, cf_mm, 'e2u', 0, 0, 0, e2u) ; i0=0 ; j0=0
    CALL GETVAR_2D(i0, j0, cf_mm, 'e1v', 0, 0, 0, e1v) ; i0=0 ; j0=0
@@ -535,10 +536,10 @@ PROGRAM NEMO_COARSENER
    CALL crs_dom_msk
 
    IF ( l_debug ) THEN
-      CALL DUMP_FIELD(REAL(tmask_crs(:,:,:),4), 'tmask_crs.tmp', 'tmask_crs' )
-      CALL DUMP_FIELD(REAL(umask_crs(:,:,:),4), 'umask_crs.tmp', 'umask_crs' )
-      CALL DUMP_FIELD(REAL(vmask_crs(:,:,:),4), 'vmask_crs.tmp', 'vmask_crs' )
-      CALL DUMP_FIELD(REAL(fmask_crs(:,:,:),4), 'fmask_crs.tmp', 'fmask_crs' )
+      CALL DUMP_FIELD(REAL(tmask_crs,4), 'tmask_crs.tmp', 'tmask_crs' )
+      CALL DUMP_FIELD(REAL(umask_crs,4), 'umask_crs.tmp', 'umask_crs' )
+      CALL DUMP_FIELD(REAL(vmask_crs,4), 'vmask_crs.tmp', 'vmask_crs' )
+      CALL DUMP_FIELD(REAL(fmask_crs,4), 'fmask_crs.tmp', 'fmask_crs' )
    END IF
 
 
@@ -642,7 +643,7 @@ PROGRAM NEMO_COARSENER
    CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
 
    IF ( l_debug ) THEN
-      CALL DUMP_FIELD(REAL(e1e2w_crs(:,:,:),4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
+      CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
    END IF
 
 
@@ -663,88 +664,52 @@ PROGRAM NEMO_COARSENER
    WHERE(e3v_max_0_crs == 0._wp) e3v_max_0_crs=r_inf
    WHERE(e3w_max_0_crs == 0._wp) e3w_max_0_crs=r_inf
 
+   ht_0_crs(:,:)=0._wp
+   DO jk = 1, jpk
+      ht_0_crs(:,:)=ht_0_crs(:,:)+e3t_0_crs(:,:,jk)*tmask_crs(:,:,jk)
+   ENDDO
+      
+   IF ( l_debug ) THEN
+      CALL DUMP_FIELD(REAL(e3t_0_crs,4), 'e3t_0_crs.tmp', 'e3t_0_crs' )
+      CALL DUMP_FIELD(REAL(e3t_0_crs,4), 'e3u_0_crs.tmp', 'e3u_0_crs' )
+      CALL DUMP_FIELD(REAL(e3t_0_crs,4), 'e3v_0_crs.tmp', 'e3v_0_crs' )
+      CALL DUMP_FIELD(REAL(e3t_0_crs,4), 'e3w_0_crs.tmp', 'e3w_0_crs' )
+      CALL DUMP_FIELD(REAL(ht_0_crs,4),  'ht_0_crs.tmp' , 'ht_0_crs' )
+   END IF
 
 
+
+   !    3.d.3   Vertical depth (meters)
+   !cbr: il semblerait que p_e3=... ne soit pas utile ici !!!!!!!!!
+   !CALL crs_dom_ope( gdept_0, 'MAX', 'T', tmask, gdept_0_crs, p_e3=zfse3t, psgn=1.0 )
+   !CALL crs_dom_ope( gdepw_0, 'MAX', 'W', tmask, gdepw_0_crs, p_e3=zfse3w, psgn=1.0 )
+   !DO jk = 1, jpk
+   !   DO ji = 1, jpi_crs
+   !      DO jj = 1, jpj_crs
+   !         IF( gdept_0_crs(ji,jj,jk) .LE. 0._wp ) gdept_0_crs(ji,jj,jk) = gdept_1d(jk)
+   !         IF( gdepw_0_crs(ji,jj,jk) .LE. 0._wp ) gdepw_0_crs(ji,jj,jk) = gdepw_1d(jk)
+   !      ENDDO
+   !   ENDDO
+   !ENDDO
+
+
+   !!.... 3 to 6 skipped !!! => check crsini in NEMO !!!
    
 
-   STOP 'lili'
+   !---------------------------------------------------------
+   ! 7. Finish and clean-up
+   !---------------------------------------------------------
+
+   !needed later... DEALLOCATE ( zfse3t, zfse3u, zfse3v, zfse3w )
 
 
-
-
-
-
-
-
-
-
-
-
-   !    3.d.2   Surfaces
-   !e2e3u_crs(:,:,:)=0._wp
-   !e2e3u_msk(:,:,:)=0._wp
-   !e1e3v_crs(:,:,:)=0._wp
-   !e1e3v_msk(:,:,:)=0._wp
-   !CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
-   !CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
-   !CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
-
-
-
-
-
-
-   !WRITE(numout,*) ''
-   !WRITE(numout,*) ' nrestx, nresty = ', nrestx, nresty
-   !WRITE(numout,*) ''
-
-
-
-
-   IF ( nresty /= 0 .AND. nrestx /= 0 ) THEN
-      CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
-      CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
-      CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
-   ELSEIF ( nresty /= 0 .AND. nrestx == 0 ) THEN
-      CALL crs_dom_coordinates( gphiu, glamu, 'T', gphit_crs, glamt_crs )
-      CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'V', gphiv_crs, glamv_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
-   ELSEIF ( nresty == 0 .AND. nrestx /= 0 ) THEN
-      CALL crs_dom_coordinates( gphiv, glamv, 'T', gphit_crs, glamt_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'U', gphiu_crs, glamu_crs )
-      CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
-   ELSE
-      CALL crs_dom_coordinates( gphif, glamf, 'T', gphit_crs, glamt_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'U', gphiu_crs, glamu_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'V', gphiv_crs, glamv_crs )
-      CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
-   ENDIF
-
-
-
-
-
-
-
-   CALL crs_dom_hgr( e1t, e2t, 'T', e1t_crs, e2t_crs )
-   CALL crs_dom_hgr( e1u, e2u, 'U', e1u_crs, e2u_crs )
-   CALL crs_dom_hgr( e1v, e2v, 'V', e1v_crs, e2v_crs )
-   CALL crs_dom_hgr( e1f, e2f, 'F', e1f_crs, e2f_crs )
-
-
-
+   ! -------------------------- crs init done ! ----------------------------
 
 
    WRITE(numout,*) ''
    WRITE(numout,*) ''
    WRITE(numout,*) ''
 
-
-
-   !2. Read in the global dimensions from the input file and set up the output file
 
 
 
@@ -755,24 +720,10 @@ PROGRAM NEMO_COARSENER
    CALL check_nf90( nf90_create( TRIM(cf_out), nf90_netcdf4, idf_trg, chunksize=chunksize ) )
 
 
-   !2.2.0 Find out how many dimensions are required to be rebuilt and which ones they are
-   !CALL check_nf90( nf90_inquire_attribute( idf_src, nf90_global, 'DOMAIN_dimensions_ids', itype, rbdims, attid ) )
-   !ALLOCATE(rebuild_dims(rbdims))
-   !CALL check_nf90( nf90_get_att( idf_src, nf90_global, 'DOMAIN_dimensions_ids', rebuild_dims ) )
-   !ALLOCATE(global_sizes(rbdims))
-   !CALL check_nf90( nf90_get_att( idf_src, nf90_global, 'DOMAIN_size_global', global_sizes ) )
-   !IF (l_verbose) WRITE(numout,*) 'Size of global arrays: ', global_sizes
-
-
-   !2.2.1 Copy the dimensions into the output file apart from rebuild_dims() which are dimensioned globally
-
-
-
    !! Defining dimention in output file:
-
-   outdimlens(id_x) = jpi_crs
-   outdimlens(id_y) = jpj_crs
-
+   outdimlens(id_x) = jpi_crs ! => overwriting values taken from source domain !
+   outdimlens(id_y) = jpj_crs ! =>         "
+   
    DO idim = 1, ndims
       CALL check_nf90( nf90_inquire_dimension( idf_src, idim, dimname, dimlen ) )
       IF( idim == id_t ) THEN
@@ -784,11 +735,6 @@ PROGRAM NEMO_COARSENER
       ENDIF
    END DO
 
-
-
-
-
-
    ! nmax_unlimited is only used for time-chunking so we set it to be at least 1 to
    ! account for files with no record dimension or zero length record dimension(!)
    nmax_unlimited = max(nmax_unlimited,1)
@@ -797,10 +743,10 @@ PROGRAM NEMO_COARSENER
 
    IF ( ndims > id_t ) THEN
       IF ( ndims == id_t+1 ) THEN
-         id_dim_extra = ndims
-         nlextra = outdimlens(ndims)
+         id_dim_axbnd = ndims
+         nlaxbnd = outdimlens(ndims)
       ELSE
-         STOP 'PROBLEM: there is more than 1 extra weird dimension!!!'
+         STOP 'PROBLEM: there is more than 1 axbnd weird dimension!!!'
       END IF
    END IF
 
@@ -814,7 +760,7 @@ PROGRAM NEMO_COARSENER
       &      i_list_var_ndims(nvars), i_list_var_ids(nvars), i_list_var_dim_ids(4,nvars), &
       &      l_var_is_done(nvars) )
 
-   ALLOCATE ( xr8(nlextra) )
+   ALLOCATE ( xr8(nlaxbnd) )
 
 
 
@@ -983,11 +929,11 @@ PROGRAM NEMO_COARSENER
 
             ! 1D+T
             IF( nbdim == 2 ) THEN
-               IF ( .NOT. ((indimids(1)==id_dim_extra).AND.(indimids(2)==id_t)) ) STOP 'ERROR: we do not know wthat this 2D field is! '
+               IF ( .NOT. ((indimids(1)==id_dim_axbnd).AND.(indimids(2)==id_t)) ) STOP 'ERROR: we do not know wthat this 2D field is! '
                SELECT CASE( itype )
                CASE( NF90_DOUBLE )
-                  CALL check_nf90( NF90_GET_VAR(idf_src,  id_v, xr8, start=(/1,jt/), count=(/nlextra,1/)) )
-                  CALL check_nf90( NF90_PUT_VAR(idf_trg, id_v, xr8, start=(/1,jt/), count=(/nlextra,1/)) )
+                  CALL check_nf90( NF90_GET_VAR(idf_src,  id_v, xr8, start=(/1,jt/), count=(/nlaxbnd,1/)) )
+                  CALL check_nf90( NF90_PUT_VAR(idf_trg, id_v, xr8, start=(/1,jt/), count=(/nlaxbnd,1/)) )
 
                CASE DEFAULT
                   WRITE(numout,*) 'ERROR: unknown netcdf type!!!'; STOP
@@ -1018,7 +964,7 @@ PROGRAM NEMO_COARSENER
                ! Time for coarsening! Use different routines depending on the type of field!
                IF ( (TRIM(cv_in)=='sossheig').OR.(TRIM(cv_in)=='sosstsst').OR.(TRIM(cv_in)=='sosaline') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
-                  CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'T', REAL(tmask,8), x2d_r8_crs , p_e12=e1t*e2t, p_e3=e3t_0, psgn=1.0_wp )
+                  CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'T', REAL(tmask,8), x2d_r8_crs , p_e12=e1e2t, p_e3=zfse3t, psgn=1.0_wp )
                   WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                   x2d_r4_crs = x2d_r8_crs
                   WHERE ( tmask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
@@ -1070,7 +1016,7 @@ PROGRAM NEMO_COARSENER
                ! Time for coarsening! Use different routines depending on the type of field!
                IF ( (TRIM(cv_in)=='votemper').OR.(TRIM(cv_in)=='vosaline') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
-                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'VOL', 'T', REAL(tmask,8), x3d_r8_crs , p_e12=e1t*e2t, p_e3=e3t_0, psgn=1.0_wp )
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'VOL', 'T', REAL(tmask,8), x3d_r8_crs , p_e12=e1t*e2t, p_e3=zfse3t, psgn=1.0_wp )
 
                   WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                   x3d_r4_crs = x3d_r8_crs

@@ -74,7 +74,7 @@ MODULE mod_nemo
 
    REAL(wp),   DIMENSION(:,:,:), ALLOCATABLE :: e3t, e3u, e3v, e3t_0, e3u_0, e3v_0, e3w_0
    REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: glamt, gphit, glamu, gphiu, glamv, gphiv, glamf, gphif
-   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f
+   REAL(wp),   DIMENSION(:,:), ALLOCATABLE :: e1t, e2t, e1u, e2u, e1v, e2v, e1f, e2f, e1e2t
 
 
    ! zoom starting position
