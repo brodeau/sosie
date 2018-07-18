@@ -515,11 +515,11 @@ PROGRAM NEMO_COARSENER
 
 
 
-   !CALL DUMP_2D_FIELD(REAL(tmask(:,:,1),4), 'tmask.tmp', 'tmask' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   !CALL DUMP_2D_FIELD(REAL(glamt(:,:)  ,4), 'glamt.tmp', 'glamt' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   !CALL DUMP_2D_FIELD(REAL(gphit(:,:)  ,4), 'gphit.tmp', 'gphit' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   !CALL DUMP_2D_FIELD(REAL(e1t(:,:)  ,4), 'e1t.tmp', 'e1t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-   !CALL DUMP_2D_FIELD(REAL(e2t(:,:)  ,4), 'e2t.tmp', 'e2t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_FIELD(REAL(tmask(:,:,1),4), 'tmask.tmp', 'tmask' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_FIELD(REAL(glamt(:,:)  ,4), 'glamt.tmp', 'glamt' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_FIELD(REAL(gphit(:,:)  ,4), 'gphit.tmp', 'gphit' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_FIELD(REAL(e1t(:,:)  ,4), 'e1t.tmp', 'e1t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+   !CALL DUMP_FIELD(REAL(e2t(:,:)  ,4), 'e2t.tmp', 'e2t' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
 
 
 
@@ -530,15 +530,15 @@ PROGRAM NEMO_COARSENER
    !---------------------------------------------------------
 
    !  3.a. Get the masks
-   tmask_crs(:,:,:) = 0 ; umask_crs(:,:,:) = 0 ; vmask_crs(:,:,:) = 0 ; fmask_crs(:,:,:) = 0 
-   
+   tmask_crs(:,:,:) = 0 ; umask_crs(:,:,:) = 0 ; vmask_crs(:,:,:) = 0 ; fmask_crs(:,:,:) = 0
+
    CALL crs_dom_msk
-   
+
    IF ( l_debug ) THEN
-      CALL DUMP_2D_FIELD(REAL(tmask_crs(:,:,1),4), 'tmask_crs.tmp', 'tmask_crs' )
-      CALL DUMP_2D_FIELD(REAL(umask_crs(:,:,1),4), 'umask_crs.tmp', 'umask_crs' )
-      CALL DUMP_2D_FIELD(REAL(vmask_crs(:,:,1),4), 'vmask_crs.tmp', 'vmask_crs' )
-      CALL DUMP_2D_FIELD(REAL(fmask_crs(:,:,1),4), 'fmask_crs.tmp', 'fmask_crs' )
+      CALL DUMP_FIELD(REAL(tmask_crs(:,:,:),4), 'tmask_crs.tmp', 'tmask_crs' )
+      CALL DUMP_FIELD(REAL(umask_crs(:,:,:),4), 'umask_crs.tmp', 'umask_crs' )
+      CALL DUMP_FIELD(REAL(vmask_crs(:,:,:),4), 'vmask_crs.tmp', 'vmask_crs' )
+      CALL DUMP_FIELD(REAL(fmask_crs(:,:,:),4), 'fmask_crs.tmp', 'fmask_crs' )
    END IF
 
 
@@ -555,14 +555,14 @@ PROGRAM NEMO_COARSENER
    CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
 
    IF ( l_debug ) THEN
-      CALL DUMP_2D_FIELD(REAL(glamt_crs(:,:),4), 'glamt_crs.tmp', 'glamt_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-      CALL DUMP_2D_FIELD(REAL(gphit_crs(:,:),4), 'gphit_crs.tmp', 'gphit_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-      CALL DUMP_2D_FIELD(REAL(glamu_crs(:,:),4), 'glamu_crs.tmp', 'glamu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-      CALL DUMP_2D_FIELD(REAL(gphiu_crs(:,:),4), 'gphiu_crs.tmp', 'gphiu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-      CALL DUMP_2D_FIELD(REAL(glamv_crs(:,:),4), 'glamv_crs.tmp', 'glamv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-      CALL DUMP_2D_FIELD(REAL(gphiv_crs(:,:),4), 'gphiv_crs.tmp', 'gphiv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-      CALL DUMP_2D_FIELD(REAL(glamf_crs(:,:),4), 'glamf_crs.tmp', 'glamf_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-      CALL DUMP_2D_FIELD(REAL(gphif_crs(:,:),4), 'gphif_crs.tmp', 'gphif_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(glamt_crs(:,:),4), 'glamt_crs.tmp', 'glamt_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(gphit_crs(:,:),4), 'gphit_crs.tmp', 'gphit_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(glamu_crs(:,:),4), 'glamu_crs.tmp', 'glamu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(gphiu_crs(:,:),4), 'gphiu_crs.tmp', 'gphiu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(glamv_crs(:,:),4), 'glamv_crs.tmp', 'glamv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(gphiv_crs(:,:),4), 'gphiv_crs.tmp', 'gphiv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(glamf_crs(:,:),4), 'glamf_crs.tmp', 'glamf_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
+      CALL DUMP_FIELD(REAL(gphif_crs(:,:),4), 'gphif_crs.tmp', 'gphif_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
    END IF
 
 
@@ -586,19 +586,19 @@ PROGRAM NEMO_COARSENER
    WHERE(e2u_crs == 0._wp) e2u_crs=r_inf
    WHERE(e2v_crs == 0._wp) e2v_crs=r_inf
    WHERE(e2f_crs == 0._wp) e2f_crs=r_inf
-   
+
    e1e2t_crs(:,:) = e1t_crs(:,:) * e2t_crs(:,:)
-   
+
    IF ( l_debug ) THEN
-      CALL DUMP_2D_FIELD(REAL(e1t_crs(:,:),4), 'e1t_crs.tmp', 'e1t_crs' )
-      CALL DUMP_2D_FIELD(REAL(e2t_crs(:,:),4), 'e2t_crs.tmp', 'e2t_crs' )
-      CALL DUMP_2D_FIELD(REAL(e1u_crs(:,:),4), 'e1u_crs.tmp', 'e1u_crs' )
-      CALL DUMP_2D_FIELD(REAL(e2u_crs(:,:),4), 'e2u_crs.tmp', 'e2u_crs' )
-      CALL DUMP_2D_FIELD(REAL(e1v_crs(:,:),4), 'e1v_crs.tmp', 'e1v_crs' )
-      CALL DUMP_2D_FIELD(REAL(e2v_crs(:,:),4), 'e2v_crs.tmp', 'e2v_crs' )
-      CALL DUMP_2D_FIELD(REAL(e1f_crs(:,:),4), 'e1f_crs.tmp', 'e1f_crs' )
-      CALL DUMP_2D_FIELD(REAL(e2f_crs(:,:),4), 'e2f_crs.tmp', 'e2f_crs' )
-      CALL DUMP_2D_FIELD(REAL(e1e2t_crs(:,:),4), 'e1e2t_crs.tmp', 'e1e2t_crs' )
+      CALL DUMP_FIELD(REAL(e1t_crs(:,:),4), 'e1t_crs.tmp', 'e1t_crs' )
+      CALL DUMP_FIELD(REAL(e2t_crs(:,:),4), 'e2t_crs.tmp', 'e2t_crs' )
+      CALL DUMP_FIELD(REAL(e1u_crs(:,:),4), 'e1u_crs.tmp', 'e1u_crs' )
+      CALL DUMP_FIELD(REAL(e2u_crs(:,:),4), 'e2u_crs.tmp', 'e2u_crs' )
+      CALL DUMP_FIELD(REAL(e1v_crs(:,:),4), 'e1v_crs.tmp', 'e1v_crs' )
+      CALL DUMP_FIELD(REAL(e2v_crs(:,:),4), 'e2v_crs.tmp', 'e2v_crs' )
+      CALL DUMP_FIELD(REAL(e1f_crs(:,:),4), 'e1f_crs.tmp', 'e1f_crs' )
+      CALL DUMP_FIELD(REAL(e2f_crs(:,:),4), 'e2f_crs.tmp', 'e2f_crs' )
+      CALL DUMP_FIELD(REAL(e1e2t_crs(:,:),4), 'e1e2t_crs.tmp', 'e1e2t_crs' )
    END IF
 
 
@@ -611,16 +611,16 @@ PROGRAM NEMO_COARSENER
    CASE DEFAULT
       IF(lwp)    WRITE(numout,*) 'nemo_coarsener.f90. crs_init. Only jphgr_msh = 0, 1 or 4 supported'
    END SELECT
-   
-   IF ( l_debug ) CALL DUMP_2D_FIELD(REAL(ff_crs(:,:),4), 'ff_crs.tmp', 'ff_crs' )
-      
 
-   
+   IF ( l_debug ) CALL DUMP_FIELD(REAL(ff_crs(:,:),4), 'ff_crs.tmp', 'ff_crs' )
+
+
+
    !    3.d.1 mbathy ( vertical k-levels of bathymetry )
 
    CALL crs_dom_bat
-   
-   IF ( l_debug ) CALL DUMP_2D_FIELD(REAL(mbathy_crs(:,:),4), 'mbathy_crs.tmp', 'mbathy_crs' )
+
+   IF ( l_debug ) CALL DUMP_FIELD(REAL(mbathy_crs(:,:),4), 'mbathy_crs.tmp', 'mbathy_crs' )
 
 
 
@@ -640,12 +640,33 @@ PROGRAM NEMO_COARSENER
    CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
    CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
    CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
-   
+
    IF ( l_debug ) THEN
-      CALL DUMP_2D_FIELD(REAL(e1e2w_crs(:,:,1),4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
+      CALL DUMP_FIELD(REAL(e1e2w_crs(:,:,:),4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
    END IF
 
+
+
+
+
+
+
+   !    3.d.3   Vertical scale factors
+   !
+   CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,wp), p_e3_crs=e3t_0_crs, p_e3_max_crs=e3t_max_0_crs)
+   CALL crs_dom_e3( e1t, e2t, zfse3w, p_sfc_3d_crs=e1e2w_crs, cd_type='W', p_mask=REAL(tmask,wp), p_e3_crs=e3w_0_crs, p_e3_max_crs=e3w_max_0_crs)
+   CALL crs_dom_e3( e1u, e2u, zfse3u, p_sfc_2d_crs=e2u_crs  , cd_type='U', p_mask=REAL(umask,wp), p_e3_crs=e3u_0_crs, p_e3_max_crs=e3u_max_0_crs)
+   CALL crs_dom_e3( e1v, e2v, zfse3v, p_sfc_2d_crs=e1v_crs  , cd_type='V', p_mask=REAL(vmask,wp), p_e3_crs=e3v_0_crs, p_e3_max_crs=e3v_max_0_crs)
+
+   WHERE(e3t_max_0_crs == 0._wp) e3t_max_0_crs=r_inf
+   WHERE(e3u_max_0_crs == 0._wp) e3u_max_0_crs=r_inf
+   WHERE(e3v_max_0_crs == 0._wp) e3v_max_0_crs=r_inf
+   WHERE(e3w_max_0_crs == 0._wp) e3w_max_0_crs=r_inf
+
+
+
    
+
    STOP 'lili'
 
 
