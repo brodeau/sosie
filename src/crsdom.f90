@@ -61,9 +61,9 @@ CONTAINS
       umask_crs(:,:,:) = 0.0
       fmask_crs(:,:,:) = 0.0
       !
-      PRINT *, ' ### crs_dom_msk CTRL: nldj_crs, nlei_crs =', nldj_crs, nlei_crs
-      PRINT *, ' ### crs_dom_msk CTRL: mje_crs, mjs_crs =', mje_crs, mjs_crs
-      PRINT *, ' ### crs_dom_msk CTRL: mie_crs, mis_crs =', mie_crs, mis_crs
+      !PRINT *, ' ### crs_dom_msk CTRL: nldj_crs, nlei_crs =', nldj_crs, nlei_crs
+      !PRINT *, ' ### crs_dom_msk CTRL: mje_crs, mjs_crs =', mje_crs, mjs_crs
+      !PRINT *, ' ### crs_dom_msk CTRL: mie_crs, mis_crs =', mie_crs, mis_crs
 
       DO jk = 1, jpkm1
          DO ji = nldi_crs, nlei_crs
@@ -1119,14 +1119,14 @@ CONTAINS
       INTEGER :: ii_start,ii_end,ij_start,ij_end
       !!----------------------------------------------------------------
 
-      PRINT *, ''
-      PRINT *, ' ### mod_crs.f90 ### jpiglo, jpjglo = ', jpiglo, jpjglo
-      PRINT *, ' ### mod_crs.f90 ### jpi, jpj       = ', jpi, jpj
+      !PRINT *, ''
+      !PRINT *, ' ### mod_crs.f90 ### jpiglo, jpjglo = ', jpiglo, jpjglo
+      !PRINT *, ' ### mod_crs.f90 ### jpi, jpj       = ', jpi, jpj
 
 
-      PRINT *, ' ### mod_crs.f90 ### jperio, nn_factx, nn_facty', jperio, nn_factx, nn_facty
-      PRINT *, ' ### mod_crs.f90 ### jpreci, jprecj', jpreci, jprecj
-      PRINT *, ''
+      !PRINT *, ' ### mod_crs.f90 ### jperio, nn_factx, nn_facty', jperio, nn_factx, nn_facty
+      !PRINT *, ' ### mod_crs.f90 ### jpreci, jprecj', jpreci, jprecj
+      !PRINT *, ''
 
       !==============================================================================================
       ! Define global and local domain sizes
@@ -1155,13 +1155,9 @@ CONTAINS
       npolj_crs   = npolj
 
 
-      PRINT *, ' ### mod_crs.f90 ### jpiglo_crs, jpjglo_crs = ', jpiglo_crs, jpjglo_crs
-      PRINT *, ' ### mod_crs.f90 ### jpi_crs, jpj_crs       = ', jpi_crs, jpj_crs
-      PRINT *, ''
-      !STOP ' crsdom.f90 /LULU'
-
-
-
+      !PRINT *, ' ### mod_crs.f90 ### jpiglo_crs, jpjglo_crs = ', jpiglo_crs, jpjglo_crs
+      !PRINT *, ' ### mod_crs.f90 ### jpi_crs, jpj_crs       = ', jpi_crs, jpj_crs
+      !PRINT *, ''
       
       ierr = crs_dom_alloc()          ! allocate most coarse grid arrays
 
@@ -1551,8 +1547,8 @@ CONTAINS
          nlej_crs   = jpj_crs
          !LOLO.
 
-         PRINT *, ' ### mod_crs.f90 ### nlei_crs, nlej_crs', nlei_crs, nlej_crs
-         PRINT *, ''
+         !PRINT *, ' ### mod_crs.f90 ### nlei_crs, nlej_crs', nlei_crs, nlej_crs
+         !PRINT *, ''
 
          
          !WRITE(narea+1000-1,*)"loc crs jpj nldj,nlej,nlcj ",jpj_crs, nldj_crs            ,nlej_crs             ,nlcj_crs

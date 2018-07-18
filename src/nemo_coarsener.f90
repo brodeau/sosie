@@ -109,15 +109,14 @@ PROGRAM NEMO_COARSENER
    REAL(4),  DIMENSION(:,:),   ALLOCATABLE :: x2d_r4, x2d_r4_crs
    REAL(wp), DIMENSION(:,:),   ALLOCATABLE :: x2d_r8_crs
    REAL(4),  DIMENSION(:,:,:), ALLOCATABLE :: x3d_r4, x3d_r4_crs
-   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs, zfse3t, zfse3u, zfse3v, zfse3w
+   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs, zfse3t, zfse3u, zfse3v, zfse3w, e3t_max_crs
    REAL(wp), DIMENSION(:),     ALLOCATABLE :: xr8
 
    INTEGER :: jt
    !!
-   !REAL(wp) :: rt, rt0, rdt, &
-   !   &       t_min_e, t_max_e, t_min_m, t_max_m, &
-   !   &       alpha, beta, t_min, t_max
-   !!
+   !REAL(wp) :: 
+
+   
    CHARACTER(LEN=2), DIMENSION(6), PARAMETER :: &
       &            clist_opt = (/ '-h','-m','-i','-o','-x','-y' /)
 
@@ -619,9 +618,10 @@ PROGRAM NEMO_COARSENER
 
    !    3.d.1 mbathy ( vertical k-levels of bathymetry )
 
-   CALL crs_dom_bat
-
-   IF ( l_debug ) CALL DUMP_FIELD(REAL(mbathy_crs(:,:),4), 'mbathy_crs.tmp', 'mbathy_crs' )
+   IF ( l_3d ) THEN
+      CALL crs_dom_bat
+      IF ( l_debug ) CALL DUMP_FIELD(REAL(mbathy_crs(:,:),4), 'mbathy_crs.tmp', 'mbathy_crs' )
+   END IF
 
 
 
@@ -701,6 +701,7 @@ PROGRAM NEMO_COARSENER
    !---------------------------------------------------------
 
    !needed later... DEALLOCATE ( zfse3t, zfse3u, zfse3v, zfse3w )
+   DEALLOCATE ( zfse3u, zfse3v, zfse3w )
 
 
    ! -------------------------- crs init done ! ----------------------------
@@ -814,7 +815,7 @@ PROGRAM NEMO_COARSENER
    !WRITE(numout,*) 'Finished defining output file.'
 
    ALLOCATE ( x2d_r4_crs(jpi_crs,jpj_crs), x2d_r8_crs(jpi_crs,jpj_crs) )
-   IF ( l_3d ) ALLOCATE ( x3d_r4_crs(jpi_crs,jpj_crs,jpk), x3d_r8_crs(jpi_crs,jpj_crs,jpk) )
+   IF ( l_3d ) ALLOCATE ( x3d_r4_crs(jpi_crs,jpj_crs,jpk), x3d_r8_crs(jpi_crs,jpj_crs,jpk), e3t_max_crs(jpi_crs,jpj_crs,jpk) )
 
 
 
@@ -990,36 +991,24 @@ PROGRAM NEMO_COARSENER
                END SELECT
                WRITE(numout,*) '   *** just read '//TRIM(cv_in)//' at record #',jt
 
-
+               ! Time for coarsening! Use different routines depending on the type of field!               
                IF ( (TRIM(cv_in)=='e3t') ) THEN
-!!!WRITE(numout,*) '   *** Doing nothing for '//TRIM(cv_in)//' for now !'
-                  WRITE(numout,*) '   *** WOW doing '//TRIM(cv_in)//' !!!'
-
-                  !CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=tmask, p_e3_crs=e3t_b_crs, p_e3_max_crs=zs_crs)
-                  !CALL crs_dom_e3( e1t, e2t, REAL(x3d_r4,8), p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=tmask, p_e3_crs=e3t_b_crs, p_e3_max_crs=zs_crs)
-
-
-                  !crs_dom_e3
-                  !CHARACTER(len=1),                         INTENT(in)          :: cd_type           ! grid type T, W ( U, V, F)
-                  !REAL(wp), DIMENSION(jpi,jpj,jpk),         INTENT(in)          :: p_mask            ! Parent grid T mask
-                  !REAL(wp), DIMENSION(jpi,jpj)    ,         INTENT(in)          :: p_e1, p_e2        ! 2D tracer T or W on parent grid
-                  !REAL(wp), DIMENSION(jpi,jpj,jpk),         INTENT(in)          :: p_e3              ! 3D tracer T or W on parent grid
-                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs)    , INTENT(in),OPTIONAL :: p_sfc_2d_crs      ! Coarse grid box east or north face quantity
-                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(in),OPTIONAL :: p_sfc_3d_crs      ! Coarse grid box east or north face quantity
-                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(inout)       :: p_e3_crs          ! Coarse grid box east or north face quantity
-                  !REAL(wp), DIMENSION(jpi_crs,jpj_crs,jpk), INTENT(inout)       :: p_e3_max_crs      ! Coarse grid box east or north face quantity
-
-
-                  STOP 'e3t'
+                  !! Should come prior to any other 3D field because we need actual e3t!? (VVL)
+                  WRITE(numout,*) '   *** zfse3t is updated with field '//TRIM(cv_in)//' !!!'
+                  zfse3t(:,:,:) = x3d_r4(:,:,:)
+                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_e3 / T !'
+                  CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,8), p_e3_crs=x3d_r8_crs, p_e3_max_crs=e3t_max_crs )
+                  x3d_r4_crs = REAL(x3d_r8_crs,4)
+                  WHERE ( tmask_crs == 0 ) x3d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+                  WRITE(numout,*) '   ***  written!'
                END IF
 
-               ! Time for coarsening! Use different routines depending on the type of field!
                IF ( (TRIM(cv_in)=='votemper').OR.(TRIM(cv_in)=='vosaline') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
-                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'VOL', 'T', REAL(tmask,8), x3d_r8_crs , p_e12=e1t*e2t, p_e3=zfse3t, psgn=1.0_wp )
-
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'VOL', 'T', REAL(tmask,8), x3d_r8_crs , p_e12=e1e2t, p_e3=zfse3t, psgn=1.0_wp )
                   WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
-                  x3d_r4_crs = x3d_r8_crs
+                  x3d_r4_crs = REAL(x3d_r8_crs,4)
                   WHERE ( tmask_crs == 0 ) x3d_r4_crs = 1.e+20
                   CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
                   WRITE(numout,*) '   ***  written!'
