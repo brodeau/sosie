@@ -22,14 +22,14 @@ PROGRAM NEMO_COARSENER
    INTEGER :: chunksize = 3200000, &
       &       deflate_level = 5
    !!
-   INTEGER :: ji, jj, jk, jv, nb_normal
+   INTEGER :: ji, jj, jk, jt, jv, nb_normal
    !!
 
 
-   CHARACTER(LEN=nf90_max_name) :: filebase, suffix, attname, dimname, varname, time, date, zone, timestamp
-   INTEGER :: idf_src, ndims, nvars, natts, idf_trg, idim, attid, ntype, varid,  dimlen, rbdims
+   CHARACTER(LEN=nf90_max_name) :: cnm_att, cnm_dim, cnm_var
+   INTEGER :: idf_src, ndims, nvars, natts, idf_trg, idim, attid, ntype, varid,  dimlen
    INTEGER :: nmax_unlimited
-   INTEGER :: dimid, unlimitedDimId
+   INTEGER :: dimid
 
    INTEGER :: nbdim, itype
 
@@ -38,18 +38,15 @@ PROGRAM NEMO_COARSENER
    INTEGER,                      DIMENSION(:,:), ALLOCATABLE :: i_list_var_dim_ids
    LOGICAL, DIMENSION(:),   ALLOCATABLE :: l_var_is_done
 
-   INTEGER, DIMENSION(2) :: local_sizes
-   INTEGER, DIMENSION(:), ALLOCATABLE  :: global_sizes, rebuild_dims
-   REAL(sp) :: ValMin, ValMax, InMin, InMax, rmdi
+   REAL(sp) :: rmdi
 
    INTEGER, DIMENSION(4) :: indimids
-   INTEGER, DIMENSION(:), ALLOCATABLE  :: outdimids, outdimlens, indimlens, inidf_srcs
+   INTEGER, DIMENSION(:), ALLOCATABLE  :: outdimids, outdimlens, indimlens
    REAL(wp), DIMENSION(:), ALLOCATABLE :: mdiVals
 
    CHARACTER(LEN=nf90_max_name), DIMENSION(:), ALLOCATABLE :: indimnames
-   CHARACTER(LEN=nf90_max_name), DIMENSION(2) :: cdims
 
-   LOGICAL :: l_3d, l_findDims = .FALSE.
+   LOGICAL :: l_3d, l_exist
 
 
    !! Coupe stuff:
@@ -63,41 +60,26 @@ PROGRAM NEMO_COARSENER
 
    !! Grid, default name :
    CHARACTER(len=80) :: &
-      &    cv_in, cv_mm, &
+      &    cv_in, &
       &    cv_t   = 'time_counter', &
       &    cv_lon = 'nav_lon',      & ! input grid longitude name, T-points
-      &    cv_lat = 'nav_lat',      & ! input grid latitude name,  T-points
-      &    cv_z   = 'nav_lev'         ! input grid latitude name,  T-points
+      &    cv_lat = 'nav_lat'         ! input grid latitude name,  T-points
 
 
-   CHARACTER(len=128), DIMENSION(4)  :: vlist_coor
 
-   CHARACTER(len=256)  :: cr, cmissval_in
-   !CHARACTER(len=512)  :: cdir_home, cdir_out, cdir_tmpdir, cdum, cconf
-   !!
-   !!
-   !!******************** End of conf for user ********************************
-   !!
-   !!               ** don't change anything below **
-   !!
-   LOGICAL :: l_exist, lmv_in, & ! input field has a missing value attribute
-      &       l_coor_info=.false.
 
-   !!
-   !!
+   CHARACTER(len=256)  :: cr
+
    CHARACTER(len=400)  :: &
-      &    cf_in='', cf_mm='', cf_get_lat_lon='', cf_out=''
-   !!
+      &    cf_in='', cf_mm='', cf_out=''
+
    INTEGER      :: &
-      &    jarg, nb_coor, &
+      &    jarg, iargc, &
       &    id_v, &
       &    i0=0, j0=0, &
-      &    ifi=0, ivi=0, &
-      &    ifo=0, ivo=0, &
-      &    Nt=0, nk=0, &
-      &    ni1, nj1, nk1, &
-      &    iargc
-   !!
+      &    Nt=0, &
+      &    ni1, nj1, nk1
+
    REAL(sp), DIMENSION(1) :: r4
    REAL(wp), DIMENSION(1) :: r8
 
@@ -112,27 +94,10 @@ PROGRAM NEMO_COARSENER
    REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs, zfse3t, zfse3u, zfse3v, zfse3w, e3t_max_crs
    REAL(wp), DIMENSION(:),     ALLOCATABLE :: xr8
 
-   INTEGER :: jt
-   !!
-   !REAL(wp) :: 
+   CHARACTER(LEN=2), DIMENSION(4), PARAMETER :: clist_opt = (/ '-h','-m','-i','-o' /)
 
-   
-   CHARACTER(LEN=2), DIMENSION(6), PARAMETER :: &
-      &            clist_opt = (/ '-h','-m','-i','-o','-x','-y' /)
-
-   !REAL(wp) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max, r_obs
-
-   !REAL(wp) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
-
-   INTEGER :: Nb_att_lon, Nb_att_lat, Nb_att_time, Nb_att_vin
-   TYPE(var_attr), DIMENSION(nbatt_max) :: &
-      &   v_att_list_lon, v_att_list_lat, v_att_list_time, v_att_list_vin
-
-   REAL(4) :: rmissv_in
    !CALL GET_ENVIRONMENT_VARIABLE("HOME", cdir_home)
    !CALL GET_ENVIRONMENT_VARIABLE("TMPDIR", cdir_tmpdir)
-
-
    !cdir_out = TRIM(cdir_tmpdir)//'/EXTRACTED_BOXES' ! where to write data!
    !cdir_out = '.'
 
@@ -159,9 +124,6 @@ PROGRAM NEMO_COARSENER
       CASE('-i')
          CALL GET_MY_ARG('input file', cf_in)
 
-         !CASE('-v')
-         !   CALL GET_MY_ARG('input file', cv_in)
-         !
       CASE('-o')
          CALL GET_MY_ARG('input file', cf_out)
 
@@ -179,7 +141,6 @@ PROGRAM NEMO_COARSENER
 
    END DO
 
-   !IF ( (TRIM(cv_in) == '').OR.(TRIM(cf_in) == '') ) THEN
    IF (TRIM(cf_in) == '') THEN
       WRITE(numout,*) ''
       WRITE(numout,*) 'You must at least specify input file (-i) !!!'
@@ -197,8 +158,6 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) ''
 
    WRITE(numout,*) ' * Input file = ', trim(cf_in)
-   !WRITE(numout,*) '   => associated variable names = ', TRIM(cv_in)
-   !WRITE(numout,*) '   => associated longitude/latitude/time = ', trim(cv_lon), ', ', trim(cv_lat)
 
 
    WRITE(numout,*) ''
@@ -224,44 +183,8 @@ PROGRAM NEMO_COARSENER
       call usage()
    END IF
 
-
-   !CALL coordinates_from_var_attr(cf_in, cv_in, nb_coor, vlist_coor)
-   !IF ( nb_coor > 0 ) THEN
-   !   l_coor_info = .TRUE.
-   !   IF ( nb_coor /= 3 ) STOP 'ERROR: since this is the 2D version we expect nb_coor == 3'
-   !   WRITE(numout,*) ''
-   !   WRITE(numout,*) ' *** We update names of coordinates as follows:'
-   !   cv_t   = TRIM(vlist_coor(1))
-   !   cv_lat = TRIM(vlist_coor(2))
-   !   cv_lon = TRIM(vlist_coor(3))
-
-   !   WRITE(numout,*) '    cv_t   = ', TRIM(cv_t)
-   !   WRITE(numout,*) '    cv_lat = ', TRIM(cv_lat)
-   !   WRITE(numout,*) '    cv_lon = ', TRIM(cv_lon)
-   !   WRITE(numout,*) ''
-   !END IF
-
-
-
    ! there's always a 'nav_lon' in a NEMO file right?
    CALL DIMS(cf_in, 'nav_lon', ni1, nj1, nk1, Nt)
-
-
-
-   !CALL DIMS(cf_in, cv_lat, ni2, nj2, nk, Nt)
-   !IF ( (nj1==-1).AND.(nj2==-1) ) THEN
-   !   ni = ni1 ; nj = ni2
-   !   WRITE(numout,*) 'Grid is 1D: ni, nj =', ni, nj
-   !   l_reg_src = .TRUE.
-   !ELSE
-   !   IF ( (ni1==ni2).AND.(nj1==nj2) ) THEN
-   !      ni = ni1 ; nj = nj1
-   !      WRITE(numout,*) 'Grid is 2D: ni, nj =', ni, nj
-   !      l_reg_src = .FALSE.
-   !   ELSE
-   !      WRITE(numout,*) 'ERROR: problem with grid!' ; STOP
-   !   END IF
-   !END IF
 
    CALL DIMS(cf_mm, 'tmask', jpi, jpj, jpk, Nt)
    WRITE(numout,*) ' *** 3D domain size from meshmask is:'
@@ -295,19 +218,19 @@ PROGRAM NEMO_COARSENER
    l_3d = .FALSE.
 
    DO idim = 1, ndims
-      CALL check_nf90( nf90_inquire_dimension( idf_src, idim, dimname, dimlen ) )
+      CALL check_nf90( nf90_inquire_dimension( idf_src, idim, cnm_dim, dimlen ) )
       indimlens(idim) = dimlen
-      indimnames(idim) = dimname
+      indimnames(idim) = cnm_dim
 
       outdimlens(idim) = dimlen
       !! We're going to write a coarsened file so x & y dimension must be set accordingly!
-      IF ( TRIM(dimname) == 'x' ) THEN
+      IF ( TRIM(cnm_dim) == 'x' ) THEN
          id_x = idim
          IF ( .NOT. (dimlen == jpi) ) STOP 'PROBLEM #1'
-      ELSEIF ( TRIM(dimname) == 'y' ) THEN
+      ELSEIF ( TRIM(cnm_dim) == 'y' ) THEN
          id_y = idim
          IF ( .NOT. (dimlen == jpj) ) STOP 'PROBLEM #2'
-      ELSEIF ( TRIM(dimname) == 'deptht' ) THEN
+      ELSEIF ( TRIM(cnm_dim) == 'deptht' ) THEN
          id_z = idim
          IF ( .NOT. (dimlen == jpk) ) STOP 'PROBLEM #3'
          IF ( dimlen > 1 ) l_3d = .TRUE.
@@ -382,40 +305,6 @@ PROGRAM NEMO_COARSENER
    CALL GETMASK_3D(cf_mm, 'fmask', fmask, jz1=1, jz2=jpk)
    WRITE(numout,*) ' Done!'; WRITE(numout,*) ''
 
-
-
-
-
-
-
-
-
-
-   !! Getting model longitude & latitude:
-   ! Longitude array:
-   !WRITE(numout,*) ''
-   !WRITE(numout,*) ' *** Going to fetch longitude array:'
-   !CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lon,  Nb_att_lon, v_att_list_lon)
-   !!WRITE(numout,*) '  => attributes are:', v_att_list_lon(:Nb_att_lon)
-   !CALL GETVAR_2D(i0, j0, cf_get_lat_lon, cv_lon, 0, 0, 0, xlon) ; i0=0 ; j0=0
-   !WRITE(numout,*) '  '//TRIM(cv_lon)//' sucessfully fetched!'; WRITE(numout,*) ''
-
-   !! Latitude array:
-   !WRITE(numout,*) ''
-   !WRITE(numout,*) ' *** Going to fetch latitude array:'
-   !CALL GETVAR_ATTRIBUTES(cf_get_lat_lon, cv_lat,  Nb_att_lat, v_att_list_lat)
-   !!WRITE(numout,*) '  => attributes are:', v_att_list_lat(:Nb_att_lat)
-   !CALL GETVAR_2D   (i0, j0, cf_get_lat_lon, cv_lat, 0, 0, 0, xlat)
-   !i0=0 ; j0=0
-   !WRITE(numout,*) '  '//TRIM(cv_lat)//' sucessfully fetched!'; WRITE(numout,*) ''
-
-   !CALL CHECK_4_MISS(cf_in, cv_in, lmv_in, rmissv_in, cmissval_in)
-   !IF ( .not. lmv_in ) rmissv_in = 0.
-
-   !CALL GETVAR_ATTRIBUTES(cf_in, cv_t,  Nb_att_time, v_att_list_time)
-   !WRITE(numout,*) '  => attributes of '//TRIM(cv_t)//' are:', v_att_list_time(:Nb_att_time)
-   !CALL GETVAR_ATTRIBUTES(cf_in, cv_in,  Nb_att_vin, v_att_list_vin)
-   !WRITE(numout,*) '  => attributes of '//TRIM(cv_in)//' are:', v_att_list_vin(:Nb_att_vin)
 
 
    ALLOCATE ( Vt(Nt) )
@@ -726,13 +615,13 @@ PROGRAM NEMO_COARSENER
    outdimlens(id_y) = jpj_crs ! =>         "
    
    DO idim = 1, ndims
-      CALL check_nf90( nf90_inquire_dimension( idf_src, idim, dimname, dimlen ) )
+      CALL check_nf90( nf90_inquire_dimension( idf_src, idim, cnm_dim, dimlen ) )
       IF( idim == id_t ) THEN
-         CALL check_nf90( nf90_def_dim( idf_trg, dimname, nf90_unlimited, dimid) )
+         CALL check_nf90( nf90_def_dim( idf_trg, cnm_dim, nf90_unlimited, dimid) )
          nmax_unlimited = dimlen
       ELSE
-         WRITE(numout,*) ' nf90_def_dim( idf_trg, dimname, outdimlens(idim), dimid)'
-         CALL check_nf90( nf90_def_dim( idf_trg, dimname, outdimlens(idim), dimid) )
+         WRITE(numout,*) ' nf90_def_dim( idf_trg, cnm_dim, outdimlens(idim), dimid)'
+         CALL check_nf90( nf90_def_dim( idf_trg, cnm_dim, outdimlens(idim), dimid) )
       ENDIF
    END DO
 
@@ -775,8 +664,8 @@ PROGRAM NEMO_COARSENER
       id_v = jv ! lolo!
       indimids(:) = 0
 
-      CALL check_nf90( nf90_inquire_variable( idf_src, id_v, varname, ntype, ndims, indimids, natts ) )
-      c_list_var_names(jv)     = TRIM(varname)
+      CALL check_nf90( NF90_INQUIRE_VARIABLE( idf_src, id_v, cnm_var, ntype, ndims, indimids, natts ) )
+      c_list_var_names(jv)     = TRIM(cnm_var)
       i_list_var_types(jv)     = ntype
       i_list_var_ndims(jv)     = ndims
       i_list_var_dim_ids(:,jv) = indimids(:)
@@ -790,18 +679,18 @@ PROGRAM NEMO_COARSENER
 
 
 
-      CALL check_nf90( nf90_def_var( idf_trg, varname, ntype, outdimids, varid, &
+      CALL check_nf90( nf90_def_var( idf_trg, cnm_var, ntype, outdimids, varid, &
          deflate_level=deflate_level ) )
       DEALLOCATE(outdimids)
-      WRITE(numout,*) 'Defining variable '//TRIM(varname)//'...'
+      WRITE(numout,*) 'Defining variable '//TRIM(cnm_var)//'...'
       IF( natts > 0 ) THEN
          DO attid = 1, natts
-            CALL check_nf90( nf90_inq_attname( idf_src, varid, attid, attname ) )
-            IF ( attname == "_FillValue" ) THEN
-               CALL check_nf90( nf90_get_att( idf_src, varid, attname, rmdi ) )
+            CALL check_nf90( NF90_INQ_ATTNAME( idf_src, varid, attid, cnm_att ) )
+            IF ( cnm_att == "_FillValue" ) THEN
+               CALL check_nf90( NF90_GET_ATT( idf_src, varid, cnm_att, rmdi ) )
                mdiVals(jv)=rmdi
             ENDIF
-            CALL check_nf90( nf90_copy_att( idf_src, varid, attname, idf_trg, varid ) )
+            CALL check_nf90( NF90_COPY_ATT( idf_src, varid, cnm_att, idf_trg, varid ) )
          END DO
       ENDIF
    END DO
@@ -810,7 +699,7 @@ PROGRAM NEMO_COARSENER
 
    !2.3 End definitions in output file and copy 1st file idf_src to the inidf_srcs array
 
-   CALL check_nf90( nf90_enddef( idf_trg ) )
+   CALL check_nf90( NF90_ENDDEF( idf_trg ) )
    !inidf_srcs(1) = idf_src
    !WRITE(numout,*) 'Finished defining output file.'
 
@@ -1037,12 +926,6 @@ PROGRAM NEMO_COARSENER
 
 
 
-      !IF ( lmv_in ) THEN
-      !WHERE ( tmask_crs(:,:,1) == 0 ) x2d_r4_crs = rmissv_in
-      !END IF
-
-
-
    END DO !DO jt=1, Nt
 
 
@@ -1104,10 +987,6 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) '    Optional:'
       WRITE(6,*) ' -h                   => Show this message'
-      WRITE(6,*) ''
-      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: '//TRIM(cv_lon)//')'
-      WRITE(6,*) ''
-      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: '//TRIM(cv_lon)//')'
       WRITE(6,*) ''
       WRITE(6,*) ''
       !!
