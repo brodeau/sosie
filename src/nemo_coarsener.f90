@@ -12,7 +12,7 @@ PROGRAM NEMO_COARSENER
    !! ************************ Configurable part ****************************
    LOGICAL, PARAMETER :: &
       &   l_debug    = .TRUE., &
-      &   l_write_crs_mm = .FALSE. !: write the coarsened mesh_mask.nc
+      &   l_write_crs_mm = .TRUE. !: write the coarsened mesh_mask.nc ! need 3D to be on!!!
    !!
    INTEGER,PARAMETER :: sp=SELECTED_REAL_KIND(6,37)      ! NF90_FLOAT
 
@@ -31,6 +31,8 @@ PROGRAM NEMO_COARSENER
    INTEGER :: nmax_unlimited
    INTEGER :: dimid
 
+   INTEGER :: idf_mm_crs, idd_x, idd_y, idd_z, idd_t, idv_tmsk
+   
    INTEGER :: nbdim, itype
 
    CHARACTER(LEN=nf90_max_name), DIMENSION(:),   ALLOCATABLE :: c_list_var_names
@@ -644,6 +646,32 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) ''
    WRITE(numout,*) ''
    WRITE(numout,*) ''
+
+   
+   !! Writing the mesh_mask if required:
+
+   IF ( l_write_crs_mm .AND. l_3d ) THEN !lili
+      CALL check_nf90( NF90_CREATE( 'mesh_mask_crs.nc', nf90_netcdf4, idf_mm_crs, chunksize=chunksize ) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'x', jpi_crs,        idd_x) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'y', jpj_crs,        idd_y) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'z', jpk,            idd_z) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 't', nf90_unlimited, idd_t) )
+      !lilili
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'tmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_tmsk, deflate_level=9) )
+
+      CALL check_nf90( NF90_ENDDEF(idf_mm_crs) )
+
+      CALL check_nf90( NF90_CLOSE( idf_mm_crs ) )
+
+      STOP 'mesh_mask_crs.nc'
+
+   END IF
+
+
+
+
+
+   
 
 
 
