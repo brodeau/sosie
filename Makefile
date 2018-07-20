@@ -92,33 +92,23 @@ bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_manip.o
 
 
 ### CRS:
-obj/mod_nemo.o: src/mod_nemo.f90
+obj/mod_nemo.o: src/crs/mod_nemo.f90
 	@mkdir -p obj
 	@mkdir -p mod
-	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_nemo.f90 -o obj/mod_nemo.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/crs/mod_nemo.f90 -o obj/mod_nemo.o
 
-obj/crs.o: src/crs.f90 obj/mod_nemo.o
-	$(FC) $(FF) -I$(NCDF_INC) -c src/crs.f90 -o obj/crs.o
+obj/crs.o: src/crs/crs.f90 obj/mod_nemo.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/crs/crs.f90 -o obj/crs.o
 
-obj/crsdom.o: src/crsdom.f90 obj/crs.o
-	$(FC) $(FF) -I$(NCDF_INC) -c src/crsdom.f90 -o obj/crsdom.o
+obj/crsdom.o: src/crs/crsdom.f90 obj/crs.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/crs/crsdom.f90 -o obj/crsdom.o
 
-
-
-
-
-
-bin/nemo_coarsener.x: src/nemo_coarsener.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
+bin/nemo_coarsener.x: src/crs/nemo_coarsener.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
-	$(FC) $(FF) -I$(NCDF_INC) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/nemo_coarsener.f90 -o bin/nemo_coarsener.x $(LIB_CDF)
+	$(FC) $(FF) -I$(NCDF_INC) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/crs/nemo_coarsener.f90 -o bin/nemo_coarsener.x $(LIB_CDF)
 
-bin/nemo_coarsener_2d.x: src/nemo_coarsener_2d.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
-	@mkdir -p bin
-	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/nemo_coarsener_2d.f90 -o bin/nemo_coarsener_2d.x $(LIB_CDF)
 
-bin/nemo_coarsener_3d.x: src/nemo_coarsener_3d.f90 obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS)
-	@mkdir -p bin
-	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/nemo_coarsener_3d.f90 -o bin/nemo_coarsener_3d.x $(LIB_CDF)
+
 
 
 
