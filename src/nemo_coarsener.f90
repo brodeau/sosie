@@ -31,7 +31,9 @@ PROGRAM NEMO_COARSENER
    INTEGER :: nmax_unlimited
    INTEGER :: dimid
 
-   INTEGER :: idf_mm_crs, idd_x, idd_y, idd_z, idd_t, idv_tmsk
+   INTEGER :: idf_mm_crs, idd_x, idd_y, idd_z, idd_t, &
+      &       idv_nlon, idv_nlat, idv_nlev, &
+      &       idv_tmsk, idv_umsk, idv_vmsk, idv_fmsk 
    
    INTEGER :: nbdim, itype
 
@@ -307,8 +309,11 @@ PROGRAM NEMO_COARSENER
 
    IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(nlaxbnd,jpk) , x3d_r4(jpi,jpj,jpk) ) !, e3t(jpi,jpj,jpk) )
 
+   
+   IF ( l_3d .AND. l_write_crs_mm ) CALL GETVAR_1D(cf_mm, 'nav_lev', vdepth)
 
 
+   
 
 
    !! Getting source land-sea mask:
@@ -326,7 +331,6 @@ PROGRAM NEMO_COARSENER
    ALLOCATE ( Vt(Nt) )
    CALL GETVAR_1D(cf_in, cv_t, Vt)
    WRITE(numout,*) 'Vt = ', Vt(:)
-
 
 
 
@@ -656,11 +660,25 @@ PROGRAM NEMO_COARSENER
       CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'y', jpj_crs,        idd_y) )
       CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'z', jpk,            idd_z) )
       CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 't', nf90_unlimited, idd_t) )
-      !lilili
+      !
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lon', NF90_FLOAT, (/idd_x,idd_y/), idv_nlon, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lat', NF90_FLOAT, (/idd_x,idd_y/), idv_nlat, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lev', NF90_FLOAT, (/idd_z/),       idv_nlev, deflate_level=9) )
+      !
       CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'tmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_tmsk, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'umask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_umsk, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'vmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_vmsk, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'fmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_fmsk, deflate_level=9) )
 
-      CALL check_nf90( NF90_ENDDEF(idf_mm_crs) )
+      CALL check_nf90( NF90_ENDDEF( idf_mm_crs) )
 
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlon, REAL(glamt_crs,4)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlat, REAL(gphit_crs,4)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlev, vdepth           ) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_tmsk, tmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_umsk, umask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_vmsk, vmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_fmsk, fmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
       CALL check_nf90( NF90_CLOSE( idf_mm_crs ) )
 
       STOP 'mesh_mask_crs.nc'
