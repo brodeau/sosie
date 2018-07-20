@@ -31,11 +31,6 @@ PROGRAM NEMO_COARSENER
    INTEGER :: nmax_unlimited
    INTEGER :: dimid
 
-   INTEGER :: idf_mm_crs, idd_x, idd_y, idd_z, idd_t, &
-      &       idv_nlon, idv_nlat, idv_nlev, &
-      &       idv_glt, idv_gpt, idv_glu, idv_gpu, idv_glv, idv_gpv, idv_glf, idv_gpf, &
-      &       idv_tmsk, idv_umsk, idv_vmsk, idv_fmsk 
-   
    INTEGER :: nbdim, itype
 
    CHARACTER(LEN=nf90_max_name), DIMENSION(:),   ALLOCATABLE :: c_list_var_names
@@ -51,7 +46,7 @@ PROGRAM NEMO_COARSENER
 
    CHARACTER(LEN=nf90_max_name), DIMENSION(:), ALLOCATABLE :: indimnames
 
-   LOGICAL :: l_3d, l_exist
+   LOGICAL :: l_3d, l_exist, l_do_T, l_do_U, l_do_V, l_do_W
 
 
    !! Coupe stuff:
@@ -292,38 +287,40 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) '  *** id_dim_axbnd =', id_dim_axbnd, nlaxbnd
    WRITE(numout,*) '' ; WRITE(numout,*) ''
 
-
-
-
-
    jpkm1 = MAX(jpk-1,1)
+
+
+   l_do_T = (( cgp == 'T' ).OR.(l_write_crs_mm))
+   l_do_U = (( cgp == 'U' ).OR.(l_write_crs_mm))
+   l_do_V = (( cgp == 'V' ).OR.(l_write_crs_mm))
+   l_do_W = (( cgp == 'W' ).OR.(l_write_crs_mm))
 
 
    !ni = ni1 ; jpj = ni1
    !! Source:
    ALLOCATE ( x2d_r4(jpi,jpj) )
-   IF (( cgp == 'T' ).OR.(l_write_crs_mm)) ALLOCATE ( e3t_0(jpi,jpj,jpk), glamt(jpi,jpj), gphit(jpi,jpj), e1e2t(jpi,jpj), e1t(jpi,jpj), e2t(jpi,jpj) )
-   IF (( cgp == 'U' ).OR.(l_write_crs_mm)) ALLOCATE ( e3u_0(jpi,jpj,jpk), glamu(jpi,jpj), gphiu(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj) )
-   IF (( cgp == 'V' ).OR.(l_write_crs_mm)) ALLOCATE ( e3v_0(jpi,jpj,jpk), glamv(jpi,jpj), gphiv(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj) )
+   IF ( l_do_T ) ALLOCATE ( e3t_0(jpi,jpj,jpk), glamt(jpi,jpj), gphit(jpi,jpj), e1e2t(jpi,jpj), e1t(jpi,jpj), e2t(jpi,jpj) )
+   IF ( l_do_U ) ALLOCATE ( e3u_0(jpi,jpj,jpk), glamu(jpi,jpj), gphiu(jpi,jpj), e1u(jpi,jpj), e2u(jpi,jpj) )
+   IF ( l_do_V ) ALLOCATE ( e3v_0(jpi,jpj,jpk), glamv(jpi,jpj), gphiv(jpi,jpj), e1v(jpi,jpj), e2v(jpi,jpj) )
 
    IF ( l_write_crs_mm ) ALLOCATE ( e3w_0(jpi,jpj,jpk), glamf(jpi,jpj), gphif(jpi,jpj), e1f(jpi,jpj), e2f(jpi,jpj) )
 
    IF ( l_3d )  ALLOCATE ( vdepth(jpk) , vdepth_b(nlaxbnd,jpk) , x3d_r4(jpi,jpj,jpk) ) !, e3t(jpi,jpj,jpk) )
 
-   
+
    IF ( l_3d .AND. l_write_crs_mm ) CALL GETVAR_1D(cf_mm, 'nav_lev', vdepth)
 
 
-   
+
 
 
    !! Getting source land-sea mask:
    WRITE(numout,*) ''
    ALLOCATE ( tmask(jpi,jpj,jpk), umask(jpi,jpj,jpk), vmask(jpi,jpj,jpk), fmask(jpi,jpj,jpk) )
    WRITE(numout,*) ' *** Reading land-sea mask'
-   IF (( cgp == 'T' ).OR.(l_write_crs_mm)) CALL GETMASK_3D(cf_mm, 'tmask', tmask, jz1=1, jz2=jpk)
-   IF (( cgp == 'U' ).OR.(l_write_crs_mm)) CALL GETMASK_3D(cf_mm, 'umask', umask, jz1=1, jz2=jpk)
-   IF (( cgp == 'V' ).OR.(l_write_crs_mm)) CALL GETMASK_3D(cf_mm, 'vmask', vmask, jz1=1, jz2=jpk)
+   IF ( l_do_T ) CALL GETMASK_3D(cf_mm, 'tmask', tmask, jz1=1, jz2=jpk)
+   IF ( l_do_U ) CALL GETMASK_3D(cf_mm, 'umask', umask, jz1=1, jz2=jpk)
+   IF ( l_do_V ) CALL GETMASK_3D(cf_mm, 'vmask', vmask, jz1=1, jz2=jpk)
    IF ( l_write_crs_mm )                   CALL GETMASK_3D(cf_mm, 'fmask', fmask, jz1=1, jz2=jpk)
    WRITE(numout,*) ' Done!'; WRITE(numout,*) ''
 
@@ -395,7 +392,7 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) ''
 
 
-   IF (( cgp == 'T' ).OR.(l_write_crs_mm)) THEN
+   IF ( l_do_T ) THEN
       CALL GETVAR_2D(i0, j0, cf_mm, 'glamt', 0, 0, 0, glamt) ; i0=0 ; j0=0
       CALL GETVAR_2D(i0, j0, cf_mm, 'gphit', 0, 0, 0, gphit) ; i0=0 ; j0=0
       CALL GETVAR_2D(i0, j0, cf_mm, 'e1t', 0, 0, 0, e1t) ; i0=0 ; j0=0
@@ -404,7 +401,7 @@ PROGRAM NEMO_COARSENER
       CALL GETVAR_3D(i0, j0, cf_mm, 'e3t_0', 0, 1,    e3t_0(:,:,:), jz1=1, jz2=jpk)
    END IF
 
-   IF (( cgp == 'U' ).OR.(l_write_crs_mm)) THEN
+   IF ( l_do_U ) THEN
       CALL GETVAR_2D(i0, j0, cf_mm, 'glamu', 0, 0, 0, glamu) ; i0=0 ; j0=0
       CALL GETVAR_2D(i0, j0, cf_mm, 'gphiu', 0, 0, 0, gphiu) ; i0=0 ; j0=0
       CALL GETVAR_2D(i0, j0, cf_mm, 'e1u', 0, 0, 0, e1u) ; i0=0 ; j0=0
@@ -412,7 +409,7 @@ PROGRAM NEMO_COARSENER
       CALL GETVAR_3D(i0, j0, cf_mm, 'e3u_0', 0, 1,    e3u_0(:,:,:), jz1=1, jz2=jpk)
    END IF
 
-   IF (( cgp == 'V' ).OR.(l_write_crs_mm)) THEN
+   IF ( l_do_V ) THEN
       CALL GETVAR_2D(i0, j0, cf_mm, 'glamv', 0, 0, 0, glamv) ; i0=0 ; j0=0
       CALL GETVAR_2D(i0, j0, cf_mm, 'gphiv', 0, 0, 0, gphiv) ; i0=0 ; j0=0
       CALL GETVAR_2D(i0, j0, cf_mm, 'e1v', 0, 0, 0, e1v) ; i0=0 ; j0=0
@@ -448,14 +445,6 @@ PROGRAM NEMO_COARSENER
 
    CALL crs_dom_msk
 
-   IF ( l_debug ) THEN 
-      IF (( cgp == 'T' ).OR.(l_write_crs_mm)) CALL DUMP_FIELD(REAL(tmask_crs,4), 'tmask_crs.tmp', 'tmask_crs' )
-      IF (( cgp == 'U' ).OR.(l_write_crs_mm)) CALL DUMP_FIELD(REAL(umask_crs,4), 'umask_crs.tmp', 'umask_crs' )
-      IF (( cgp == 'V' ).OR.(l_write_crs_mm)) CALL DUMP_FIELD(REAL(vmask_crs,4), 'vmask_crs.tmp', 'vmask_crs' )
-      IF ( l_write_crs_mm )                   CALL DUMP_FIELD(REAL(fmask_crs,4), 'fmask_crs.tmp', 'fmask_crs' )
-   END IF
-
-
    !  3.b. Get the coordinates
    !      Odd-numbered reduction factor, center coordinate on T-cell
    !      Even-numbered reduction factor, center coordinate on U-,V- faces or f-corner.
@@ -463,9 +452,9 @@ PROGRAM NEMO_COARSENER
    gphit_crs = 0.0 ; glamt_crs = 0.0 ; gphiu_crs = 0.0 ; glamu_crs = 0.0
    gphiv_crs = 0.0 ; glamv_crs = 0.0 ; gphif_crs = 0.0 ; glamf_crs = 0.0
 
-   IF (( cgp == 'T' ).OR.(l_write_crs_mm)) CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
-   IF (( cgp == 'U' ).OR.(l_write_crs_mm)) CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
-   IF (( cgp == 'V' ).OR.(l_write_crs_mm)) CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
+   IF ( l_do_T ) CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+   IF ( l_do_U ) CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
+   IF ( l_do_V ) CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
    IF ( l_write_crs_mm )                   CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
 
 
@@ -477,9 +466,9 @@ PROGRAM NEMO_COARSENER
    e1t_crs(:,:) = 0.0 ; e2t_crs(:,:) = 0.0 ; e1u_crs(:,:) = 0.0 ; e2u_crs(:,:) = 0.0
    e1v_crs(:,:) = 0.0 ; e2v_crs(:,:) = 0.0 ; e1f_crs(:,:) = 0.0 ; e2f_crs(:,:) = 0.0
 
-   IF (( cgp == 'T' ).OR.(l_write_crs_mm)) CALL crs_dom_hgr( e1t, e2t, 'T', e1t_crs, e2t_crs )
-   IF (( cgp == 'U' ).OR.(l_write_crs_mm)) CALL crs_dom_hgr( e1u, e2u, 'U', e1u_crs, e2u_crs )
-   IF (( cgp == 'V' ).OR.(l_write_crs_mm)) CALL crs_dom_hgr( e1v, e2v, 'V', e1v_crs, e2v_crs )
+   IF ( l_do_T ) CALL crs_dom_hgr( e1t, e2t, 'T', e1t_crs, e2t_crs )
+   IF ( l_do_U ) CALL crs_dom_hgr( e1u, e2u, 'U', e1u_crs, e2u_crs )
+   IF ( l_do_V ) CALL crs_dom_hgr( e1v, e2v, 'V', e1v_crs, e2v_crs )
    IF ( l_write_crs_mm )                   CALL crs_dom_hgr( e1f, e2f, 'F', e1f_crs, e2f_crs )
 
    WHERE(e1t_crs == 0._wp) e1t_crs=r_inf
@@ -490,42 +479,9 @@ PROGRAM NEMO_COARSENER
    WHERE(e2u_crs == 0._wp) e2u_crs=r_inf
    WHERE(e2v_crs == 0._wp) e2v_crs=r_inf
    WHERE(e2f_crs == 0._wp) e2f_crs=r_inf
-
-   e1e2t_crs(:,:) = e1t_crs(:,:) * e2t_crs(:,:)
-
-
-
-
-
-
-
-   IF ( l_debug ) THEN
-      IF (( cgp == 'T' ).OR.(l_write_crs_mm)) THEN
-         CALL DUMP_FIELD(REAL(glamt_crs(:,:),4), 'glamt_crs.tmp', 'glamt_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(gphit_crs(:,:),4), 'gphit_crs.tmp', 'gphit_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(e1t_crs(:,:),4), 'e1t_crs.tmp', 'e1t_crs' )
-         CALL DUMP_FIELD(REAL(e2t_crs(:,:),4), 'e2t_crs.tmp', 'e2t_crs' )
-         CALL DUMP_FIELD(REAL(e1e2t_crs(:,:),4), 'e1e2t_crs.tmp', 'e1e2t_crs' )
-      END IF
-      IF (( cgp == 'U' ).OR.(l_write_crs_mm)) THEN
-         CALL DUMP_FIELD(REAL(glamu_crs(:,:),4), 'glamu_crs.tmp', 'glamu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(gphiu_crs(:,:),4), 'gphiu_crs.tmp', 'gphiu_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(e1u_crs(:,:),4), 'e1u_crs.tmp', 'e1u_crs' )
-         CALL DUMP_FIELD(REAL(e2u_crs(:,:),4), 'e2u_crs.tmp', 'e2u_crs' )
-      END IF
-      IF (( cgp == 'V' ).OR.(l_write_crs_mm)) THEN
-         CALL DUMP_FIELD(REAL(glamv_crs(:,:),4), 'glamv_crs.tmp', 'glamv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(gphiv_crs(:,:),4), 'gphiv_crs.tmp', 'gphiv_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(e1v_crs(:,:),4), 'e1v_crs.tmp', 'e1v_crs' )
-         CALL DUMP_FIELD(REAL(e2v_crs(:,:),4), 'e2v_crs.tmp', 'e2v_crs' )
-      END IF
-      IF ( l_write_crs_mm ) THEN
-         CALL DUMP_FIELD(REAL(glamf_crs(:,:),4), 'glamf_crs.tmp', 'glamf_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(gphif_crs(:,:),4), 'gphif_crs.tmp', 'gphif_crs' ) !,  xlon, xlat, cv_lo, cv_la,  rfill)
-         CALL DUMP_FIELD(REAL(e1f_crs(:,:),4), 'e1f_crs.tmp', 'e1f_crs' )
-         CALL DUMP_FIELD(REAL(e2f_crs(:,:),4), 'e2f_crs.tmp', 'e2f_crs' )
-      END IF
-   END IF
+   
+   e1e2t_crs(:,:) = e1t_crs(:,:) * e2t_crs(:,:)  
+   IF ( l_debug .AND. l_do_T) CALL DUMP_FIELD(REAL(e1e2t_crs(:,:),4), 'e1e2t_crs.tmp', 'e1e2t_crs' )
 
 
 
@@ -533,44 +489,36 @@ PROGRAM NEMO_COARSENER
    !      3.c.2 Coriolis factor
    IF ( l_write_crs_mm ) THEN
       SELECT CASE( jphgr_msh )   ! type of horizontal mesh
-
       CASE ( 0, 1, 4 )           ! mesh on the sphere
          ff_crs(:,:) = 2. * omega * SIN( rad * gphif_crs(:,:) )
       CASE DEFAULT
          IF(lwp)    WRITE(numout,*) 'nemo_coarsener.f90. crs_init. Only jphgr_msh = 0, 1 or 4 supported'
       END SELECT
-
-      IF ( l_debug ) CALL DUMP_FIELD(REAL(ff_crs(:,:),4), 'ff_crs.tmp', 'ff_crs' )
    END IF
 
 
    !    3.d.1 mbathy ( vertical k-levels of bathymetry )
-   IF ( l_write_crs_mm ) THEN
-      IF ( l_3d ) THEN
-         CALL crs_dom_bat
-         IF ( l_debug ) CALL DUMP_FIELD(REAL(mbathy_crs(:,:),4), 'mbathy_crs.tmp', 'mbathy_crs' )
-      END IF
-   END IF
+   IF ( l_write_crs_mm .AND. l_3d ) CALL crs_dom_bat
+   
 
-
-   IF ( cgp == 'T' ) THEN
+   IF ( l_do_T ) THEN
       ALLOCATE (zfse3t(jpi,jpj,jpk))
       zfse3t(:,:,:) = e3t_0(:,:,:) !fse3t(:,:,:)
    END IF
-   IF ( cgp == 'U' ) THEN
+   IF ( l_do_U ) THEN
       ALLOCATE (zfse3u(jpi,jpj,jpk))
       zfse3u(:,:,:) = e3u_0(:,:,:)
    END IF
-   IF ( cgp == 'V' ) THEN
+   IF ( l_do_V ) THEN
       ALLOCATE (zfse3v(jpi,jpj,jpk))
       zfse3v(:,:,:) = e3v_0(:,:,:)
    END IF
-   IF ( cgp == 'W' ) THEN
+   IF ( l_do_W ) THEN
       ALLOCATE (zfse3w(jpi,jpj,jpk))
       zfse3w(:,:,:) = e3w_0(:,:,:)
    END IF
 
-   
+
 
    !    3.d.2   Surfaces
    e2e3u_crs(:,:,:)=0._wp
@@ -581,10 +529,7 @@ PROGRAM NEMO_COARSENER
    IF ( cgp == 'U' ) CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
    IF ( cgp == 'V' ) CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
 
-   IF ( l_debug ) THEN
-      CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
-   END IF
-
+   IF ( l_debug ) CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
 
 
 
@@ -593,10 +538,10 @@ PROGRAM NEMO_COARSENER
 
    !    3.d.3   Vertical scale factors
    !
-   IF ( cgp == 'T' ) CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,wp), p_e3_crs=e3t_0_crs, p_e3_max_crs=e3t_max_0_crs)
-   IF ( cgp == 'W' ) CALL crs_dom_e3( e1t, e2t, zfse3w, p_sfc_3d_crs=e1e2w_crs, cd_type='W', p_mask=REAL(tmask,wp), p_e3_crs=e3w_0_crs, p_e3_max_crs=e3w_max_0_crs)
-   IF ( cgp == 'U' ) CALL crs_dom_e3( e1u, e2u, zfse3u, p_sfc_2d_crs=e2u_crs  , cd_type='U', p_mask=REAL(umask,wp), p_e3_crs=e3u_0_crs, p_e3_max_crs=e3u_max_0_crs)
-   IF ( cgp == 'V' ) CALL crs_dom_e3( e1v, e2v, zfse3v, p_sfc_2d_crs=e1v_crs  , cd_type='V', p_mask=REAL(vmask,wp), p_e3_crs=e3v_0_crs, p_e3_max_crs=e3v_max_0_crs)
+   IF ( l_do_T ) CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,wp), p_e3_crs=e3t_0_crs, p_e3_max_crs=e3t_max_0_crs)
+   IF ( l_do_W ) CALL crs_dom_e3( e1t, e2t, zfse3w, p_sfc_3d_crs=e1e2w_crs, cd_type='W', p_mask=REAL(tmask,wp), p_e3_crs=e3w_0_crs, p_e3_max_crs=e3w_max_0_crs)
+   IF ( l_do_U ) CALL crs_dom_e3( e1u, e2u, zfse3u, p_sfc_2d_crs=e2u_crs  , cd_type='U', p_mask=REAL(umask,wp), p_e3_crs=e3u_0_crs, p_e3_max_crs=e3u_max_0_crs)
+   IF ( l_do_V ) CALL crs_dom_e3( e1v, e2v, zfse3v, p_sfc_2d_crs=e1v_crs  , cd_type='V', p_mask=REAL(vmask,wp), p_e3_crs=e3v_0_crs, p_e3_max_crs=e3v_max_0_crs)
 
    WHERE(e3t_max_0_crs == 0._wp) e3t_max_0_crs=r_inf
    WHERE(e3u_max_0_crs == 0._wp) e3u_max_0_crs=r_inf
@@ -608,13 +553,7 @@ PROGRAM NEMO_COARSENER
       ht_0_crs(:,:)=ht_0_crs(:,:)+e3t_0_crs(:,:,jk)*tmask_crs(:,:,jk)
    ENDDO
 
-   IF ( l_debug ) THEN
-      IF ( cgp == 'T' ) CALL DUMP_FIELD(REAL(e3t_0_crs,4), 'e3t_0_crs.tmp', 'e3t_0_crs' )
-      IF ( cgp == 'U' ) CALL DUMP_FIELD(REAL(e3u_0_crs,4), 'e3u_0_crs.tmp', 'e3u_0_crs' )
-      IF ( cgp == 'V' ) CALL DUMP_FIELD(REAL(e3v_0_crs,4), 'e3v_0_crs.tmp', 'e3v_0_crs' )
-      IF ( cgp == 'W' ) CALL DUMP_FIELD(REAL(e3w_0_crs,4), 'e3w_0_crs.tmp', 'e3w_0_crs' )
-      IF ( cgp == 'T' ) CALL DUMP_FIELD(REAL(ht_0_crs,4),  'ht_0_crs.tmp' , 'ht_0_crs' )
-   END IF
+   IF ( l_debug .AND. l_do_T ) CALL DUMP_FIELD(REAL(ht_0_crs,4),  'ht_0_crs.tmp' , 'ht_0_crs' )
 
 
 
@@ -641,9 +580,9 @@ PROGRAM NEMO_COARSENER
 
    !needed later... DEALLOCATE ( zfse3t, zfse3u, zfse3v, zfse3w )
 
-   IF ( cgp == 'U' ) DEALLOCATE ( zfse3u )
-   IF ( cgp == 'V' ) DEALLOCATE ( zfse3v )
-   IF ( cgp == 'W' ) DEALLOCATE ( zfse3w )
+   IF ( l_do_U ) DEALLOCATE ( zfse3u )
+   IF ( l_do_V ) DEALLOCATE ( zfse3v )
+   IF ( l_do_W ) DEALLOCATE ( zfse3w )
 
    ! -------------------------- crs init done ! ----------------------------
 
@@ -652,68 +591,9 @@ PROGRAM NEMO_COARSENER
    WRITE(numout,*) ''
    WRITE(numout,*) ''
 
-   
+
    !! Writing the mesh_mask if required:
-
-   IF ( l_write_crs_mm .AND. l_3d ) THEN !lili
-      CALL check_nf90( NF90_CREATE( 'mesh_mask_crs.nc', nf90_netcdf4, idf_mm_crs, chunksize=chunksize ) )
-      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'x', jpi_crs,        idd_x) )
-      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'y', jpj_crs,        idd_y) )
-      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'z', jpk,            idd_z) )
-      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 't', nf90_unlimited, idd_t) )
-      !
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lon', NF90_FLOAT, (/idd_x,idd_y/), idv_nlon, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lat', NF90_FLOAT, (/idd_x,idd_y/), idv_nlat, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lev', NF90_FLOAT, (/idd_z/),       idv_nlev, deflate_level=9) )
-      !
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'tmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_tmsk, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'umask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_umsk, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'vmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_vmsk, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'fmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_fmsk, deflate_level=9) )
-
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamt', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glt, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamu', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glu, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamv', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glv, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamf', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glf, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphit', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpt, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphiu', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpu, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphiv', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpv, deflate_level=9) )
-      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphif', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpf, deflate_level=9) )
-            
-      CALL check_nf90( NF90_ENDDEF( idf_mm_crs) )
-
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlon, REAL(glamt_crs,4)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlat, REAL(gphit_crs,4)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlev, vdepth           ) )
-      
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glt, glamt_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glu, glamu_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glv, glamv_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glf, glamf_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpt, gphit_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpu, gphiu_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpv, gphiv_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpf, gphif_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
-
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_tmsk, tmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_umsk, umask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_vmsk, vmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
-      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_fmsk, fmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
-      CALL check_nf90( NF90_CLOSE( idf_mm_crs ) )
-
-      STOP 'mesh_mask_crs.nc'
-
-   END IF
-
-
-
-
-
-   
-
-
-
-
+   IF ( l_write_crs_mm .AND. l_3d ) CALL WRITE_MESHMASK_CRS( 'mesh_mask_crs.nc' )
 
 
 
@@ -1125,9 +1005,115 @@ CONTAINS
       ENDIF
    END SUBROUTINE check_nf90
 
+   SUBROUTINE WRITE_MESHMASK_CRS( cfname )
+      !!
+      CHARACTER(len=*), INTENT(in) :: cfname
+      !!
+      INTEGER :: idf_mm_crs, idd_x, idd_y, idd_z, idd_t, &
+         &       idv_nlon, idv_nlat, idv_nlev, &
+         &       idv_glt, idv_gpt, idv_glu, idv_gpu, idv_glv, idv_gpv, idv_glf, idv_gpf, &
+         &       idv_e1t, idv_e2t, idv_e1u, idv_e2u, idv_e1v, idv_e2v, idv_e1f, idv_e2f, &
+         &       idv_e3t, idv_e3u, idv_e3v, idv_e3w, &
+         &       idv_tmsk, idv_umsk, idv_vmsk, idv_fmsk, idv_ff, idv_mbt
+      !!
+      CALL check_nf90( NF90_CREATE( TRIM(cfname), nf90_netcdf4, idf_mm_crs, chunksize=chunksize ) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'x', jpi_crs,        idd_x) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'y', jpj_crs,        idd_y) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 'z', jpk,            idd_z) )
+      CALL check_nf90( NF90_DEF_DIM(idf_mm_crs, 't', nf90_unlimited, idd_t) )
+      !!
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lon', NF90_FLOAT, (/idd_x,idd_y/), idv_nlon, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lat', NF90_FLOAT, (/idd_x,idd_y/), idv_nlat, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'nav_lev', NF90_FLOAT, (/idd_z/),       idv_nlev, deflate_level=9) )
+      !!
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'tmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_tmsk, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'umask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_umsk, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'vmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_vmsk, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'fmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_fmsk, deflate_level=9) )
+      !!
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamt', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glt, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamu', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glu, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamv', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glv, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamf', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glf, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphit', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpt, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphiu', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpu, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphiv', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpv, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphif', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpf, deflate_level=9) )
+      !!
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e1t', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e1t, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e1u', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e1u, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e1v', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e1v, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e1f', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e1f, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e2t', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e2t, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e2u', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e2u, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e2v', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e2v, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e2f', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_e2f, deflate_level=9) )
+      !!
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs,  'ff', NF90_DOUBLE, (/idd_x,idd_y,idd_t/), idv_ff , deflate_level=9) )
+      !!
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'mbathy', NF90_SHORT, (/idd_x,idd_y,idd_t/), idv_mbt , deflate_level=9) )
+      !!
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e3t_0', NF90_DOUBLE, (/idd_x,idd_y,idd_z,idd_t/), idv_e3t, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e3u_0', NF90_DOUBLE, (/idd_x,idd_y,idd_z,idd_t/), idv_e3u, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e3v_0', NF90_DOUBLE, (/idd_x,idd_y,idd_z,idd_t/), idv_e3v, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'e3w_0', NF90_DOUBLE, (/idd_x,idd_y,idd_z,idd_t/), idv_e3w, deflate_level=9) )
+      !!
+      CALL check_nf90( NF90_ENDDEF( idf_mm_crs) )
 
 
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlon, REAL(glamt_crs,4)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlat, REAL(gphit_crs,4)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlev, vdepth           ) )
+      !!
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_tmsk, tmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_umsk, umask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_vmsk, vmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_fmsk, fmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+      !!
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glt, glamt_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glu, glamu_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glv, glamv_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glf, glamf_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpt, gphit_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpu, gphiu_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpv, gphiv_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpf, gphif_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      !!
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e1t, e1t_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e1u, e1u_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e1v, e1v_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e1f, e1f_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e2t, e2t_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e2u, e2u_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e2v, e2v_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e2f, e2f_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      !!
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_ff ,  ff_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      !!
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_mbt, mbathy_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      !!
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e3t, e3t_0_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e3u, e3u_0_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e3v, e3v_0_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_e3w, e3w_0_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
 
+
+      CALL check_nf90( NF90_CLOSE( idf_mm_crs ) )
+      !!
+      WRITE(numout,*) ' *** "'//TRIM(cfname)//'" written!'
+      WRITE(numout,*)
+      !!
+      !Manque:
+      !float gdept_0(t, z, y, x) ;
+      !float gdepu(t, z, y, x) ;
+      !float gdepv(t, z, y, x) ;
+      !float gdepw_0(t, z, y, x) ;
+      !double gdept_1d(t, z) ;
+      !double gdepw_1d(t, z) ;
+      !double e3t_1d(t, z) ;
+      !double e3w_1d(t, z) ;
+      !!
+   END SUBROUTINE WRITE_MESHMASK_CRS
 
 
 END PROGRAM NEMO_COARSENER
