@@ -33,6 +33,7 @@ PROGRAM NEMO_COARSENER
 
    INTEGER :: idf_mm_crs, idd_x, idd_y, idd_z, idd_t, &
       &       idv_nlon, idv_nlat, idv_nlev, &
+      &       idv_glt, idv_gpt, idv_glu, idv_gpu, idv_glv, idv_gpv, idv_glf, idv_gpf, &
       &       idv_tmsk, idv_umsk, idv_vmsk, idv_fmsk 
    
    INTEGER :: nbdim, itype
@@ -670,11 +671,30 @@ PROGRAM NEMO_COARSENER
       CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'vmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_vmsk, deflate_level=9) )
       CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'fmask', NF90_BYTE, (/idd_x,idd_y,idd_z,idd_t/), idv_fmsk, deflate_level=9) )
 
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamt', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glt, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamu', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glu, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamv', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glv, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'glamf', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_glf, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphit', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpt, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphiu', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpu, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphiv', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpv, deflate_level=9) )
+      CALL check_nf90( NF90_DEF_VAR(idf_mm_crs, 'gphif', NF90_FLOAT, (/idd_x,idd_y,idd_t/), idv_gpf, deflate_level=9) )
+            
       CALL check_nf90( NF90_ENDDEF( idf_mm_crs) )
 
       CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlon, REAL(glamt_crs,4)) )
       CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlat, REAL(gphit_crs,4)) )
       CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_nlev, vdepth           ) )
+      
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glt, glamt_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glu, glamu_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glv, glamv_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_glf, glamf_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpt, gphit_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpu, gphiu_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpv, gphiv_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+      CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_gpf, gphif_crs, start=(/1,1,1/), count=(/jpi_crs,jpj_crs,1/)) )
+
       CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_tmsk, tmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
       CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_umsk, umask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
       CALL check_nf90( NF90_PUT_VAR(idf_mm_crs, idv_vmsk, vmask_crs, start=(/1,1,1,1/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
