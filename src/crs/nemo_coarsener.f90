@@ -11,8 +11,7 @@ PROGRAM NEMO_COARSENER
 
    !! ************************ Configurable part ****************************
    LOGICAL, PARAMETER :: &
-      &   l_debug    = .TRUE., &
-      &   l_write_crs_mm = .TRUE. !: write the coarsened mesh_mask.nc ! need 3D to be on!!!
+      &   l_debug    = .TRUE.
    !!
    INTEGER,PARAMETER :: sp=SELECTED_REAL_KIND(6,37)      ! NF90_FLOAT
 
@@ -46,7 +45,7 @@ PROGRAM NEMO_COARSENER
 
    CHARACTER(LEN=nf90_max_name), DIMENSION(:), ALLOCATABLE :: indimnames
 
-   LOGICAL :: l_3d, l_exist, l_do_T, l_do_U, l_do_V, l_do_W
+   LOGICAL :: l_write_crs_mm=.FALSE., l_3d, l_exist, l_do_T, l_do_U, l_do_V, l_do_W
 
 
    !! Coupe stuff:
@@ -95,7 +94,7 @@ PROGRAM NEMO_COARSENER
    REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs, zfse3t, zfse3u, zfse3v, zfse3w, e3t_max_crs
    REAL(wp), DIMENSION(:),     ALLOCATABLE :: xr8
 
-   CHARACTER(LEN=2), DIMENSION(5), PARAMETER :: clist_opt = (/ '-h','-m','-i','-P','-o' /)
+   CHARACTER(LEN=2), DIMENSION(6), PARAMETER :: clist_opt = (/ '-h','-m','-i','-P','-o','-M'/)
 
    !CALL GET_ENVIRONMENT_VARIABLE("HOME", cdir_home)
    !CALL GET_ENVIRONMENT_VARIABLE("TMPDIR", cdir_tmpdir)
@@ -134,11 +133,8 @@ PROGRAM NEMO_COARSENER
       CASE('-o')
          CALL GET_MY_ARG('input file', cf_out)
 
-      CASE('-x')
-         CALL GET_MY_ARG('longitude', cv_lon)
-
-      CASE('-y')
-         CALL GET_MY_ARG('latitude', cv_lat)
+      CASE('-M')
+         l_write_crs_mm = .TRUE.
 
       CASE DEFAULT
          WRITE(numout,*) 'Unknown option: ', trim(cr) ; WRITE(numout,*) ''
@@ -156,7 +152,7 @@ PROGRAM NEMO_COARSENER
 
    IF (TRIM(cgp) == '') THEN
       WRITE(numout,*) ''
-      WRITE(numout,*) 'Specify the C-grid point with the "-P" switch !!!'
+      WRITE(numout,*) 'Specify the C-grid point we are dealing with with the "-P" switch !!!'
       CALL usage()
    END IF
 
@@ -455,7 +451,7 @@ PROGRAM NEMO_COARSENER
    IF ( l_do_T ) CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
    IF ( l_do_U ) CALL crs_dom_coordinates( gphiu, glamu, 'U', gphiu_crs, glamu_crs )
    IF ( l_do_V ) CALL crs_dom_coordinates( gphiv, glamv, 'V', gphiv_crs, glamv_crs )
-   IF ( l_write_crs_mm )                   CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
+   IF ( l_write_crs_mm ) CALL crs_dom_coordinates( gphif, glamf, 'F', gphif_crs, glamf_crs )
 
 
 
@@ -479,8 +475,8 @@ PROGRAM NEMO_COARSENER
    WHERE(e2u_crs == 0._wp) e2u_crs=r_inf
    WHERE(e2v_crs == 0._wp) e2v_crs=r_inf
    WHERE(e2f_crs == 0._wp) e2f_crs=r_inf
-   
-   e1e2t_crs(:,:) = e1t_crs(:,:) * e2t_crs(:,:)  
+
+   e1e2t_crs(:,:) = e1t_crs(:,:) * e2t_crs(:,:)
    IF ( l_debug .AND. l_do_T) CALL DUMP_FIELD(REAL(e1e2t_crs(:,:),4), 'e1e2t_crs.tmp', 'e1e2t_crs' )
 
 
@@ -499,7 +495,7 @@ PROGRAM NEMO_COARSENER
 
    !    3.d.1 mbathy ( vertical k-levels of bathymetry )
    IF ( l_write_crs_mm .AND. l_3d ) CALL crs_dom_bat
-   
+
 
    IF ( l_do_T ) THEN
       ALLOCATE (zfse3t(jpi,jpj,jpk))
@@ -525,11 +521,11 @@ PROGRAM NEMO_COARSENER
    e2e3u_msk(:,:,:)=0._wp
    e1e3v_crs(:,:,:)=0._wp
    e1e3v_msk(:,:,:)=0._wp
-   CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
-   IF ( cgp == 'U' ) CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
-   IF ( cgp == 'V' ) CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
+   IF ( l_do_T .OR. l_do_W ) CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
+   IF ( l_do_U )             CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
+   IF ( l_do_V )             CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
 
-   IF ( l_debug ) CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
+   IF ( l_debug .AND. (l_do_T .OR. l_do_W) ) CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
 
 
 
@@ -578,11 +574,11 @@ PROGRAM NEMO_COARSENER
    ! 7. Finish and clean-up
    !---------------------------------------------------------
 
-   !needed later... DEALLOCATE ( zfse3t, zfse3u, zfse3v, zfse3w )
+   !needed later... 
 
-   IF ( l_do_U ) DEALLOCATE ( zfse3u )
-   IF ( l_do_V ) DEALLOCATE ( zfse3v )
-   IF ( l_do_W ) DEALLOCATE ( zfse3w )
+   !IF ( l_do_U ) DEALLOCATE ( zfse3u )
+   !IF ( l_do_V ) DEALLOCATE ( zfse3v )
+   !IF ( l_do_W ) DEALLOCATE ( zfse3w )
 
    ! -------------------------- crs init done ! ----------------------------
 
@@ -843,16 +839,44 @@ PROGRAM NEMO_COARSENER
                WRITE(numout,*) '   *** just read '//TRIM(cv_in)//' at record #',jt
 
                ! Time for coarsening! Use different routines depending on the type of field!
-               IF ( (TRIM(cv_in)=='sossheig').OR.(TRIM(cv_in)=='sosstsst').OR.(TRIM(cv_in)=='sosaline') ) THEN
-                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
-                  CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'T', REAL(tmask,8), x2d_r8_crs , p_e12=e1e2t, p_e3=zfse3t, psgn=1.0_wp )
-                  WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
-                  x2d_r4_crs = x2d_r8_crs
-                  WHERE ( tmask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
-                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x2d_r4_crs, start=(/1,1,jt/), count=(/jpi_crs,jpj_crs,1/)) )
-                  WRITE(numout,*) '   ***  written!'
+
+
+               IF ( l_do_T ) THEN
+                  IF ( (TRIM(cv_in)=='sossheig').OR.(TRIM(cv_in)=='sosstsst').OR.(TRIM(cv_in)=='sosaline') ) THEN
+                     WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
+                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'T', REAL(tmask,8), x2d_r8_crs , p_e12=e1e2t, p_e3=zfse3t, psgn=1.0_wp )
+                     WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+                     x2d_r4_crs = x2d_r8_crs
+                     WHERE ( tmask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
+                     CALL check_nf90( nf90_put_var( idf_trg, id_v,  x2d_r4_crs, start=(/1,1,jt/), count=(/jpi_crs,jpj_crs,1/)) )
+                     WRITE(numout,*) '   ***  written!'
+                  END IF
                END IF
 
+               IF ( l_do_U ) THEN
+                  IF ( (TRIM(cv_in)=='sozocrtx').OR.(TRIM(cv_in)=='sozotaux') ) THEN
+                     WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / U !'
+                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'U', REAL(umask,8), x2d_r8_crs , p_e12=e2u, p_e3=zfse3u, psgn=1.0_wp )
+                     WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+                     x2d_r4_crs = x2d_r8_crs
+                     WHERE ( umask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
+                     CALL check_nf90( nf90_put_var( idf_trg, id_v,  x2d_r4_crs, start=(/1,1,jt/), count=(/jpi_crs,jpj_crs,1/)) )
+                     WRITE(numout,*) '   ***  written!'
+                  END IF
+               END IF
+               
+               IF ( l_do_V ) THEN
+                  IF ( (TRIM(cv_in)=='somecrty').OR.(TRIM(cv_in)=='sometauy') ) THEN
+                     WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / V !'
+                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'V', REAL(vmask,8), x2d_r8_crs , p_e12=e2v, p_e3=zfse3v, psgn=1.0_wp )
+                     WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+                     x2d_r4_crs = x2d_r8_crs
+                     WHERE ( vmask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
+                     CALL check_nf90( nf90_put_var( idf_trg, id_v,  x2d_r4_crs, start=(/1,1,jt/), count=(/jpi_crs,jpj_crs,1/)) )
+                     WRITE(numout,*) '   ***  written!'
+                  END IF
+               END IF
+               
             END IF !IF( nbdim == 3 )
 
 
@@ -919,6 +943,7 @@ PROGRAM NEMO_COARSENER
 
    END DO !DO jt=1, Nt
 
+   !DEALLOCATE ( zfse3t, zfse3u, zfse3v, zfse3w )
 
    CALL check_nf90( nf90_close( idf_trg ) )
    CALL check_nf90( nf90_close( idf_src ) )
@@ -975,6 +1000,8 @@ CONTAINS
       WRITE(numout,*) ' -o <output_file.nc>  => file to be created'
       WRITE(numout,*) ''
       WRITE(numout,*) '    Optional:'
+      WRITE(numout,*) ' -M                   => write the coarsened mesh_mask: mesh_mask_crs.nc'
+      WRITE(numout,*) ''
       WRITE(numout,*) ' -h                   => Show this message'
       WRITE(numout,*) ''
       WRITE(numout,*) ''
