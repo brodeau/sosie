@@ -91,7 +91,7 @@ PROGRAM NEMO_COARSENER
    REAL(4),  DIMENSION(:,:),   ALLOCATABLE :: x2d_r4, x2d_r4_crs
    REAL(wp), DIMENSION(:,:),   ALLOCATABLE :: x2d_r8_crs
    REAL(4),  DIMENSION(:,:,:), ALLOCATABLE :: x3d_r4, x3d_r4_crs
-   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs, zfse3t, zfse3u, zfse3v, zfse3w, e3t_max_crs
+   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: x3d_r8_crs, zfse3t, zfse3u, zfse3v, zfse3w, e3_max_crs
    REAL(wp), DIMENSION(:),     ALLOCATABLE :: xr8
 
    CHARACTER(LEN=2), DIMENSION(6), PARAMETER :: clist_opt = (/ '-h','-m','-i','-P','-o','-M'/)
@@ -239,7 +239,7 @@ PROGRAM NEMO_COARSENER
       ELSEIF ( TRIM(cnm_dim) == 'y' ) THEN
          id_y = idim
          IF ( .NOT. (dimlen == jpj) ) STOP 'PROBLEM #2'
-      ELSEIF ( TRIM(cnm_dim) == 'deptht' ) THEN
+      ELSEIF ( ANY( (/'deptht','depthu','depthv','depthw'/)==TRIM(cnm_dim) ) ) THEN
          id_z = idim
          IF ( .NOT. (dimlen == jpk) ) STOP 'PROBLEM #3'
          IF ( dimlen > 1 ) l_3d = .TRUE.
@@ -524,10 +524,10 @@ PROGRAM NEMO_COARSENER
    IF ( l_do_T .OR. l_do_W ) CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
    IF ( l_do_U )             CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
    IF ( l_do_V )             CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
-
+   
    IF ( l_debug .AND. (l_do_T .OR. l_do_W) ) CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
-
-
+   IF ( l_debug .AND. (l_do_U) )             CALL DUMP_FIELD(REAL(e2e3u_msk,4), 'e2e3u_msk.tmp', 'e2e3u_msk' )
+   IF ( l_debug .AND. (l_do_V) )             CALL DUMP_FIELD(REAL(e1e3v_msk,4), 'e1e3v_msk.tmp', 'e1e3v_msk' )
 
 
 
@@ -574,7 +574,7 @@ PROGRAM NEMO_COARSENER
    ! 7. Finish and clean-up
    !---------------------------------------------------------
 
-   !needed later... 
+   !needed later...
 
    !IF ( l_do_U ) DEALLOCATE ( zfse3u )
    !IF ( l_do_V ) DEALLOCATE ( zfse3v )
@@ -691,7 +691,7 @@ PROGRAM NEMO_COARSENER
    !WRITE(numout,*) 'Finished defining output file.'
 
    ALLOCATE ( x2d_r4_crs(jpi_crs,jpj_crs), x2d_r8_crs(jpi_crs,jpj_crs) )
-   IF ( l_3d ) ALLOCATE ( x3d_r4_crs(jpi_crs,jpj_crs,jpk), x3d_r8_crs(jpi_crs,jpj_crs,jpk), e3t_max_crs(jpi_crs,jpj_crs,jpk) )
+   IF ( l_3d ) ALLOCATE ( x3d_r4_crs(jpi_crs,jpj_crs,jpk), x3d_r8_crs(jpi_crs,jpj_crs,jpk), e3_max_crs(jpi_crs,jpj_crs,jpk) )
 
 
 
@@ -717,7 +717,7 @@ PROGRAM NEMO_COARSENER
          ! LOLO add 1D like depth here !!!! IF( nbdim == 1 ) THEN
 
          IF( nbdim == 1 ) THEN
-            IF ( (TRIM(cv_in)=='deptht').OR.(TRIM(cv_in)=='depthw') ) THEN
+            IF ( ANY( (/'deptht','depthu','depthv','depthw'/)==TRIM(cv_in) ) ) THEN
                CALL check_nf90( nf90_get_var( idf_src,  id_v, vdepth ) )
                CALL check_nf90( nf90_put_var( idf_trg, id_v, vdepth ) )
                l_var_is_done(jv) = .TRUE.
@@ -726,18 +726,21 @@ PROGRAM NEMO_COARSENER
             END IF
 
          ELSEIF( nbdim == 2 ) THEN
-            IF ( (TRIM(cv_in)=='nav_lon').OR.(TRIM(cv_in)=='glamt') ) THEN
-               ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+            IF ( (TRIM(cv_in)=='nav_lon').OR.(ANY((/'glamt','glamu','glamv'/)==TRIM(cv_in)) ) ) THEN
+               ! It's been coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
                WRITE(numout,*) '      ==> writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
-               CALL check_nf90( nf90_put_var( idf_trg, id_v, glamt_crs ) )
+               IF ( l_do_T ) CALL check_nf90( nf90_put_var( idf_trg, id_v, glamt_crs ) )
+               IF ( l_do_U ) CALL check_nf90( nf90_put_var( idf_trg, id_v, glamu_crs ) )
+               IF ( l_do_V ) CALL check_nf90( nf90_put_var( idf_trg, id_v, glamv_crs ) )
                l_var_is_done(jv) = .TRUE.
-            ELSEIF ( (TRIM(cv_in)=='nav_lat').OR.(TRIM(cv_in)=='gphit') ) THEN
-               ! It's beed coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
+            ELSEIF ( (TRIM(cv_in)=='nav_lat').OR.(ANY((/'gphit','gphiu','gphiv'/)==TRIM(cv_in)) ) ) THEN
+               ! It's been coarsened earlier! with crs_dom_coordinates => !CALL crs_dom_coordinates( gphit, glamt, 'T', gphit_crs, glamt_crs )
                WRITE(numout,*) '      ==> writing coarsened '//TRIM(cv_in)//' in '//TRIM(cf_out)
-               CALL check_nf90( nf90_put_var( idf_trg, id_v, gphit_crs ) )
+               IF ( l_do_T ) CALL check_nf90( nf90_put_var( idf_trg, id_v, gphit_crs ) )
+               IF ( l_do_U ) CALL check_nf90( nf90_put_var( idf_trg, id_v, gphiu_crs ) )
+               IF ( l_do_V ) CALL check_nf90( nf90_put_var( idf_trg, id_v, gphiv_crs ) )
                l_var_is_done(jv) = .TRUE.
-
-            ELSEIF ( (TRIM(cv_in)=='deptht_bounds').OR.(TRIM(cv_in)=='depthw_bounds') ) THEN
+            ELSEIF ( ANY( (/'deptht_bounds','depthu_bounds','depthv_bounds','depthw_bounds'/)==TRIM(cv_in) ) ) THEN
                CALL check_nf90( nf90_get_var( idf_src,  id_v, vdepth_b ) )
                CALL check_nf90( nf90_put_var( idf_trg, id_v, vdepth_b ) )
                l_var_is_done(jv) = .TRUE.
@@ -864,7 +867,7 @@ PROGRAM NEMO_COARSENER
                      WRITE(numout,*) '   ***  written!'
                   END IF
                END IF
-               
+
                IF ( l_do_V ) THEN
                   IF ( (TRIM(cv_in)=='somecrty').OR.(TRIM(cv_in)=='sometauy') ) THEN
                      WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / V !'
@@ -876,7 +879,7 @@ PROGRAM NEMO_COARSENER
                      WRITE(numout,*) '   ***  written!'
                   END IF
                END IF
-               
+
             END IF !IF( nbdim == 3 )
 
 
@@ -901,12 +904,49 @@ PROGRAM NEMO_COARSENER
                   WRITE(numout,*) '   *** zfse3t is updated with field '//TRIM(cv_in)//' !!!'
                   zfse3t(:,:,:) = x3d_r4(:,:,:)
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_e3 / T !'
-                  CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,8), p_e3_crs=x3d_r8_crs, p_e3_max_crs=e3t_max_crs )
+                  CALL crs_dom_e3( e1t, e2t, zfse3t, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,8), p_e3_crs=x3d_r8_crs, p_e3_max_crs=e3_max_crs )
                   x3d_r4_crs = REAL(x3d_r8_crs,4)
                   WHERE ( tmask_crs == 0 ) x3d_r4_crs = 1.e+20
                   CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
                   WRITE(numout,*) '   ***  written!'
                END IF
+
+               IF ( (TRIM(cv_in)=='e3w') ) THEN
+                  !! Should come prior to any other 3D field because we need actual e3w!? (VVL)
+                  WRITE(numout,*) '   *** zfse3w is updated with field '//TRIM(cv_in)//' !!!'
+                  zfse3w(:,:,:) = x3d_r4(:,:,:)
+                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_e3 / W !'
+                  CALL crs_dom_e3( e1t, e2t, zfse3w, p_sfc_3d_crs=e1e2w_crs, cd_type='W', p_mask=REAL(tmask,8), p_e3_crs=x3d_r8_crs, p_e3_max_crs=e3_max_crs )
+                  x3d_r4_crs = REAL(x3d_r8_crs,4)
+                  WHERE ( tmask_crs == 0 ) x3d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+                  WRITE(numout,*) '   ***  written!'
+               END IF
+
+               IF ( (TRIM(cv_in)=='e3u') ) THEN
+                  !! Should come prior to any other 3D field because we need actual e3u!? (VVL)
+                  WRITE(numout,*) '   *** zfse3u is updated with field '//TRIM(cv_in)//' !!!'
+                  zfse3u(:,:,:) = x3d_r4(:,:,:)
+                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_e3 / U !'
+                  CALL crs_dom_e3( e1u, e2u, zfse3u, p_sfc_2d_crs=e2u_crs,   cd_type='U', p_mask=REAL(umask,8), p_e3_crs=x3d_r8_crs, p_e3_max_crs=e3_max_crs )
+                  x3d_r4_crs = REAL(x3d_r8_crs,4)
+                  WHERE ( umask_crs == 0 ) x3d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+                  WRITE(numout,*) '   ***  written!'
+               END IF
+
+               IF ( (TRIM(cv_in)=='e3v') ) THEN
+                  !! Should come prior to any other 3D field because we need actual e3v!? (VVL)
+                  WRITE(numout,*) '   *** zfse3v is updated with field '//TRIM(cv_in)//' !!!'
+                  zfse3v(:,:,:) = x3d_r4(:,:,:)
+                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_e3 / V !'
+                  CALL crs_dom_e3( e1v, e2v, zfse3v, p_sfc_2d_crs=e1v_crs,   cd_type='V', p_mask=REAL(vmask,8), p_e3_crs=x3d_r8_crs, p_e3_max_crs=e3_max_crs )
+                  x3d_r4_crs = REAL(x3d_r8_crs,4)
+                  WHERE ( vmask_crs == 0 ) x3d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+                  WRITE(numout,*) '   ***  written!'
+               END IF
+
 
                IF ( (TRIM(cv_in)=='votemper').OR.(TRIM(cv_in)=='vosaline') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
@@ -917,6 +957,27 @@ PROGRAM NEMO_COARSENER
                   CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
                   WRITE(numout,*) '   ***  written!'
                END IF
+
+               IF ( (TRIM(cv_in)=='vozocrtx') ) THEN
+                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / SUM / U !'
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'SUM', 'U', REAL(umask,8), x3d_r8_crs, p_e12=e2u, p_e3=zfse3u, p_surf_crs=e2e3u_msk, psgn=-1.0_wp )
+                  WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+                  x3d_r4_crs = REAL(x3d_r8_crs,4)
+                  WHERE ( umask_crs == 0 ) x3d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+                  WRITE(numout,*) '   ***  written!'
+               END IF
+               
+               IF ( (TRIM(cv_in)=='vomecrty') ) THEN
+                  WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / SUM / V !'
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'SUM', 'V', REAL(vmask,8), x3d_r8_crs, p_e12=e1v, p_e3=zfse3v, p_surf_crs=e1e3v_msk, psgn=-1.0_wp )
+                  WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
+                  x3d_r4_crs = REAL(x3d_r8_crs,4)
+                  WHERE ( vmask_crs == 0 ) x3d_r4_crs = 1.e+20
+                  CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
+                  WRITE(numout,*) '   ***  written!'
+               END IF
+
 
             END IF !IF( nbdim == 4 )
 

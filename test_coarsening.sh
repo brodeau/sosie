@@ -21,10 +21,16 @@ elif [ "`hostname`" = "luitel" ]; then
     FT_3D="${SDIR}/00002161-00002880/eNATL4-BLB400_5d_20080131_20080209_gridT.nc"
     FU_2D="${SDIR}/00002161-00002880/eNATL4-BLB400_1h_20080131_20080209_gridU.nc"
     FV_2D="${SDIR}/00002161-00002880/eNATL4-BLB400_1h_20080131_20080209_gridV.nc"
-
+    FU_3D="${SDIR}/00002161-00002880/eNATL4-BLB400_5d_20080131_20080209_gridU.nc"
+    FV_3D="${SDIR}/00002161-00002880/eNATL4-BLB400_5d_20080131_20080209_gridV.nc"
+    
 else
     echo " Host unknown!"; exit
 fi
+
+./bin/nemo_coarsener.x -m ${FMM} -i ${FV_3D} -P V -o test_V_3d.tmp
+#./bin/nemo_coarsener.x -m ${FMM} -i ${FU_3D} -P U -o test_U_3d.tmp
+exit
 
 ./bin/nemo_coarsener.x -m ${FMM} -i ${FV_2D} -P V -o test_V_2d.tmp
 ./bin/nemo_coarsener.x -m ${FMM} -i ${FU_2D} -P U -o test_U_2d.tmp
