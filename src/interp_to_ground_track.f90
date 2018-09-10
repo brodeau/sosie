@@ -406,7 +406,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       i0=0 ; j0=0
    END IF
 
-   !CALL DUMP_2D_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+   !CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
 
 
 
@@ -640,13 +640,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
          IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
       WHERE (imask == 0) show_obs = -100.
-      CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
+      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
       !lolo:
-      !CALL DUMP_2D_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
       !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
-      !CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'lon_-180-180.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'lon_-180-180.nc', 'lon')
       !WHERE ( (show_obs > 10.).OR.(show_obs < -90.) ) show_obs = -800.
-      !CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'lon_masked.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'lon_masked.nc', 'lon')
       !STOP 'interp_to_ground_obs.f90'
       !lolo.
 
@@ -800,8 +800,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
          RES_2D_MOD = -9999.
          RES_2D_OBS = -9999.
       END WHERE
-      CALL DUMP_2D_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-      CALL DUMP_2D_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
    END IF
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
