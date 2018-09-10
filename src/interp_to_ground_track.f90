@@ -485,7 +485,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          END DO
          id_f1=0 ;  id_v1=0
          !WHERE ( imask == 0 ) xmean = -9999.
-         CALL DUMP_2D_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+         CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
          !STOP 'lolo'
       END IF
 
