@@ -9,5 +9,6 @@ make.macro
 examples/data
 *.bak
 bin
+lib
 obj
 mod
