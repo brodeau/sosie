@@ -35,7 +35,7 @@ CONTAINS
 
       IF ( l_drown_src ) THEN
          !! Extrapolate sea values over land :
-         PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+         !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
 
          IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)

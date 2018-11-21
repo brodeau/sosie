@@ -174,11 +174,12 @@ CONTAINS
          IF ( (nk_src > 1) .AND. (TRIM(ctype_z_src) == 'z') .AND. (nk_src == nk_trg) ) THEN
             WRITE(6,'("Mhhh interesting, target and vertical both have ", i4.4 ," vertical levels!")') nk_src
             zz = SUM( ( 1000.*(depth_trg(1,1,:) - depth_src(1,1,:)) )**2 )
-            IF ( zz < 1.0 ) THEN
+            IF ( zz < 5.0 ) THEN
                PRINT *, ' => well, they are actually identical!', zz
                l_identical_levels = .TRUE.
             ELSE
                PRINT *, ' => well, they are not identical...'
+               PRINT *, '      => zz =', zz
             END IF
             PRINT *, ''
          END IF
