@@ -189,12 +189,15 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!              but on nk_trg levels!
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
-!! idrown : whether we call DROWN land filling procedure (>0) or not (=0)
+!! idrown : Two value in this structure np_drown, nt_smooth
+!!          np_drown : whether we call DROWN land filling procedure (>0) or not (=0)
 !!          [integer] => will propagate/extrapolate sea values (defined where
 !!          lsm==1) of field cv_src by "idrown" grid points ONTO continents
 !!          (defined WHERE lsm==0) to avoid interpolation problems (problems
 !!          such as continental values that contaminate sea values during
 !!          interpolation
+!!          nt_smooth : the number of time smoothing is applied on drowned field 
+!!          Important when the source has a finer resolution that target
 !!
 !! l_save_drwn : save the input field that has been drowned (idrown must be > 0!)
 !!
