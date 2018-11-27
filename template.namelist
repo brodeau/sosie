@@ -189,7 +189,7 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!              but on nk_trg levels!
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
-!! idrown : Two values in this structure np_drown, nt_smooth ([integer],[integer]):
+!! idrown : Two values in this structure: np_drown, nt_smooth ([integer],[integer]):
 !!          * np_drown : whether we call DROWN land filling procedure (>0) or not (=0)
 !!            which propagates/extrapolates sea values (defined where lsm==1) of field
 !!            cv_src by "np_drown" grid points over land regions (defined where lsm==0)
