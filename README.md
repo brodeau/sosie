@@ -1,8 +1,9 @@
-## Branch 3.0 !!!
 
 
 ![SOSIE Logo](https://brodeau.github.io/sosie/sosie_files/sosie_300.svg)
 
+
+### SOSIE version 3.0 Beta
 
 # Getting started with SOSIE
 (Also check the online SOSIE doc for more info on the interpolation method:
