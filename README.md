@@ -24,10 +24,10 @@ Compiling the executables:
 
  * compile the executables by simply running "make" (gmake)
 
- * if everything goes well, the 'sosie.x' and 'corr\_vect.x'
+ * if everything goes well, the 'sosie3.x' and 'corr\_vect.x'
    executables have been created and are ready to be used
 
- * 'sosie.x' is the executable used to interpolate 2D fields of a scalar and
+ * 'sosie3.x' is the executable used to interpolate 2D fields of a scalar and
    "vectors onto regular grids", it requires a 'namelist' configuration file,
    the provided template namelist should be documented enough to start now.
         --> check 'template\_scalar.namelist' for the interpolation of a scalar field
@@ -35,7 +35,7 @@ Compiling the executables:
 
  * 'corr\_vect.x' is used to correct vector components in the case of a distorded
    grid, it needs BOTH components of the vector primarly interpolated with
-   'sosie.x'. By default it only support ORCA grids configuration.
+   'sosie3.x'. By default it only support ORCA grids configuration.
    See the EXAMPLE section for more details.
 
  You can start to interpolate!
@@ -67,7 +67,7 @@ The common approach to test a given example (# X):
 
      >> cd examples/
      >> gunzip data/*.gz
-     >> sosie.x -f namelist.exampleX
+     >> sosie3.x -f namelist.exampleX
 
 &nbsp;
 
@@ -76,7 +76,7 @@ Interpolation of Reynolds (2002) Long Term Mean SST onto the ORCA1 grid
 (illustrated on Fig. 3-4). Uncompress files coordinates+tmask\_ORCA1.nc.gz and
 sst.ltm.1971-2000.nc.gz in ./data
 
-      >> sosie.x -f namelist.example1
+      >> sosie3.x -f namelist.example1
 
 Check the newly created SST\_360x180-ORCA1\_REYNOLDS\_LTM.nc
 
@@ -88,7 +88,7 @@ Check the newly created SST\_360x180-ORCA1\_REYNOLDS\_LTM.nc
 (only march). Uncompress files coordinates+tmask\_ORCA1.nc.gz and
 T\_levitus\_march.nc.gz in ./data
 
-     >> sosie.x -f namelist.example2
+     >> sosie3.x -f namelist.example2
 Check the newly created temp\_360x180-ORCA1\_march.nc
 
 &nbsp;
@@ -99,7 +99,7 @@ Check the newly created temp\_360x180-ORCA1\_march.nc
 lat-lon 1x1 deg. grid using the bilinear algorithm. Uncompress the file
 sst\_ORCA1\_example.nc.gz in ./data
 
-    >> sosie.x -f namelist.example3
+    >> sosie3.x -f namelist.example3
 Check the newly created sst\_ORCA1-1x1\_test.nc
 
 &nbsp;
@@ -114,10 +114,10 @@ of the ERA-INTERIM re-analysis.
       >> cd examples/ex_corr_vect/
 Do the "raw" interpolation for the zonal component of the wind:
 
-      >> sosie.x -f namelist.example4_O1t_x
+      >> sosie3.x -f namelist.example4_O1t_x
 Do the "raw" interpolation for the meridional component of the wind:
 
-      >> sosie.x -f namelist.example4_O1t_y
+      >> sosie3.x -f namelist.example4_O1t_y
 Now that uraw_1x1-deg-ORCA1_grid_T.nc4 and uraw_1x1-deg-ORCA1_grid_T.nc4 are created, time to correct onto the T-grid:
 
       >> corr_vect.x -G T -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
@@ -136,7 +136,7 @@ Check the newly created u10_1x1-deg-ORCA1_grid_U.nc4 and v10_1x1-deg-ORCA1_grid_
 Interpolation of high-resolution surface 2-meter air temperature from ECMWF onto a polar stereographic projection of the Arctic.
 Do the interpolation:
 
-          >> sosie.x -f namelist.example5
+          >> sosie3.x -f namelist.example5
 
 Check the newly created **T2M_2560x480-polar-stereo_Arctic.nc**
 
@@ -147,7 +147,7 @@ Check the newly created **T2M_2560x480-polar-stereo_Arctic.nc**
 Interpolation of a random 3D+time monthly salinity field on the ORCA2 grid to the ORCA1 grid using the bilinear method.
 Do the interpolation:
 
-          >> sosie.x -f namelist.example6
+          >> sosie3.x -f namelist.example6
 
 Check the newly created **so_ORCA2-ORCA1_test.nc**
 
