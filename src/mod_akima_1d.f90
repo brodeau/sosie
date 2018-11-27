@@ -125,7 +125,9 @@ CONTAINS
             !!
             IF ( jk1 == nk1 ) EXIT
             !!
-            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) < vz1(jk1+1)) ) THEN
+         ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
+!            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) < vz1(jk1+1)) ) THEN
+            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) <= vz1(jk1+1)) ) THEN
                jk1e  = jk1 + 2
                jp1    = jk1e
                jp2    = jk1e + 1
@@ -205,7 +207,6 @@ CONTAINS
       REAL(4), DIMENSION(:,:,:), INTENT(in)  :: xf1
       REAL(4), DIMENSION(:,:,:), INTENT(out) :: xf2
       REAL(4), INTENT(in)  :: rfill_val
-      !INTEGER(2), DIMENSION(:,:,:), OPTIONAL, INTENT(in) :: mask
       !!___________________________________________________
       INTEGER :: nk1, nk2, nk1e, nx, ny, jk1, jk2, jp1, jp2, jk1e
       REAL(4) :: dz, dz2
@@ -270,7 +271,9 @@ CONTAINS
 
          DO WHILE ( (.NOT. lfnd).AND.(l_do_interp) )
             IF ( jk1 == nk1 ) EXIT
-            IF ( (vz2(jk2) > vz1(jk1)).AND.(vz2(jk2) < vz1(jk1+1)) ) THEN
+         ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
+!            IF ( (vz2(jk2) > vz1(jk1)).AND.(vz2(jk2) < vz1(jk1+1)) ) THEN
+            IF ( (vz2(jk2) > vz1(jk1)).AND.(vz2(jk2) <= vz1(jk1+1)) ) THEN
                jk1e  = jk1 + 2
                jp1    = jk1e
                jp2    = jk1e + 1

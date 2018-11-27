@@ -1,0 +1,2 @@
+svn co https://forge.ipsl.jussieu.fr/nemo/svn/branches/2015/dev_r5003_MERCATOR6_CRS@9500 NEMO_CRS
+

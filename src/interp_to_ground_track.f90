@@ -95,8 +95,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
-   INTEGER(2), DIMENSION(:,:), ALLOCATABLE :: imask
-   INTEGER(2), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask
+   INTEGER(1), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
    !!
    INTEGER :: jt, it, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
@@ -112,7 +112,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    INTEGER :: it1, it2
 
-   CHARACTER(80), PARAMETER :: cunit_time_out = 'seconds since 1970-01-01 00:00:00'
+   CHARACTER(80), PARAMETER :: cunit_time_trg = 'seconds since 1970-01-01 00:00:00'
 
    !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
    tut_epoch%unit   = 's'
@@ -235,12 +235,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
    IF ( (nj1==-1).AND.(nj2==-1) ) THEN
       ni = ni1 ; nj = ni2
       PRINT *, 'Grid is 1D: ni, nj =', ni, nj
-      lregin = .TRUE.
+      l_reg_src = .TRUE.
    ELSE
       IF ( (ni1==ni2).AND.(nj1==nj2) ) THEN
          ni = ni1 ; nj = nj1
          PRINT *, 'Grid is 2D: ni, nj =', ni, nj
-         lregin = .FALSE.
+         l_reg_src = .FALSE.
       ELSE
          PRINT *, 'ERROR: problem with grid!' ; STOP
       END IF
@@ -286,7 +286,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   IF ( lregin ) THEN
+   IF ( l_reg_src ) THEN
       PRINT *, 'Regular case not supported yet! Priority to ORCA grids...'
       STOP
    END IF
@@ -406,7 +406,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       i0=0 ; j0=0
    END IF
 
-   !CALL DUMP_2D_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+   !CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
 
 
 
@@ -485,8 +485,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
          END DO
          id_f1=0 ;  id_v1=0
          !WHERE ( imask == 0 ) xmean = -9999.
-         CALL DUMP_2D_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-         !STOP'lolo'
+         CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+         !STOP 'lolo'
       END IF
 
       t_min_e = MINVAL(vt_obs)
@@ -614,7 +614,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist ) !
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...' !
-      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mapping ) !,  mask_domain_out=IGNORE) don't need ignore, points have been removed!
+      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mapping ) !,  mask_domain_trg=IGNORE) don't need ignore, points have been removed!
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
       PRINT *, ' *** File "',trim(cf_mapping),'" found in current directory, using it!'
@@ -640,20 +640,20 @@ PROGRAM INTERP_TO_GROUND_TRACK
          IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
       WHERE (imask == 0) show_obs = -100.
-      CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
+      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
       !lolo:
-      !CALL DUMP_2D_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
       !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
-      !CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'lon_-180-180.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'lon_-180-180.nc', 'lon')
       !WHERE ( (show_obs > 10.).OR.(show_obs < -90.) ) show_obs = -800.
-      !CALL DUMP_2D_FIELD(REAL(show_obs(:,:),4), 'lon_masked.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'lon_masked.nc', 'lon')
       !STOP 'interp_to_ground_obs.f90'
       !lolo.
 
       DEALLOCATE ( show_obs )
    END IF
 
-   IF ( l_debug_mapping ) STOP'l_debug_mapping'
+   IF ( l_debug_mapping ) STOP 'l_debug_mapping'
 
 
 
@@ -786,7 +786,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ''
 
    CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
-      &           ct_unit=TRIM(cunit_time_out), &
+      &           ct_unit=TRIM(cunit_time_trg), &
       &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
       &           vdt4=REAL(xlon_gt_f(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
@@ -800,8 +800,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
          RES_2D_MOD = -9999.
          RES_2D_OBS = -9999.
       END WHERE
-      CALL DUMP_2D_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-      CALL DUMP_2D_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
    END IF
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )

@@ -1,0 +1,4 @@
+
+
+* long_name as specified in namelist, "cln_out", not taken into account in final file...
+

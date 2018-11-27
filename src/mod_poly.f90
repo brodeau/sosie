@@ -76,7 +76,7 @@ CONTAINS
       rminx = MINVAL(vplon)
       rminy = MINVAL(vplat)
            
-      IF ( (rminx < 0.).OR.(pxpoint < 0.) ) STOP'ERROR (L_InPoly of mod_poly.f90): we only expect positive longitudes!'
+      IF ( (rminx < 0.).OR.(pxpoint < 0.) ) STOP 'ERROR (L_InPoly of mod_poly.f90): we only expect positive longitudes!'
 
       IF ( (rminx < 10.).AND.(rmaxx > 350.) ) THEN
          !! Need to reorganize in frame -180. -- +180.:

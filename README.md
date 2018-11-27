@@ -1,3 +1,5 @@
+## Branch 3.0 !!!
+
 
 ![SOSIE Logo](https://brodeau.github.io/sosie/sosie_files/sosie_300.svg)
 
@@ -8,6 +10,7 @@ https://brodeau.github.io/sosie/)
 
 You need a FORTRAN-90 compiler and the netcdf library (with f90 support) installed.
 
+3.0
 
 Compiling the executables:
 --

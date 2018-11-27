@@ -36,7 +36,7 @@ PROGRAM CORR_VECT
    CHARACTER(LEN=400)  :: cn_xtr_x, cn_xtr_y, cextra_x, cextra_y
 
    CHARACTER(len=3)    :: cdum
-   CHARACTER(len=1)    :: cgrid_out='0'
+   CHARACTER(len=1)    :: cgrid_trg='0'
    CHARACTER(len=80)   :: cv_time_0 = 'none'
    CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
 
@@ -71,7 +71,7 @@ PROGRAM CORR_VECT
       &    id_f1, id_v1, &
       &    id_f2, id_v2
 
-   INTEGER(2), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
+   INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: ztmp4
 
@@ -194,7 +194,7 @@ PROGRAM CORR_VECT
             IF ( ANY(clist_opt == TRIM(cr)) ) THEN
                PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!'; CALL usage_corr_vect()
             ELSE
-               cgrid_out = TRIM(cr)
+               cgrid_trg = TRIM(cr)
             END IF
          END IF
          !!
@@ -246,22 +246,22 @@ PROGRAM CORR_VECT
       STOP
    END IF
 
-   IF ( (cgrid_out /= 'T').AND.(cgrid_out /= 'U') ) call usage_corr_vect()
+   IF ( (cgrid_trg /= 'T').AND.(cgrid_trg /= 'U') ) call usage_corr_vect()
 
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
    PRINT *, ''
 
 
-   IF ( cgrid_out == 'T' ) THEN
+   IF ( cgrid_trg == 'T' ) THEN
       PRINT *, ' *** Gonna save on grid T.'
       cextra_x = 'grid_T'
       cextra_y = 'grid_T'
-   ELSEIF ( cgrid_out == 'U' ) THEN
+   ELSEIF ( cgrid_trg == 'U' ) THEN
       PRINT *, ' *** Gonna save on grid U and V.'
       cextra_x = 'grid_U'
       cextra_y = 'grid_V'
    ELSE
-      PRINT *, 'ERROR: "cgrid_out" value unknown: ', TRIM(cgrid_out) ; STOP
+      PRINT *, 'ERROR: "cgrid_trg" value unknown: ', TRIM(cgrid_trg) ; STOP
    END IF
    PRINT *, ''
    
@@ -330,9 +330,9 @@ PROGRAM CORR_VECT
 
 
 
-      IF ( lregout ) THEN
+      IF ( l_reg_trg ) THEN
          PRINT *, 'Vector correction only makes sense if your target grid is distorded!'
-         PRINT *, '  => check "lregout" into the namelist...' ; PRINT *, ''; STOP
+         PRINT *, '  => check "l_reg_trg" into the namelist...' ; PRINT *, ''; STOP
       END IF
 
 
@@ -417,7 +417,7 @@ PROGRAM CORR_VECT
          &    xlon_u(ni,nj)  , xlat_u(ni,nj) , xlon_v(ni,nj)  , xlat_v(ni,nj) , &
          &    xlon_f(ni,nj) , xlat_f(ni,nj), ztmp8(ni,nj), &
          &    vtime(Ntr)   )
-      IF ( cgrid_out == 'U' ) ALLOCATE ( mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
+      IF ( cgrid_trg == 'U' ) ALLOCATE ( mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
 
       ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , XCOSU8(ni,nj) , XSINU8(ni,nj) , XCOSV8(ni,nj) , XSINV8(ni,nj) , &
          &      XCOSF8(ni,nj) , XSINF8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
@@ -426,18 +426,18 @@ PROGRAM CORR_VECT
       IF ( i3d == 1 ) THEN
          ALLOCATE ( vdepth(nk) )
          CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
-         IF ( cgrid_out == 'U' ) THEN
-            CALL GETMASK_3D(cf_lsm_out, 'umask', mask_u(:,:,:))
-            CALL GETMASK_3D(cf_lsm_out, 'vmask', mask_v(:,:,:))
+         IF ( cgrid_trg == 'U' ) THEN
+            CALL GETMASK_3D(cf_lsm_trg, 'umask', mask_u(:,:,:))
+            CALL GETMASK_3D(cf_lsm_trg, 'vmask', mask_v(:,:,:))
          ELSE
-            CALL GETMASK_3D(cf_lsm_out, 'tmask', mask_t(:,:,:))
+            CALL GETMASK_3D(cf_lsm_trg, 'tmask', mask_t(:,:,:))
          END IF
       ELSE
-         IF ( cgrid_out == 'U' ) THEN
-            CALL GETMASK_2D(cf_lsm_out, 'umask', mask_u(:,:,1), jlev=1)
-            CALL GETMASK_2D(cf_lsm_out, 'vmask', mask_v(:,:,1), jlev=1)
+         IF ( cgrid_trg == 'U' ) THEN
+            CALL GETMASK_2D(cf_lsm_trg, 'umask', mask_u(:,:,1), jlev=1)
+            CALL GETMASK_2D(cf_lsm_trg, 'vmask', mask_v(:,:,1), jlev=1)
          ELSE
-            CALL GETMASK_2D(cf_lsm_out, 'tmask', mask_t(:,:,1), jlev=1)
+            CALL GETMASK_2D(cf_lsm_trg, 'tmask', mask_t(:,:,1), jlev=1)
          END IF
       END IF
 
@@ -526,14 +526,14 @@ PROGRAM CORR_VECT
             Ydum8 = XCOST8*V_r8 - XSINT8*U_r8
             
             
-            IF ( cgrid_out == 'T' ) THEN
+            IF ( cgrid_trg == 'T' ) THEN
                !! to T-grid, nothing to do...
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', -1.0_8 )
                U_c(:,:,jk) = REAL(Xdum8 , 4)
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, Ydum8, 'T', -1.0_8 )
                V_c(:,:,jk) = REAL(Ydum8 , 4)               
                !!
-            ELSEIF ( cgrid_out == 'U' ) THEN
+            ELSEIF ( cgrid_trg == 'U' ) THEN
                !! to U-V grid, need to interpolate
                ztmp8(1:ni-1,:) = 0.5*(Xdum8(1:ni-1,:)+Xdum8(2:ni,:))
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, ztmp8, 'U', -1.0_8 )
@@ -550,54 +550,54 @@ PROGRAM CORR_VECT
 
          
          IF ( lmout_x .AND. lmout_y ) THEN
-            IF ( cgrid_out == 'U' ) THEN
-               WHERE ( mask_u == 0 ) U_c = rmaskvalue
-               WHERE ( mask_v == 0 ) V_c = rmaskvalue
+            IF ( cgrid_trg == 'U' ) THEN
+               WHERE ( mask_u == 0 ) U_c = rmiss_val
+               WHERE ( mask_v == 0 ) V_c = rmiss_val
             ELSE
-               WHERE ( mask_t == 0 ) U_c = rmaskvalue
-               WHERE ( mask_t == 0 ) V_c = rmaskvalue
+               WHERE ( mask_t == 0 ) U_c = rmiss_val
+               WHERE ( mask_t == 0 ) V_c = rmiss_val
             END IF
          ELSE
-            rmaskvalue = 0.
+            rmiss_val = 0.
          END IF
 
          
          IF ( i3d == 1 ) THEN
 
             !! 3D:
-            IF ( cgrid_out == 'U' ) THEN
+            IF ( cgrid_trg == 'U' ) THEN
                CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
                   &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_t_out, cv_rot_V,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             ELSE
                CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, U_c(:,:,:),  &
                   &    cf_out_U, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_U,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t, vdepth, vtime, V_c(:,:,:),  &
                   &    cf_out_V, 'nav_lon', 'nav_lat', cv_depth, cv_t_out, cv_rot_V,      &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             END IF
 
          ELSE
 
             !! 2D:
-            IF ( cgrid_out == 'U' ) THEN
+            IF ( cgrid_trg == 'U' ) THEN
                CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1), &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, V_c(:,:,1), &
                   &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             ELSE
                CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t,         vtime, U_c(:,:,1), &
                   &    cf_out_U, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_U,       &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
                CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t,         vtime, V_c(:,:,1), &
                   &    cf_out_V, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
-                  &    rmaskvalue, attr_time=vatt_info_t)
+                  &    rmiss_val, attr_time=vatt_info_t)
             END IF
 
          END IF
@@ -651,9 +651,9 @@ PROGRAM CORR_VECT
 
       PRINT *, 'Will unrotate vector fields given on an irregular grid!'
       !!
-      IF ( lregin ) THEN
+      IF ( l_reg_src ) THEN
          PRINT *, 'Reverse vector correction only makes sense if your source grid is distorded!'
-         PRINT *, '  => check "lregin" into the namelist...' ; PRINT *, ''; STOP
+         PRINT *, '  => check "l_reg_src" into the namelist...' ; PRINT *, ''; STOP
       END IF
       !!
       !!

@@ -1,8 +1,8 @@
 MODULE MOD_DROWN
 
-   !USE io_ezcdf
+   !USE io_ezcdf !LOLO
    !USE mod_manip
-   
+
    IMPLICIT none
 
    PRIVATE
@@ -12,7 +12,7 @@ MODULE MOD_DROWN
    LOGICAL, PARAMETER :: ldebug = .FALSE.
 
 CONTAINS
-   
+
    SUBROUTINE DROWN(k_ew, X, mask,   nb_inc, nb_smooth)
 
       !!#############################################################################
@@ -34,7 +34,7 @@ CONTAINS
       !!                     (will normally stop before 400 iterations, when all land points have been treated!!!)
       !!
       !!  * nb_smooth : number of times the smoother is applied on masked region (mask=0)
-      !!                => default: nb_smooth = 5
+      !!                => default: nb_smooth = 10
       !!
       !!
       !!                       Author : Laurent BRODEAU, 2014
@@ -44,12 +44,12 @@ CONTAINS
       !! Arguments :
       INTEGER,                       INTENT(in)    :: k_ew
       REAL(4),    DIMENSION(:,:),    INTENT(inout) :: X
-      INTEGER(2), DIMENSION(:,:),    INTENT(in)    :: mask
+      INTEGER(1), DIMENSION(:,:),    INTENT(in)    :: mask
 
       INTEGER,    OPTIONAL,          INTENT(in)    :: nb_inc, nb_smooth
 
       !! Local :
-      INTEGER(2), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
+      INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: dold, xtmp
 
       INTEGER :: &
@@ -66,13 +66,13 @@ CONTAINS
 
       INTEGER, PARAMETER :: jinc_debg = 2
 
-      
+
       X = X * mask  ! we rather have 0s on continents than some fucked up high values...
 
       ninc_max = 200   ! will stop before when all land points have been treated!!!
       IF ( present(nb_inc) ) ninc_max = nb_inc
 
-      nsmooth_max = 5
+      nsmooth_max = 10
       IF ( present(nb_smooth) ) nsmooth_max = nb_smooth
 
 
@@ -403,9 +403,12 @@ CONTAINS
 
       END DO
 
-      !! Time to smooth what's been drowned:
+      !! Time to smooth over land! (what's been drowned):
       mtmp = 1 - mask ! 1 over continents, 0 over seas!
       CALL SMOOTH(k_ew, X,  nb_smooth=nsmooth_max, mask_apply=mtmp)
+      !! *** l_exclude_mask_points=.true. would be stupid here,
+      !!       it's actually good if sea values are used and are
+      !!       propagating inland in the present CASE
 
       !CALL DUMP_2D_FIELD(X, 'drowned_final.nc', 'lsm') ;     !     STOP 'lolo'
 
@@ -415,11 +418,11 @@ CONTAINS
 
    END SUBROUTINE DROWN
 
-   
 
 
-   SUBROUTINE SMOOTH(k_ew, X,  nb_smooth, mask_apply)
-      
+
+   SUBROUTINE SMOOTH(k_ew, X,  nb_smooth, mask_apply, l_exclude_mask_points)
+
       !!#############################################################################
       !!
       !!  PURPOSE : Smooth a fied with a nearest-points box-car typ of smoothing
@@ -432,84 +435,149 @@ CONTAINS
       !!
       !! Optional:
       !!  * nb_smooth  : number of times the smoother is applied on masked region (mask=0)
-      !!                => default: nb_smooth = 5
+      !!                => default: nb_smooth = 10
       !!  * mask_apply : mask array that defines where the smoothing should be applied
       !!                 => where mask_apply==1: smoothing applies
       !!                 => where mask_apply==0: original values of X will be preserved
+      !!
+      !!  * l_exclude_mask_points: if true, the smoothing process will not use any value
+      !!                           from points that belong to regions where mask_apply==0
       !!
       !!#############################################################################
 
       !! Arguments :
       INTEGER,                    INTENT(in)           :: k_ew
-      REAL(4),    DIMENSION(:,:), INTENT(inout)        :: X     
+      REAL(4),    DIMENSION(:,:), INTENT(inout)        :: X
       INTEGER,    OPTIONAL,                 INTENT(in) :: nb_smooth
-      INTEGER(2), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_apply
+      INTEGER(1), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_apply
+      LOGICAL,    OPTIONAL                , INTENT(in) :: l_exclude_mask_points
 
-      REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: xorig, xtmp
+      REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: xorig, xtmp, rdenom
 
       INTEGER, DIMENSION(2) :: ivi, vim_per, vip_per
 
-      LOGICAL :: l_mask
-      
+      LOGICAL :: l_mask, l_emp
+
       INTEGER :: &
          &      nsmooth_max,          &
          &      ni, nj,        &
          &      ji, jci,   &
          &      jim, jip, js
-      
-      nsmooth_max = 5
+
+      REAL(4), PARAMETER :: &
+         &  w0 = 0.35   ! weight given to the point i,j in the boxcar process
+
+
+      nsmooth_max = 10
       IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
       l_mask = .FALSE.
       IF ( PRESENT(mask_apply) ) l_mask = .TRUE.
-      
+
+      l_emp = .FALSE.
+      IF ( PRESENT(l_exclude_mask_points) ) l_emp = l_exclude_mask_points
+
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
+      IF ( (l_emp).AND.(.NOT. l_mask) ) THEN
+         PRINT *, 'PROBLEM in SMOOTH (mod_drown.f90): you need to provide a "mask_apply"'
+         PRINT *, '                                    if you set l_exclude_mask_points=.true.!'
+         STOP
+      END IF
+
 
       ALLOCATE ( xtmp(ni,nj) )
-      IF ( l_mask ) ALLOCATE (  xorig(ni,nj) )
+
+      IF (l_emp) THEN
+         ALLOCATE ( rdenom(ni,nj) )
+         rdenom(ni,nj) = 0.25
+      END IF
+
+      IF ( l_mask ) THEN
+         ALLOCATE ( xorig(ni,nj) )
+         xorig(:,:) = X(:,:)
+      END IF
 
       ivi = (/ 1 , ni /)
-      
+
       IF (k_ew >= 0) THEN
          vim_per = (/ ni-k_ew ,  ni-1  /)
          vip_per = (/    2    , 1+k_ew /)
       END IF
 
-      IF ( l_mask ) xorig(:,:) = X(:,:)  
-      
+
       DO js = 1, nsmooth_max
-         
+
          xtmp(:,:) = X(:,:)
 
+         IF ( l_emp ) xtmp(:,:) = xtmp(:,:)*REAL(mask_apply(:,:),4)
+
          !! Center of the domain:
-         X(2:ni-1,2:nj-1) = 0.35*xtmp(2:ni-1,2:nj-1) &
-            &           + 0.65*0.25*(  xtmp(3:ni,2:nj-1)   + xtmp(2:ni-1,3:nj)     &
-            &                        + xtmp(1:ni-2,2:nj-1) + xtmp(2:ni-1,1:nj-2) )
-         
+         IF ( l_emp ) THEN
+            !PRINT *, ' -- SMOOTH is excluding masked points...'
+
+            rdenom(2:ni-1,2:nj-1) = 1. / MAX( REAL(mask_apply(3:ni,2:nj-1)   + mask_apply(2:ni-1,3:nj)      &
+               &                                 + mask_apply(1:ni-2,2:nj-1) + mask_apply(2:ni-1,1:nj-2),4), 0.01 )
+
+            X(2:ni-1,2:nj-1) = w0   *xtmp(2:ni-1,2:nj-1) &
+               &           + (1.-w0)*( xtmp(3:ni,2:nj-1) + xtmp(2:ni-1,3:nj) + xtmp(1:ni-2,2:nj-1) + xtmp(2:ni-1,1:nj-2) ) &
+               &                       * rdenom(2:ni-1,2:nj-1)
+
+         ELSE
+            !IF ( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "mask_apply")'
+
+            X(2:ni-1,2:nj-1) = w0   *xtmp(2:ni-1,2:nj-1) &
+               &           + (1.-w0)*( xtmp(3:ni,2:nj-1) + xtmp(2:ni-1,3:nj) + xtmp(1:ni-2,2:nj-1) + xtmp(2:ni-1,1:nj-2) ) &
+               &                       * 0.25
+
+         END IF
+
          !! we can use east-west periodicity:
          IF (k_ew >= 0) THEN
             DO jci = 1, 2
                jim = vim_per(jci)  ! ji-1
                ji  = ivi(jci)      ! first ji = 1, then ji = ni
                jip = vip_per(jci)  ! ji+1
-               
-               X(ji,2:nj-1) = 0.35*xtmp(ji,2:nj-1) &
-                  &       + 0.65*0.25*(xtmp(jip,2:nj-1) + xtmp(ji,3:nj) + xtmp(jim,2:nj-1) + xtmp(ji,1:nj-2) )
-               
+
+
+               IF ( l_emp ) THEN
+                  rdenom(ji,2:nj-1) = 1. / MAX( REAL(mask_apply(jip,2:nj-1) + mask_apply(ji,3:nj)   &
+                     &                             + mask_apply(jim,2:nj-1) + mask_apply(ji,1:nj-2),4), 0.01 )
+
+                  X(ji,2:nj-1) = w0*xtmp(ji,2:nj-1) &
+                     &       + (1.-w0)*( xtmp(jip,2:nj-1) + xtmp(ji,3:nj) + xtmp(jim,2:nj-1) + xtmp(ji,1:nj-2) ) &
+                     &                   * rdenom(ji,2:nj-1)
+
+               ELSE
+
+                  X(ji,2:nj-1) = w0*xtmp(ji,2:nj-1) &
+                     &       + (1.-w0)*( xtmp(jip,2:nj-1) + xtmp(ji,3:nj) + xtmp(jim,2:nj-1) + xtmp(ji,1:nj-2) ) &
+                     &                   * 0.25
+
+               END IF
+
+
             END DO
          END IF
 
+
+         !LOLO:
+         !CALL DUMP_2D_FIELD(REAL(mask_apply,4), 'mask.nc',  'lsm')
+         !CALL DUMP_2D_FIELD(rdenom,             'denom.nc', 'lsm')
+         !LOLO.
+
+
          !! Smoothing is applied only where mask_apply==1, values of X remain unchanged elsewhere:
          IF ( l_mask ) X(:,2:nj-1) = mask_apply(:,2:nj-1)*X(:,2:nj-1) - (mask_apply(:,2:nj-1) - 1)*xorig(:,2:nj-1)
-         
+
       END DO
-      
+
       DEALLOCATE ( xtmp )
-      IF ( l_mask ) DEALLOCATE (  xorig )
-      
+      IF (l_mask) DEALLOCATE (  xorig )
+      IF (l_emp)  DEALLOCATE ( rdenom )
+
    END SUBROUTINE SMOOTH
-   
-   
+
+
 END MODULE MOD_DROWN
