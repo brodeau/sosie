@@ -111,7 +111,7 @@ necessary to correct (i.e. rotate) both components of the vector. In this
 example the input vector field is the wind at 10 from a few 6-hourly snapshots
 of the ERA-INTERIM re-analysis.
 
-      >> cd examples/ex_corr_vect/
+      >> cd examples/vector_correction/
 Do the "raw" interpolation for the zonal component of the wind:
 
       >> sosie3.x -f namelist.example4_O1t_x
