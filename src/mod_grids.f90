@@ -29,7 +29,7 @@ CONTAINS
    SUBROUTINE SRC_DOMAIN()
 
       INTEGER :: jt
-      
+
       !! Determine source dimensions from input file :
       CALL know_dim_src()
 
@@ -42,7 +42,7 @@ CONTAINS
          ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
          PRINT *, 'LOLO: done!'
       END IF
-      
+
       vt(:) = 0.
 
       IF ( l_reg_src ) THEN
@@ -74,7 +74,7 @@ CONTAINS
       END IF
 
       CALL get_src_conf()
-      
+
       max_lon_src = MAXVAL(lon_src);   max_lat_src = MAXVAL(lat_src)
       min_lon_src = MINVAL(lon_src);   min_lat_src = MINVAL(lat_src)
 
@@ -101,7 +101,7 @@ CONTAINS
          CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lat_src, nb_att_lat_src, vatt_info_lat_src)
       END IF
 
-      
+
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
          l_reg_trg = l_reg_src
          !! Geting them from source file:
@@ -112,18 +112,18 @@ CONTAINS
          nb_att_lon_trg = nb_att_lon_src
          nb_att_lat_trg = nb_att_lat_src
          vatt_info_lon_trg = vatt_info_lon_src
-         vatt_info_lat_trg = vatt_info_lat_src         
+         vatt_info_lat_trg = vatt_info_lat_src
       END IF
 
-      
 
-      
+
+
       CALL know_dim_trg()
 
       !! Allocate target arrays with target dimensions :
       ALLOCATE ( mask_trg(ni_trg,nj_trg,nk_trg), data_trg(ni_trg,nj_trg), IGNORE(ni_trg,nj_trg) )
 
-      IF ( .NOT. lmout ) mask_trg(:,:,:) = 1 ; !lolo
+      IF ( .NOT. lmout ) mask_trg(:,:,:) = 1
 
       IF ( l_reg_trg ) THEN
          ALLOCATE ( lon_trg(ni_trg, 1) , lat_trg(nj_trg, 1), lon_trg_b(ni_trg, 1) )
@@ -145,7 +145,7 @@ CONTAINS
       jj_ex_top = 0 ; jj_ex_btm = 0
 
       IF ( TRIM(cmethod) == 'no_xy' ) THEN
-         
+
          CALL get_trg_conf()
 
          !! The very few things we have to do if no 2D horizontal interpolation needed:
@@ -163,8 +163,8 @@ CONTAINS
 
          lon_trg   = lon_src
          lon_trg_b = lon_src
-         lat_trg   = lat_src         
-         
+         lat_trg   = lat_src
+
       ELSE
 
          !! Normal case => 2D horizontal interpolation will be performed !
@@ -298,23 +298,16 @@ CONTAINS
 
    SUBROUTINE TERMINATE()
 
-      !data_src = 0.0; mask_src = 0.0; data_src_b = 0.0; lon_src = 0.0; lat_src = 0.0
-      !mask_src_b = 0.0 ; vt0 = 0.0; vt = 0.0
-
       DEALLOCATE ( data_src, mask_src, data_src_b, lon_src, lat_src, mask_src_b, vt0, vt )
-
-      !mask_trg = 0.0; data_trg = 0.0; lat_trg = 0.0; lon_trg = 0.0; lon_trg_b = 0.0
 
       DEALLOCATE ( mask_trg, data_trg, lat_trg, lon_trg, lon_trg_b )
 
       IF (l_itrp_3d) THEN
-         !data3d_src = 0.0 ; depth_src = 0.0
          DEALLOCATE ( data3d_src, depth_src )
-         !data3d_tmp = 0.0;  depth_trg = 0.0;  data3d_trg = 0.0
          DEALLOCATE ( data3d_tmp, depth_trg, data3d_trg )
          DEALLOCATE ( depth_src_trgt2d )
-         IF (trim(ctype_z_src) == 'sigma' )  DEALLOCATE ( bathy_src )
-         IF (trim(ctype_z_trg) == 'sigma' ) DEALLOCATE ( bathy_trg )
+         IF (TRIM(ctype_z_src) == 'sigma' ) DEALLOCATE ( bathy_src )
+         IF (TRIM(ctype_z_trg) == 'sigma' ) DEALLOCATE ( bathy_trg )
       END IF
 
    END SUBROUTINE TERMINATE
@@ -354,7 +347,7 @@ CONTAINS
                   depth_src(ji,jj,:) = depth_src(1,1,:)
                ENDDO
             ENDDO
-            IF ( l_save_drwn) CALL GETVAR_ATTRIBUTES(cf_z_src, cv_z_src,  nb_att_z_src, vatt_info_z_src)            
+            IF ( l_save_drwn) CALL GETVAR_ATTRIBUTES(cf_z_src, cv_z_src,  nb_att_z_src, vatt_info_z_src)
          ELSE
             PRINT*,''; PRINT *, 'Not a valid source vertical coordinate' ; PRINT*,''
          ENDIF
@@ -406,11 +399,11 @@ CONTAINS
 
       !! Getting land-sea mask on source domain
       mask_src(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
-      
+
       IF ( l_drown_src ) THEN
-         
+
          IF ( TRIM(cf_lsm_src) == 'missing_value' ) THEN
-            
+
             WRITE(6,*) 'Opening land-sea mask from missing_value on source data!'
             CALL CHECK_4_MISS(cf_src, cv_src, lmval, rmv, ca_missval)
             IF ( .NOT. lmval ) THEN
@@ -549,11 +542,11 @@ CONTAINS
    SUBROUTINE get_trg_conf()
 
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
-      
+
       IF ( TRIM(cmethod) /= 'no_xy' ) THEN
-         
+
          IF ( (l_reg_trg).AND.(TRIM(cf_x_trg) == 'spheric') ) THEN
-            
+
             !! Building target grid:
             READ(cv_lon_trg,*) dx ; READ(cv_lat_trg,*) dy
             cv_lon_trg = 'lon'           ; cv_lat_trg = 'lat'
@@ -662,7 +655,7 @@ CONTAINS
             WRITE(6,*) '****************************************************************'
             WRITE(6,*) ''
 
-            mask_trg = 1
+            mask_trg(:,:,:) = 1 ; !lolo???
 
          ELSE
 
