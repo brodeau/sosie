@@ -4,11 +4,7 @@ MODULE MOD_CONF
 
    IMPLICIT NONE
 
-<<<<<<< HEAD
-   CHARACTER(len=16), PARAMETER :: csosie_version = '2.6' !: SOSIE version
-=======
-   CHARACTER(len=16), PARAMETER :: csosie_version = '3.0' !: SOSIE version
->>>>>>> origin/3.0
+   CHARACTER(len=16), PARAMETER :: csosie_version = '3.0_beta' !: SOSIE version
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
