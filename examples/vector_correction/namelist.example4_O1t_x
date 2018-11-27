@@ -76,17 +76,16 @@
 &ndom_src
 csource    = '1x1-deg'
 ivect      = 1    ! THIS IS A VECTOR INTERPOLATION, U component
-l_reg_src  = T    ! input grid is regular (lon and lat are "1D")
+l_reg_src  = .true.
 cf_src     = '../data/u10_era-int_2000.nc'
 cv_src     = 'u10'
 cv_t_src   = 'time'
-
 cf_x_src   = '../data/u10_era-int_2000.nc'
 cv_lon_src = 'lon'
 cv_lat_src = 'lat'
-cf_lsm_src = '../data/lsm_era-int.nc'  ! land-sea mask
+cf_lsm_src = '../data/lsm_era-int.nc'
 cv_lsm_src = 'lsm'
-ewper_src = 0           ! input field does have east-west periodicity with 0 overlapping point
+ewper_src  = 0
 /
 !!
 !!
@@ -129,9 +128,22 @@ ewper_src = 0           ! input field does have east-west periodicity with 0 ove
 !!             >= 0 --> periodicity with overlap of ewper points
 !!
 !!
+!! Only required if 3D interpolation (jplev==0):
+!!
+!!    cf_z_trg : file containing the target depth vector (associates a depth to a
+!!               given level). In most cases should be the same file than cf_x_src.
+!!    cv_z_trg : name of the variable for the target depth vector in file 'cf_z_trg'
+!!    ctype_z_trg : type of coordinates in target file (currently available z/sigma)
+!!
+!!    ROMS s-coordinates stuff only:
+!!    These are to be set ONLY if ctype_z_trg = 'sigma'
+!!    cf_bathy_trg : file containing the bathymetry on target grid (usually ROMS grid file)
+!!    cv_bathy_trg : name of bathymetry variable (usually h)
+!!    ssig_trg     : structure with ROMS s-coordinates parameters on target grid (see above)
+!!--------------------------------------------------------------------------
 &ndom_trg
 ctarget  = 'ORCA1'
-l_reg_trg  = F
+l_reg_trg  = .false.
 cf_x_trg   = '../data/mesh_mask_ORCA1v2_light.nc4'
 cv_lon_trg = 'glamt'
 cv_lat_trg = 'gphit'
@@ -258,12 +270,12 @@ ibx_xtra_sm = 0, 0,0, 0,0  ! Extra-smoothing on a given rectangular region: ibx_
 !!
 !!
 &noutput
-cv_out   = 'u10'
-cu_out   = 'm/s'
-cln_out  = 'ERA-INTERIM 10m wind, 4 first 6-hourly snapshots of year 2000'
-cv_t_out = 'time_counter'
-cd_out   = '.'
-cextra   = 'grid_T'
+cv_out    = 'u10'
+cu_out    = 'm/s'
+cln_out   = 'ERA-INTERIM 10m wind, 4 first 6-hourly snapshots of year 2000'
+cv_t_out  = 'time_counter'
+cd_out    = '.'
+cextra    = 'grid_T'
 lmout     = .true.
 rmiss_val = -9999.
 lct       = .false.
