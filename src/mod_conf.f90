@@ -12,7 +12,7 @@ MODULE MOD_CONF
       &             l_drown_src, & ! DROWN source field
       &             l_glob_lon_wize, l_glob_lat_wize, &
       &             l_identical_levels=.FALSE.  ! if true and 3D interpolation => means that source and target vertical grids are identical!
-   
+
 
    LOGICAL, DIMENSION(2) :: l_2d_grid_yet_regular = (/ .FALSE. , .FALSE. /) !: in case input (i=1) and/or output (i=2) domains are
    !!                                      defined with 2D longitude and latitude arrays but their grid is actually regular...
@@ -28,7 +28,7 @@ MODULE MOD_CONF
    INTEGER, SAVE          :: i_orca_src, i_orca_trg   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
    CHARACTER(len=1), SAVE :: c_orca_src, c_orca_trg   ! Source, target, grid is not an ORCA grid (0), ORCA2 (4), ORCA1 (6), to be completed!
 
-   
+
    INTEGER :: &
       &   Ntr, &                      !: time dimmension == number of time records to interpolate!
       &   ni_src, nj_src, nk_src,   &    !: dimension of input arrays
@@ -68,7 +68,7 @@ MODULE MOD_CONF
       &    l_save_drwn=.FALSE., & ! save the input field drowned (on the source grid)
       &    lmout=.FALSE.,       & ! masking output or not
       &    lct=.FALSE.            ! time control
-   
+
    !! Integers
    !! --------
    INTEGER  :: &
@@ -80,7 +80,7 @@ MODULE MOD_CONF
 
    INTEGER, DIMENSION(0:4) :: ibx_xtra_sm = (/ 0, 0,0, 0,0 /)  ! box for exta-smoothing => (/ntimes, i1,j1, i2,j2/)
 
-   
+
    !! Name of files or directories:
    !! -----------------------------
    CHARACTER(LEN=400) ::    &
@@ -124,8 +124,8 @@ MODULE MOD_CONF
    END TYPE idrown_info
    TYPE(idrown_info) ::  idrown    ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
    !                               ! and how many times to smooth the drowned area
-   
-      
+
+
    !! S-coordinates specific
    !! -----------------------
    CHARACTER(LEN=80) ::  &
@@ -134,23 +134,23 @@ MODULE MOD_CONF
       &    cf_bathy_src = '',&
       &    cf_bathy_trg= '',&
       &    ctype_z_src='z', &
-      &    ctype_z_trg='z'  
+      &    ctype_z_trg='z'
 
    TYPE scoord_params
-            integer :: Vtransform
-            integer :: Vstretching
-            integer :: Nlevels
-            real(wpl) :: theta_s
-            real(wpl) :: theta_b
-            real(wpl) :: Tcline
-            real(wpl) :: hmin
+      integer :: Vtransform
+      integer :: Vstretching
+      integer :: Nlevels
+      real(wpl) :: theta_s
+      real(wpl) :: theta_b
+      real(wpl) :: Tcline
+      real(wpl) :: hmin
    END TYPE scoord_params
 
    TYPE (scoord_params) :: ssig_src, ssig_trg
 
    REAL(8),  DIMENSION(:),    ALLOCATABLE ::   &
-       &   Cs_rho, Sc_rho
-  
+      &   Cs_rho, Sc_rho
+
    !! Netcdf output strings :
    !! -----------------------
    CHARACTER(LEN=5)  ::  cmethod
@@ -198,10 +198,10 @@ MODULE MOD_CONF
       &   depth_src,   &
       &   depth_trg,  &
       &   depth_src_trgt2d
-   
-  REAL(wpl),  DIMENSION(:,:),    ALLOCATABLE ::  &    
-       &   bathy_src,  &
-       &   bathy_trg
+
+   REAL(wpl),  DIMENSION(:,:),    ALLOCATABLE ::  &
+      &   bathy_src,  &
+      &   bathy_trg
 
    REAL(wpl),  DIMENSION(:,:),  ALLOCATABLE ::  &
       &   data_src,    &   !: data array on source grid
@@ -217,7 +217,7 @@ MODULE MOD_CONF
       &      data3d_tmp, &  ! horizontal target resol. + vertical source resol.
       &    data_src_drowned
 
-   INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0)    
+   INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0)
    INTEGER(1),   DIMENSION(:,:,:),  ALLOCATABLE ::   &
       &   mask_src, mask_src_b, &  !: land-sea mask on input grid
       &   mask_trg               !: land-sea mask on output grid

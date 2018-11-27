@@ -125,8 +125,8 @@ CONTAINS
             !!
             IF ( jk1 == nk1 ) EXIT
             !!
-         ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
-!            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) < vz1(jk1+1)) ) THEN
+            ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
+            !            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) < vz1(jk1+1)) ) THEN
             IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) <= vz1(jk1+1)) ) THEN
                jk1e  = jk1 + 2
                jp1    = jk1e
@@ -271,8 +271,8 @@ CONTAINS
 
          DO WHILE ( (.NOT. lfnd).AND.(l_do_interp) )
             IF ( jk1 == nk1 ) EXIT
-         ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
-!            IF ( (vz2(jk2) > vz1(jk1)).AND.(vz2(jk2) < vz1(jk1+1)) ) THEN
+            ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
+            !            IF ( (vz2(jk2) > vz1(jk1)).AND.(vz2(jk2) < vz1(jk1+1)) ) THEN
             IF ( (vz2(jk2) > vz1(jk1)).AND.(vz2(jk2) <= vz1(jk1+1)) ) THEN
                jk1e  = jk1 + 2
                jp1    = jk1e
@@ -345,7 +345,7 @@ CONTAINS
          xf2(:,:,jk2) = xf1(:,:,nk1)
          jk2 = jk2 - 1
       END DO
-      
+
    END SUBROUTINE AKIMA_1D_3D
 
 

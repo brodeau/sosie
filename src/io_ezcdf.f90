@@ -45,11 +45,11 @@ MODULE io_ezcdf
    INTERFACE GETVAR_3D
       MODULE PROCEDURE GETVAR_3D_R8, GETVAR_3D_R4
    END INTERFACE GETVAR_3D
-   
+
    INTERFACE DUMP_FIELD
       MODULE PROCEDURE DUMP_2D_FIELD, DUMP_3D_FIELD
    END INTERFACE DUMP_FIELD
-   
+
 
 
    !! List of public routines
@@ -1545,7 +1545,7 @@ CONTAINS
       REAL(4),                 INTENT(in), OPTIONAL :: rfill
       !!
       INTEGER                                :: id_f, id_v
-      INTEGER                                :: id_x, id_y, id_lo, id_la      
+      INTEGER                                :: id_x, id_y, id_lo, id_la
       INTEGER     :: lx, ly, i01, i02
       LOGICAL :: lzcoord, l_mask
       CHARACTER(len=80), PARAMETER :: crtn = 'DUMP_2D_FIELD'
@@ -1584,7 +1584,7 @@ CONTAINS
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
    END SUBROUTINE DUMP_2D_FIELD
 
-   
+
    SUBROUTINE DUMP_3D_FIELD(xfld, cf_in, cv_in,   xlon, xlat, cv_lo, cv_la,  rfill)
       REAL(4),    DIMENSION(:,:,:), INTENT(in) :: xfld
       CHARACTER(len=*),           INTENT(in) :: cf_in, cv_in
@@ -1613,7 +1613,7 @@ CONTAINS
       END IF
       IF ( PRESENT(rfill) ) l_mask = .TRUE.
       CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, id_f), crtn,cf_in,cv_in)
-      IF ( lzcoord ) THEN         
+      IF ( lzcoord ) THEN
          CALL prepare_nc(id_f, cdt, lx, ly, cv_lo, cv_la, '',  vextrema, &
             &            id_x, id_y, i01, id_lo, id_la, i02, &
             &            crtn,cf_in,trim(cv_lo)//'+'//trim(cv_la))
@@ -1624,7 +1624,7 @@ CONTAINS
       END IF
 
       CALL sherr( NF90_DEF_DIM(id_f, 'z', lz, id_z),  crtn,cf_in,cv_in)
-      
+
       CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y,id_z/), id_v, deflate_level=9), crtn,cf_in,cv_in)
       IF (l_mask)  CALL sherr( NF90_PUT_ATT(id_f, id_v,TRIM(cmv0),        rfill                 ), crtn,cf_in,cv_in)
       IF (lzcoord) CALL sherr( NF90_PUT_ATT(id_f, id_v,'coordinates',TRIM(cv_la)//" "//TRIM(cv_lo)), crtn,cf_in,cv_in)
@@ -1644,7 +1644,7 @@ CONTAINS
 
 
 
-   
+
 
 
    SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, id_pb,  d2np)

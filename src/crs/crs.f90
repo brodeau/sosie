@@ -103,12 +103,12 @@ MODULE crs
    REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_0_crs, e3u_0_crs, e3v_0_crs, e3f_0_crs, e3w_0_crs
    REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_max_0_crs, e3u_max_0_crs, e3v_max_0_crs, e3f_max_0_crs, e3w_max_0_crs
 
-!#if defined key_vvl
-!   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_b_crs, e3u_b_crs, e3v_b_crs, e3f_b_crs, e3w_b_crs
-!   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_n_crs, e3u_n_crs, e3v_n_crs, e3f_n_crs, e3w_n_crs
-!   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_a_crs, e3u_a_crs, e3v_a_crs, e3f_a_crs, e3w_a_crs
-!   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_max_n_crs, e3u_max_n_crs, e3v_max_n_crs, e3f_max_n_crs, e3w_max_n_crs
-!#endif
+   !#if defined key_vvl
+   !   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_b_crs, e3u_b_crs, e3v_b_crs, e3f_b_crs, e3w_b_crs
+   !   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_n_crs, e3u_n_crs, e3v_n_crs, e3f_n_crs, e3w_n_crs
+   !   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_a_crs, e3u_a_crs, e3v_a_crs, e3f_a_crs, e3w_a_crs
+   !   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e3t_max_n_crs, e3u_max_n_crs, e3v_max_n_crs, e3f_max_n_crs, e3w_max_n_crs
+   !#endif
 
    ! Surface
    REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: e1e2w_crs, e2e3u_crs, e1e3v_crs
@@ -121,9 +121,9 @@ MODULE crs
    INTEGER,  DIMENSION(:,:),   ALLOCATABLE,SAVE :: mbathy_crs, mbkt_crs, mbku_crs, mbkv_crs
 
    REAL(wp), DIMENSION(:,:,:), ALLOCATABLE,SAVE :: gdept_0_crs, gdepu_0_crs, gdepv_0_crs, gdepw_0_crs
-!#if defined key_vvl
-!   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE,SAVE :: gdept_n_crs, gdepu_n_crs, gdepv_n_crs, gdepw_n_crs
-!#endif
+   !#if defined key_vvl
+   !   REAL(wp), DIMENSION(:,:,:), ALLOCATABLE,SAVE :: gdept_n_crs, gdepu_n_crs, gdepv_n_crs, gdepw_n_crs
+   !#endif
 
    ! Weights
    REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: facsurfv, facsurfu, facvol_t, facvol_w
@@ -240,24 +240,24 @@ CONTAINS
       ALLOCATE( e3t_0_crs(jpi_crs,jpj_crs,jpk)    , e3w_0_crs(jpi_crs,jpj_crs,jpk)    , &
          &      e3u_0_crs(jpi_crs,jpj_crs,jpk)    , e3v_0_crs(jpi_crs,jpj_crs,jpk)    , &
          &           ht_0_crs(jpi_crs,jpj_crs),                                     &
-!#if defined key_vvl
-!         &      e3t_b_crs(jpi_crs,jpj_crs,jpk)    , e3w_b_crs(jpi_crs,jpj_crs,jpk)    , &
-!         &      e3u_b_crs(jpi_crs,jpj_crs,jpk)    , e3v_b_crs(jpi_crs,jpj_crs,jpk)    , &
-!         &      e3t_n_crs(jpi_crs,jpj_crs,jpk)    , e3w_n_crs(jpi_crs,jpj_crs,jpk)    , &
-!         &      e3u_n_crs(jpi_crs,jpj_crs,jpk)    , e3v_n_crs(jpi_crs,jpj_crs,jpk)    , &
-!         &      e3t_a_crs(jpi_crs,jpj_crs,jpk)    , e3w_a_crs(jpi_crs,jpj_crs,jpk)    , &
-!         &      e3u_a_crs(jpi_crs,jpj_crs,jpk)    , e3v_a_crs(jpi_crs,jpj_crs,jpk)    , &
-!#endif
+         !#if defined key_vvl
+         !         &      e3t_b_crs(jpi_crs,jpj_crs,jpk)    , e3w_b_crs(jpi_crs,jpj_crs,jpk)    , &
+         !         &      e3u_b_crs(jpi_crs,jpj_crs,jpk)    , e3v_b_crs(jpi_crs,jpj_crs,jpk)    , &
+         !         &      e3t_n_crs(jpi_crs,jpj_crs,jpk)    , e3w_n_crs(jpi_crs,jpj_crs,jpk)    , &
+         !         &      e3u_n_crs(jpi_crs,jpj_crs,jpk)    , e3v_n_crs(jpi_crs,jpj_crs,jpk)    , &
+         !         &      e3t_a_crs(jpi_crs,jpj_crs,jpk)    , e3w_a_crs(jpi_crs,jpj_crs,jpk)    , &
+         !         &      e3u_a_crs(jpi_crs,jpj_crs,jpk)    , e3v_a_crs(jpi_crs,jpj_crs,jpk)    , &
+         !#endif
          &      e1e2w_msk(jpi_crs,jpj_crs,jpk)  , &
          &      e2e3u_msk(jpi_crs,jpj_crs,jpk)  , e1e3v_msk(jpi_crs,jpj_crs,jpk)  , &
          &      e1e2w_crs(jpi_crs,jpj_crs,jpk)  , e2e3u_crs(jpi_crs,jpj_crs,jpk)  , &
          &      e1e3v_crs(jpi_crs,jpj_crs,jpk)  , &
          &      e3t_max_0_crs(jpi_crs,jpj_crs,jpk), e3w_max_0_crs(jpi_crs,jpj_crs,jpk) , &
          &      e3u_max_0_crs(jpi_crs,jpj_crs,jpk), e3v_max_0_crs(jpi_crs,jpj_crs,jpk) , &
-!#if defined key_vvl
-!         &      e3t_max_n_crs(jpi_crs,jpj_crs,jpk), e3w_max_n_crs(jpi_crs,jpj_crs,jpk) , &
-!         &      e3u_max_n_crs(jpi_crs,jpj_crs,jpk), e3v_max_n_crs(jpi_crs,jpj_crs,jpk) , &
-!#endif
+         !#if defined key_vvl
+         !         &      e3t_max_n_crs(jpi_crs,jpj_crs,jpk), e3w_max_n_crs(jpi_crs,jpj_crs,jpk) , &
+         !         &      e3u_max_n_crs(jpi_crs,jpj_crs,jpk), e3v_max_n_crs(jpi_crs,jpj_crs,jpk) , &
+         !#endif
          &      STAT=ierr(6))
 
 
@@ -276,52 +276,52 @@ CONTAINS
 
       ALLOCATE( gdept_0_crs(jpi_crs,jpj_crs,jpk), gdepu_0_crs(jpi_crs,jpj_crs,jpk) , &
          &      gdepv_0_crs(jpi_crs,jpj_crs,jpk), gdepw_0_crs(jpi_crs,jpj_crs,jpk) , &
-!#if defined key_vvl
-!         &      gdept_n_crs(jpi_crs,jpj_crs,jpk), gdepu_n_crs(jpi_crs,jpj_crs,jpk) , &
-!         &      gdepv_n_crs(jpi_crs,jpj_crs,jpk), gdepw_n_crs(jpi_crs,jpj_crs,jpk) , &
-!#endif
+         !#if defined key_vvl
+         !         &      gdept_n_crs(jpi_crs,jpj_crs,jpk), gdepu_n_crs(jpi_crs,jpj_crs,jpk) , &
+         !         &      gdepv_n_crs(jpi_crs,jpj_crs,jpk), gdepw_n_crs(jpi_crs,jpj_crs,jpk) , &
+         !#endif
          & STAT=ierr(10))
 
 
-!      ALLOCATE( ub_crs(jpi_crs,jpj_crs,jpk) , vb_crs(jpi_crs,jpj_crs,jpk) , &
-!         &      un_crs(jpi_crs,jpj_crs,jpk) , vn_crs(jpi_crs,jpj_crs,jpk)    ,  wn_crs(jpi_crs,jpj_crs,jpk) ,&
-!         &      hdivb_crs(jpi_crs,jpj_crs,jpk) , hdivn_crs(jpi_crs,jpj_crs,jpk) , &
-!         &      rhop_crs(jpi_crs,jpj_crs,jpk)  , &
-!         &      rb2_crs(jpi_crs,jpj_crs,jpk) ,rn2_crs(jpi_crs,jpj_crs,jpk) , &
-!         &      rhd_crs(jpi_crs,jpj_crs,jpk)   , rab_crs_n(jpi_crs,jpj_crs,jpk,jpts) , &
-!         &      avtb_2d_crs(jpi_crs,jpj_crs), &
-!         &      gtsu_crs(jpi_crs,jpj_crs,jpts) ,gtsv_crs(jpi_crs,jpj_crs,jpts) , &
-!         gru_crs(jpi_crs,jpj_crs) ,grv_crs(jpi_crs,jpj_crs) , STAT=ierr(11))
+      !      ALLOCATE( ub_crs(jpi_crs,jpj_crs,jpk) , vb_crs(jpi_crs,jpj_crs,jpk) , &
+      !         &      un_crs(jpi_crs,jpj_crs,jpk) , vn_crs(jpi_crs,jpj_crs,jpk)    ,  wn_crs(jpi_crs,jpj_crs,jpk) ,&
+      !         &      hdivb_crs(jpi_crs,jpj_crs,jpk) , hdivn_crs(jpi_crs,jpj_crs,jpk) , &
+      !         &      rhop_crs(jpi_crs,jpj_crs,jpk)  , &
+      !         &      rb2_crs(jpi_crs,jpj_crs,jpk) ,rn2_crs(jpi_crs,jpj_crs,jpk) , &
+      !         &      rhd_crs(jpi_crs,jpj_crs,jpk)   , rab_crs_n(jpi_crs,jpj_crs,jpk,jpts) , &
+      !         &      avtb_2d_crs(jpi_crs,jpj_crs), &
+      !         &      gtsu_crs(jpi_crs,jpj_crs,jpts) ,gtsv_crs(jpi_crs,jpj_crs,jpts) , &
+      !         gru_crs(jpi_crs,jpj_crs) ,grv_crs(jpi_crs,jpj_crs) , STAT=ierr(11))
 
-!      ALLOCATE( sshb_crs(jpi_crs,jpj_crs), sshn_crs(jpi_crs,jpj_crs),  ssha_crs(jpi_crs,jpj_crs), &
-!         &     qsr_crs(jpi_crs ,jpj_crs), wndm_crs(jpi_crs,jpj_crs), utau_crs(jpi_crs,jpj_crs) , &
-!         &     vtau_crs(jpi_crs,jpj_crs), taum_crs(jpi_crs,jpj_crs),  &
-!         &     rnf_crs (jpi_crs,jpj_crs), rnf_b_crs(jpi_crs ,jpj_crs), nk_rnf_crs(jpi_crs ,jpj_crs), h_rnf_crs(jpi_crs ,jpj_crs), &
-!         &     emp_crs (jpi_crs,jpj_crs), emp_b_crs(jpi_crs,jpj_crs), &
-!         &     sbc_trc_crs (jpi_crs,jpj_crs,jpts), sbc_trc_b_crs(jpi_crs,jpj_crs,jpts), &
-!         &     trc_i_crs (jpi_crs,jpj_crs,jpts), trc_o_crs(jpi_crs,jpj_crs,jpts), &
-!         &     fr_i_crs(jpi_crs,jpj_crs), sfx_crs(jpi_crs ,jpj_crs), fmmflx_crs(jpi_crs ,jpj_crs),  STAT=ierr(12)  )
-!
-!#if defined key_traldf_c3d
-!      ALLOCATE( ahtt_crs(jpi_crs,jpj_crs,jpk) , ahtu_crs(jpi_crs,jpj_crs,jpk) , &
-!         & ahtv_crs(jpi_crs,jpj_crs,jpk) , ahtw_crs(jpi_crs,jpj_crs,jpk) , &
-!#elif defined key_traldf_c2d
-!         ALLOCATE( ahtt_crs(jpi_crs,jpj_crs    ) , ahtu_crs(jpi_crs,jpj_crs    ) , &
-!         & ahtv_crs(jpi_crs,jpj_crs    ) , ahtw_crs(jpi_crs,jpj_crs    ) , &
-!#elif defined key_traldf_c1d
-!         ALLOCATE( ahtt_crs(        jpk) , ahtu_crs(        jpk) , ahtv_crs(        jpk) , ahtw_crs(        jpk) , &
-!#endif
-!         & r_fact_lap_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(13) )
+      !      ALLOCATE( sshb_crs(jpi_crs,jpj_crs), sshn_crs(jpi_crs,jpj_crs),  ssha_crs(jpi_crs,jpj_crs), &
+      !         &     qsr_crs(jpi_crs ,jpj_crs), wndm_crs(jpi_crs,jpj_crs), utau_crs(jpi_crs,jpj_crs) , &
+      !         &     vtau_crs(jpi_crs,jpj_crs), taum_crs(jpi_crs,jpj_crs),  &
+      !         &     rnf_crs (jpi_crs,jpj_crs), rnf_b_crs(jpi_crs ,jpj_crs), nk_rnf_crs(jpi_crs ,jpj_crs), h_rnf_crs(jpi_crs ,jpj_crs), &
+      !         &     emp_crs (jpi_crs,jpj_crs), emp_b_crs(jpi_crs,jpj_crs), &
+      !         &     sbc_trc_crs (jpi_crs,jpj_crs,jpts), sbc_trc_b_crs(jpi_crs,jpj_crs,jpts), &
+      !         &     trc_i_crs (jpi_crs,jpj_crs,jpts), trc_o_crs(jpi_crs,jpj_crs,jpts), &
+      !         &     fr_i_crs(jpi_crs,jpj_crs), sfx_crs(jpi_crs ,jpj_crs), fmmflx_crs(jpi_crs ,jpj_crs),  STAT=ierr(12)  )
+      !
+      !#if defined key_traldf_c3d
+      !      ALLOCATE( ahtt_crs(jpi_crs,jpj_crs,jpk) , ahtu_crs(jpi_crs,jpj_crs,jpk) , &
+      !         & ahtv_crs(jpi_crs,jpj_crs,jpk) , ahtw_crs(jpi_crs,jpj_crs,jpk) , &
+      !#elif defined key_traldf_c2d
+      !         ALLOCATE( ahtt_crs(jpi_crs,jpj_crs    ) , ahtu_crs(jpi_crs,jpj_crs    ) , &
+      !         & ahtv_crs(jpi_crs,jpj_crs    ) , ahtw_crs(jpi_crs,jpj_crs    ) , &
+      !#elif defined key_traldf_c1d
+      !         ALLOCATE( ahtt_crs(        jpk) , ahtu_crs(        jpk) , ahtv_crs(        jpk) , ahtw_crs(        jpk) , &
+      !#endif
+      !         & r_fact_lap_crs(jpi_crs,jpj_crs,jpk) , STAT=ierr(13) )
 
-!      ALLOCATE( tsb_crs(jpi_crs,jpj_crs,jpk,jpts), tsn_crs(jpi_crs,jpj_crs,jpk,jpts), tsa_crs(jpi_crs,jpj_crs,jpk,jpts),  &
-!         en_crs(jpi_crs,jpj_crs,jpk),   avt_crs(jpi_crs,jpj_crs,jpk),    &
-!# if defined key_zdfddm
-!         &      avs_crs(jpi_crs,jpj_crs,jpk),    &
-!# endif
-!         &      STAT=ierr(14) )!
-!
-!      ALLOCATE( nmln_crs(jpi_crs,jpj_crs) , hmld_crs(jpi_crs,jpj_crs) , &
-!         &      hmlp_crs(jpi_crs,jpj_crs) , hmlpt_crs(jpi_crs,jpj_crs) , STAT=ierr(15) )
+      !      ALLOCATE( tsb_crs(jpi_crs,jpj_crs,jpk,jpts), tsn_crs(jpi_crs,jpj_crs,jpk,jpts), tsa_crs(jpi_crs,jpj_crs,jpk,jpts),  &
+      !         en_crs(jpi_crs,jpj_crs,jpk),   avt_crs(jpi_crs,jpj_crs,jpk),    &
+      !# if defined key_zdfddm
+      !         &      avs_crs(jpi_crs,jpj_crs,jpk),    &
+      !# endif
+      !         &      STAT=ierr(14) )!
+      !
+      !      ALLOCATE( nmln_crs(jpi_crs,jpj_crs) , hmld_crs(jpi_crs,jpj_crs) , &
+      !         &      hmlp_crs(jpi_crs,jpj_crs) , hmlpt_crs(jpi_crs,jpj_crs) , STAT=ierr(15) )
 
       crs_dom_alloc = MAXVAL(ierr)
 

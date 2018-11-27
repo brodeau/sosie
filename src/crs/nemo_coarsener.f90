@@ -524,7 +524,7 @@ PROGRAM NEMO_COARSENER
    IF ( l_do_T .OR. l_do_W ) CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
    IF ( l_do_U )             CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=zfse3u )
    IF ( l_do_V )             CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=zfse3v )
-   
+
    IF ( l_debug .AND. (l_do_T .OR. l_do_W) ) CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
    IF ( l_debug .AND. (l_do_U) )             CALL DUMP_FIELD(REAL(e2e3u_msk,4), 'e2e3u_msk.tmp', 'e2e3u_msk' )
    IF ( l_debug .AND. (l_do_V) )             CALL DUMP_FIELD(REAL(e1e3v_msk,4), 'e1e3v_msk.tmp', 'e1e3v_msk' )
@@ -967,7 +967,7 @@ PROGRAM NEMO_COARSENER
                   CALL check_nf90( nf90_put_var( idf_trg, id_v,  x3d_r4_crs, start=(/1,1,1,jt/), count=(/jpi_crs,jpj_crs,jpk,1/)) )
                   WRITE(numout,*) '   ***  written!'
                END IF
-               
+
                IF ( (TRIM(cv_in)=='vomecrty') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / SUM / V !'
                   CALL crs_dom_ope( REAL(x3d_r4,8) , 'SUM', 'V', REAL(vmask,8), x3d_r8_crs, p_e12=e1v, p_e3=zfse3v, p_surf_crs=e1e3v_msk, psgn=-1.0_wp )

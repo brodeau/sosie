@@ -5,7 +5,7 @@ MODULE crsdom
    !!           higher-resolution grid for the coarse grid.
    !!
    !!  Method:
-
+   !!
    !!  References:  Aumont, O., J.C. Orr, D. Jamous, P. Monfray
    !!               O. Marti and G. Madec, 1998. A degradation
    !!               approach to accelerate simulations to steady-state
@@ -39,7 +39,7 @@ MODULE crsdom
    REAL(wp),PUBLIC :: r_inf = 1e+7 !cbr 1e+36
 
    !! Substitutions
-!#  include "domzgr_substitute.h90"
+   !#  include "domzgr_substitute.h90"
 
 CONTAINS
 
@@ -317,7 +317,7 @@ CONTAINS
 
       REAL(wp), DIMENSION(:,:,:), ALLOCATABLE     :: zvol, zmask
       !!----------------------------------------------------------------
-      
+
       ALLOCATE ( zvol(jpi,jpj,jpk), zmask(jpi,jpj,jpk) )
 
       p_fld1_crs(:,:,:) = 0.0
@@ -408,7 +408,7 @@ CONTAINS
 
       !PRINT *, ' LOLO: this is crs_dom_ope_3d !!!, jpk = ', jpk
       !PRINT *, ' LOLO: pe3 column:', p_e3(jpi/2,jpj/2,:)
-      
+
       p_fld_crs(:,:,:) = 0.0
 
       SELECT CASE ( cd_op )
@@ -1158,7 +1158,7 @@ CONTAINS
       !PRINT *, ' ### mod_crs.f90 ### jpiglo_crs, jpjglo_crs = ', jpiglo_crs, jpjglo_crs
       !PRINT *, ' ### mod_crs.f90 ### jpi_crs, jpj_crs       = ', jpi_crs, jpj_crs
       !PRINT *, ''
-      
+
       ierr = crs_dom_alloc()          ! allocate most coarse grid arrays
 
       !==============================================================================================
@@ -1438,7 +1438,7 @@ CONTAINS
             PRINT *, mje2_crs ; PRINT *, ''
             PRINT *, mjs2_crs ; PRINT *, ''
             PRINT *, ''
-            
+
 
          CASE ( 3, 4 )    !   3, 4 : T-Pivot at North Fold
 
@@ -1550,7 +1550,7 @@ CONTAINS
          !PRINT *, ' ### mod_crs.f90 ### nlei_crs, nlej_crs', nlei_crs, nlej_crs
          !PRINT *, ''
 
-         
+
          !WRITE(narea+1000-1,*)"loc crs jpj nldj,nlej,nlcj ",jpj_crs, nldj_crs            ,nlej_crs             ,nlcj_crs
          !CALL FLUSH(narea+1000-1)
          !WRITE(narea+1000-1,*)"glo crs jpj nldj,nlej      ",jpj_crs, nldj_crs+njmpp_crs-1,nlej_crs+njmpp_crs-1
@@ -1571,9 +1571,9 @@ CONTAINS
          !---------------------------------------------------------------------------------------
 
          !PRINT *, 'mjg = ', mjg(:)
-         !PRINT *, ' SIZE(mjg,1) = ', SIZE(mjg,1)         
+         !PRINT *, ' SIZE(mjg,1) = ', SIZE(mjg,1)
          !STOP'LOLO! mjg must be allocated!!!'
-         
+
          DO jj = 1, nlej_crs
             mjs_crs(jj) = mjs2_crs(mjg_crs(jj)) - njmpp + 1
             mje_crs(jj) = mje2_crs(mjg_crs(jj)) - njmpp + 1
@@ -1664,7 +1664,7 @@ CONTAINS
          !PRINT *, 'nimppt = ', nimppt(:)
          !PRINT *, ' SIZE(nimppt,1) = ', SIZE(nimppt,1)
          !STOP'LOLO! mjg must be allocated!!!'
-         
+
          !nlcit_full(:)  = nlcit(:)
          !nldit_full(:)  = nldit(:)
          !nleit_full(:)  = nleit(:)

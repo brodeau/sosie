@@ -299,12 +299,12 @@ CONTAINS
             WRITE(6,'("      => ",i4.4," x ",i4.4," x ",i3.3," to ",i4.4," x ",i4.4," x ",i3.3)') &
                &       SIZE(data3d_tmp,1), SIZE(data3d_tmp,2), SIZE(depth_src_trgt2d(1,1,:),1), &
                &       ni_trg, nj_trg, SIZE(depth_trg(1,1,:),1)
-            
+
             CALL AKIMA_1D( depth_src_trgt2d(1,1,:), data3d_tmp, depth_trg(1,1,:), data3d_trg(:,:,:), rmiss_val )
 
             PRINT *, '  --- AKIMA_1D_3D done!'
             PRINT *, ''
-            
+
          ELSE
 
 

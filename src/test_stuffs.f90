@@ -31,8 +31,8 @@ PROGRAM TEST_STUFFS
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
 
-   !CHARACTER(LEN=400)  :: cextra_x, cextra_y 
-   
+   !CHARACTER(LEN=400)  :: cextra_x, cextra_y
+
    CHARACTER(len=3)    :: cdum
    CHARACTER(len=1)    :: cgrid_trg='0'
    CHARACTER(len=80)   :: cv_time_0 = 'none', cfext = 'nc'
@@ -90,14 +90,14 @@ PROGRAM TEST_STUFFS
       &    l_3d_inv = .FALSE., &   !: will treat 3d files in inverse mode...
       &    lmout_x, lmout_y, &
       &    lexist !,  &
-   
+
    REAL(4), PARAMETER :: zrmv = -9999.
 
    REAL(8) :: rsgn
-   
+
    CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
       &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-t','-1' /)
-      !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
+   !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
 
    !! Getting string arguments :
    !! --------------------------
@@ -121,43 +121,43 @@ PROGRAM TEST_STUFFS
          !!
          !!
          !!
-      !CASE('-x')
-      !   IF ( jarg + 1 > iargc() ) THEN
-      !      PRINT *, 'ERROR: Missing zonal component name!' ; call usage_test_stuffs()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing zonal component name!'; call usage_test_stuffs()
-      !      ELSE
-      !         cv_rot_U = trim(cr)
-      !      END IF
-      !   END IF
+         !CASE('-x')
+         !   IF ( jarg + 1 > iargc() ) THEN
+         !      PRINT *, 'ERROR: Missing zonal component name!' ; call usage_test_stuffs()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing zonal component name!'; call usage_test_stuffs()
+         !      ELSE
+         !         cv_rot_U = trim(cr)
+         !      END IF
+         !   END IF
          !!
          !!
-      !CASE('-y')
-      !   IF ( jarg + 1 > iargc() ) THEN
-      !      PRINT *, 'ERROR: Missing meridional component name!' ; call usage_test_stuffs()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing meridional component name!'; call usage_test_stuffs()
-      !      ELSE
-      !         cv_rot_V = trim(cr)
-      !      END IF
-      !   END IF
+         !CASE('-y')
+         !   IF ( jarg + 1 > iargc() ) THEN
+         !      PRINT *, 'ERROR: Missing meridional component name!' ; call usage_test_stuffs()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing meridional component name!'; call usage_test_stuffs()
+         !      ELSE
+         !         cv_rot_V = trim(cr)
+         !      END IF
+         !   END IF
          !!
-      !CASE('-f')
-      !   IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
-      !      PRINT *, 'ERROR: Missing namelist name!' ; call usage_test_stuffs()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: ', trim(cr), ' is definitively not the name of the namelist!'
-      !         call usage_test_stuffs()
-      !      ELSE
-      !         cf_nml_sosie = trim(cr)
-      !      END IF
-      !   END IF
+         !CASE('-f')
+         !   IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
+         !      PRINT *, 'ERROR: Missing namelist name!' ; call usage_test_stuffs()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: ', trim(cr), ' is definitively not the name of the namelist!'
+         !         call usage_test_stuffs()
+         !      ELSE
+         !         cf_nml_sosie = trim(cr)
+         !      END IF
+         !   END IF
          !!
       CASE('-m')
          IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
@@ -172,50 +172,50 @@ PROGRAM TEST_STUFFS
             END IF
          END IF
          !!
-      !CASE('-G')
-      !   IF ( jarg + 1 > iargc() ) THEN
-      !      PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!' ; call usage_test_stuffs()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == TRIM(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!'; CALL usage_test_stuffs()
-      !      ELSE
-      !         cgrid_trg = TRIM(cr)
-      !      END IF
-      !   END IF
+         !CASE('-G')
+         !   IF ( jarg + 1 > iargc() ) THEN
+         !      PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!' ; call usage_test_stuffs()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == TRIM(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!'; CALL usage_test_stuffs()
+         !      ELSE
+         !         cgrid_trg = TRIM(cr)
+         !      END IF
+         !   END IF
          !!
-      !CASE('-i')
-      !   IF ( jarg + 2 > iargc() ) THEN ! checking that there is at least 2 other arguments following
-      !      PRINT *, 'ERROR: Missing input file names!' ; call usage_test_stuffs()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing input file name 1 !' ; call usage_test_stuffs()
-      !      ELSE
-      !         cufilin = trim(cr)
-      !      END IF
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing input file name 2 !' ; call usage_test_stuffs()
-      !      ELSE
-      !         cvfilin = trim(cr)
-      !      END IF
-      !   END IF
+         !CASE('-i')
+         !   IF ( jarg + 2 > iargc() ) THEN ! checking that there is at least 2 other arguments following
+         !      PRINT *, 'ERROR: Missing input file names!' ; call usage_test_stuffs()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing input file name 1 !' ; call usage_test_stuffs()
+         !      ELSE
+         !         cufilin = trim(cr)
+         !      END IF
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing input file name 2 !' ; call usage_test_stuffs()
+         !      ELSE
+         !         cvfilin = trim(cr)
+         !      END IF
+         !   END IF
          !!
-      !CASE('-t')
-      !   IF ( jarg + 1 > iargc() ) THEN
-      !      PRINT *, 'ERROR: Missing time name!' ; call usage_test_stuffs()
-      !   ELSE
-      !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-      !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-      !         PRINT *, 'ERROR: Missing time name!'; call usage_test_stuffs()
-      !      ELSE
-      !         cv_time_0 = trim(cr)
-      !      END IF
-      !   END IF
-      !   !!
-      !CASE('-1')
-      !   l_anlt = .TRUE.
+         !CASE('-t')
+         !   IF ( jarg + 1 > iargc() ) THEN
+         !      PRINT *, 'ERROR: Missing time name!' ; call usage_test_stuffs()
+         !   ELSE
+         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
+         !         PRINT *, 'ERROR: Missing time name!'; call usage_test_stuffs()
+         !      ELSE
+         !         cv_time_0 = trim(cr)
+         !      END IF
+         !   END IF
+         !   !!
+         !CASE('-1')
+         !   l_anlt = .TRUE.
          !!
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
@@ -258,7 +258,7 @@ PROGRAM TEST_STUFFS
 
    !cnmlst_x = TRIM(cf_nml_sosie)//'_x'
    !cnmlst_y = TRIM(cf_nml_sosie)//'_y'
-   
+
    !PRINT *, ' * namelists we expect => ', TRIM(cnmlst_x)//' and '//TRIM(cnmlst_y)
    !PRINT *, ''
 
@@ -271,113 +271,113 @@ PROGRAM TEST_STUFFS
 
 
 
-      CALL DIMS(cf_mm, cv_glamt, ni, nj, nk, Ntr)
+   CALL DIMS(cf_mm, cv_glamt, ni, nj, nk, Ntr)
 
-      IF ( nk > 1 ) THEN
-         i3d = 1
-      ELSE
-         nk  = 1
-         i3d = 0
-      END IF
+   IF ( nk > 1 ) THEN
+      i3d = 1
+   ELSE
+      nk  = 1
+      i3d = 0
+   END IF
 
-      WRITE(*,'("Space dimension is : ",i4," x",i4," x",i4)') ni, nj, nk
-      WRITE(*,'(i4," time records for u and v")') Ntr
-      PRINT *, ''
-
-
-      !! Allocations :
-      ALLOCATE ( Xdum4(ni,nj) ,  &
-         &    mask_t(ni,nj,nk), &
-         &    xlamt(ni,nj)  , xphit(ni,nj), Xdum8(ni,nj), &
-         &    xlamu(ni,nj)  , xphiu(ni,nj) , xlamv(ni,nj)  , xphiv(ni,nj) , &
-         &    xlamf(ni,nj) , xphif(ni,nj), &
-         &    vtime(Ntr)   )
-
-      ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , XCOSU8(ni,nj) , XSINU8(ni,nj) , XCOSV8(ni,nj) , XSINV8(ni,nj) , &
-         &      XCOSF8(ni,nj) , XSINF8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
-
-      
-      IF ( i3d == 1 ) THEN
-         ALLOCATE ( vdepth(nk) )
-         CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
-         !IF ( cgrid_trg == 'U' ) THEN
-         !   CALL GETMASK_3D(cf_lsm_trg, 'umask', mask_u(:,:,:))
-         !   CALL GETMASK_3D(cf_lsm_trg, 'vmask', mask_v(:,:,:))
-         !ELSE
-         CALL GETMASK_3D(cf_mm, 'tmask', mask_t(:,:,:))
-         !END IF
-      ELSE
-        ! IF ( cgrid_trg == 'U' ) THEN
-        !    CALL GETMASK_2D(cf_lsm_trg, 'umask', mask_u(:,:,1), jlev=1)
-        !    CALL GETMASK_2D(cf_lsm_trg, 'vmask', mask_v(:,:,1), jlev=1)
-         ! ELSE
-         CALL GETMASK_2D(cf_mm, 'tmask', mask_t(:,:,1), jlev=1)
-         !END IF
-      END IF
-      
-      !!  Getting longitude and latitude form grid file :
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlamt)
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xphit)
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlamu)
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xphiu)
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlamv)
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xphiv)
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlamf)
-      CALL GETVAR_2D(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xphif)
+   WRITE(*,'("Space dimension is : ",i4," x",i4," x",i4)') ni, nj, nk
+   WRITE(*,'(i4," time records for u and v")') Ntr
+   PRINT *, ''
 
 
-      
-      PRINT *, ''
+   !! Allocations :
+   ALLOCATE ( Xdum4(ni,nj) ,  &
+      &    mask_t(ni,nj,nk), &
+      &    xlamt(ni,nj)  , xphit(ni,nj), Xdum8(ni,nj), &
+      &    xlamu(ni,nj)  , xphiu(ni,nj) , xlamv(ni,nj)  , xphiv(ni,nj) , &
+      &    xlamf(ni,nj) , xphif(ni,nj), &
+      &    vtime(Ntr)   )
 
-      !! Is this a known ORCA grid (just for info now, not used!):
-      iorca = IS_ORCA_NORTH_FOLD( xphit )
-      IF ( iorca == 4 ) PRINT *, ' Grid is an ORCA grid with north-pole T-point folding! Type ',iorca
-      IF ( iorca == 6 ) PRINT *, ' Grid is an ORCA grid with north-pole F-point folding! Type ',iorca
-      PRINT *, ''
+   ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , XCOSU8(ni,nj) , XSINU8(ni,nj) , XCOSV8(ni,nj) , XSINV8(ni,nj) , &
+      &      XCOSF8(ni,nj) , XSINF8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
 
 
-      DO jj = 2, nj-1
-         DO ji = 2, ni-1
-            Xdum8(ji,jj) = COS(4.*xlamt(ji,jj)*rad0)*SIN(4.*xphit(ji,jj)*rad0)
-         END DO
+   IF ( i3d == 1 ) THEN
+      ALLOCATE ( vdepth(nk) )
+      CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
+      !IF ( cgrid_trg == 'U' ) THEN
+      !   CALL GETMASK_3D(cf_lsm_trg, 'umask', mask_u(:,:,:))
+      !   CALL GETMASK_3D(cf_lsm_trg, 'vmask', mask_v(:,:,:))
+      !ELSE
+      CALL GETMASK_3D(cf_mm, 'tmask', mask_t(:,:,:))
+      !END IF
+   ELSE
+      ! IF ( cgrid_trg == 'U' ) THEN
+      !    CALL GETMASK_2D(cf_lsm_trg, 'umask', mask_u(:,:,1), jlev=1)
+      !    CALL GETMASK_2D(cf_lsm_trg, 'vmask', mask_v(:,:,1), jlev=1)
+      ! ELSE
+      CALL GETMASK_2D(cf_mm, 'tmask', mask_t(:,:,1), jlev=1)
+      !END IF
+   END IF
+
+   !!  Getting longitude and latitude form grid file :
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlamt)
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_gphit, 1, 1, 1, xphit)
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_glamu, 1, 1, 1, xlamu)
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiu, 1, 1, 1, xphiu)
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_glamv, 1, 1, 1, xlamv)
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xphiv)
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlamf)
+   CALL GETVAR_2D(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xphif)
+
+
+
+   PRINT *, ''
+
+   !! Is this a known ORCA grid (just for info now, not used!):
+   iorca = IS_ORCA_NORTH_FOLD( xphit )
+   IF ( iorca == 4 ) PRINT *, ' Grid is an ORCA grid with north-pole T-point folding! Type ',iorca
+   IF ( iorca == 6 ) PRINT *, ' Grid is an ORCA grid with north-pole F-point folding! Type ',iorca
+   PRINT *, ''
+
+
+   DO jj = 2, nj-1
+      DO ji = 2, ni-1
+         Xdum8(ji,jj) = COS(4.*xlamt(ji,jj)*rad0)*SIN(4.*xphit(ji,jj)*rad0)
       END DO
-
-      
-      CALL lbc_lnk_2d( iorca, Xdum8, 'T', 1.0_8 )
-      
-      CALL DUMP_2D_FIELD(REAL(Xdum8,4), 'test.nc', 'test',  xlamt, xphit, cv_glamt, cv_gphit)
-
-      
-      
-      !STOP
-      
-
-      !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
-      CALL ANGLE( iorca, xlamt, xphit, xlamu, xphiu, xlamv, xphiv, xlamf, xphif, &
-         &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
+   END DO
 
 
-      XSINT8(:,nj) = 0. ; ! cancelling what has be done in ANGLE
-      CALL lbc_lnk_2d( iorca, XSINT8, 'T', -1.0_8 )
+   CALL lbc_lnk_2d( iorca, Xdum8, 'T', 1.0_8 )
 
-      XSINU8(:,nj) = 0. ; ! cancelling what has be done in ANGLE
-      CALL lbc_lnk_2d( iorca, XSINU8, 'U', -1.0_8 )
+   CALL DUMP_2D_FIELD(REAL(Xdum8,4), 'test.nc', 'test',  xlamt, xphit, cv_glamt, cv_gphit)
 
-      XSINV8(:,nj) = 0. ; ! cancelling what has be done in ANGLE
-      CALL lbc_lnk_2d( iorca, XSINV8, 'V', -1.0_8 )
 
-      
-      CALL DUMP_2D_FIELD(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL DUMP_2D_FIELD(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL DUMP_2D_FIELD(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL DUMP_2D_FIELD(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL DUMP_2D_FIELD(REAL(XCOSV8,4), 'cosv_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
-      CALL DUMP_2D_FIELD(REAL(XSINV8,4), 'sinv_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
-      !STOP
-      
-      !CALL P2D_T(id_f1, id_v1, Ntr, jt, xlamu, xphiu,         vtime, Uu_c(:,:,1), &
-      !   &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-      !   &    rmiss_val, attr_time=vatt_info_t)
+
+   !STOP
+
+
+   !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
+   CALL ANGLE( iorca, xlamt, xphit, xlamu, xphiu, xlamv, xphiv, xlamf, xphif, &
+      &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
+
+
+   XSINT8(:,nj) = 0. ; ! cancelling what has be done in ANGLE
+   CALL lbc_lnk_2d( iorca, XSINT8, 'T', -1.0_8 )
+
+   XSINU8(:,nj) = 0. ; ! cancelling what has be done in ANGLE
+   CALL lbc_lnk_2d( iorca, XSINU8, 'U', -1.0_8 )
+
+   XSINV8(:,nj) = 0. ; ! cancelling what has be done in ANGLE
+   CALL lbc_lnk_2d( iorca, XSINV8, 'V', -1.0_8 )
+
+
+   CALL DUMP_2D_FIELD(REAL(XCOST8,4), 'cost_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
+   CALL DUMP_2D_FIELD(REAL(XSINT8,4), 'sint_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
+   CALL DUMP_2D_FIELD(REAL(XCOSU8,4), 'cosu_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
+   CALL DUMP_2D_FIELD(REAL(XSINU8,4), 'sinu_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
+   CALL DUMP_2D_FIELD(REAL(XCOSV8,4), 'cosv_angle.nc', 'cos',   xlamt, xphit, cv_glamt, cv_gphit)
+   CALL DUMP_2D_FIELD(REAL(XSINV8,4), 'sinv_angle.nc', 'sin',   xlamt, xphit, cv_glamt, cv_gphit)
+   !STOP
+
+   !CALL P2D_T(id_f1, id_v1, Ntr, jt, xlamu, xphiu,         vtime, Uu_c(:,:,1), &
+   !   &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
+   !   &    rmiss_val, attr_time=vatt_info_t)
 
 
    PRINT *, 'Done!'

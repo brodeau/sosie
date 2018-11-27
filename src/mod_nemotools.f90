@@ -29,18 +29,18 @@ MODULE mod_nemotools
    IMPLICIT NONE
    PRIVATE
 
-   
+
    INTERFACE lbc_lnk
       MODULE PROCEDURE lbc_lnk_2d_r8, lbc_lnk_2d_r4
    END INTERFACE lbc_lnk
-   
+
 
 
 
    PUBLIC   lbc_lnk, angle
 
 
-   
+
    REAL(8), PARAMETER, PUBLIC :: &
       &       rPi0 = 3.141592653,     &
       &       rad0 = rPi0/180.0
@@ -54,7 +54,7 @@ MODULE mod_nemotools
 
    INTEGER, PARAMETER :: wp=8
 
-   
+
    !! For lbc_nfd_2d:
    INTEGER, PUBLIC, PARAMETER            ::   jpmaxngh = 3               !:
    INTEGER, PUBLIC                       ::   nsndto, nfsloop, nfeloop   !:
@@ -85,7 +85,7 @@ CONTAINS
       !!----------------------------------------------------------------------
 
       INTEGER :: jpi, jpj, jpim1
-      
+
       IF( PRESENT( pval ) ) THEN   ;   zland = pval      ! set land value (zero by default)
       ELSE                         ;   zland = 0._wp
       ENDIF
@@ -93,7 +93,7 @@ CONTAINS
       jpi = SIZE(pt2d,1)
       jpj = SIZE(pt2d,2)
       jpim1 = jpi-1
-      
+
       !
       !                                     ! East-West boundaries
       !                                     ! ====================
@@ -184,17 +184,17 @@ CONTAINS
       ELSE
          CALL lbc_lnk_2d_r8( nperio, pt2dr8, cd_type, psgn, pval=pval )
       END IF
-      
+
       pt2d(:,:) = REAL(pt2dr8 , 4)
 
       DEALLOCATE ( pt2dr8 )
-      
+
    END SUBROUTINE lbc_lnk_2d_r4
 
 
 
 
-   
+
 
 
    SUBROUTINE lbc_nfd_2d( npolj, pt2d, cd_type, psgn)
@@ -222,11 +222,11 @@ CONTAINS
       !!----------------------------------------------------------------------
       INTEGER :: jpi, jpj, jpiglo, jpjglo
       !!----------------------------------------------------------------------
-      
+
       jpi = SIZE(pt2d,1) ; jpiglo = jpi
       jpj = SIZE(pt2d,2) ; jpjglo = jpj
 
-      
+
       !SELECT CASE ( jpni )
       !CASE ( 1 )     ;   ijpj = nlcj      ! 1 proc only  along the i-direction
       !CASE DEFAULT   ;   ijpj = 4         ! several proc along the i-direction
@@ -244,9 +244,9 @@ CONTAINS
       ijpj   = jpj
       ipr2dj = 0
 
-      
+
       ijpjm1 = ijpj-1
-      
+
       !! ORCA2 => npolj => 4
       !! ORCA1 => npolj => 6
 
@@ -612,9 +612,9 @@ CONTAINS
          CALL lbc_lnk( nperio, gcosv, 'V', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinv, 'V', -1.0_8 )
          CALL lbc_lnk( nperio, gcosf, 'F', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinf, 'F', -1.0_8 )
       END IF
-      
+
    END SUBROUTINE angle
-   
+
 
    !!======================================================================
 END MODULE mod_nemotools

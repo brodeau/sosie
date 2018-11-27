@@ -139,7 +139,7 @@ CONTAINS
       ELSE
          X1 = X10 ; Y1 = Y10
       END IF
-      
+
       ctype = '00'
       ctype = TEST_XYZ(X20, Y20, Z2)
       nx2 = SIZE(Z2,1)
@@ -158,24 +158,24 @@ CONTAINS
 
 
       IF ( l_first_call_interp_routine ) ALLOCATE ( ixy_pos(nx2, ny2, 2) )
-      
-      
+
+
       !! Extending the source 2D domain with a frame of 2 points:
       !!    We extend initial 2D array with a frame, adding n_extd points in each
       !!    dimension This is really needed specially for preserving good east-west
       !!    perdiodicity...
-      
+
       ni1 = nx1 + n_extd  ;   nj1 = ny1 + n_extd
-      
+
       ALLOCATE ( Z_src(ni1,nj1), lon_src(ni1,nj1), lat_src(ni1,nj1), &
          &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
          &       poly(ni1-1,nj1-1,nsys)    )
-      
+
       CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_src, lat_src, Z_src,  is_orca_grid=i_orca_src)
 
       DEALLOCATE (X1, Y1)
 
-      
+
 
       !! Computation of partial derivatives:
       CALL slopes_akima(k_ew_per, lon_src, lat_src, Z_src, slpx, slpy, slpxy)
@@ -306,7 +306,7 @@ CONTAINS
    !! LOCAL PRIVATE ROUTINES :
    !! ########################
 
-   
+
    SUBROUTINE build_pol(ZX, ZY, ZF, sx, sy, sxy, XPLNM)
 
       !!==================================================================
@@ -317,12 +317,12 @@ CONTAINS
 
       REAL(8), DIMENSION(:,:),   INTENT(in)  :: ZX, ZY, ZF, sx, sy, sxy
       REAL(8), DIMENSION(:,:,:), INTENT(out) :: XPLNM
-      
+
       !! Local variables :
       !! -----------------
       REAL(8), DIMENSION(:), ALLOCATABLE :: VX
       INTEGER                  :: nx, ny, ji, jj
-      
+
       REAL(8) :: &
          &   x, x2, x3, y, y2, y3, xy, &
          &   b1, b2, b3, b4, b5, b6, b7, b8, &
@@ -706,7 +706,7 @@ CONTAINS
       END DO
 
       DEALLOCATE ( ZX, ZY, ZF )
-      
+
    END SUBROUTINE slopes_akima
 
 END MODULE MOD_AKIMA_2D

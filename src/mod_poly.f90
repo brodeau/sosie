@@ -75,7 +75,7 @@ CONTAINS
       rmaxy = MAXVAL(vplat)
       rminx = MINVAL(vplon)
       rminy = MINVAL(vplat)
-           
+
       IF ( (rminx < 0.).OR.(pxpoint < 0.) ) STOP 'ERROR (L_InPoly of mod_poly.f90): we only expect positive longitudes!'
 
       IF ( (rminx < 10.).AND.(rmaxx > 350.) ) THEN
@@ -89,13 +89,13 @@ CONTAINS
          vertx(1:4) = REAL( vplon , 4)
       END IF
 
-      
+
       zy         = pypoint
       verty(1:4) = REAL( vplat(:) , 4 )
 
 
 
-      
+
       ! Automatically close the polygon
       vertx(jpvert+1)=vertx(1)
       verty(jpvert+1)=verty(1)

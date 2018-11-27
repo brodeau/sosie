@@ -18,9 +18,9 @@ MODULE MOD_INIT
    NAMELIST /ndom_trg/ ctarget, l_reg_trg, cf_x_trg, cv_lon_trg, cv_lat_trg, cf_lsm_trg,   &
       &                cv_lsm_trg, ewper_trg,cf_z_trg, cv_z_trg, ctype_z_trg, &
       &                cf_bathy_trg, cv_bathy_trg, ssig_trg
-   
+
    NAMELIST /ninterp/  cmethod, idrown, l_save_drwn, ismooth, jt1, jt2, jplev, vmax, vmin, ismooth_out, ibx_xtra_sm
-   
+
    NAMELIST /noutput/  cv_out, cu_out, cln_out, cv_t_out, cd_out, cextra, &
       &                lmout, rmiss_val, lct, t0, t_stp, cv_z_out
 
@@ -109,7 +109,7 @@ CONTAINS
 
       idrown%np_penetr = 0 ! defaults
       idrown%nt_smooth = 5
-      
+
       !! Reading interpolation section:
       REWIND( numnam )
       READ( numnam, ninterp )
@@ -129,16 +129,16 @@ CONTAINS
 
       CLOSE(numnam)
 
-      
+
       l_drown_src = .FALSE.
       IF ( idrown%np_penetr > 0 ) l_drown_src = .TRUE.
-      
+
       IF ( (.NOT. l_drown_src).AND.(l_save_drwn) ) THEN
          PRINT *, ' PROBLEM: you cannot save the drowned input field (l_save_drwn) if you'
          PRINT *, '          do not plan on using DROWN! => set idrown>0,0 !'
          STOP
       END IF
-      
+
       IF ( iex == 1 ) THEN
 
          !! If this is a vector component, then interpolated files won't be correct
@@ -192,9 +192,9 @@ CONTAINS
          END IF
          WRITE(6,*)''
          !!
-         
+
          IF (TRIM(cv_t_src)=='missing_rec') lct = .TRUE.
-         
+
          WRITE(6,*)''
          WRITE(6,*)'Source file: ', TRIM(cf_src)
          WRITE(6,*)''
@@ -322,7 +322,7 @@ CONTAINS
          STOP
       END IF
 
-      IF ( (jplev == 0).AND.(nk_trg == 1) ) THEN        
+      IF ( (jplev == 0).AND.(nk_trg == 1) ) THEN
          WRITE(6,*) ''
          WRITE(6,*) ' ERROR: you want a 3D interpolation (jplev=0) but your target domain'
          WRITE(6,*) '        has less than 2 levels!!! /  nk_trg =', nk_trg
