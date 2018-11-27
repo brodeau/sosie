@@ -78,7 +78,7 @@ sst.ltm.1971-2000.nc.gz in ./data
 
       >> sosie3.x -f namelist.example1
 
-Check the newly created SST\_360x180-ORCA1\_REYNOLDS\_LTM.nc
+Check SST\_360x180-ORCA1\_REYNOLDS\_LTM.nc
 
 &nbsp;
 
@@ -89,7 +89,7 @@ Check the newly created SST\_360x180-ORCA1\_REYNOLDS\_LTM.nc
 T\_levitus\_march.nc.gz in ./data
 
      >> sosie3.x -f namelist.example2
-Check the newly created temp\_360x180-ORCA1\_march.nc
+Check temp\_360x180-ORCA1\_march.nc
 
 &nbsp;
 
@@ -100,7 +100,7 @@ lat-lon 1x1 deg. grid using the bilinear algorithm. Uncompress the file
 sst\_ORCA1\_example.nc.gz in ./data
 
     >> sosie3.x -f namelist.example3
-Check the newly created sst\_ORCA1-1x1\_test.nc
+Check sst\_ORCA1-1x1\_test.nc
 
 &nbsp;
 
@@ -121,12 +121,12 @@ Do the "raw" interpolation for the meridional component of the wind:
 Now that uraw_1x1-deg-ORCA1_grid_T.nc4 and uraw_1x1-deg-ORCA1_grid_T.nc4 are created, time to correct onto the T-grid:
 
       >> corr_vect.x -G T -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
-Check the newly created u10_1x1-deg-ORCA1_grid_T.nc4 and v10_1x1-deg-ORCA1_grid_T.nc4 (vector components on T-points of the grid).
+Check u10_1x1-deg-ORCA1_grid_T.nc4 and v10_1x1-deg-ORCA1_grid_T.nc4 (vector components on T-points of the grid).
 
 It is possible to do the same correction onto U,V grid points rather than T points:
 
       >> corr_vect.x -G U -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
-Check the newly created u10_1x1-deg-ORCA1_grid_U.nc4 and v10_1x1-deg-ORCA1_grid_V.nc4.
+Check u10_1x1-deg-ORCA1_grid_U.nc4 and v10_1x1-deg-ORCA1_grid_V.nc4.
 
 
 
@@ -138,7 +138,7 @@ Do the interpolation:
 
           >> sosie3.x -f namelist.example5
 
-Check the newly created **T2M_2560x480-polar-stereo_Arctic.nc**
+Check **T2M_2560x480-polar-stereo_Arctic.nc**
 
 
 &nbsp;
@@ -149,7 +149,7 @@ Do the interpolation:
 
           >> sosie3.x -f namelist.example6
 
-Check the newly created **so_ORCA2-ORCA1_test.nc**
+Check **so_ORCA2-ORCA1_test.nc**
 
 &nbsp;
 
