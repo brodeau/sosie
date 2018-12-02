@@ -119,18 +119,17 @@ ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
 !!         * cv_lat_trg = '1.0'  ! your dy, here 1.0 deg.
 !!
 !!
-!! cf_lsm_trg : file containing target land-sea mask [char]
-!!              MUST BE 3D for 3D interpolation!
+!! cf_lsm_trg : (not needed if "lmout = .FALSE." --> '')
+!!              file containing TARGET land-sea mask [char]
+!!              land-sea mask MUST BE 3D for 3D interpolation!
 !!              - or specify 'missing_value' if a 'missing_value' netcdf
 !!                attribute defines the mask on a field 'X' in file 'cf_x_trg'
-!!                (not needed if "lmout = .FALSE." --> '')
-!!              - or specify 'val' so points with value "rmiss_val" in the file
-!!                to be saved will be masked!
 !!
-!! cv_lsm_trg : name of land-sea mask variable in 'cf_lsm_trg'     [char]
-!!              or name of field 'X' in 'cf_x_trg' if you specified
-!!              cf_lsm_trg = 'missing_value'
-!!              (not needed if "lmout = .FALSE." --> '')
+!! cv_lsm_trg : (not needed if "lmout = .FALSE." --> '')
+!!              name of land-sea mask variable in 'cf_lsm_trg'     [char]
+!!              - or name of field 'X' in 'cf_x_trg' if you specified
+!!                cf_lsm_trg = 'missing_value'
+!!               
 !!
 !! ewper_trg : east-west periodicity on the target file/grid [integer]
 !!             = -1 --> no periodicity
@@ -240,7 +239,7 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 &ninterp
 cmethod     = 'akima'
 !!
-idrown      = 100,90
+idrown      = 100,50
 l_save_drwn = .false.
 ismooth     = 0
 jt1         = 0
@@ -276,7 +275,7 @@ ibx_xtra_sm = 0, 0,0, 0,0  ! Extra-smoothing on a given rectangular region: ibx_
 !!         if lmout is set to .FALSE. and cf_lsm_trg is different than '' the target
 !!         field will be drowned using the mask defined by cf_lsm_trg (and cv_lsm_trg)
 !!
-!! rmiss_val : missing value given to target field (for continents) [logical]
+!! rmiss_val : missing value given to target field (for continents) [real]
 !!
 !! lct   : whether to control or not time variable [logical]
 !!         TRUE -> specify time array with starting time 't0' and step 't_stp'

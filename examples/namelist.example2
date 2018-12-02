@@ -9,7 +9,7 @@
 &ndom_src
 csource    = 'EN.4.2.0_360x173L42'
 ivect      = 0
-l_reg_src  = T
+l_reg_src  = .true.
 cf_src     = 'data/temperature_EN.4.2.0_january_clim_1990-2010.nc'
 cv_src     = 'temperature'
 cv_t_src   = 'time'
@@ -29,7 +29,7 @@ ctype_z_src = 'z'
 !!
 &ndom_trg
 ctarget    = 'ORCA1L75'
-l_reg_trg  = F
+l_reg_trg  = .false
 cf_x_trg   = 'data/mesh_mask_ORCA1_light.nc'
 cv_lon_trg = 'nav_lon'
 cv_lat_trg = 'nav_lat'
