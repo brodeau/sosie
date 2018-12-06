@@ -50,7 +50,7 @@ CONTAINS
          !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
          WRITE(6,'("     --- ",a,": smoothing ",i4," times!")') TRIM(cv_src), ismooth
          PRINT *, ' Smoothing '//TRIM(cv_src)//'!', ismooth, ' times'
-         CALL SMOOTH(ewper_src, data_src,  nb_smooth=ismooth, mask_apply=mask_src(:,:,1), l_exclude_mask_points=.true.)
+         CALL SMOOTHER(ewper_src, data_src,  nb_smooth=ismooth, msk=mask_src(:,:,1), l_exclude_mask_points=.true.)
       END IF
 
 
@@ -99,14 +99,14 @@ CONTAINS
          i2=ibx_xtra_sm(3)
          j2=ibx_xtra_sm(4)
          PRINT *, '          => on box:', i1,j1, i2,j2
-         !CALL SMOOTH(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0), mask_apply=mask_trg(i1:i2,j1:j2,1), l_exclude_mask_points=.TRUE.)
-         CALL SMOOTH(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0))
+         !CALL SMOOTHER(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0), msk=mask_trg(i1:i2,j1:j2,1), l_exclude_mask_points=.TRUE.)
+         CALL SMOOTHER(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0))
          PRINT *, ''
       END IF
 
       IF ( ismooth_out > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
-         CALL SMOOTH(ewper_trg, data_trg,  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,1), l_exclude_mask_points=.true.)
+         CALL SMOOTHER(ewper_trg, data_trg,  nb_smooth=ismooth_out, msk=mask_trg(:,:,1), l_exclude_mask_points=.true.)
          PRINT *, ''
       END IF
 
@@ -176,7 +176,7 @@ CONTAINS
             END IF
             !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
             WRITE(6,'("     --- ",a,": Smoothing level #",i3.3," ",i2," times!")') TRIM(cv_src), jk, ismooth
-            CALL SMOOTH(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, mask_apply=mask_src(:,:,jk), l_exclude_mask_points=.true.)
+            CALL SMOOTHER(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, msk=mask_src(:,:,jk), l_exclude_mask_points=.true.)
          END IF
 
       END DO !DO jk = 1, nk_src
@@ -402,13 +402,13 @@ CONTAINS
             i2=ibx_xtra_sm(3)
             j2=ibx_xtra_sm(4)
             PRINT *, '          => on box:', i1,j1, i2,j2
-            CALL SMOOTH(ewper_trg, data3d_trg(i1:i2,j1:j2,jk),  nb_smooth=ibx_xtra_sm(0))
+            CALL SMOOTHER(ewper_trg, data3d_trg(i1:i2,j1:j2,jk),  nb_smooth=ibx_xtra_sm(0))
             PRINT *, ''
          END IF
 
          IF ( ismooth_out > 0 ) THEN
             WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
-            CALL SMOOTH(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, mask_apply=mask_trg(:,:,jk), l_exclude_mask_points=.TRUE.)
+            CALL SMOOTHER(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, msk=mask_trg(:,:,jk), l_exclude_mask_points=.TRUE.)
             PRINT *, ''
          END IF
 
