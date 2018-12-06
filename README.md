@@ -3,7 +3,7 @@
 ![SOSIE Logo](https://brodeau.github.io/sosie/sosie_files/sosie_300.svg)
 
 
-### SOSIE version 3.0 Beta (use branch "2/6" if you want the older version)
+### SOSIE version 3.0 Beta (use branch "2.6" if you want the older version)
 
 # Getting started with SOSIE
 (Also check the online SOSIE doc for more info on the interpolation method:
