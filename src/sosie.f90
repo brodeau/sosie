@@ -5,7 +5,7 @@ PROGRAM SOSIE
    !!     SOSIE is Only a Surface Interpolation Environment
    !!     =================================================
    !!
-   !!     Version 3.0 beta, November 2018
+   !!     Version 3.0, Janvier 2019
    !!
    !!
    !!    PURPOSE:
@@ -30,7 +30,7 @@ PROGRAM SOSIE
    !!
    !!     AUTHORS:
    !!     -------
-   !!     Laurent Brodeau, 2018
+   !!     Laurent Brodeau, 2019
    !!     Jean-Michel Brankart, Jean-Marc Molines, Pierre Mathiot
    !!
    !!            Contact: https://github.com/brodeau/sosie
@@ -66,10 +66,10 @@ PROGRAM SOSIE
 
 
    !! Fecthing command line arguments if any:
-   CALL GET_ARGUMENTS()    ! MODUDE mod_init
+   CALL GET_ARGUMENTS()    ! MODULE mod_init
 
    !! Reading namelist:
-   CALL READ_NMLST(1)      ! MODUDE mod_init
+   CALL READ_NMLST(1)      ! MODULE mod_init
 
    !! Setting defaults for some logical flags :
    l3d = .FALSE. ; l_itrp_3d = .FALSE. ; ltime = .TRUE.
@@ -82,7 +82,7 @@ PROGRAM SOSIE
    CALL TRG_DOMAIN()       ! MODULE mod_grids
 
    !! Just to display some info of the current setting:
-   CALL REMINDER()         ! MODUDE mod_init
+   CALL REMINDER()         ! MODULE mod_init
 
 
    IF ( Ntr == 0 ) THEN
@@ -154,7 +154,6 @@ PROGRAM SOSIE
             &      attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_time=vatt_info_t, attr_F=vatt_info_F, &
             &      cextrainfo=cextinf)
 
-         !LOLO
          IF ( l_save_drwn ) THEN
             CALL P2D_T(idf_id, idv_id, Ntr, jt,    &
                &       lon_src, lat_src, vt, data_src_drowned(:,:,1),    &
@@ -166,6 +165,8 @@ PROGRAM SOSIE
 
       ELSE
 
+
+         
          !! ================
          !! 3D INTERPOLATION
          !! ================
@@ -194,7 +195,6 @@ PROGRAM SOSIE
                &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
 
-            !LOLO
             IF ( l_save_drwn ) THEN
                CALL P3D_T(idf_id, idv_id, Ntr, jt,    &
                   &       lon_src, lat_src, REAL(depth_src(1,1,:),8), vt, data_src_drowned(:,:,:), &

@@ -61,14 +61,14 @@ MODULE io_ezcdf
       &    getvar_3d,        &
       &    getvar_attributes,&
       &    force_attr,       &
-      &    getmask_2d,       &
-      &    getmask_3d,       &
+      &    getmask_2d,       & ! not time records (at least no more than 1!)
+      &    getmask_3d,       & !        "              "
       &    pt_series,        &
       &    p2d_t,            &
       &    p3d_t,            &
       &    check_4_miss,     &
       &    get_var_info,     &
-      &    dump_field,    &
+      &    dump_field,       &
       &    p2d_mapping_ab,   &
       &    rd_mapping_ab,    &
       &    phovmoller,       &
@@ -756,7 +756,7 @@ CONTAINS
 
 
 
-
+   !lili
    SUBROUTINE GETMASK_2D(cf_in, cv_in, IX, jlev)
 
       !!-----------------------------------------------------------------------

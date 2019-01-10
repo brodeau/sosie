@@ -4,9 +4,10 @@ MODULE MOD_INIT
 
    IMPLICIT NONE
 
+   PRIVATE
+   
    PUBLIC :: GET_ARGUMENTS, READ_NMLST, REMINDER
-
-
+   
    !! Declaration of namelist :
    !! -------------------------
 
@@ -25,6 +26,7 @@ MODULE MOD_INIT
       &                lmout, rmiss_val, lct, t0, t_stp, cv_z_out
 
    PRIVATE usage
+
 
 CONTAINS
 
@@ -95,7 +97,7 @@ CONTAINS
       END IF
 
       PRINT *, ''
-      PRINT *, 'Opening namelist "', trim(cf_nml_sosie), '"'
+      PRINT *, 'Opening namelist "', TRIM(cf_nml_sosie), '"'
 
       OPEN( UNIT=numnam, FILE=trim(cf_nml_sosie), FORM='FORMATTED', STATUS='OLD' )
 
