@@ -332,7 +332,7 @@ PROGRAM mask_drown_field
       IF ( l_drwn_f ) THEN
          PRINT *, ' *** drowning field at time =', jt
          DO jk = 1, nk
-            CALL DROWN(iewper, DATA(:,:,jk), mask(:,:,jk), nb_inc=i_how_far, nb_smooth=10)
+            CALL DROWN(iewper, DATA(:,:,jk), mask(:,:,jk), nb_inc=i_how_far, nb_smooth=20)
          END DO
       END IF
 

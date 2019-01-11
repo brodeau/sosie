@@ -522,8 +522,8 @@ PROGRAM NEMO_COARSENER
    e1e3v_crs(:,:,:)=0._wp
    e1e3v_msk(:,:,:)=0._wp
    IF ( l_do_T .OR. l_do_W ) CALL crs_dom_sfc( REAL(tmask,8), 'W', e1e2w_crs, e1e2w_msk, p_e1=e1t, p_e2=e2t    )
-   IF ( l_do_U )             CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=e3u_0 )
-   IF ( l_do_V )             CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=e3v_0 )
+   IF ( l_do_U )             CALL crs_dom_sfc( REAL(umask,8), 'U', e2e3u_crs, e2e3u_msk, p_e2=e2u, p_e3=REAL(e3u_0,wp) )
+   IF ( l_do_V )             CALL crs_dom_sfc( REAL(vmask,8), 'V', e1e3v_crs, e1e3v_msk, p_e1=e1v, p_e3=REAL(e3v_0,wp) )
 
    IF ( l_debug .AND. (l_do_T .OR. l_do_W) ) CALL DUMP_FIELD(REAL(e1e2w_crs,4), 'e1e2w_crs.tmp', 'e1e2w_crs' )
    IF ( l_debug .AND. (l_do_U) )             CALL DUMP_FIELD(REAL(e2e3u_msk,4), 'e2e3u_msk.tmp', 'e2e3u_msk' )
@@ -534,10 +534,10 @@ PROGRAM NEMO_COARSENER
 
    !    3.d.3   Vertical scale factors
    !
-   IF ( l_do_T ) CALL crs_dom_e3( e1t, e2t, e3t_0, p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,wp), p_e3_crs=e3t_0_crs, p_e3_max_crs=e3t_max_0_crs)
-   IF ( l_do_W ) CALL crs_dom_e3( e1t, e2t, e3w_0, p_sfc_3d_crs=e1e2w_crs, cd_type='W', p_mask=REAL(tmask,wp), p_e3_crs=e3w_0_crs, p_e3_max_crs=e3w_max_0_crs)
-   IF ( l_do_U ) CALL crs_dom_e3( e1u, e2u, e3u_0, p_sfc_2d_crs=e2u_crs  , cd_type='U', p_mask=REAL(umask,wp), p_e3_crs=e3u_0_crs, p_e3_max_crs=e3u_max_0_crs)
-   IF ( l_do_V ) CALL crs_dom_e3( e1v, e2v, e3v_0, p_sfc_2d_crs=e1v_crs  , cd_type='V', p_mask=REAL(vmask,wp), p_e3_crs=e3v_0_crs, p_e3_max_crs=e3v_max_0_crs)
+   IF ( l_do_T ) CALL crs_dom_e3( e1t, e2t, REAL(e3t_0,wp), p_sfc_3d_crs=e1e2w_crs, cd_type='T', p_mask=REAL(tmask,wp), p_e3_crs=e3t_0_crs, p_e3_max_crs=e3t_max_0_crs)
+   IF ( l_do_W ) CALL crs_dom_e3( e1t, e2t, REAL(e3w_0,wp), p_sfc_3d_crs=e1e2w_crs, cd_type='W', p_mask=REAL(tmask,wp), p_e3_crs=e3w_0_crs, p_e3_max_crs=e3w_max_0_crs)
+   IF ( l_do_U ) CALL crs_dom_e3( e1u, e2u, REAL(e3u_0,wp), p_sfc_2d_crs=e2u_crs  , cd_type='U', p_mask=REAL(umask,wp), p_e3_crs=e3u_0_crs, p_e3_max_crs=e3u_max_0_crs)
+   IF ( l_do_V ) CALL crs_dom_e3( e1v, e2v, REAL(e3v_0,wp), p_sfc_2d_crs=e1v_crs  , cd_type='V', p_mask=REAL(vmask,wp), p_e3_crs=e3v_0_crs, p_e3_max_crs=e3v_max_0_crs)
 
    WHERE(e3t_max_0_crs == 0._wp) e3t_max_0_crs=r_inf
    WHERE(e3u_max_0_crs == 0._wp) e3u_max_0_crs=r_inf
@@ -555,8 +555,8 @@ PROGRAM NEMO_COARSENER
 
    !    3.d.3   Vertical depth (meters)
    !cbr: il semblerait que p_e3=... ne soit pas utile ici !!!!!!!!!
-   !CALL crs_dom_ope( gdept_0, 'MAX', 'T', tmask, gdept_0_crs, p_e3=e3t_0, psgn=1.0 )
-   !CALL crs_dom_ope( gdepw_0, 'MAX', 'W', tmask, gdepw_0_crs, p_e3=e3w_0, psgn=1.0 )
+   !CALL crs_dom_ope( gdept_0, 'MAX', 'T', tmask, gdept_0_crs, p_e3=REAL(e3t_0,wp), psgn=1.0 )
+   !CALL crs_dom_ope( gdepw_0, 'MAX', 'W', tmask, gdepw_0_crs, p_e3=REAL(e3w_0,wp), psgn=1.0 )
    !DO jk = 1, jpk
    !   DO ji = 1, jpi_crs
    !      DO jj = 1, jpj_crs
@@ -847,7 +847,7 @@ PROGRAM NEMO_COARSENER
                IF ( l_do_T ) THEN
                   IF ( (TRIM(cv_in)=='sossheig').OR.(TRIM(cv_in)=='sosstsst').OR.(TRIM(cv_in)=='sosaline') ) THEN
                      WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
-                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'T', REAL(tmask,8), x2d_r8_crs , p_e12=e1e2t, p_e3=e3t_0, psgn=1.0_wp )
+                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'T', REAL(tmask,8), x2d_r8_crs , p_e12=e1e2t, p_e3=REAL(e3t_0,wp), psgn=1.0_wp )
                      WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                      x2d_r4_crs = x2d_r8_crs
                      WHERE ( tmask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
@@ -859,7 +859,7 @@ PROGRAM NEMO_COARSENER
                IF ( l_do_U ) THEN
                   IF ( (TRIM(cv_in)=='sozocrtx').OR.(TRIM(cv_in)=='sozotaux') ) THEN
                      WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / U !'
-                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'U', REAL(umask,8), x2d_r8_crs , p_e12=e2u, p_e3=e3u_0, psgn=1.0_wp )
+                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'U', REAL(umask,8), x2d_r8_crs , p_e12=e2u, p_e3=REAL(e3u_0,wp), psgn=1.0_wp )
                      WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                      x2d_r4_crs = x2d_r8_crs
                      WHERE ( umask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
@@ -871,7 +871,7 @@ PROGRAM NEMO_COARSENER
                IF ( l_do_V ) THEN
                   IF ( (TRIM(cv_in)=='somecrty').OR.(TRIM(cv_in)=='sometauy') ) THEN
                      WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / V !'
-                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'V', REAL(vmask,8), x2d_r8_crs , p_e12=e2v, p_e3=e3v_0, psgn=1.0_wp )
+                     CALL crs_dom_ope( REAL(x2d_r4,8) , 'VOL', 'V', REAL(vmask,8), x2d_r8_crs , p_e12=e2v, p_e3=REAL(e3v_0,wp), psgn=1.0_wp )
                      WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                      x2d_r4_crs = x2d_r8_crs
                      WHERE ( vmask_crs(:,:,1) == 0 ) x2d_r4_crs = 1.e+20
@@ -950,7 +950,7 @@ PROGRAM NEMO_COARSENER
 
                IF ( (TRIM(cv_in)=='votemper').OR.(TRIM(cv_in)=='vosaline') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / VOL / T !'
-                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'VOL', 'T', REAL(tmask,8), x3d_r8_crs , p_e12=e1e2t, p_e3=e3t_0, psgn=1.0_wp )
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'VOL', 'T', REAL(tmask,8), x3d_r8_crs , p_e12=e1e2t, p_e3=REAL(e3t_0,wp), psgn=1.0_wp )
                   WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                   x3d_r4_crs = REAL(x3d_r8_crs,4)
                   WHERE ( tmask_crs == 0 ) x3d_r4_crs = 1.e+20
@@ -960,7 +960,7 @@ PROGRAM NEMO_COARSENER
 
                IF ( (TRIM(cv_in)=='vozocrtx') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / SUM / U !'
-                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'SUM', 'U', REAL(umask,8), x3d_r8_crs, p_e12=e2u, p_e3=e3u_0, p_surf_crs=e2e3u_msk, psgn=-1.0_wp )
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'SUM', 'U', REAL(umask,8), x3d_r8_crs, p_e12=e2u, p_e3=REAL(e3u_0,wp), p_surf_crs=e2e3u_msk, psgn=-1.0_wp )
                   WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                   x3d_r4_crs = REAL(x3d_r8_crs,4)
                   WHERE ( umask_crs == 0 ) x3d_r4_crs = 1.e+20
@@ -970,7 +970,7 @@ PROGRAM NEMO_COARSENER
 
                IF ( (TRIM(cv_in)=='vomecrty') ) THEN
                   WRITE(numout,*) '   *** Coarsening '//TRIM(cv_in)//' with crs_dom_ope / SUM / V !'
-                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'SUM', 'V', REAL(vmask,8), x3d_r8_crs, p_e12=e1v, p_e3=e3v_0, p_surf_crs=e1e3v_msk, psgn=-1.0_wp )
+                  CALL crs_dom_ope( REAL(x3d_r4,8) , 'SUM', 'V', REAL(vmask,8), x3d_r8_crs, p_e12=e1v, p_e3=REAL(e3v_0,wp), p_surf_crs=e1e3v_msk, psgn=-1.0_wp )
                   WRITE(numout,*) '   *** writing '//TRIM(cv_in)//' in '//TRIM(cf_out)
                   x3d_r4_crs = REAL(x3d_r8_crs,4)
                   WHERE ( vmask_crs == 0 ) x3d_r4_crs = 1.e+20
