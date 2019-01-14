@@ -12,7 +12,6 @@ include make.macro
 NCDF_LIB=$(NETCDF_DIR)/lib
 NCDF_INC=$(NETCDF_DIR)/include
 
-
 #========================================================
 #          You should not change anything below
 #========================================================
@@ -178,10 +177,13 @@ bin/mask_drown_field.x: src/mask_drown_field.f90 $(LIB_SOSIE)
 
 install: all
 	@mkdir -p $(INSTALL_DIR)/bin $(INSTALL_DIR)/lib $(INSTALL_DIR)/include
-	cp bin/*.x      $(INSTALL_DIR)/bin/
-	cp $(LIB_SOSIE) $(INSTALL_DIR)/lib/
-	cp $(MOD_INST)  $(INSTALL_DIR)/include/
+	rsync -avP bin/*.x      $(INSTALL_DIR)/bin/
+	rsync -avP $(LIB_SOSIE) $(INSTALL_DIR)/lib/
+	rsync -avP $(MOD_INST)  $(INSTALL_DIR)/include/
 
+#	ifneq ("$(wildcard bin/nemo_coarsener.x)","")
+#	rsync -avP bin/nemo_coarsener.x $(INSTALL_DIR)/bin/
+#	endif
 
 uninstall:
 	rm -f $(INSTALL_DIR)/bin/*.x

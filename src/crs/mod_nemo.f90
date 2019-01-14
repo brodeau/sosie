@@ -3,8 +3,9 @@ MODULE mod_nemo
    IMPLICIT NONE
    PUBLIC
 
-   INTEGER, PARAMETER ::   dp = SELECTED_REAL_KIND(12,307)   !: double precision (real 8)
-   INTEGER, PARAMETER ::   wp = dp                              !: working precision
+   !INTEGER, PARAMETER ::   dp = SELECTED_REAL_KIND(12,307)   !: double precision (real 8)
+   !INTEGER, PARAMETER ::   wp = dp                              !: working precision
+   INTEGER, PARAMETER ::   wp = 4 !LOLO
 
    INTEGER ::   numout          =    6      !: logical unit for output print; Set to stdout to ensure any early
 

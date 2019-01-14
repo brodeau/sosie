@@ -61,9 +61,10 @@ CONTAINS
       umask_crs(:,:,:) = 0.0
       fmask_crs(:,:,:) = 0.0
       !
-      !PRINT *, ' ### crs_dom_msk CTRL: nldj_crs, nlei_crs =', nldj_crs, nlei_crs
-      !PRINT *, ' ### crs_dom_msk CTRL: mje_crs, mjs_crs =', mje_crs, mjs_crs
-      !PRINT *, ' ### crs_dom_msk CTRL: mie_crs, mis_crs =', mie_crs, mis_crs
+      PRINT *, ' ### crs_dom_msk CTRL: nldi_crs, nlei_crs =', nldi_crs, nlei_crs
+      PRINT *, ' ### crs_dom_msk CTRL: nldj_crs, nlej_crs =', nldj_crs, nlej_crs
+      PRINT *, ' ### crs_dom_msk CTRL: mje_crs, mjs_crs =', mje_crs, mjs_crs
+      PRINT *, ' ### crs_dom_msk CTRL: mie_crs, mis_crs =', mie_crs, mis_crs
 
       DO jk = 1, jpkm1
          DO ji = nldi_crs, nlei_crs
@@ -71,26 +72,28 @@ CONTAINS
             ijis = mis_crs(ji)
             ijie = mie_crs(ji)
 
-            DO jj = nldj_crs, nlej_crs
+            IF ( (ijis > 0).AND.(ijie > 0) ) THEN
+               DO jj = nldj_crs, nlej_crs
 
-               ijjs = mjs_crs(jj)
-               ijje = mje_crs(jj)
+                  ijjs = mjs_crs(jj)
+                  ijje = mje_crs(jj)
+                  
+                  zmask = 0.0
+                  zmask = SUM( tmask(ijis:ijie,ijjs:ijje,jk) )
+                  IF ( zmask > 0.0 ) tmask_crs(ji,jj,jk) = 1.0
 
-               zmask = 0.0
-               zmask = SUM( tmask(ijis:ijie,ijjs:ijje,jk) )
-               IF ( zmask > 0.0 ) tmask_crs(ji,jj,jk) = 1.0
+                  zmask = 0.0
+                  zmask = SUM( vmask(ijis:ijie,ijje     ,jk) )
+                  IF ( zmask > 0.0 ) vmask_crs(ji,jj,jk) = 1.0
 
-               zmask = 0.0
-               zmask = SUM( vmask(ijis:ijie,ijje     ,jk) )
-               IF ( zmask > 0.0 ) vmask_crs(ji,jj,jk) = 1.0
+                  zmask = 0.0
+                  zmask = SUM( umask(ijie     ,ijjs:ijje,jk) )
+                  IF ( zmask > 0.0 ) umask_crs(ji,jj,jk) = 1.0
 
-               zmask = 0.0
-               zmask = SUM( umask(ijie     ,ijjs:ijje,jk) )
-               IF ( zmask > 0.0 ) umask_crs(ji,jj,jk) = 1.0
+                  fmask_crs(ji,jj,jk) = fmask(ijie,ijje,jk)
 
-               fmask_crs(ji,jj,jk) = fmask(ijie,ijje,jk)
-
-            ENDDO
+               ENDDO
+            END IF !IF ( (ijis > 0).AND.(ijie > 0) )
          ENDDO
       ENDDO
 
@@ -138,15 +141,17 @@ CONTAINS
       p_gphi_crs(:,:)=0._wp
       p_glam_crs(:,:)=0._wp
 
-
+      !PRINT *, ' LOLO (crsdom.f90), jpi_full =', jpi_full
       SELECT CASE ( cd_type )
       CASE ( 'T' )
          DO jj =  nldj_crs, nlej_crs
-            ijj = mjs_crs(jj) + + INT(0.5*nfacty(jj))
+            ijj = mjs_crs(jj) + INT(0.5*nfacty(jj))
             DO ji = nldi_crs, nlei_crs
                iji = mis_crs(ji) + INT(0.5*nfactx(ji))
-               p_gphi_crs(ji,jj) = p_gphi(iji,ijj)
-               p_glam_crs(ji,jj) = p_glam(iji,ijj)
+               IF ( (iji > 0).AND.(iji<=jpi_full) ) THEN !LOLO
+                  p_gphi_crs(ji,jj) = p_gphi(iji,ijj)
+                  p_glam_crs(ji,jj) = p_glam(iji,ijj)
+               END IF
             ENDDO
          ENDDO
       CASE ( 'U' )
@@ -156,7 +161,6 @@ CONTAINS
                iji = mie_crs(ji)
                p_gphi_crs(ji,jj) = p_gphi(iji,ijj)
                p_glam_crs(ji,jj) = p_glam(iji,ijj)
-
             ENDDO
          ENDDO
       CASE ( 'V' )
@@ -234,22 +238,24 @@ CONTAINS
             i1=INT(0.5*nfactx(ji))
             j1=INT(0.5*nfacty(jj))
 
-            ! Only for a factro 3 coarsening
-            SELECT CASE ( cd_type )
-            CASE ( 'T' )
-               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijjs+j1)
-               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijis+i1,ijjs+j1)
-            CASE ( 'U' )
-               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijjs+j1)
-               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijie   ,ijjs+j1)
+            IF ( (ijis+i1 > 0).AND.(ijis+i1 <= jpi_full) ) THEN !LOLO
+               ! Only for a factro 3 coarsening
+               SELECT CASE ( cd_type )
+               CASE ( 'T' )
+                  p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijjs+j1)
+                  p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijis+i1,ijjs+j1)
+               CASE ( 'U' )
+                  p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijjs+j1)
+                  p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijie   ,ijjs+j1)
 
-            CASE ( 'V' )
-               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijje   )
-               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijis+i1,ijjs+j1)
-            CASE ( 'F' )
-               p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijje   )
-               p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijie   ,ijjs+j1)
-            END SELECT
+               CASE ( 'V' )
+                  p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijje   )
+                  p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijis+i1,ijjs+j1)
+               CASE ( 'F' )
+                  p_e1_crs(ji,jj) = REAL(nn_factx,wp)*p_e1(ijis+i1,ijje   )
+                  p_e2_crs(ji,jj) = REAL(nn_facty,wp)*p_e2(ijie   ,ijjs+j1)
+               END SELECT
+            END IF
          ENDDO
       ENDDO
 
@@ -434,11 +440,13 @@ CONTAINS
                      ijis = mis_crs(ji)
                      ijie = mie_crs(ji)
 
-                     zflcrs = SUM( p_fld(ijis:ijie,ijjs:ijje,jk) * zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
-                     zsfcrs = SUM(                                 zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+                     IF ( ijis > 0 ) THEN !LOLO
+                        zflcrs = SUM( p_fld(ijis:ijie,ijjs:ijje,jk) * zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+                        zsfcrs = SUM(                                 zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
 
-                     p_fld_crs(ji,jj,jk) = zflcrs
-                     IF( zsfcrs /= 0.0 )  p_fld_crs(ji,jj,jk) = zflcrs / zsfcrs
+                        p_fld_crs(ji,jj,jk) = zflcrs
+                        IF( zsfcrs /= 0.0 )  p_fld_crs(ji,jj,jk) = zflcrs / zsfcrs
+                     END IF
                   ENDDO
                ENDDO
             ENDDO
@@ -754,11 +762,13 @@ CONTAINS
                ijis = mis_crs(ji)
                ijie = mie_crs(ji)
 
-               zflcrs = SUM( p_fld(ijis:ijie,ijjs:ijje) * zsurfmsk(ijis:ijie,ijjs:ijje) )
-               zsfcrs = SUM(                              zsurfmsk(ijis:ijie,ijjs:ijje) )
+               IF ( ijis > 0 ) THEN !LOLO
+                  zflcrs = SUM( p_fld(ijis:ijie,ijjs:ijje) * zsurfmsk(ijis:ijie,ijjs:ijje) )
+                  zsfcrs = SUM(                              zsurfmsk(ijis:ijie,ijjs:ijje) )
 
-               p_fld_crs(ji,jj) = zflcrs
-               IF( zsfcrs /= 0.0 )  p_fld_crs(ji,jj) = zflcrs / zsfcrs
+                  p_fld_crs(ji,jj) = zflcrs
+                  IF( zsfcrs /= 0.0 )  p_fld_crs(ji,jj) = zflcrs / zsfcrs
+               END IF
             ENDDO
          ENDDO
          DEALLOCATE ( zsurfmsk )
@@ -917,11 +927,12 @@ CONTAINS
                   ijjs = mjs_crs(jj)
                   ijje = mje_crs(jj)
 
-                  p_e3_max_crs(ji,jj,jk) = MAXVAL( p_e3(ijis:ijie,ijjs:ijje,jk) * p_mask(ijis:ijie,ijjs:ijje,jk) )
+                  IF ( ijis > 0 ) THEN !LOLO
+                     p_e3_max_crs(ji,jj,jk) = MAXVAL( p_e3(ijis:ijie,ijjs:ijje,jk) * p_mask(ijis:ijie,ijjs:ijje,jk) )
 
-                  ze3crs = SUM( p_e1(ijis:ijie,ijjs:ijje) * p_e2(ijis:ijie,ijjs:ijje) * p_e3(ijis:ijie,ijjs:ijje,jk) * p_mask(ijis:ijie,ijjs:ijje,jk) )
-                  IF( p_sfc_3d_crs(ji,jj,jk) .NE. 0._wp )p_e3_crs(ji,jj,jk) = ze3crs / p_sfc_3d_crs(ji,jj,jk)
-
+                     ze3crs = SUM( p_e1(ijis:ijie,ijjs:ijje) * p_e2(ijis:ijie,ijjs:ijje) * p_e3(ijis:ijie,ijjs:ijje,jk) * p_mask(ijis:ijie,ijjs:ijje,jk) )
+                     IF( p_sfc_3d_crs(ji,jj,jk) .NE. 0._wp )p_e3_crs(ji,jj,jk) = ze3crs / p_sfc_3d_crs(ji,jj,jk)
+                  END IF
                ENDDO
             ENDDO
          ENDDO
@@ -1060,8 +1071,10 @@ CONTAINS
                DO ji = nldi_crs,nlei_crs
                   ijis=mis_crs(ji)
                   ijie=mie_crs(ji)
-                  p_surf_crs    (ji,jj,jk) =  SUM(zsurf   (ijis:ijie,ijjs:ijje,jk) )
-                  p_surf_crs_msk(ji,jj,jk) =  SUM(zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+                  IF ( ijis > 0 ) THEN !LOLO
+                     p_surf_crs    (ji,jj,jk) =  SUM(zsurf   (ijis:ijie,ijjs:ijje,jk) )
+                     p_surf_crs_msk(ji,jj,jk) =  SUM(zsurfmsk(ijis:ijie,ijjs:ijje,jk) )
+                  END IF
                ENDDO
             ENDDO
          ENDDO
@@ -1792,10 +1805,10 @@ CONTAINS
 
    SUBROUTINE PIKSRT(N,ARR)
       INTEGER                  ,INTENT(IN) :: N
-      REAL(kind=8),DIMENSION(N),INTENT(INOUT) :: ARR
+      REAL(wp),DIMENSION(N),INTENT(INOUT) :: ARR
 
       INTEGER      :: i,j
-      REAL(kind=8) :: a
+      REAL(wp) :: a
       !!----------------------------------------------------------------
 
       DO j=2, N
