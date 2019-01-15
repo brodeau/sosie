@@ -46,7 +46,7 @@ PROGRAM IJ_FROM_LON_LAT
       &    cf_mod, &
       &    cf_ascii='file_in.txt'
    !!
-   CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cf_out
+   CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cb_name, cf_out
    !!
    INTEGER      :: &
       &    jarg, &
@@ -250,19 +250,21 @@ PROGRAM IJ_FROM_LON_LAT
    END DO
    PRINT*, ' *** Found ', npoints, ' points in '//TRIM(cf_ascii)//'...'
 
-   ALLOCATE ( vpt_lon(1,npoints), vpt_lat(1,npoints), cf_out(npoints) )
+   ALLOCATE ( vpt_lon(1,npoints), vpt_lat(1,npoints), cb_name(npoints) )
    !!
    REWIND(13)
    DO jl = 1, npoints
-      READ(13,*) vpt_lon(1,jl), vpt_lat(1,jl)
+      !READ(13,'(a,f,f)') cb_name(jl), vpt_lon(1,jl), vpt_lat(1,jl)
+      READ(13,*) cb_name(jl), vpt_lon(1,jl), vpt_lat(1,jl)
+      IF ( vpt_lon(1,jl) < 0. ) vpt_lon(1,jl) = vpt_lon(1,jl) + 360.0      
    END DO
    CLOSE(13)
 
 
    PRINT *, ''; PRINT *, ''
    DO jl = 1, npoints
-      WRITE(*,'(" *** Point #",i4,": ",f9.4,f9.4)') &
-         &     jl, vpt_lon(1,jl), vpt_lat(1,jl)
+      WRITE(*,'(" *** Point #",i4," -> Box ",a," : ",f9.4,f9.4)') &
+         &     jl, TRIM(cb_name(jl)), vpt_lon(1,jl), vpt_lat(1,jl)
    END DO
    PRINT *, ''
 
@@ -298,7 +300,7 @@ PROGRAM IJ_FROM_LON_LAT
 
       IF ( (JJidx(1,jl)<0).OR.(JIidx(1,jl)<0) ) THEN
          PRINT *, 'ERROR #2 : 1 of your points might be outside of model grid domain!'
-         PRINT *, ' *** Point [i,j]:', JIidx(1,jl), JJidx(1,jl)
+         PRINT *, ' *** Point ",a," ->  [i,j]:', TRIM(cb_name(jl)), JIidx(1,jl), JJidx(1,jl)
          STOP
       END IF
 
@@ -308,8 +310,8 @@ PROGRAM IJ_FROM_LON_LAT
          STOP
       END IF
 
-      WRITE(*,'(" *** Point #",i4," i,j: ",i4.4,",",i4.4," (lon,lat:",f9.4,",",f9.4,")")') &
-         &     jl, JIidx(1,jl), JJidx(1,jl), vpt_lon(1,jl), vpt_lat(1,jl)
+      WRITE(*,'(" *** Point #",i4,", ",a," -> i,j: ",i4.4,",",i4.4," (lon,lat:",f9.4,",",f9.4,")")') &
+         &     jl, TRIM(cb_name(jl)), JIidx(1,jl), JJidx(1,jl), vpt_lon(1,jl), vpt_lat(1,jl)
       
    END DO
    PRINT *, ''
@@ -361,7 +363,9 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) ' -i <input_file.nc>   => file containing grid (longitude and latitude) of model'
       WRITE(6,*) ''
-      WRITE(6,*) ' -p <ascii_file>      => Specify name of ASCII file containing lon,lat (2 columns)'
+      WRITE(6,*) ' -p <ascii_file>      => Specify name of ASCII file containing "name", lon,lat (3 columns)'
+      WRITE(6,*) '                         example of a valid line:'
+      WRITE(6,*) '                             "Denmark_Strait" -26.49 66.32
       WRITE(6,*) ''
       WRITE(6,*) '    Optional:'
       WRITE(6,*) ' -h                   => Show this message'
