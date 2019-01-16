@@ -47,8 +47,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Grid, default name :
    CHARACTER(len=80) :: &
-      &    cv_mod, &
-      &    cv_obs, &
+      &    cv_mod = '', &
+      &    cv_obs = '', &
       &    cv_t   = 'time_counter',  &
       &    cv_mt  = 'tmask',         &
       &    cv_z   = 'deptht',        &
@@ -73,10 +73,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    !!
    CHARACTER(len=400)  :: &
-      &    cf_obs   = 'ground_track.nc', &
-      &    cf_mod, &
-      &    cf_mm='mesh_mask.nc', &
-      &    cf_mapping
+      &    cf_obs = 'ground_track.nc', &
+      &    cf_mod = '', &
+      &    cf_mm  = 'mesh_mask.nc', &
+      &    cf_mpg = ''
    !!
    INTEGER      :: &
       &    jarg,   &
@@ -113,6 +113,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER :: it1, it2
 
    CHARACTER(80), PARAMETER :: cunit_time_trg = 'seconds since 1970-01-01 00:00:00'
+
+   OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
+
+
 
    !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
    tut_epoch%unit   = 's'
@@ -195,6 +199,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
       CALL usage()
    END IF
+   
+   IF ( TRIM(cv_obs) == '' ) THEN
+      PRINT *, ''
+      PRINT *, 'You must specify the name of which variable to look at in orbit file ! => -n <name> !!!'
+      CALL usage()
+   END IF
+   
+   
 
    PRINT *, ''
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
@@ -533,7 +545,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! Main time loop is on time vector in track file!
 
 
-   cf_mapping = 'MAPPING__'//TRIM(cconf)//'.nc'
+   cf_mpg = 'MAPPING__'//TRIM(cconf)//'.nc'
 
 
    !!
@@ -611,18 +623,18 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   INQUIRE(FILE=trim(cf_mapping), EXIST=l_exist ) !
+   INQUIRE(FILE=trim(cf_mpg), EXIST=l_exist ) !
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...' !
-      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mapping ) !,  mask_domain_trg=IGNORE) don't need ignore, points have been removed!
+      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mpg ) !,  mask_domain_trg=IGNORE) don't need ignore, points have been removed!
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
-      PRINT *, ' *** File "',trim(cf_mapping),'" found in current directory, using it!'
+      PRINT *, ' *** File "',trim(cf_mpg),'" found in current directory, using it!'
       PRINT *, ''
    END IF
 
-   CALL RD_MAPPING_AB(cf_mapping, IMETRICS, RAB, IPB)
-   PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mapping),'"'; PRINT *, ''
+   CALL RD_MAPPING_AB(cf_mpg, IMETRICS, RAB, IPB)
+   PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mpg),'"'; PRINT *, ''
 
    ALLOCATE (JIidx(1,Ntf) , JJidx(1,Ntf) )
    JIidx(1,:) = IMETRICS(1,:,1)
@@ -816,6 +828,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, TRIM(cf_out)
    PRINT *, ''
 
+   CLOSE(6)
 
 CONTAINS
 
@@ -881,7 +894,7 @@ CONTAINS
       WRITE(6,*) ' -h                   => Show this message'
       WRITE(6,*) ''
       !!
-      !CLOSE(6)
+      CLOSE(6)
       STOP
       !!
    END SUBROUTINE usage

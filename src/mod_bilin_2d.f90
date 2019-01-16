@@ -345,14 +345,18 @@ CONTAINS
 
       IF ( wup == 0. ) THEN
          INTERP_BL = -9998.
-      ELSEIF ( (i1<1).OR.(j1<1).OR.(i2<1).OR.(j2<1).OR.(i3<1).OR.(j3<1).OR.(i4<1).OR.(j4<1) ) THEN
+      ELSEIF ( (i1<1).OR.(i2<1).OR.(i3<1).OR.(i4<1) ) THEN
          INTERP_BL = -9997.
-      ELSEIF ( (j1>nyi).OR.(j2>nyi).OR.(j3>nyi).OR.(j4>nyi) ) THEN
+      ELSEIF ( (j1<1).OR.(j2<1).OR.(j3<1).OR.(j4<1) ) THEN
          INTERP_BL = -9996.
+      ELSEIF ( (j1>nyi).OR.(j2>nyi).OR.(j3>nyi).OR.(j4>nyi) ) THEN
+         INTERP_BL = -9995.
+      ELSEIF ( (i1>nxi).OR.(i2>nxi).OR.(i3>nxi).OR.(i4>nxi) ) THEN
+         INTERP_BL = -9994.
       ELSE
          INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
-
+      
    END FUNCTION INTERP_BL
 
 

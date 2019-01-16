@@ -365,7 +365,7 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) ' -p <ascii_file>      => Specify name of ASCII file containing "name", lon,lat (3 columns)'
       WRITE(6,*) '                         example of a valid line:'
-      WRITE(6,*) '                             "Denmark_Strait" -26.49 66.32
+      WRITE(6,*) '                             "Denmark_Strait" -26.49 66.32'
       WRITE(6,*) ''
       WRITE(6,*) '    Optional:'
       WRITE(6,*) ' -h                   => Show this message'
