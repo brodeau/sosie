@@ -790,6 +790,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
       vdistance     = -9999.
    END WHERE
 
+   WHERE ( Ftrack_mod < -9990. ) Ftrack_mod = -9999.
+
 
    PRINT *, ''
    !WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_mod), TRIM(cf_obs)
