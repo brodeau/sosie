@@ -2,13 +2,13 @@
 # ===================================================
 
 # Fortran compiler:
-FC = ifort
+FC = mpiifort
 
 # Root directory for Netcdf:
-NETCDF_DIR = $(NETCDF_DIR)
+###NETCDF_DIR = $(NETCDF_DIR)
 
 # Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
-L_NCDF = -lnetcdff
+L_NCDF = -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz -lcurl
 
 # Fortran compilation flags:
 # -- Production
