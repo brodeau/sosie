@@ -19,7 +19,7 @@ PROGRAM CORR_VECT
    IMPLICIT NONE
 
    LOGICAL, PARAMETER :: ldebug = .false.
-   
+
    !! Grid :
    CHARACTER(len=80), PARAMETER   :: &
       &    cv_glamt     = 'glamt',   &   ! input grid longitude name, T-points
@@ -252,20 +252,6 @@ PROGRAM CORR_VECT
    PRINT *, ''
 
 
-   IF ( cgrid_trg == 'T' ) THEN
-      PRINT *, ' *** Gonna save on grid T.'
-      cextra_x = 'grid_T'
-      cextra_y = 'grid_T'
-   ELSEIF ( cgrid_trg == 'U' ) THEN
-      PRINT *, ' *** Gonna save on grid U and V.'
-      cextra_x = 'grid_U'
-      cextra_y = 'grid_V'
-   ELSE
-      PRINT *, 'ERROR: "cgrid_trg" value unknown: ', TRIM(cgrid_trg) ; STOP
-   END IF
-   PRINT *, ''
-   
-
    IF ( l_inv ) THEN
       PRINT *, ' * Vector files to unrotate = ', trim(cufilin), ' , ', trim(cvfilin)
       !PRINT *, '   => associated variable names = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
@@ -293,42 +279,52 @@ PROGRAM CORR_VECT
    END IF
 
 
+   !! Namelist of X component:
+   INQUIRE(FILE=TRIM(cnmlst_x), EXIST=lexist )
+   IF ( .NOT. lexist ) THEN
+      WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_x)
+      CALL usage_corr_vect()
+   END IF
+   PRINT *, ''
+   cf_nml_sosie = TRIM(cnmlst_x)
+   CALL READ_NMLST(2)
+   lmout_x  = lmout
+   cv_rot_U = cv_out
+   cn_xtr_x = cextra
+
+
+   !! Namelist of Y component:
+   INQUIRE(FILE=TRIM(cnmlst_y), EXIST=lexist )
+   IF ( .NOT. lexist ) THEN
+      WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_y)
+      CALL usage_corr_vect()
+   END IF
+   PRINT *, ''
+   cf_nml_sosie = TRIM(cnmlst_y)
+   CALL READ_NMLST(2)
+   lmout_y  = lmout
+   cv_rot_V = cv_out
+   cn_xtr_y = cextra
+
+
+   IF ( cgrid_trg == 'T' ) THEN
+      PRINT *, ' *** Gonna save on grid T.'
+      cextra_x = 'gridT_'//TRIM(cn_xtr_x)
+      cextra_y = 'gridT_'//TRIM(cn_xtr_y)
+   ELSEIF ( cgrid_trg == 'U' ) THEN
+      PRINT *, ' *** Gonna save on grid U and V.'
+      cextra_x = 'gridU_'//TRIM(cn_xtr_x)
+      cextra_y = 'gridV_'//TRIM(cn_xtr_y)
+   ELSE
+      PRINT *, 'ERROR: "cgrid_trg" value unknown: ', TRIM(cgrid_trg) ; STOP
+   END IF
+   PRINT *, ''
+
+
 
    IF ( .NOT. l_inv ) THEN
 
       !! !!     N O R M A L   C O R R E C T I O N
-
-      !! Namelist of X component:
-      INQUIRE(FILE=TRIM(cnmlst_x), EXIST=lexist )
-      IF ( .NOT. lexist ) THEN
-         WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_x)
-         CALL usage_corr_vect()
-      END IF
-      PRINT *, ''
-      cf_nml_sosie = TRIM(cnmlst_x)
-      CALL READ_NMLST(2)
-      lmout_x  = lmout
-      cv_rot_U = cv_out
-      cn_xtr_x = cextra
-
-
-      !! Namelist of Y component:
-      INQUIRE(FILE=TRIM(cnmlst_y), EXIST=lexist )
-      IF ( .NOT. lexist ) THEN
-         WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_y)
-         CALL usage_corr_vect()
-      END IF
-      PRINT *, ''
-      cf_nml_sosie = TRIM(cnmlst_y)
-      CALL READ_NMLST(2)
-      lmout_y  = lmout
-      cv_rot_V = cv_out
-      cn_xtr_y = cextra
-
-
-      !lolo
-
-
 
       IF ( l_reg_trg ) THEN
          PRINT *, 'Vector correction only makes sense if your target grid is distorded!'
@@ -474,7 +470,7 @@ PROGRAM CORR_VECT
          CALL DUMP_2D_FIELD(REAL(XCOSV8,4), 'cosv_angle.nc', 'cosv')
          CALL DUMP_2D_FIELD(REAL(XSINV8,4), 'sinv_angle.nc', 'sinv')
          CALL DUMP_2D_FIELD(REAL(XCOSF8,4), 'cosf_angle.nc', 'cosf')
-         CALL DUMP_2D_FIELD(REAL(XSINF8,4), 'sinf_angle.nc', 'sinf')         
+         CALL DUMP_2D_FIELD(REAL(XSINF8,4), 'sinf_angle.nc', 'sinf')
       END IF
 
       !!  Getting time from the u_raw file or the namelist :
@@ -524,14 +520,14 @@ PROGRAM CORR_VECT
             Xdum8 = XCOST8*U_r8 + XSINT8*V_r8
             !! Correcting V (East-North to j-component) :
             Ydum8 = XCOST8*V_r8 - XSINT8*U_r8
-            
-            
+
+
             IF ( cgrid_trg == 'T' ) THEN
                !! to T-grid, nothing to do...
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', -1.0_8 )
                U_c(:,:,jk) = REAL(Xdum8 , 4)
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, Ydum8, 'T', -1.0_8 )
-               V_c(:,:,jk) = REAL(Ydum8 , 4)               
+               V_c(:,:,jk) = REAL(Ydum8 , 4)
                !!
             ELSEIF ( cgrid_trg == 'U' ) THEN
                !! to U-V grid, need to interpolate
@@ -545,10 +541,10 @@ PROGRAM CORR_VECT
                !!
             END IF
 
-            
+
          END DO ! jk
 
-         
+
          IF ( lmout_x .AND. lmout_y ) THEN
             IF ( cgrid_trg == 'U' ) THEN
                WHERE ( mask_u == 0 ) U_c = rmiss_val
@@ -561,7 +557,7 @@ PROGRAM CORR_VECT
             rmiss_val = 0.
          END IF
 
-         
+
          IF ( i3d == 1 ) THEN
 
             !! 3D:
