@@ -3,31 +3,26 @@
 #PBS -N itrpsc
 #PBS -q mpi_1
 #PBS -l select=1:ncpus=28:mem=60G
-#PBS -l walltime=00:59:00
+#PBS -l walltime=01:59:00
 #PBS -o out_itrpsc.out
 #PBS -e err_itrpsc.err
 #PBS -m n
 
 DIR_I="/home/datawork-lops-drakkarcom/DATA-REFERENCE/DFS5.2_RD/ALL"
-#DIR_O="/home3/scratch/lbrodeau/CREG025/DFS5"
 DIR_O="/home1/scratch/ctalandi/FORCING/DFS5.2"
 
-FMM_I="mask_N128_corrected_LB.nc4"
-#FMM_O="/home/datawork-lops-oh/drakkar/FREDY/CONFIGS/CREG025.L75/CREG025.L75-I/CREG025.L75_mesh_mask.nc"
+FMM_I="/home3/datawork/lbrodeau/ECMWF/mask_N128_corrected_LB.nc4"
 FMM_O="/home1/scratch/ctalandi/FORCING/CREG025.L75_mesh_mask_clean.nc"
 
 
 LIST_VAR="t2 q2 radlw radsw precip snow"
-#LIST_VAR="u10 v10"
-
-
 
 #Y1=1958
-#Y1=1986
-#Y2=$((Y1+28-1))
+Y1=1986
+Y2=$((Y1+28-1))
 
-Y1=2014
-Y2=2015
+#Y1=2014
+#Y2=2015
 
 
 
@@ -118,7 +113,6 @@ EOF
         yy=$((yy + 1))
     done
 
-    wait
     wait
 
 done

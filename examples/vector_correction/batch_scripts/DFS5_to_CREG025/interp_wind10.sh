@@ -2,31 +2,27 @@
 
 #PBS -N itrpW
 #PBS -q mpi_1
-#PBS -l select=1:ncpus=28:mem=60G
+#PBS -l select=1:ncpus=28:mem=120G
 #PBS -l walltime=02:59:00
 #PBS -o out_itrpW.out
 #PBS -e err_itrpW.err
 #PBS -m n
 
 DIR_I="/home/datawork-lops-drakkarcom/DATA-REFERENCE/DFS5.2_RD/ALL"
-#DIR_O="/home3/scratch/lbrodeau/CREG025/DFS5"
 DIR_O="/home1/scratch/ctalandi/FORCING/DFS5.2"
 
-FMM_I="mask_N128_corrected_LB.nc4"
-#FMM_O="/home/datawork-lops-oh/drakkar/FREDY/CONFIGS/CREG025.L75/CREG025.L75-I/CREG025.L75_mesh_mask.nc"
+FMM_I="/home3/datawork/lbrodeau/ECMWF/mask_N128_corrected_LB.nc4"
 FMM_O="/home1/scratch/ctalandi/FORCING/CREG025.L75_mesh_mask_clean.nc"
 
-
-#LIST_VAR="t2 q2 radlw radsw precip snow"
 LIST_VAR="u10 v10"
 
 
 #Y1=1958
-#Y1=1986
-#Y2=$((Y1+28-1))
+Y1=1986
+Y2=$((Y1+28-1))
 
-Y1=2014
-Y2=2015
+#Y1=2014
+#Y2=2015
 
 
 
@@ -131,7 +127,6 @@ EOF
     done
 
     wait
-    #wait
 
     ivect=$((ivect+1))
 
@@ -152,7 +147,5 @@ while [ ${yy} -le ${Y2} ]; do
     yy=$((yy + 1))
 done
 wait
-#wait
-
 
 rm -f uraw_*.nc vraw_*.nc
