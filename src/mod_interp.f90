@@ -60,7 +60,12 @@ CONTAINS
       SELECT CASE(cmethod)
 
       CASE('akima')
-         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg)
+         !CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg)
+         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(1:ni_trg/2,:), lat_trg(1:ni_trg/2,:), data_trg(1:ni_trg/2,:))
+         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(ni_trg/2+1:ni_trg,:), lat_trg(ni_trg/2+1:ni_trg,:), data_trg(ni_trg/2+1:ni_trg,:))
+
+         
+         
 
       CASE('bilin')
          CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat,  mask_domain_trg=IGNORE)
