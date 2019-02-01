@@ -8,7 +8,13 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
-   LOGICAL, SAVE :: l_first_call_interp_routine, &
+   INTEGER, PARAMETER :: Nthrd = 2 !: number of OpenMP threads to use
+
+   
+   LOGICAL, DIMENSION(Nthrd), SAVE :: l_first_call_interp_routine
+
+   
+   LOGICAL, SAVE :: &
       &             l_drown_src, & ! DROWN source field
       &             l_glob_lon_wize, l_glob_lat_wize, &
       &             l_identical_levels=.FALSE.  ! if true and 3D interpolation => means that source and target vertical grids are identical!

@@ -41,7 +41,7 @@ MODULE MOD_BILIN_2D
 CONTAINS
 
 
-   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat,  mask_domain_trg)
+   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat, ithrd,  mask_domain_trg)
 
       !!================================================================
       !!
@@ -76,6 +76,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       CHARACTER(len=*),        INTENT(in)  :: cnpat
+      INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
       !! Local variables
@@ -120,7 +121,7 @@ CONTAINS
             ny1w = ny1 + 2
             l_add_extra_j = .TRUE.
             !!
-            IF ( l_first_call_interp_routine ) THEN
+            IF ( l_first_call_interp_routine(ithrd) ) THEN
                PRINT *, ''
                PRINT *, '  ------ W A R N I N G ! ! ! ------'
                PRINT *, ' *** your source grid is regular and seems to include the north pole.'
@@ -171,7 +172,7 @@ CONTAINS
       WRITE(cf_wght,'("sosie_mapping_",a,".nc")') TRIM(cnpat)
 
 
-      IF ( l_first_call_interp_routine ) THEN
+      IF ( l_first_call_interp_routine(ithrd) ) THEN
 
          l_last_y_row_missing = .FALSE.
 
@@ -237,7 +238,7 @@ CONTAINS
       Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*-9995. ! masking problem points as in mask_ignore_trg
 
 
-      IF ( l_first_call_interp_routine ) THEN
+      IF ( l_first_call_interp_routine(ithrd) ) THEN
          !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
          IF ( i_orca_trg >= 4 ) THEN
             rmeanv = SUM(Z2(:,ny2))/nx2
@@ -263,7 +264,7 @@ CONTAINS
 
       DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_trg )
 
-      l_first_call_interp_routine = .FALSE.
+      l_first_call_interp_routine(ithrd) = .FALSE.
 
    END SUBROUTINE BILIN_2D
 

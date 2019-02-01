@@ -57,7 +57,7 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2,    icall)
+   SUBROUTINE AKIMA_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, ithrd,  icall)
 
       !!================================================================
       !!
@@ -85,7 +85,9 @@ CONTAINS
       REAL(4), DIMENSION(:,:), INTENT(in)  :: Z1
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
+      INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
       INTEGER,       OPTIONAL, INTENT(in)  :: icall
+
 
 
       !! Local variables
@@ -118,7 +120,7 @@ CONTAINS
 
       IF ( present(icall) ) THEN
          IF ( icall == 1 ) THEN
-            l_first_call_interp_routine = .TRUE.
+            l_first_call_interp_routine(ithrd) = .TRUE.
             l_always_first_call  = .TRUE.
          END IF
       END IF
@@ -190,7 +192,7 @@ CONTAINS
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
 
       !! Doing the mapping once for all and saving into ixy_pos:
-      IF ( l_first_call_interp_routine ) THEN
+      IF ( l_first_call_interp_routine(ithrd) ) THEN
          ALLOCATE ( ixy_pos(nx2, ny2, 2) )
          ixy_pos(:,:,:) = 0
          CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos )
@@ -228,11 +230,11 @@ CONTAINS
       !! Deallocation :
       DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
 
-      l_first_call_interp_routine = .FALSE.
+      l_first_call_interp_routine(ithrd) = .FALSE.
 
       IF ( l_always_first_call ) THEN
          DEALLOCATE ( ixy_pos )
-         l_first_call_interp_routine = .TRUE.
+         l_first_call_interp_routine(ithrd) = .TRUE.
       END IF
 
    END SUBROUTINE AKIMA_2D
