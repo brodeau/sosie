@@ -60,15 +60,15 @@ CONTAINS
       SELECT CASE(cmethod)
 
       CASE('akima')
-         !CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg)
-         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(1:ni_trg/2,:), lat_trg(1:ni_trg/2,:), data_trg(1:ni_trg/2,:), icall=1)
-         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(ni_trg/2+1:ni_trg,:), lat_trg(ni_trg/2+1:ni_trg,:), data_trg(ni_trg/2+1:ni_trg,:), icall=1)
+         
+         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(1:ni_trg/2,:), lat_trg(1:ni_trg/2,:), data_trg(1:ni_trg/2,:),                      1, icall=1)
+         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(ni_trg/2+1:ni_trg,:), lat_trg(ni_trg/2+1:ni_trg,:), data_trg(ni_trg/2+1:ni_trg,:), 2, icall=1)
 
          
          
 
       CASE('bilin')
-         CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat,  mask_domain_trg=IGNORE)
+         CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat, 1,  mask_domain_trg=IGNORE)
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
@@ -234,19 +234,19 @@ CONTAINS
 
          CASE('akima')
             CALL akima_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
-               &              lon_trg, lat_trg, data3d_tmp(:,:,jk))
+               &              lon_trg, lat_trg, data3d_tmp(:,:,jk), 1)
             IF ( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
                depth_src_trgt2d(:,:,jk) = depth_src(1,1,jk)
             ELSE
                !! input is sigma, layers are non-flat
                CALL akima_2d(ewper_src, lon_src,  lat_src, depth_src(:,:,jk),       &
-                  &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk) )
+                  &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), 1 )
             ENDIF
 
          CASE('bilin')
             CALL bilin_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
-               &              lon_trg, lat_trg, data3d_tmp(:,:,jk), cpat)
+               &              lon_trg, lat_trg, data3d_tmp(:,:,jk), cpat, 1)
 
             IF ( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
@@ -255,7 +255,7 @@ CONTAINS
             ELSE
                !! input is sigma, layers are non-flat
                CALL bilin_2d(ewper_src, lon_src,  lat_src, depth_src(:,:,jk), &
-                  &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), cpat)
+                  &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), cpat, 1)
             ENDIF
 
          CASE('no_xy')

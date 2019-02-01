@@ -16,7 +16,8 @@ L_NCDF =  $(NETCDF_LDFLAGS) $(NETCDFF_LDFLAGS)
 
 # Fortran compilation flags:
 
-#EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -traceback -debug extended -C
+##EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -traceback -debug extended -C
+EXTRA_DEBUG_FLAGS = -g -fpe0 -traceback -CB
 
 FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
 
