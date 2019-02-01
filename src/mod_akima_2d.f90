@@ -93,8 +93,6 @@ CONTAINS
 
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
 
-      !LOGICAL :: l_x_found, l_y_found
-
       INTEGER :: &
          &     ji1, jj1, ji2, jj2,   &
          &     ni1, nj1
@@ -226,7 +224,7 @@ CONTAINS
 
          END DO
       END DO
-      
+
       !! Deallocation :
       DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
 
@@ -654,12 +652,9 @@ CONTAINS
 
 
    SUBROUTINE find_nearest_akima( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
-
-      !! Laboriuously scanning the entire source grid to find
-      !! location of treated point
-      !! Let's find the 4 points of source grid that surrounds (px2,py2)
-
-
+      !!---------------------------------------------------------------------------------------
+      !! Laboriuously scanning the entire source grid to find location of treated point
+      !!---------------------------------------------------------------------------------------
       REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
       REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
       REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
@@ -673,7 +668,7 @@ CONTAINS
       nys = SIZE(plon_src,2)
       nxt = SIZE(ixyp_trg,1)
       nyt = SIZE(ixyp_trg,2)
-      
+
       !! Loop on target domain:
       DO jjt = 1, nyt
          DO jit = 1, nxt
@@ -693,30 +688,22 @@ CONTAINS
                DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
 
                   l_x_found = .FALSE.
-
                   DO WHILE ( .NOT. l_x_found )
-
                      IF (jis < nxs) THEN
-
                         IF ((plon_src(jis,jjs) <= pxt).and.(plon_src(jis+1,jjs) > pxt)) THEN
                            l_x_found = .TRUE.
                         ELSE
                            jis = jis+1
                         END IF
-
                      ELSE   ! jis = nxs
                         jis = jis-1  ! we are at the top need to use former pol.
                         l_x_found = .TRUE.
                      END IF
-
                   END DO
 
                   l_y_found = .FALSE.
-
                   DO WHILE ( .NOT. l_y_found )
-
                      IF ( jjs < nys ) THEN
-
                         IF ((plat_src(jis,jjs) <= pyt).and.(plat_src(jis,jjs+1) > pyt)) THEN
                            l_y_found = .TRUE.
                         ELSE
@@ -724,16 +711,14 @@ CONTAINS
                            l_x_found = .FALSE.
                            l_y_found = .TRUE. ! just so that we exit the loop on l_y_found
                         END IF
-
                      ELSE   ! jjs == nys
                         jjs = nys-1        ! we are using polynome at (ji,nys-1)
                         l_y_found = .TRUE. ! for extreme right boundary
                      END IF
-
                   END DO
 
                END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
-               
+
                ixyp_trg(jit,jjt,:) = (/ jis, jjs /)
 
             END IF !IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) )
@@ -742,7 +727,5 @@ CONTAINS
       END DO !DO jjt = 1, nyt
 
    END SUBROUTINE find_nearest_akima
-
-   
 
 END MODULE MOD_AKIMA_2D
