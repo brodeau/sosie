@@ -37,19 +37,19 @@ obj/mod_manip.o \
 obj/mod_grids.o \
 obj/mod_drown.o \
 obj/mod_akima_2d.o \
-obj/mod_bilin_2d.o \
 obj/mod_akima_1d.o \
 obj/mod_scoord.o \
 obj/mod_interp.o \
 obj/mod_nemotools.o \
 obj/mod_poly.o
+# obj/mod_bilin_2d.o \
 
 OBJ_I2GT = obj/io_ezcdf.o \
 obj/mod_conf.o \
 obj/mod_manip.o \
 obj/mod_drown.o \
-obj/mod_bilin_2d.o \
 obj/mod_poly.o
+#obj/mod_bilin_2d.o \
 
 OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o
 
@@ -59,7 +59,8 @@ MOD_INST= mod/io_ezcdf.mod \
 mod/mod_akima_2d.mod \
 mod/mod_drown.mod
 
-all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/interp_to_ground_track.x bin/ij_from_lon_lat.x
+all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x  bin/ij_from_lon_lat.x
+# bin/interp_to_ground_track.x
 
 gt: bin/interp_to_ground_track.x
 
@@ -153,8 +154,8 @@ obj/mod_drown.o: src/mod_drown.f90
 obj/mod_akima_2d.o: src/mod_akima_2d.f90
 	$(FC) $(FF) -c src/mod_akima_2d.f90 -o obj/mod_akima_2d.o
 
-obj/mod_bilin_2d.o: src/mod_bilin_2d.f90 obj/io_ezcdf.o obj/mod_conf.o obj/mod_manip.o obj/mod_poly.o
-	$(FC) $(FF) -c src/mod_bilin_2d.f90 -o obj/mod_bilin_2d.o
+#obj/mod_bilin_2d.o: src/mod_bilin_2d.f90 obj/io_ezcdf.o obj/mod_conf.o obj/mod_manip.o obj/mod_poly.o
+#	$(FC) $(FF) -c src/mod_bilin_2d.f90 -o obj/mod_bilin_2d.o
 
 obj/mod_akima_1d.o: src/mod_akima_1d.f90
 	$(FC) $(FF) -c src/mod_akima_1d.f90 -o obj/mod_akima_1d.o

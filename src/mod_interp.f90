@@ -4,7 +4,7 @@ MODULE MOD_INTERP
    USE mod_manip      !* misc. manipulation of 2D arrays
    USE mod_drown      !* extrapolation over masked surfaces
    USE mod_akima_2d   !* Akima method algorithm
-   USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
+   !USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
 
    USE mod_nemotools, ONLY: lbc_lnk
@@ -24,7 +24,7 @@ CONTAINS
       !! 2D INTERPOLATION
       !! ================
 
-      INTEGER :: i1,j1, i2,j2
+      INTEGER :: i1,j1, i2,j2, jtr
 
 
       !! lon-aranging or lat-flipping field
@@ -60,15 +60,22 @@ CONTAINS
       SELECT CASE(cmethod)
 
       CASE('akima')
-         
-         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(1:ni_trg/2,:), lat_trg(1:ni_trg/2,:), data_trg(1:ni_trg/2,:),                      1, icall=1)
-         CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(ni_trg/2+1:ni_trg,:), lat_trg(ni_trg/2+1:ni_trg,:), data_trg(ni_trg/2+1:ni_trg,:), 2, icall=1)
 
-         
+
+         !i_bdn_l(jtr):i_bdn_r(jtr)
+         DO jtr = 1, 3
+
+            PRINT *, ' INTERPOLATING thread domain #', jtr
+            CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), lat_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), data_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), jtr)!, icall=1)
+            
+            !CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(1:ni_trg/2,:), lat_trg(1:ni_trg/2,:), data_trg(1:ni_trg/2,:),                      1)!, icall=1)
+            !CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(ni_trg/2+1:ni_trg,:), lat_trg(ni_trg/2+1:ni_trg,:), data_trg(ni_trg/2+1:ni_trg,:), 2)!, icall=1)
+
+         END DO
          
 
-      CASE('bilin')
-         CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat, 1,  mask_domain_trg=IGNORE)
+      !CASE('bilin')
+      !   CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat, 1,  mask_domain_trg=IGNORE)
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
@@ -244,9 +251,9 @@ CONTAINS
                   &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), 1 )
             ENDIF
 
-         CASE('bilin')
-            CALL bilin_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
-               &              lon_trg, lat_trg, data3d_tmp(:,:,jk), cpat, 1)
+         !CASE('bilin')
+         !   CALL bilin_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
+         !      &              lon_trg, lat_trg, data3d_tmp(:,:,jk), cpat, 1)
 
             IF ( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
@@ -254,8 +261,8 @@ CONTAINS
                IF ( l_identical_levels ) depth_src_trgt2d(:,:,jk) = depth_trg(1,1,jk) !lolo
             ELSE
                !! input is sigma, layers are non-flat
-               CALL bilin_2d(ewper_src, lon_src,  lat_src, depth_src(:,:,jk), &
-                  &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), cpat, 1)
+               !CALL bilin_2d(ewper_src, lon_src,  lat_src, depth_src(:,:,jk), &
+               !   &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), cpat, 1)
             ENDIF
 
          CASE('no_xy')

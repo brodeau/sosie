@@ -53,6 +53,8 @@ PROGRAM SOSIE
       &   idf_o, idf_i, idv_o, idv_i, &  !: netcdf ID for source/target file
       &   idf_id, idv_id  !: drowned source field...
 
+   INTEGER :: jtr, noinc, ileft, ipl
+   
    REAL(4) :: rfct_miss=1.
 
 
@@ -84,6 +86,37 @@ PROGRAM SOSIE
    !! Just to display some info of the current setting:
    CALL REMINDER()         ! MODULE mod_init
 
+
+   !! OMP decomposition
+   IF ( Nthrd > 1) THEN
+      PRINT *, ''
+      PRINT *, ' OMP thread decomposition along target grid X-axis:'
+      PRINT *, '  Nthrd =', Nthrd
+      PRINT *, '  ni_trg=', ni_trg
+      !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
+      noinc = ni_trg/Nthrd
+      !PRINT *, '   noinc =', noinc
+      ALLOCATE ( i_bdn_l(Nthrd), i_bdn_r(Nthrd) )
+      ipl = 0
+      i_bdn_l(1) = 1
+      i_bdn_r(1) = i_bdn_l(1) + noinc -1
+      DO jtr = 2, Nthrd
+         ileft = Nthrd - jtr + 1
+         i_bdn_l(jtr) = i_bdn_l(jtr-1) + noinc + ipl
+         IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
+         i_bdn_r(jtr) = i_bdn_l(jtr)   + noinc -1 + ipl
+      END DO
+      PRINT *, '  i_bdn_l =', i_bdn_l
+      PRINT *, '  i_bdn_r =', i_bdn_r
+      DO jtr = 1, Nthrd
+         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', SIZE(lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),0))         
+      END DO
+      PRINT *, ''
+      !PRINT *, 'LOLO STOP:sosie.f90'
+      !STOP
+   END IF
+
+   
 
    IF ( Ntr == 0 ) THEN
       PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP

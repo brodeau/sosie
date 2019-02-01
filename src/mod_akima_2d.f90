@@ -39,7 +39,7 @@ MODULE MOD_AKIMA_2D
    LOGICAL, PUBLIC, SAVE :: &
       &    l_always_first_call  = .FALSE.
 
-   INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: ixy_pos !: table storing source/target grids mapping
+   INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, SAVE :: ixy_pos !: table storing source/target grids mapping
 
    PRIVATE
 
@@ -192,10 +192,13 @@ CONTAINS
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
 
       !! Doing the mapping once for all and saving into ixy_pos:
+      IF ( l_first_call_interp_routine(1) ) THEN
+         ALLOCATE ( ixy_pos(nx2, ny2, 2, Nthrd) )
+         ixy_pos(:,:,:,:) = 0
+      END IF
+      
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-         ALLOCATE ( ixy_pos(nx2, ny2, 2) )
-         ixy_pos(:,:,:) = 0
-         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos )
+         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos(:,:,:,ithrd) )
       END IF
 
 
@@ -210,8 +213,8 @@ CONTAINS
             IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
                !! We know the right location from time = 1 :
-               ji1 = ixy_pos(ji2,jj2,1)
-               jj1 = ixy_pos(ji2,jj2,2)
+               ji1 = ixy_pos(ji2,jj2,1,ithrd)
+               jj1 = ixy_pos(ji2,jj2,2,ithrd)
 
                !! It's time to interpolate:
                px2 = px2 - lon_src(ji1,jj1)
