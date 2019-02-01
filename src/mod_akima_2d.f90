@@ -93,7 +93,7 @@ CONTAINS
 
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
 
-      LOGICAL :: l_x_found, l_y_found
+      !LOGICAL :: l_x_found, l_y_found
 
       INTEGER :: &
          &     ji1, jj1, ji2, jj2,   &
@@ -113,6 +113,8 @@ CONTAINS
          &  px2, py2,  &
          &  min_lon1, max_lon1, min_lat1, max_lat1,   &
          &  min_lon2, max_lon2, min_lat2, max_lat2
+
+      REAL(8), DIMENSION(4) :: xy_range_src
 
       CHARACTER(len=2) :: ctype
 
@@ -155,11 +157,6 @@ CONTAINS
 
       !!                       S T A R T
 
-
-
-      IF ( l_first_call_interp_routine ) ALLOCATE ( ixy_pos(nx2, ny2, 2) )
-
-
       !! Extending the source 2D domain with a frame of 2 points:
       !!    We extend initial 2D array with a frame, adding n_extd points in each
       !!    dimension This is really needed specially for preserving good east-west
@@ -189,91 +186,34 @@ CONTAINS
       !! Checking if the target grid does not overlap source grid :
       min_lon1 = minval(lon_src) ;  max_lon1 = maxval(lon_src)
       min_lat1 = minval(lat_src) ;  max_lat1 = maxval(lat_src)
-      min_lon2 = minval(X2)     ;  max_lon2 = maxval(X2)
+      xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
+
+      min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
 
+      !! Doing the mapping once for all and saving into ixy_pos:
+      IF ( l_first_call_interp_routine ) THEN
+         ALLOCATE ( ixy_pos(nx2, ny2, 2) )
+         ixy_pos(:,:,:) = 0
+         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos )
+      END IF
 
+
+      !! Loop on target domain:
       DO jj2 = 1, ny2
-
          DO ji2 = 1, nx2
 
             !! The coordinates of current target point are (px2,py2) :
             px2 = X2(ji2,jj2) ;  py2 = Y2(ji2,jj2)
 
             !! Checking if this belongs to source domain :
-            IF (   ( (px2 >= min_lon1).AND.(px2 <= max_lon1)).AND.  &
-               & ( (py2 >= min_lat1).and.(py2 <= max_lat1))  )   THEN
+            IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
+               !! We know the right location from time = 1 :
+               ji1 = ixy_pos(ji2,jj2,1)
+               jj1 = ixy_pos(ji2,jj2,2)
 
-               !! Laboriuously scanning the entire source grid to find
-               !! location of treated point
-               !! Let's find the 4 points of source grid that surrounds (px2,py2)
-               !! Only if this is  the first time step (storing into ixy_pos) :
-               IF ( l_first_call_interp_routine ) THEN
-
-                  ji1 = 1 ; jj1 = 1
-
-                  l_x_found = .FALSE. ;  l_y_found = .FALSE.
-
-                  DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
-
-                     l_x_found = .FALSE.
-
-                     DO WHILE ( .NOT. l_x_found )
-
-                        IF (ji1 < ni1) THEN
-
-                           IF ((lon_src(ji1,jj1) <= px2).and.(lon_src(ji1+1,jj1) > px2)) THEN
-                              l_x_found = .TRUE.
-                           ELSE
-                              ji1 = ji1+1
-                           END IF
-
-                        ELSE   ! ji1 = ni1
-                           ji1 = ji1-1  ! we are at the top need to use former pol.
-                           l_x_found = .TRUE.
-                        END IF
-
-                     END DO
-
-                     l_y_found = .FALSE.
-
-                     DO WHILE ( .NOT. l_y_found )
-
-                        IF ( jj1 < nj1 ) THEN
-
-                           IF ((lat_src(ji1,jj1) <= py2).and.(lat_src(ji1,jj1+1) > py2)) THEN
-                              l_y_found = .TRUE.
-                           ELSE
-                              jj1 = jj1 + 1
-                              l_x_found = .FALSE.
-                              l_y_found = .TRUE. ! just so that we exit the loop on l_y_found
-                           END IF
-
-                        ELSE   ! jj1 == nj1
-                           jj1 = nj1-1        ! we are using polynome at (ji,nj1-1)
-                           l_y_found = .TRUE. ! for extreme right boundary
-                        END IF
-
-                     END DO
-
-                  END DO
-
-                  ixy_pos(ji2,jj2,:) = (/ ji1, jj1 /)
-
-               ELSE
-
-                  !! We know the right location from time = 1 :
-                  ji1 = ixy_pos(ji2,jj2,1)
-                  jj1 = ixy_pos(ji2,jj2,2)
-
-               END IF  !* IF ( l_first_call_interp_routine )
-
-
-
-               !! It's time to interpolate!
-               !! =========================
-
+               !! It's time to interpolate:
                px2 = px2 - lon_src(ji1,jj1)
                py2 = py2 - lat_src(ji1,jj1)
                vpl = poly(ji1,jj1,:)
@@ -286,7 +226,7 @@ CONTAINS
 
          END DO
       END DO
-
+      
       !! Deallocation :
       DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
 
@@ -708,5 +648,101 @@ CONTAINS
       DEALLOCATE ( ZX, ZY, ZF )
 
    END SUBROUTINE slopes_akima
+
+
+
+
+
+   SUBROUTINE find_nearest_akima( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
+
+      !! Laboriuously scanning the entire source grid to find
+      !! location of treated point
+      !! Let's find the 4 points of source grid that surrounds (px2,py2)
+
+
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
+      REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
+      INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_trg
+
+      INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt
+      REAL(8) :: pxt, pyt
+      LOGICAL :: l_x_found, l_y_found
+
+      nxs = SIZE(plon_src,1)
+      nys = SIZE(plon_src,2)
+      nxt = SIZE(ixyp_trg,1)
+      nyt = SIZE(ixyp_trg,2)
+      
+      !! Loop on target domain:
+      DO jjt = 1, nyt
+         DO jit = 1, nxt
+
+            jis = 1
+            jjs = 1
+
+            l_x_found = .FALSE.
+            l_y_found = .FALSE.
+
+            pxt = plon_trg(jit,jjt)
+            pyt = plat_trg(jit,jjt)
+
+            !! Only searching if inside source domain:
+            IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) ) THEN
+
+               DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
+
+                  l_x_found = .FALSE.
+
+                  DO WHILE ( .NOT. l_x_found )
+
+                     IF (jis < nxs) THEN
+
+                        IF ((plon_src(jis,jjs) <= pxt).and.(plon_src(jis+1,jjs) > pxt)) THEN
+                           l_x_found = .TRUE.
+                        ELSE
+                           jis = jis+1
+                        END IF
+
+                     ELSE   ! jis = nxs
+                        jis = jis-1  ! we are at the top need to use former pol.
+                        l_x_found = .TRUE.
+                     END IF
+
+                  END DO
+
+                  l_y_found = .FALSE.
+
+                  DO WHILE ( .NOT. l_y_found )
+
+                     IF ( jjs < nys ) THEN
+
+                        IF ((plat_src(jis,jjs) <= pyt).and.(plat_src(jis,jjs+1) > pyt)) THEN
+                           l_y_found = .TRUE.
+                        ELSE
+                           jjs = jjs + 1
+                           l_x_found = .FALSE.
+                           l_y_found = .TRUE. ! just so that we exit the loop on l_y_found
+                        END IF
+
+                     ELSE   ! jjs == nys
+                        jjs = nys-1        ! we are using polynome at (ji,nys-1)
+                        l_y_found = .TRUE. ! for extreme right boundary
+                     END IF
+
+                  END DO
+
+               END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
+               
+               ixyp_trg(jit,jjt,:) = (/ jis, jjs /)
+
+            END IF !IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) )
+
+         END DO !DO jit = 1, nxt
+      END DO !DO jjt = 1, nyt
+
+   END SUBROUTINE find_nearest_akima
+
+   
 
 END MODULE MOD_AKIMA_2D
