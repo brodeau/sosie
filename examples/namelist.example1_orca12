@@ -1,0 +1,65 @@
+!! -------------------
+!! Namelist for SOSIE
+!! -------------------
+!!
+!! EXAMPLE 1: Interpolation of Reynolds (2002) Long Term Mean SST onto the ORCA12 grid
+!! #########
+!!
+!!
+&ndom_src
+csource    = '360x180'
+ivect      = 0    ! this is not a vector interpolation
+l_reg_src  = .true. ! input grid is regular (lon and lat are "1D")
+cf_src     = 'data/sst.ltm.1971-2000.nc'
+cv_src     = 'sst'
+cv_t_src   = 'time'
+cf_x_src   = 'data/sst.ltm.1971-2000.nc'
+cv_lon_src = 'lon'
+cv_lat_src = 'lat'
+cf_lsm_src = 'missing_value'   ! we use 'missing_value' of input field to determine
+cv_lsm_src = ''                ! the land-sea-mask
+ewper_src  = 0          ! input field does have east-west periodicity with 0 overlapping point
+/
+!!
+!!
+&ndom_trg
+ctarget    = 'ORCA12'
+l_reg_trg  = .false.
+cf_x_trg   = 'data/mesh_mask_ORCA12_light.nc4'
+cv_lon_trg = 'glamt'
+cv_lat_trg = 'gphit'
+cf_lsm_trg = 'data/mesh_mask_ORCA12_light.nc4'
+cv_lsm_trg = 'tmask'
+ewper_trg  = 2
+/
+!!
+!!
+&ninterp
+cmethod     = 'akima'
+!!
+idrown      = 100,50
+l_save_drwn = .true.
+ismooth     = 0
+jt1         = 0    ! we want to interpolate each time record
+jt2         = 0    !           //
+jplev       = 1
+vmax        =  1.E6
+vmin        = -1.E6
+ismooth_out = 0
+/
+!!
+!!
+&noutput
+cv_out    = 'SST'
+cu_out    = 'deg.C'
+cln_out   = 'Reynolds Sea Surface Temperature, Long Term Mean, 1971-2000'
+cv_t_out  = 'time_counter'
+cd_out    = '.'
+cextra    = 'REYNOLDS_LTM_akima'
+lmout     = .true.      ! We want to mask continents!
+rmiss_val = -9999.
+lct       = .false.      ! we use time vector from input file
+t0        = 0.
+t_stp     = 0.
+/
+!!

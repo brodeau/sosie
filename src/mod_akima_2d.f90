@@ -39,7 +39,7 @@ MODULE MOD_AKIMA_2D
    LOGICAL, PUBLIC, SAVE :: &
       &    l_always_first_call  = .FALSE.
 
-   INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, SAVE :: ixy_pos !: table storing source/target grids mapping
+   INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, PUBLIC, SAVE :: ixy_pos !: table storing source/target grids mapping
 
    PRIVATE
 
@@ -118,6 +118,10 @@ CONTAINS
 
       CHARACTER(len=2) :: ctype
 
+
+      PRINT *, ' Entering AKIMA // #', ithrd
+
+      
       IF ( present(icall) ) THEN
          IF ( icall == 1 ) THEN
             l_first_call_interp_routine(ithrd) = .TRUE.
@@ -190,15 +194,10 @@ CONTAINS
 
       min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
-
-      !! Doing the mapping once for all and saving into ixy_pos:
-      IF ( l_first_call_interp_routine(1) ) THEN
-         ALLOCATE ( ixy_pos(nx2, ny2, 2, Nthrd) )
-         ixy_pos(:,:,:,:) = 0
-      END IF
       
+      !! Doing the mapping once for all and saving into ixy_pos:
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos(:,:,:,ithrd) )
+         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos(1:nx2,:,:,ithrd) )
       END IF
 
 
@@ -240,6 +239,8 @@ CONTAINS
          l_first_call_interp_routine(ithrd) = .TRUE.
       END IF
 
+      PRINT *, ' ---> exiting AKIMA // #', ithrd
+      
    END SUBROUTINE AKIMA_2D
 
 

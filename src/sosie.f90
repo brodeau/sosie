@@ -96,7 +96,7 @@ PROGRAM SOSIE
       !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
       noinc = ni_trg/Nthrd
       !PRINT *, '   noinc =', noinc
-      ALLOCATE ( i_bdn_l(Nthrd), i_bdn_r(Nthrd) )
+      ALLOCATE ( i_bdn_l(Nthrd), i_bdn_r(Nthrd), i_seg_s(Nthrd) )
       ipl = 0
       i_bdn_l(1) = 1
       i_bdn_r(1) = i_bdn_l(1) + noinc -1
@@ -109,7 +109,8 @@ PROGRAM SOSIE
       PRINT *, '  i_bdn_l =', i_bdn_l
       PRINT *, '  i_bdn_r =', i_bdn_r
       DO jtr = 1, Nthrd
-         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', SIZE(lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),0))         
+         i_seg_s(jtr) = SIZE(lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),0)) ! lazy!!! but trustworthy I guess...
+         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)    
       END DO
       PRINT *, ''
       !PRINT *, 'LOLO STOP:sosie.f90'

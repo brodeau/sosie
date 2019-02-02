@@ -25,7 +25,7 @@ CONTAINS
       !! ================
 
       INTEGER :: i1,j1, i2,j2, jtr
-
+      INTEGER :: nseg_max
 
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -57,25 +57,31 @@ CONTAINS
       !! Call interpolation procedure :
       !! ------------------------------
 
+
       SELECT CASE(cmethod)
 
       CASE('akima')
 
+         IF ( l_first_call_interp_routine(1) ) THEN
+            nseg_max = ni_trg
+            IF ( Nthrd > 1 ) THEN
+               nseg_max = maxval(i_seg_s)
+               PRINT *, ' *** Allocating "ixy_pos" => ', nseg_max, nj_trg, 2, Nthrd
+            END IF
+            ALLOCATE ( ixy_pos(nseg_max, nj_trg, 2, Nthrd) )
+            ixy_pos(:,:,:,:) = 0
+         END IF
 
-         !i_bdn_l(jtr):i_bdn_r(jtr)
-         DO jtr = 1, 3
-
+         !$OMP PARALLEL DO
+         DO jtr = 1, Nthrd
             PRINT *, ' INTERPOLATING thread domain #', jtr
             CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), lat_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), data_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), jtr)!, icall=1)
-            
-            !CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(1:ni_trg/2,:), lat_trg(1:ni_trg/2,:), data_trg(1:ni_trg/2,:),                      1)!, icall=1)
-            !CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(ni_trg/2+1:ni_trg,:), lat_trg(ni_trg/2+1:ni_trg,:), data_trg(ni_trg/2+1:ni_trg,:), 2)!, icall=1)
-
          END DO
+         !$OMP END PARALLEL DO
          
 
-      !CASE('bilin')
-      !   CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat, 1,  mask_domain_trg=IGNORE)
+         !CASE('bilin')
+         !   CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat, 1,  mask_domain_trg=IGNORE)
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
@@ -251,9 +257,9 @@ CONTAINS
                   &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), 1 )
             ENDIF
 
-         !CASE('bilin')
-         !   CALL bilin_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
-         !      &              lon_trg, lat_trg, data3d_tmp(:,:,jk), cpat, 1)
+            !CASE('bilin')
+            !   CALL bilin_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
+            !      &              lon_trg, lat_trg, data3d_tmp(:,:,jk), cpat, 1)
 
             IF ( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat

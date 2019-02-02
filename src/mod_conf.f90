@@ -8,8 +8,8 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
-   INTEGER, PARAMETER :: Nthrd = 4 !: number of OpenMP threads to use
-   INTEGER, DIMENSION(:), ALLOCATABLE :: i_bdn_l, i_bdn_r
+   INTEGER, PARAMETER :: Nthrd = 3 !: number of OpenMP threads to use
+   INTEGER, DIMENSION(:), ALLOCATABLE :: i_bdn_l, i_bdn_r, i_seg_s
    
    LOGICAL, DIMENSION(Nthrd), SAVE :: l_first_call_interp_routine
 

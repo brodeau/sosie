@@ -15,7 +15,8 @@ L_NCDF = -lnetcdf -lnetcdff
 
 # Fortran compilation flags:
 # -- Production
-FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
+FF = -O3 -ffree-line-length-200 -fopenmp -J./mod -I./mod
+###FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
 
 # -- Debugging
 #FF = -O0 -ffree-line-length-200 -w -fbounds-check -J./mod -I./mod
