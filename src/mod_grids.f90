@@ -197,7 +197,7 @@ CONTAINS
          IGNORE = 1
          IF ( (.NOT.l_glob_lon_wize).OR.(.NOT.l_glob_lat_wize) ) ALLOCATE ( xdum(ni_trg,nj_trg) )
          IF ( .NOT.l_glob_lon_wize ) THEN
-            WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
+            WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)') lon_min_1,lon_max_1
             IF ( l_reg_trg ) THEN
                DO jj=1,nj_trg
                   xdum(:,jj) = lon_trg(:,1)
@@ -215,7 +215,7 @@ CONTAINS
             WHERE ( xdum > lon_max_1 ) IGNORE=0
          END IF
          IF ( .NOT.l_glob_lat_wize ) THEN
-            WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), min_lat_src, max_lat_src
+            WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)') min_lat_src, max_lat_src
             IF ( l_reg_trg ) THEN
                DO ji=1,ni_trg
                   xdum(ji,:) = lat_trg(:,1)
@@ -388,7 +388,7 @@ CONTAINS
       ELSE
          PRINT *, 'Looks like regional setup (longitude-wise at least...)'
          l_glob_lon_wize = .FALSE.
-         WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
+         WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)') lon_min_1,lon_max_1
       END IF
       PRINT *, ''
 
