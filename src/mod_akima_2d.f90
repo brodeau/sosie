@@ -119,7 +119,7 @@ CONTAINS
       CHARACTER(len=2) :: ctype
 
 
-      PRINT *, ' Entering AKIMA // #', ithrd
+      !PRINT *, ' Entering AKIMA // #', ithrd
 
       
       IF ( present(icall) ) THEN
@@ -239,7 +239,7 @@ CONTAINS
          l_first_call_interp_routine(ithrd) = .TRUE.
       END IF
 
-      PRINT *, ' ---> exiting AKIMA // #', ithrd
+      !PRINT *, ' ---> exiting AKIMA // #', ithrd
       
    END SUBROUTINE AKIMA_2D
 

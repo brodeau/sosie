@@ -75,10 +75,10 @@
 csource    = 'ETOPO1_21601x10801'
 ivect      = 0
 l_reg_src  = .true.
-cf_src     = '/home/laurent/data/ETOPO1_ATL.nc'
+cf_src     = '/home/brodeau/ETOPO1_ATL.nc'
 cv_src     = 'z'
 cv_t_src   = 'missing_rec'
-cf_x_src   = '/home/laurent/data/ETOPO1_ATL.nc'
+cf_x_src   = '/home/brodeau/ETOPO1_ATL.nc'
 cv_lon_src = 'x'
 cv_lat_src = 'y'
 cf_lsm_src = ''
@@ -142,10 +142,10 @@ ewper_src  = -1
 &ndom_trg
 ctarget    = 'eNATL60'
 l_reg_trg  = .false.
-cf_x_trg   = '/MEDIA/data/eNATL60/tmask_mesh_mask_eNATL60_3.6_lev1.nc4'
+cf_x_trg   = '/mnt/meom/workdir/brodeau/eNATL60/eNATL60-I/tmask_mesh_mask_eNATL60_3.6_lev1.nc4'
 cv_lon_trg = 'glamt'
 cv_lat_trg = 'gphit'
-cf_lsm_trg = '/MEDIA/data/eNATL60/tmask_mesh_mask_eNATL60_3.6_lev1.nc4'
+cf_lsm_trg = '/mnt/meom/workdir/brodeau/eNATL60/eNATL60-I/tmask_mesh_mask_eNATL60_3.6_lev1.nc4'
 cv_lsm_trg = 'tmask'
 ewper_trg  = -1
 !!

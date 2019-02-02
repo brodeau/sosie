@@ -74,7 +74,7 @@ CONTAINS
 
          !$OMP PARALLEL DO
          DO jtr = 1, Nthrd
-            PRINT *, ' INTERPOLATING thread domain #', jtr
+            !PRINT *, ' INTERPOLATING thread domain #', jtr
             CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), lat_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), data_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), jtr)!, icall=1)
          END DO
          !$OMP END PARALLEL DO

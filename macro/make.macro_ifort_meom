@@ -17,10 +17,9 @@ L_NCDF =  $(NETCDF_LDFLAGS) $(NETCDFF_LDFLAGS)
 # Fortran compilation flags:
 
 ##EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -traceback -debug extended -C
-EXTRA_DEBUG_FLAGS = -g -fpe0 -traceback -CB
+EXTRA_DEBUG_FLAGS = -g -fpe0 -traceback
 
-FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
-
+FF = -xHOST -O2 -i4 -openmp $(EXTRA_DEBUG_FLAGS) -module mod/
 
 # Directory to install binaries:
 INSTALL_DIR = $(HOME)/bin
