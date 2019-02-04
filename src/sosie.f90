@@ -37,6 +37,7 @@ PROGRAM SOSIE
    !!
    !!--------------------------------------------------------------------------
 
+   USE omp_lib
    USE io_ezcdf     !* routines for netcdf input/output
    USE mod_conf     !* important parameters, namelist, arrays, etc...
    USE mod_init     !* important parameters, namelist, arrays, etc...
@@ -54,9 +55,22 @@ PROGRAM SOSIE
       &   idf_id, idv_id  !: drowned source field...
 
    INTEGER :: jtr, noinc, ileft, ipl
-   
+
    REAL(4) :: rfct_miss=1.
 
+   INTEGER :: NTHREADS, TID
+
+   
+   CALL OMP_SET_NUM_THREADS(Nthrd_fix)   
+   !$OMP PARALLEL PRIVATE(NTHREADS, TID)
+   TID = OMP_GET_THREAD_NUM()
+   !PRINT *, 'Hello World from thread = ', TID
+   ! ONLY master thread does this
+   IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
+   !$OMP END PARALLEL
+   
+   !PRINT *, ' From openMP we shall use ', INT(Nthrd,1), ' OpenMP threads...'
+   !STOP
 
    !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
@@ -88,15 +102,16 @@ PROGRAM SOSIE
 
 
    !! OMP decomposition
+   !
+   PRINT *, ''
+   PRINT *, ' OMP thread decomposition along target grid X-axis:'
+   PRINT *, '  Nthrd =', Nthrd
+   PRINT *, '  ni_trg=', ni_trg
+   !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
+   !PRINT *, '   noinc =', noinc
+   ALLOCATE ( l_first_call_interp_routine(Nthrd) , i_bdn_l(Nthrd), i_bdn_r(Nthrd), i_seg_s(Nthrd) )
    IF ( Nthrd > 1) THEN
-      PRINT *, ''
-      PRINT *, ' OMP thread decomposition along target grid X-axis:'
-      PRINT *, '  Nthrd =', Nthrd
-      PRINT *, '  ni_trg=', ni_trg
-      !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
       noinc = ni_trg/Nthrd
-      !PRINT *, '   noinc =', noinc
-      ALLOCATE ( i_bdn_l(Nthrd), i_bdn_r(Nthrd), i_seg_s(Nthrd) )
       ipl = 0
       i_bdn_l(1) = 1
       i_bdn_r(1) = i_bdn_l(1) + noinc -1
@@ -106,18 +121,25 @@ PROGRAM SOSIE
          IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
          i_bdn_r(jtr) = i_bdn_l(jtr)   + noinc -1 + ipl
       END DO
-      PRINT *, '  i_bdn_l =', i_bdn_l
-      PRINT *, '  i_bdn_r =', i_bdn_r
-      DO jtr = 1, Nthrd
-         i_seg_s(jtr) = SIZE(lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),0)) ! lazy!!! but trustworthy I guess...
-         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)    
-      END DO
-      PRINT *, ''
-      !PRINT *, 'LOLO STOP:sosie.f90'
-      !STOP
+   ELSE
+      !! No OMP (Nthrd==1):
+      i_bdn_l(1) = 1
+      i_bdn_r(1) = ni_trg
+      i_seg_s(1) = ni_trg      
    END IF
-
    
+   PRINT *, '  i_bdn_l =', i_bdn_l
+   PRINT *, '  i_bdn_r =', i_bdn_r
+   DO jtr = 1, Nthrd
+      i_seg_s(jtr) = SIZE(lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),0)) ! lazy!!! but trustworthy I guess...
+      PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)
+   END DO
+   PRINT *, ''
+   !PRINT *, 'LOLO STOP:sosie.f90'
+   !STOP
+   !
+
+
 
    IF ( Ntr == 0 ) THEN
       PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
@@ -200,7 +222,7 @@ PROGRAM SOSIE
       ELSE
 
 
-         
+
          !! ================
          !! 3D INTERPOLATION
          !! ================

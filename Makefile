@@ -20,7 +20,8 @@ LIB_SOSIE = lib/libsosie.a
 
 # LIBRARY :
 LIB_CDF = -L$(NCDF_LIB) $(L_NCDF)
-LIB     = -L./lib -lsosie $(LIB_CDF)
+LIB_OMP = -L$(LIB_COMP_DIR) $(L_OMP)
+LIB     = -L./lib -lsosie $(LIB_CDF) $(LIB_OMP)
 
 
 # Disable implicit rules to speedup build
