@@ -1,5 +1,6 @@
 MODULE MOD_INTERP
 
+   !!USE omp_lib
    USE mod_conf       !* important parameters, namelist and misc routines
    USE mod_manip      !* misc. manipulation of 2D arrays
    USE mod_drown      !* extrapolation over masked surfaces
@@ -74,7 +75,7 @@ CONTAINS
 
          !$OMP PARALLEL DO
          DO jtr = 1, Nthrd
-            PRINT *, ' INTERPOLATING thread domain #', jtr
+            PRINT *, ' Running "akima_2d" on OMP thread #', INT(jtr,1)
             CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), lat_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), data_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), jtr)!, icall=1)
          END DO
          !$OMP END PARALLEL DO
