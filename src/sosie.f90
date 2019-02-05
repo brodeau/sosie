@@ -70,16 +70,21 @@ PROGRAM SOSIE
    WRITE(6,*)''
 
    Nthrd = 1
+
+   !! Fecthing command line arguments if any:
+   CALL GET_ARGUMENTS()    ! MODULE mod_init
+
+
+   !! ========== OpenMP only ==========================================
 !$ CALL OMP_SET_NUM_THREADS(Nthrd_fix)   
    !$OMP PARALLEL PRIVATE(NTHREADS, TID)
 !$ TID = OMP_GET_THREAD_NUM()
 !$ IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
    !$OMP END PARALLEL   
 !$ WRITE(6,'(" ### Going to use ",i2," OpenMP threads!")') Nthrd
+   !!===================================================================
 
-   !! Fecthing command line arguments if any:
-   CALL GET_ARGUMENTS()    ! MODULE mod_init
-
+   
    !! Reading namelist:
    CALL READ_NMLST(1)      ! MODULE mod_init
 

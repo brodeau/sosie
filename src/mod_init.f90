@@ -5,9 +5,9 @@ MODULE MOD_INIT
    IMPLICIT NONE
 
    PRIVATE
-   
+
    PUBLIC :: GET_ARGUMENTS, READ_NMLST, REMINDER
-   
+
    !! Declaration of namelist :
    !! -------------------------
 
@@ -35,7 +35,7 @@ CONTAINS
 
       INTEGER            :: iargc, jarg
       CHARACTER(len=400) :: cr
-      CHARACTER(LEN=2), DIMENSION(3), PARAMETER :: clist_opt = (/ '-h','-p','-f' /)
+      CHARACTER(LEN=2), DIMENSION(3), PARAMETER :: clist_opt = (/ '-h','-f','-N' /)
 
       PRINT *, ''
 
@@ -61,10 +61,27 @@ CONTAINS
                CALL getarg(jarg,cr)
 
                IF ( ANY(clist_opt == trim(cr)) ) THEN
-                  PRINT *, 'ERROR: ', trim(cr), ' is definitively not the name of the namelist!'
+                  PRINT *, 'ERROR: "', trim(cr), '" is definitively not the name of the namelist!'
                   call usage()
                ELSE
                   cf_nml_sosie = trim(cr)
+               END IF
+
+            END IF
+
+         CASE('-N')
+
+            IF ( jarg + 1 > iargc() ) THEN
+               PRINT *, 'ERROR: provide the number of OMP threads!' ; call usage()
+            ELSE
+
+               jarg = jarg + 1
+               CALL getarg(jarg,cr)
+               IF ( ANY(clist_opt == TRIM(cr)) ) THEN
+                  PRINT *, 'ERROR: "', trim(cr), '" is definitively not a number of OMP threads!'
+                  CALL usage()
+               ELSE
+                  READ(cr,'(i)') Nthrd_fix
                END IF
 
             END IF
@@ -366,6 +383,8 @@ CONTAINS
       PRINT *,'List of command line options:'
       PRINT *, ''
       PRINT *,' -f  <namelist_file>  => Specify which namelist file to use'
+      PRINT *, ''
+      PRINT *,' -N  <integer>        => Specify the nunber of OMP threads to use'
       PRINT *, ''
       PRINT *,' -h                   => Show this message'
       PRINT *, ''
