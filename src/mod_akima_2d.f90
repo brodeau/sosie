@@ -56,16 +56,16 @@ CONTAINS
 
 
 
-
-   SUBROUTINE AKIMA_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, ithrd,  icall)
-
+   
+   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X20, Y20, Z2, ithrd,  icall)
+      
       !!================================================================
       !!
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             X10   : 2D source longitude array (ni*nj) or (ni*1) (must be regular!)
-      !!             Y10   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
+      !!             X1   : 2D source longitude array (ni*nj) or (ni*1) (must be regular!)
+      !!             Y1   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
       !!             Z1    : source field on source grid
       !!
       !!             X20   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
@@ -81,8 +81,7 @@ CONTAINS
 
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: X10, Y10
-      REAL(4), DIMENSION(:,:), INTENT(in)  :: Z1
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: X1, Y1, Z1
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
@@ -93,8 +92,6 @@ CONTAINS
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2, ji, jj
 
-      INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
-
       INTEGER :: &
          &     ji1, jj1, ji2, jj2,   &
          &     ni1, nj1
@@ -103,9 +100,7 @@ CONTAINS
 
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
 
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
-         &    X1, Y1, X2, Y2,   &
-         &    Z_src , lon_src , lat_src
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: X2, Y2
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
 
@@ -129,23 +124,10 @@ CONTAINS
          END IF
       END IF
 
-
-
-      !! Create 2D (ni*nj) arrays out of 1d (ni*1 and nj*1) arrays if needed:
-      !! => TEST_XYZ tests if a 2D array is a true 2D array (NxM) or a fake (Nx1)
-      !!    and returns '1d' if it is a fake 2D array
-
-      ctype = TEST_XYZ(X10, Y10, Z1)
       nx1 = SIZE(Z1,1)
       ny1 = SIZE(Z1,2)
-      ALLOCATE ( X1(nx1,ny1) , Y1(nx1,ny1) )
-      IF ( ctype == '1d' ) THEN
-         FORALL (jj = 1:ny1) X1(:,jj) = X10(:,1)
-         FORALL (ji = 1:nx1) Y1(ji,:) = Y10(:,1)
-      ELSE
-         X1 = X10 ; Y1 = Y10
-      END IF
 
+      !! Make target lat and lon rectangle and not vector!
       ctype = '00'
       ctype = TEST_XYZ(X20, Y20, Z2)
       nx2 = SIZE(Z2,1)
@@ -161,35 +143,19 @@ CONTAINS
 
       !!                       S T A R T
 
-      !! Extending the source 2D domain with a frame of 2 points:
-      !!    We extend initial 2D array with a frame, adding n_extd points in each
-      !!    dimension This is really needed specially for preserving good east-west
-      !!    perdiodicity...
-
-      ni1 = nx1 + n_extd  ;   nj1 = ny1 + n_extd
-
-      ALLOCATE ( Z_src(ni1,nj1), lon_src(ni1,nj1), lat_src(ni1,nj1), &
-         &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
-         &       poly(ni1-1,nj1-1,nsys)    )
-
-      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_src, lat_src, Z_src,  is_orca_grid=i_orca_src)
-
-      DEALLOCATE (X1, Y1)
-
-
+      ALLOCATE ( slpx(nx1,ny1), slpy(nx1,ny1), slpxy(nx1,ny1), poly(nx1-1,ny1-1,nsys) )
 
       !! Computation of partial derivatives:
-      CALL slopes_akima(k_ew_per, lon_src, lat_src, Z_src, slpx, slpy, slpxy)
-
+      CALL slopes_akima(k_ew_per, X1, Y1, Z1, slpx, slpy, slpxy)
+      
       !! Polynome:
-      CALL build_pol(lon_src, lat_src, Z_src, slpx, slpy, slpxy, poly)
+      CALL build_pol(             X1, Y1, Z1, slpx, slpy, slpxy, poly)
 
       DEALLOCATE ( slpx, slpy, slpxy )
 
-
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = minval(lon_src) ;  max_lon1 = maxval(lon_src)
-      min_lat1 = minval(lat_src) ;  max_lat1 = maxval(lat_src)
+      min_lon1 = minval(X1) ;  max_lon1 = maxval(X1)
+      min_lat1 = minval(Y1) ;  max_lat1 = maxval(Y1)
       xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
 
       min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
@@ -197,7 +163,7 @@ CONTAINS
       
       !! Doing the mapping once for all and saving into ixy_pos:
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos(1:nx2,:,:,ithrd) )
+         CALL find_nearest_akima( X1, Y1, xy_range_src, X2, Y2, ixy_pos(1:nx2,:,:,ithrd) )
       END IF
 
 
@@ -216,8 +182,8 @@ CONTAINS
                jj1 = ixy_pos(ji2,jj2,2,ithrd)
 
                !! It's time to interpolate:
-               px2 = px2 - lon_src(ji1,jj1)
-               py2 = py2 - lat_src(ji1,jj1)
+               px2 = px2 - X1(ji1,jj1)
+               py2 = py2 - Y1(ji1,jj1)
                vpl = poly(ji1,jj1,:)
 
                Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
@@ -230,7 +196,7 @@ CONTAINS
       END DO
 
       !! Deallocation :
-      DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
+      DEALLOCATE ( poly, X2, Y2 )
 
       l_first_call_interp_routine(ithrd) = .FALSE.
 

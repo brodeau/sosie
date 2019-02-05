@@ -9,7 +9,8 @@ MODULE MOD_INTERP
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
 
    USE mod_nemotools, ONLY: lbc_lnk
-   !USE io_ezcdf,      ONLY: DUMP_2D_FIELD ; !LOLOdebug
+   USE io_ezcdf,  ONLY: TEST_XYZ, DUMP_FIELD
+   !USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdebug
 
    IMPLICIT NONE
 
@@ -25,8 +26,13 @@ CONTAINS
       !! 2D INTERPOLATION
       !! ================
 
-      INTEGER :: i1,j1, i2,j2, jtr
+      INTEGER :: i1,j1, i2,j2, jtr, ji, jj
+      INTEGER :: ni_src_x, nj_src_x
       INTEGER :: nseg_max
+      CHARACTER(len=2) :: ctype
+      INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: X1, Y1, lon_src_x, lat_src_x, data_src_x
+
 
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -55,31 +61,69 @@ CONTAINS
       END IF
 
 
+
+      !! LOLO
+      !!-------
+      IF ( l_first_call_interp_routine(1) ) THEN
+         nseg_max = ni_trg
+         IF ( Nthrd > 1 ) THEN
+            nseg_max = MAXVAL(i_seg_s)
+            PRINT *, ' *** Allocating "ixy_pos" => ', nseg_max, nj_trg, 2, Nthrd
+         END IF
+         ALLOCATE ( ixy_pos(nseg_max, nj_trg, 2, Nthrd) )
+         ixy_pos(:,:,:,:) = 0
+      END IF
+
+
+
+      !! East-West and South-North border extension of source domain:
+      !! ------------------------------------------------------------
+
+      ctype = TEST_XYZ(lon_src, lat_src, data_src)
+      ALLOCATE ( X1(ni_src,nj_src) , Y1(ni_src,nj_src) )
+      IF ( ctype == '1d' ) THEN
+         FORALL (jj = 1:nj_src) X1(:,jj) = lon_src(:,1)
+         FORALL (ji = 1:ni_src) Y1(ji,:) = lat_src(:,1)
+      ELSE
+         X1 = lon_src
+         Y1 = lat_src
+      END IF
+      ni_src_x = ni_src + n_extd
+      nj_src_x = nj_src + n_extd
+
+      PRINT *, '  *** allocating data_src_x, lon_src_x, lat_src_x:', ni_src_x,nj_src_x
+      ALLOCATE ( lon_src_x(ni_src_x,nj_src_x), lat_src_x(ni_src_x,nj_src_x), data_src_x(ni_src_x,nj_src_x) )
+      PRINT *, '      => allocation done!'
+
+
+      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), lon_src_x, lat_src_x, data_src_x,  is_orca_grid=i_orca_src)
+
+      !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=lon_src_x, xlat=lat_src_x)
+
+      DEALLOCATE (X1, Y1)
+      !STOP
+
+
+
+
+
+
       !! Call interpolation procedure :
       !! ------------------------------
-
 
       SELECT CASE(cmethod)
 
       CASE('akima')
 
-         IF ( l_first_call_interp_routine(1) ) THEN
-            nseg_max = ni_trg
-            IF ( Nthrd > 1 ) THEN
-               nseg_max = maxval(i_seg_s)
-               PRINT *, ' *** Allocating "ixy_pos" => ', nseg_max, nj_trg, 2, Nthrd
-            END IF
-            ALLOCATE ( ixy_pos(nseg_max, nj_trg, 2, Nthrd) )
-            ixy_pos(:,:,:,:) = 0
-         END IF
 
          !$OMP PARALLEL DO
          DO jtr = 1, Nthrd
             PRINT *, ' Running "akima_2d" on OMP thread #', INT(jtr,1)
-            CALL akima_2d(ewper_src, lon_src, lat_src, data_src, lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), lat_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), data_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), jtr)!, icall=1)
+            !! ewper_src useless now that extension is done above???? right?
+            CALL akima_2d(ewper_src, lon_src_x, lat_src_x, data_src_x, lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), lat_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), data_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), jtr)!, icall=1)
          END DO
          !$OMP END PARALLEL DO
-         
+
 
          !CASE('bilin')
          !   CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat, 1,  mask_domain_trg=IGNORE)
@@ -92,7 +136,9 @@ CONTAINS
          PRINT *, 'Interpolation method ', cmethod, ' is unknown!!!' ; STOP
       END SELECT
 
+      DEALLOCATE ( lon_src_x, lat_src_x, data_src_x )
 
+      
       !! If target grid extends too much in latitude compared to source grid, need to
       !! extrapolate a bit at bottom and top of the domain :
       IF (l_reg_trg) CALL extrp_hl(data_trg)
@@ -142,6 +188,7 @@ CONTAINS
 
       !! If target grid is an ORCA grid, calling "lbc_lnk":
       IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
+      
 
    END SUBROUTINE INTERP_2D
 
@@ -247,15 +294,17 @@ CONTAINS
          SELECT CASE(TRIM(cmethod))
 
          CASE('akima')
-            CALL akima_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
-               &              lon_trg, lat_trg, data3d_tmp(:,:,jk), 1)
+            PRINT *, 'mod_interp.f90 not yet!'
+            STOP
+            !CALL akima_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
+            !   &              lon_trg, lat_trg, data3d_tmp(:,:,jk), 1)
             IF ( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
                depth_src_trgt2d(:,:,jk) = depth_src(1,1,jk)
             ELSE
                !! input is sigma, layers are non-flat
-               CALL akima_2d(ewper_src, lon_src,  lat_src, depth_src(:,:,jk),       &
-                  &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), 1 )
+               !CALL akima_2d(ewper_src, lon_src,  lat_src, depth_src(:,:,jk),       &
+               !   &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk), 1 )
             ENDIF
 
             !CASE('bilin')
