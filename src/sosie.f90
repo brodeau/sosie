@@ -37,7 +37,7 @@ PROGRAM SOSIE
    !!
    !!--------------------------------------------------------------------------
 
-   USE omp_lib
+!$ USE omp_lib
    USE io_ezcdf     !* routines for netcdf input/output
    USE mod_conf     !* important parameters, namelist, arrays, etc...
    USE mod_init     !* important parameters, namelist, arrays, etc...
@@ -61,17 +61,6 @@ PROGRAM SOSIE
    INTEGER :: NTHREADS, TID
 
    
-   CALL OMP_SET_NUM_THREADS(Nthrd_fix)   
-   !$OMP PARALLEL PRIVATE(NTHREADS, TID)
-   TID = OMP_GET_THREAD_NUM()
-   !PRINT *, 'Hello World from thread = ', TID
-   ! ONLY master thread does this
-   IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
-   !$OMP END PARALLEL
-   
-   !PRINT *, ' From openMP we shall use ', INT(Nthrd,1), ' OpenMP threads...'
-   !STOP
-
    !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
    WRITE(6,*)''
@@ -80,6 +69,13 @@ PROGRAM SOSIE
    WRITE(6,*)'=========================================================='
    WRITE(6,*)''
 
+   Nthrd = 1
+!$ CALL OMP_SET_NUM_THREADS(Nthrd_fix)   
+   !$OMP PARALLEL PRIVATE(NTHREADS, TID)
+!$ TID = OMP_GET_THREAD_NUM()
+!$ IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
+   !$OMP END PARALLEL   
+!$ WRITE(6,'(" ### Going to use ",i2," OpenMP threads!")') Nthrd
 
    !! Fecthing command line arguments if any:
    CALL GET_ARGUMENTS()    ! MODULE mod_init
@@ -103,10 +99,10 @@ PROGRAM SOSIE
 
    !! OMP decomposition
    !
-   PRINT *, ''
-   PRINT *, ' OMP thread decomposition along target grid X-axis:'
-   PRINT *, '  Nthrd =', Nthrd
-   PRINT *, '  ni_trg=', ni_trg
+!$ PRINT *, ''
+!$ PRINT *, ' OMP thread decomposition along target grid X-axis:'
+!$ PRINT *, '  Nthrd =', Nthrd
+!$ PRINT *, '  ni_trg=', ni_trg
    !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
    !PRINT *, '   noinc =', noinc
    ALLOCATE ( l_first_call_interp_routine(Nthrd) , i_bdn_l(Nthrd), i_bdn_r(Nthrd), i_seg_s(Nthrd) )
@@ -135,9 +131,6 @@ PROGRAM SOSIE
       PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)
    END DO
    PRINT *, ''
-   !PRINT *, 'LOLO STOP:sosie.f90'
-   !STOP
-   !
 
 
 
