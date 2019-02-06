@@ -5,17 +5,23 @@
 FC = gfortran
 
 # Root directory for Netcdf:
-NETCDF_DIR = /usr
 # netcf libraries are in: <NETCDF_DIR>/lib/
 # netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+NETCDF_DIR = /usr
 
 # Linking argument: usually "-lnetcdf", "-lnetcdff" or "-lnetcdf -lnetcdff" :
-###L_NCDF = -lnetcdf -lnetcdff -L$(NETCDF_DIR)/lib/x86_64-linux-gnu/hdf5/serial -lhdf5_hl
 L_NCDF = -lnetcdf -lnetcdff
+
+# Compiler's libraries location:
+LIB_COMP_DIR = /usr/lib/gcc/x86_64-linux-gnu/7
+# Linking argument for OpenMP library:
+L_OMP  = -lgomp
+OMP_INC = -I$(LIB_COMP_DIR)/finclude
+
 
 # Fortran compilation flags:
 # -- Production
-FF = -O2 -ffree-line-length-200 -fopenmp -fbounds-check -J./mod -I./mod
+FF = -O2 -ffree-line-length-200 -fopenmp -fbounds-check -J./mod -I./mod $(OMP_INC)
 ###FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
 
 # -- Debugging

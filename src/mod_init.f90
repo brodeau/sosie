@@ -81,7 +81,7 @@ CONTAINS
                   PRINT *, 'ERROR: "', trim(cr), '" is definitively not a number of OMP threads!'
                   CALL usage()
                ELSE
-                  READ(cr,'(i)') Nthrd_fix
+                  READ(cr,'(i2)') Nthrd_fix
                END IF
 
             END IF
