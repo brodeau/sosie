@@ -163,7 +163,7 @@ CONTAINS
       
       !! Doing the mapping once for all and saving into ixy_pos:
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-         CALL find_nearest_akima( X1, Y1, xy_range_src, X2, Y2, ixy_pos(1:nx2,:,:,ithrd) )
+         CALL find_src_cell( X1, Y1, xy_range_src, X2, Y2, ixy_pos(1:nx2,:,:,ithrd) )
       END IF
 
 
@@ -620,19 +620,20 @@ CONTAINS
    END SUBROUTINE slopes_akima
 
 
-
-
-
-   SUBROUTINE find_nearest_akima( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
+   
+   SUBROUTINE find_src_cell( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
       !!---------------------------------------------------------------------------------------
-      !! Laboriuously scanning the entire source grid to find location of treated point
+      !! Laboriuously scanning the entire source grid to find which cell of the source domain
+      !! contains each point of the target domain.
+      !! => returns "ixyp_trg" which  contains the i,j coordinates of the bottom left corner of
+      !!    the cell of the source grid inside which each target point lies
       !!---------------------------------------------------------------------------------------
       REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
       REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
       REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
       INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_trg
-
-      INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt
+      
+      INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt, ndm
       REAL(8) :: pxt, pyt
       LOGICAL :: l_x_found, l_y_found
 
@@ -640,6 +641,12 @@ CONTAINS
       nys = SIZE(plon_src,2)
       nxt = SIZE(ixyp_trg,1)
       nyt = SIZE(ixyp_trg,2)
+      ndm = SIZE(ixyp_trg,3)
+
+      IF ( ndm /= 2 ) THEN
+         PRINT *, 'ERROR: [find_src_cell@mod_akima_2d.f90] => 3rd dimension of ixyp_trg must be of size 2!!!'
+         STOP
+      END IF
 
       !! Loop on target domain:
       DO jjt = 1, nyt
@@ -698,6 +705,6 @@ CONTAINS
          END DO !DO jit = 1, nxt
       END DO !DO jjt = 1, nyt
 
-   END SUBROUTINE find_nearest_akima
+   END SUBROUTINE find_src_cell
 
 END MODULE MOD_AKIMA_2D

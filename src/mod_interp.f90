@@ -79,6 +79,9 @@ CONTAINS
       !! East-West and South-North border extension of source domain:
       !! ------------------------------------------------------------
 
+      !!LOLO: some stuffs here can be done only at first call! #FIXME
+      
+      !! Going to work with 2D longitude,latitude arrays (source domain) => X1, Y1 (regardless regularity of source grid)
       ctype = TEST_XYZ(lon_src, lat_src, data_src)
       ALLOCATE ( X1(ni_src,nj_src) , Y1(ni_src,nj_src) )
       IF ( ctype == '1d' ) THEN
@@ -88,21 +91,18 @@ CONTAINS
          X1 = lon_src
          Y1 = lat_src
       END IF
+      
+      !! Source extended domain:
       ni_src_x = ni_src + n_extd
       nj_src_x = nj_src + n_extd
-
-      PRINT *, '  *** allocating data_src_x, lon_src_x, lat_src_x:', ni_src_x,nj_src_x
+      !PRINT *, '  *** allocating data_src_x, lon_src_x, lat_src_x:', ni_src_x,nj_src_x
       ALLOCATE ( lon_src_x(ni_src_x,nj_src_x), lat_src_x(ni_src_x,nj_src_x), data_src_x(ni_src_x,nj_src_x) )
-      PRINT *, '      => allocation done!'
-
-
+      !PRINT *, '      => allocation done!'
       CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), lon_src_x, lat_src_x, data_src_x,  is_orca_grid=i_orca_src)
-
       !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=lon_src_x, xlat=lat_src_x)
-
-      DEALLOCATE (X1, Y1)
+      !DEALLOCATE (X1, Y1)
       !STOP
-
+      !!  => lon_src_x, lat_src_x are the extended 2D longitude,latitude arrays of source domain !
 
 
 
