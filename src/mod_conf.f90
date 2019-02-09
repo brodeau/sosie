@@ -10,7 +10,7 @@ MODULE MOD_CONF
 
    INTEGER, SAVE      :: Nthrd_fix, Nthrd         !: number of OpenMP threads
    
-   INTEGER, DIMENSION(:), ALLOCATABLE :: i_bdn_l, i_bdn_r, i_seg_s
+   INTEGER, DIMENSION(:), ALLOCATABLE :: i_b_l, i_b_r, i_seg_s
    
    LOGICAL, DIMENSION(:), ALLOCATABLE, SAVE :: l_first_call_interp_routine
 

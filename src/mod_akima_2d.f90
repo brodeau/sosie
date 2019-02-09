@@ -29,7 +29,7 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: FILL_EXTRA_BANDS
+   USE mod_manip, ONLY: FILL_EXTRA_BANDS, FIND_SRC_CELL
    USE io_ezcdf,  ONLY: TEST_XYZ
 
 
@@ -39,7 +39,7 @@ MODULE MOD_AKIMA_2D
    LOGICAL, PUBLIC, SAVE :: &
       &    l_always_first_call  = .FALSE.
 
-   INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, PUBLIC, SAVE :: ixy_pos !: table storing source/target grids mapping
+   !INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, PUBLIC, SAVE :: ixy_pos !: table storing source/target grids mapping
 
    PRIVATE
 
@@ -54,10 +54,10 @@ CONTAINS
 
 
 
-
+   !#FIXME is icall, first call stuff still needed???
 
    
-   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X20, Y20, Z2, ithrd,  icall)
+   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X2, Y2, Z2,  ixy_pos,  ithrd,  icall)
       
       !!================================================================
       !!
@@ -68,8 +68,10 @@ CONTAINS
       !!             Y1   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
       !!             Z1    : source field on source grid
       !!
-      !!             X20   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
-      !!             Y20   : 2D target latitude  array (ni*nj) or (nj*1) (can be irregular)
+      !!             X2   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
+      !!             Y2   : 2D target latitude  array (ni*nj) or (nj*1) (can be irregular)
+      !!
+      !!           ixy_pos : contains target/src mapping... #FIXME
       !!
       !! OUTPUT :
       !!             Z2    : input field on target grid
@@ -80,28 +82,23 @@ CONTAINS
 
 
       !! Input/Output arguments
-      INTEGER,                 INTENT(in)  :: k_ew_per
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: X1, Y1, Z1
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
-      REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
-      INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
-      INTEGER,       OPTIONAL, INTENT(in)  :: icall
+      INTEGER,                     INTENT(in)  :: k_ew_per
+      REAL(8), DIMENSION(:,:),     INTENT(in)  :: X1, Y1, Z1
+      REAL(8), DIMENSION(:,:),     INTENT(in)  :: X2, Y2
+      REAL(4), DIMENSION(:,:),     INTENT(out) :: Z2
+      INTEGER, DIMENSION(:,:,:,:), INTENT(in)  :: ixy_pos
+      INTEGER,                     INTENT(in)  :: ithrd ! # OMP thread
+      INTEGER,       OPTIONAL,     INTENT(in)  :: icall
 
 
 
       !! Local variables
-      INTEGER :: nx1, ny1, nx2, ny2, ji, jj
+      INTEGER :: nx1, ny1, nx2, ny2
 
-      INTEGER :: &
-         &     ji1, jj1, ji2, jj2,   &
-         &     ni1, nj1
+      INTEGER :: ji1, jj1, ji2, jj2
 
       REAL(8), DIMENSION(nsys) ::  vpl
-
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
-
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: X2, Y2
-
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
 
       REAL(8) :: &
@@ -109,13 +106,8 @@ CONTAINS
          &  min_lon1, max_lon1, min_lat1, max_lat1,   &
          &  min_lon2, max_lon2, min_lat2, max_lat2
 
-      REAL(8), DIMENSION(4) :: xy_range_src
-
-      CHARACTER(len=2) :: ctype
-
 
       !PRINT *, ' Entering AKIMA // #', ithrd
-
       
       IF ( present(icall) ) THEN
          IF ( icall == 1 ) THEN
@@ -127,18 +119,8 @@ CONTAINS
       nx1 = SIZE(Z1,1)
       ny1 = SIZE(Z1,2)
 
-      !! Make target lat and lon rectangle and not vector!
-      ctype = '00'
-      ctype = TEST_XYZ(X20, Y20, Z2)
       nx2 = SIZE(Z2,1)
       ny2 = SIZE(Z2,2)
-      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) )
-      IF ( ctype == '1d' ) THEN
-         FORALL (jj=1:ny2) X2(:,jj) = X20(:,1)
-         FORALL (ji=1:nx2) Y2(ji,:) = Y20(:,1)
-      ELSE
-         X2 = X20 ; Y2 = Y20
-      END IF
 
 
       !!                       S T A R T
@@ -156,16 +138,10 @@ CONTAINS
       !! Checking if the target grid does not overlap source grid :
       min_lon1 = minval(X1) ;  max_lon1 = maxval(X1)
       min_lat1 = minval(Y1) ;  max_lat1 = maxval(Y1)
-      xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
 
       min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
       
-      !! Doing the mapping once for all and saving into ixy_pos:
-      IF ( l_first_call_interp_routine(ithrd) ) THEN
-         CALL find_src_cell( X1, Y1, xy_range_src, X2, Y2, ixy_pos(1:nx2,:,:,ithrd) )
-      END IF
-
 
       !! Loop on target domain:
       DO jj2 = 1, ny2
@@ -196,12 +172,11 @@ CONTAINS
       END DO
 
       !! Deallocation :
-      DEALLOCATE ( poly, X2, Y2 )
+      DEALLOCATE ( poly )
 
       l_first_call_interp_routine(ithrd) = .FALSE.
 
       IF ( l_always_first_call ) THEN
-         DEALLOCATE ( ixy_pos )
          l_first_call_interp_routine(ithrd) = .TRUE.
       END IF
 
@@ -619,92 +594,5 @@ CONTAINS
 
    END SUBROUTINE slopes_akima
 
-
    
-   SUBROUTINE find_src_cell( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
-      !!---------------------------------------------------------------------------------------
-      !! Laboriuously scanning the entire source grid to find which cell of the source domain
-      !! contains each point of the target domain.
-      !! => returns "ixyp_trg" which  contains the i,j coordinates of the bottom left corner of
-      !!    the cell of the source grid inside which each target point lies
-      !!---------------------------------------------------------------------------------------
-      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
-      REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
-      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
-      INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_trg
-      
-      INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt, ndm
-      REAL(8) :: pxt, pyt
-      LOGICAL :: l_x_found, l_y_found
-
-      nxs = SIZE(plon_src,1)
-      nys = SIZE(plon_src,2)
-      nxt = SIZE(ixyp_trg,1)
-      nyt = SIZE(ixyp_trg,2)
-      ndm = SIZE(ixyp_trg,3)
-
-      IF ( ndm /= 2 ) THEN
-         PRINT *, 'ERROR: [find_src_cell@mod_akima_2d.f90] => 3rd dimension of ixyp_trg must be of size 2!!!'
-         STOP
-      END IF
-
-      !! Loop on target domain:
-      DO jjt = 1, nyt
-         DO jit = 1, nxt
-
-            jis = 1
-            jjs = 1
-
-            l_x_found = .FALSE.
-            l_y_found = .FALSE.
-
-            pxt = plon_trg(jit,jjt)
-            pyt = plat_trg(jit,jjt)
-
-            !! Only searching if inside source domain:
-            IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) ) THEN
-
-               DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
-
-                  l_x_found = .FALSE.
-                  DO WHILE ( .NOT. l_x_found )
-                     IF (jis < nxs) THEN
-                        IF ((plon_src(jis,jjs) <= pxt).and.(plon_src(jis+1,jjs) > pxt)) THEN
-                           l_x_found = .TRUE.
-                        ELSE
-                           jis = jis+1
-                        END IF
-                     ELSE   ! jis = nxs
-                        jis = jis-1  ! we are at the top need to use former pol.
-                        l_x_found = .TRUE.
-                     END IF
-                  END DO
-
-                  l_y_found = .FALSE.
-                  DO WHILE ( .NOT. l_y_found )
-                     IF ( jjs < nys ) THEN
-                        IF ((plat_src(jis,jjs) <= pyt).and.(plat_src(jis,jjs+1) > pyt)) THEN
-                           l_y_found = .TRUE.
-                        ELSE
-                           jjs = jjs + 1
-                           l_x_found = .FALSE.
-                           l_y_found = .TRUE. ! just so that we exit the loop on l_y_found
-                        END IF
-                     ELSE   ! jjs == nys
-                        jjs = nys-1        ! we are using polynome at (ji,nys-1)
-                        l_y_found = .TRUE. ! for extreme right boundary
-                     END IF
-                  END DO
-
-               END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
-
-               ixyp_trg(jit,jjt,:) = (/ jis, jjs /)
-
-            END IF !IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) )
-
-         END DO !DO jit = 1, nxt
-      END DO !DO jjt = 1, nyt
-
-   END SUBROUTINE find_src_cell
-
 END MODULE MOD_AKIMA_2D

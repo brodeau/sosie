@@ -110,29 +110,29 @@ PROGRAM SOSIE
 !$ PRINT *, '  ni_trg=', ni_trg
    !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
    !PRINT *, '   noinc =', noinc
-   ALLOCATE ( l_first_call_interp_routine(Nthrd) , i_bdn_l(Nthrd), i_bdn_r(Nthrd), i_seg_s(Nthrd) )
+   ALLOCATE ( l_first_call_interp_routine(Nthrd) , i_b_l(Nthrd), i_b_r(Nthrd), i_seg_s(Nthrd) )
    IF ( Nthrd > 1) THEN
       noinc = ni_trg/Nthrd
       ipl = 0
-      i_bdn_l(1) = 1
-      i_bdn_r(1) = i_bdn_l(1) + noinc -1
+      i_b_l(1) = 1
+      i_b_r(1) = i_b_l(1) + noinc -1
       DO jtr = 2, Nthrd
          ileft = Nthrd - jtr + 1
-         i_bdn_l(jtr) = i_bdn_l(jtr-1) + noinc + ipl
+         i_b_l(jtr) = i_b_l(jtr-1) + noinc + ipl
          IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
-         i_bdn_r(jtr) = i_bdn_l(jtr)   + noinc -1 + ipl
+         i_b_r(jtr) = i_b_l(jtr)   + noinc -1 + ipl
       END DO
    ELSE
       !! No OMP (Nthrd==1):
-      i_bdn_l(1) = 1
-      i_bdn_r(1) = ni_trg
+      i_b_l(1) = 1
+      i_b_r(1) = ni_trg
       i_seg_s(1) = ni_trg      
    END IF
    
-   PRINT *, '  i_bdn_l =', i_bdn_l
-   PRINT *, '  i_bdn_r =', i_bdn_r
+   PRINT *, '  i_b_l =', i_b_l
+   PRINT *, '  i_b_r =', i_b_r
    DO jtr = 1, Nthrd
-      i_seg_s(jtr) = SIZE(lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),0)) ! lazy!!! but trustworthy I guess...
+      i_seg_s(jtr) = SIZE(lon_trg(i_b_l(jtr):i_b_r(jtr),0)) ! lazy!!! but trustworthy I guess...
       PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)
    END DO
    PRINT *, ''
@@ -196,7 +196,7 @@ PROGRAM SOSIE
          END IF
 
 
-         CALL INTERP_2D()
+         CALL INTERP_2D(jt, Ntr)
 
          !! => data_trg for current time step is ready to be written in netcdf file
 

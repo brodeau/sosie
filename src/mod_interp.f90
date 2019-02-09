@@ -20,18 +20,24 @@ MODULE MOD_INTERP
 
 CONTAINS
 
-   SUBROUTINE INTERP_2D()
+   SUBROUTINE INTERP_2D( jt, Nt)
 
       !! ================
       !! 2D INTERPOLATION
       !! ================
 
+      INTEGER, INTENT(in) :: jt, Nt
+
       INTEGER :: i1,j1, i2,j2, jtr, ji, jj
       INTEGER :: ni_src_x, nj_src_x
-      INTEGER :: nseg_max
+      INTEGER :: nx_max_seg
       CHARACTER(len=2) :: ctype
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: X1, Y1, lon_src_x, lat_src_x, data_src_x
+      REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1, Y1, X1_x, Y1_x
+      REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X2, Y2
+      REAL(8), DIMENSION(:,:), ALLOCATABLE       :: data_src_x
+      REAL(8), DIMENSION(4), SAVE :: xy_range_src
+      INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, SAVE :: ixy_src_cell_map !: table storing source/target grids mapping
 
 
       !! lon-aranging or lat-flipping field
@@ -62,17 +68,15 @@ CONTAINS
 
 
 
+
+
+
+
+
       !! LOLO
       !!-------
-      IF ( l_first_call_interp_routine(1) ) THEN
-         nseg_max = ni_trg
-         IF ( Nthrd > 1 ) THEN
-            nseg_max = MAXVAL(i_seg_s)
-            PRINT *, ' *** Allocating "ixy_pos" => ', nseg_max, nj_trg, 2, Nthrd
-         END IF
-         ALLOCATE ( ixy_pos(nseg_max, nj_trg, 2, Nthrd) )
-         ixy_pos(:,:,:,:) = 0
-      END IF
+      !IF ( l_first_call_interp_routine(1) ) THEN
+      !END IF
 
 
 
@@ -80,29 +84,51 @@ CONTAINS
       !! ------------------------------------------------------------
 
       !!LOLO: some stuffs here can be done only at first call! #FIXME
-      
+
       !! Going to work with 2D longitude,latitude arrays (source domain) => X1, Y1 (regardless regularity of source grid)
-      ctype = TEST_XYZ(lon_src, lat_src, data_src)
-      ALLOCATE ( X1(ni_src,nj_src) , Y1(ni_src,nj_src) )
-      IF ( ctype == '1d' ) THEN
-         FORALL (jj = 1:nj_src) X1(:,jj) = lon_src(:,1)
-         FORALL (ji = 1:ni_src) Y1(ji,:) = lat_src(:,1)
-      ELSE
-         X1 = lon_src
-         Y1 = lat_src
+      !!LOLO #FIXME put all these squaring-coordinates stuff somewhere else, like in mod_grid..., also known from a module,
+      IF ( jt == 1 ) THEN
+         ctype = TEST_XYZ(lon_src, lat_src, data_src)
+         ALLOCATE ( X1(ni_src,nj_src) , Y1(ni_src,nj_src) )
+         IF ( ctype == '1d' ) THEN
+            FORALL (jj = 1:nj_src) X1(:,jj) = lon_src(:,1)
+            FORALL (ji = 1:ni_src) Y1(ji,:) = lat_src(:,1)
+         ELSE
+            X1 = lon_src
+            Y1 = lat_src
+         END IF
+
       END IF
-      
+         
       !! Source extended domain:
       ni_src_x = ni_src + n_extd
       nj_src_x = nj_src + n_extd
-      !PRINT *, '  *** allocating data_src_x, lon_src_x, lat_src_x:', ni_src_x,nj_src_x
-      ALLOCATE ( lon_src_x(ni_src_x,nj_src_x), lat_src_x(ni_src_x,nj_src_x), data_src_x(ni_src_x,nj_src_x) )
+      !PRINT *, '  *** allocating data_src_x, X1_x, Y1_x:', ni_src_x,nj_src_x
+      ALLOCATE ( X1_x(ni_src_x,nj_src_x), Y1_x(ni_src_x,nj_src_x), data_src_x(ni_src_x,nj_src_x) )
       !PRINT *, '      => allocation done!'
-      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), lon_src_x, lat_src_x, data_src_x,  is_orca_grid=i_orca_src)
-      !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=lon_src_x, xlat=lat_src_x)
+
+
+      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
+      !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
       !DEALLOCATE (X1, Y1)
       !STOP
-      !!  => lon_src_x, lat_src_x are the extended 2D longitude,latitude arrays of source domain !
+      !!  => X1_x, Y1_x are the extended 2D longitude,latitude arrays of source domain !
+
+
+
+      IF ( jt == 1 ) THEN
+         !!LOLO #FIXME put all these squaring-coordinates stuff somewhere else, like in mod_grid..., also known from a module,
+         !! Make target lat and lon rectangle and not vector!
+         ctype = '00'
+         ctype = TEST_XYZ(lon_trg, lat_trg, data_trg)
+         ALLOCATE ( X2(ni_trg,nj_trg) , Y2(ni_trg,nj_trg) )
+         IF ( ctype == '1d' ) THEN
+            FORALL (jj=1:nj_trg) X2(:,jj) = lon_trg(:,1)
+            FORALL (ji=1:ni_trg) Y2(ji,:) = lat_trg(:,1)
+         ELSE
+            X2 = lon_trg ; Y2 = lat_trg
+         END IF
+      END IF
 
 
 
@@ -116,11 +142,37 @@ CONTAINS
       CASE('akima')
 
 
+         IF ( jt == 1 ) THEN
+
+            xy_range_src(:) = (/ MINVAL(X1_x),MAXVAL(X1_x) , MINVAL(Y1_x),MAXVAL(Y1_x) /)  !! Checking if the target grid does not overlap source grid :
+
+            nx_max_seg = ni_trg
+            IF ( Nthrd > 1 ) THEN
+               nx_max_seg = MAXVAL(i_seg_s)
+               PRINT *, ' *** Allocating "ixy_src_cell_map" => ', nx_max_seg, nj_trg, 2, Nthrd
+            END IF
+            ALLOCATE ( ixy_src_cell_map(nx_max_seg, nj_trg, 2, Nthrd) )
+            ixy_src_cell_map(:,:,:,:) = 0
+
+            !PRINT *, 'Calling FIND_SRC_CELL from mod_interp.f90 at time 1!'
+            !$OMP PARALLEL DO
+            DO jtr = 1, Nthrd
+!$             PRINT *, ' Running "FIND_SRC_CELL" on OMP thread #', INT(jtr,1)
+               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), ixy_src_cell_map(i_b_l(jtr):i_b_r(jtr),:,:,jtr) )
+            END DO
+            !$OMP END PARALLEL DO
+            !PRINT *, 'Done'; PRINT *, ''
+         END IF
+         
+!$       PRINT *, ''
+         
          !$OMP PARALLEL DO
          DO jtr = 1, Nthrd
-            PRINT *, ' Running "akima_2d" on OMP thread #', INT(jtr,1)
+!$          PRINT *, ' Running "AKIMA_2D" on OMP thread #', INT(jtr,1)
             !! ewper_src useless now that extension is done above???? right?
-            CALL akima_2d(ewper_src, lon_src_x, lat_src_x, data_src_x, lon_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), lat_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), data_trg(i_bdn_l(jtr):i_bdn_r(jtr),:), jtr)!, icall=1)
+            CALL AKIMA_2D( ewper_src, X1_x, Y1_x, data_src_x, &
+               &           X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), data_trg(i_b_l(jtr):i_b_r(jtr),:), &
+               &           ixy_src_cell_map(i_b_l(jtr):i_b_r(jtr),:,:,:), jtr )
          END DO
          !$OMP END PARALLEL DO
 
@@ -136,9 +188,9 @@ CONTAINS
          PRINT *, 'Interpolation method ', cmethod, ' is unknown!!!' ; STOP
       END SELECT
 
-      DEALLOCATE ( lon_src_x, lat_src_x, data_src_x )
+      DEALLOCATE ( X1_x, Y1_x, data_src_x )
 
-      
+
       !! If target grid extends too much in latitude compared to source grid, need to
       !! extrapolate a bit at bottom and top of the domain :
       IF (l_reg_trg) CALL extrp_hl(data_trg)
@@ -188,8 +240,11 @@ CONTAINS
 
       !! If target grid is an ORCA grid, calling "lbc_lnk":
       IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
-      
 
+      
+      IF ( jt == Nt ) DEALLOCATE ( X1, Y1, X2, Y2, ixy_src_cell_map )
+      
+      
    END SUBROUTINE INTERP_2D
 
 
@@ -203,8 +258,6 @@ CONTAINS
       INTEGER :: i1,j1, i2,j2
       INTEGER :: ji, jj, jk, jklast=0
       REAL(8) :: zmax_src, zmax_trg
-
-      CHARACTER(len=128) :: cfdbg !DEBUG
 
       !! Interpolation of each of the nk_src levels onto the target grid
       !! --------------------------------------------------------------

@@ -33,7 +33,9 @@ MODULE MOD_MANIP
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
-      &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR, degE_to_degWE, &
+      &      distance, distance_2d, &
+      &      find_src_cell, find_nearest_point, &
+      &      shrink_vector, degE_to_degWE, &
       &      ext_north_to_90_regg
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
@@ -92,7 +94,10 @@ CONTAINS
 
       IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
          & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
-         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'
+         PRINT *, 'SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1) =>', SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1)
+         PRINT *, 'SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2) =>', SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2)
+         STOP
       END IF
 
       nx = SIZE(XX,1)
@@ -119,9 +124,9 @@ CONTAINS
       FP4 = 0.
 
       !! Filling center of domain:
-      XP4(  3:nxp4-2, 3:nyp4-2) =   XX(:,:)
-      YP4(  3:nxp4-2, 3:nyp4-2) =   YY(:,:)
-      FP4(3:nxp4-2, 3:nyp4-2) = XF(:,:)
+      XP4(  3:nxp4-2, 3:nyp4-2) = XX(:,:)
+      YP4(  3:nxp4-2, 3:nyp4-2) = YY(:,:)
+      FP4(3:nxp4-2, 3:nyp4-2)   = XF(:,:)
 
 
 
@@ -746,6 +751,93 @@ CONTAINS
 
    END SUBROUTINE LONG_REORG_3D_I1
 
+
+
+   SUBROUTINE FIND_SRC_CELL( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
+      !!---------------------------------------------------------------------------------------
+      !! Laboriuously scanning the entire source grid to find which cell of the source domain
+      !! contains each point of the target domain.
+      !! => returns "ixyp_trg" which  contains the i,j coordinates of the bottom left corner of
+      !!    the cell of the source grid inside which each target point lies
+      !!---------------------------------------------------------------------------------------
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
+      REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
+      INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_trg
+
+      INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt, ndm
+      REAL(8) :: pxt, pyt
+      LOGICAL :: l_x_found, l_y_found
+
+      nxs = SIZE(plon_src,1)
+      nys = SIZE(plon_src,2)
+      nxt = SIZE(ixyp_trg,1)
+      nyt = SIZE(ixyp_trg,2)
+      ndm = SIZE(ixyp_trg,3)
+
+      IF ( ndm /= 2 ) THEN
+         PRINT *, 'ERROR: [find_src_cell@mod_akima_2d.f90] => 3rd dimension of ixyp_trg must be of size 2!!!'
+         STOP
+      END IF
+
+      !! Loop on target domain:
+      DO jjt = 1, nyt
+         DO jit = 1, nxt
+
+            jis = 1
+            jjs = 1
+
+            l_x_found = .FALSE.
+            l_y_found = .FALSE.
+
+            pxt = plon_trg(jit,jjt)
+            pyt = plat_trg(jit,jjt)
+
+            !! Only searching if inside source domain:
+            IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) ) THEN
+
+               DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
+
+                  l_x_found = .FALSE.
+                  DO WHILE ( .NOT. l_x_found )
+                     IF (jis < nxs) THEN
+                        IF ((plon_src(jis,jjs) <= pxt).and.(plon_src(jis+1,jjs) > pxt)) THEN
+                           l_x_found = .TRUE.
+                        ELSE
+                           jis = jis+1
+                        END IF
+                     ELSE   ! jis = nxs
+                        jis = jis-1  ! we are at the top need to use former pol.
+                        l_x_found = .TRUE.
+                     END IF
+                  END DO
+
+                  l_y_found = .FALSE.
+                  DO WHILE ( .NOT. l_y_found )
+                     IF ( jjs < nys ) THEN
+                        IF ((plat_src(jis,jjs) <= pyt).and.(plat_src(jis,jjs+1) > pyt)) THEN
+                           l_y_found = .TRUE.
+                        ELSE
+                           jjs = jjs + 1
+                           l_x_found = .FALSE.
+                           l_y_found = .TRUE. ! just so that we exit the loop on l_y_found
+                        END IF
+                     ELSE   ! jjs == nys
+                        jjs = nys-1        ! we are using polynome at (ji,nys-1)
+                        l_y_found = .TRUE. ! for extreme right boundary
+                     END IF
+                  END DO
+
+               END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
+
+               ixyp_trg(jit,jjt,:) = (/ jis, jjs /)
+
+            END IF !IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) )
+
+         END DO !DO jit = 1, nxt
+      END DO !DO jjt = 1, nyt
+
+   END SUBROUTINE FIND_SRC_CELL
 
 
 
