@@ -65,19 +65,6 @@ CONTAINS
       END IF
 
 
-
-
-
-
-
-
-      !! LOLO
-      !!-------
-      !IF ( l_first_call_interp_routine(1) ) THEN
-      !END IF
-
-
-
       !! East-West and South-North border extension of source domain:
       !! ------------------------------------------------------------
 

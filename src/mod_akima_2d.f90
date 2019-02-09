@@ -31,16 +31,9 @@ MODULE MOD_AKIMA_2D
    USE mod_conf
    USE mod_manip, ONLY: FILL_EXTRA_BANDS, FIND_SRC_CELL
    USE io_ezcdf,  ONLY: TEST_XYZ
-
-
+   
    IMPLICIT NONE
-
-
-   LOGICAL, PUBLIC, SAVE :: &
-      &    l_always_first_call  = .FALSE.
-
-   !INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, PUBLIC, SAVE :: ixy_map !: table storing source/target grids mapping
-
+   
    PRIVATE
 
    PUBLIC :: AKIMA_2D
@@ -54,10 +47,7 @@ CONTAINS
 
 
 
-   !#FIXME is icall, first call stuff still needed???
-
-   
-   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X2, Y2, Z2,  ixy_map,  ithrd,  icall)
+   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X2, Y2, Z2,  ixy_map,  ithrd)
       
       !!================================================================
       !!
@@ -76,8 +66,6 @@ CONTAINS
       !! OUTPUT :
       !!             Z2    : input field on target grid
       !!
-      !! input (optional)  : icall : if icall=1, will always force 'l_first_call_interp_routine' to .TRUE.
-      !!
       !!================================================================
 
 
@@ -88,7 +76,6 @@ CONTAINS
       REAL(4), DIMENSION(:,:),     INTENT(out) :: Z2
       INTEGER, DIMENSION(:,:,:,:), INTENT(in)  :: ixy_map
       INTEGER,                     INTENT(in)  :: ithrd ! # OMP thread
-      INTEGER,       OPTIONAL,     INTENT(in)  :: icall
 
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
@@ -103,13 +90,6 @@ CONTAINS
          &  px2, py2,  &
          &  min_lon1, max_lon1, min_lat1, max_lat1,   &
          &  min_lon2, max_lon2, min_lat2, max_lat2
-
-      IF ( PRESENT(icall) ) THEN
-         IF ( icall == 1 ) THEN
-            l_first_call_interp_routine(ithrd) = .TRUE.
-            l_always_first_call  = .TRUE.
-         END IF
-      END IF
 
       nx1 = SIZE(Z1,1)
       ny1 = SIZE(Z1,2)
@@ -165,12 +145,6 @@ CONTAINS
 
       !! Deallocation :
       DEALLOCATE ( poly )
-
-      l_first_call_interp_routine(ithrd) = .FALSE.
-
-      IF ( l_always_first_call ) THEN
-         l_first_call_interp_routine(ithrd) = .TRUE.
-      END IF
 
       !PRINT *, ' ---> exiting AKIMA // #', ithrd
       

@@ -110,7 +110,7 @@ PROGRAM SOSIE
 !$ PRINT *, '  ni_trg=', ni_trg
    !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
    !PRINT *, '   noinc =', noinc
-   ALLOCATE ( l_first_call_interp_routine(Nthrd) , i_b_l(Nthrd), i_b_r(Nthrd), i_seg_s(Nthrd) )
+   ALLOCATE ( i_b_l(Nthrd), i_b_r(Nthrd), i_seg_s(Nthrd) )
    IF ( Nthrd > 1) THEN
       noinc = ni_trg/Nthrd
       ipl = 0
@@ -166,8 +166,6 @@ PROGRAM SOSIE
    !!                -------------------------------
    !!                  M A I N   T I M E   L O O P
    !!                -------------------------------
-
-   l_first_call_interp_routine = .TRUE.
 
    jct = 0 ;  jcz = 0
    IF ( ltime ) jct = 1
