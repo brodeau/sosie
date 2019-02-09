@@ -39,7 +39,7 @@ MODULE MOD_AKIMA_2D
    LOGICAL, PUBLIC, SAVE :: &
       &    l_always_first_call  = .FALSE.
 
-   !INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, PUBLIC, SAVE :: ixy_pos !: table storing source/target grids mapping
+   !INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, PUBLIC, SAVE :: ixy_map !: table storing source/target grids mapping
 
    PRIVATE
 
@@ -57,7 +57,7 @@ CONTAINS
    !#FIXME is icall, first call stuff still needed???
 
    
-   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X2, Y2, Z2,  ixy_pos,  ithrd,  icall)
+   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X2, Y2, Z2,  ixy_map,  ithrd,  icall)
       
       !!================================================================
       !!
@@ -71,7 +71,7 @@ CONTAINS
       !!             X2   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
       !!             Y2   : 2D target latitude  array (ni*nj) or (nj*1) (can be irregular)
       !!
-      !!           ixy_pos : contains target/src mapping... #FIXME
+      !!           ixy_map : contains target/src mapping... #FIXME
       !!
       !! OUTPUT :
       !!             Z2    : input field on target grid
@@ -86,30 +86,25 @@ CONTAINS
       REAL(8), DIMENSION(:,:),     INTENT(in)  :: X1, Y1, Z1
       REAL(8), DIMENSION(:,:),     INTENT(in)  :: X2, Y2
       REAL(4), DIMENSION(:,:),     INTENT(out) :: Z2
-      INTEGER, DIMENSION(:,:,:,:), INTENT(in)  :: ixy_pos
+      INTEGER, DIMENSION(:,:,:,:), INTENT(in)  :: ixy_map
       INTEGER,                     INTENT(in)  :: ithrd ! # OMP thread
       INTEGER,       OPTIONAL,     INTENT(in)  :: icall
 
-
-
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
-
+      
       INTEGER :: ji1, jj1, ji2, jj2
-
+      
       REAL(8), DIMENSION(nsys) ::  vpl
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
+      REAL(8), DIMENSION(:,:),   ALLOCATABLE :: slpx, slpy, slpxy
 
       REAL(8) :: &
          &  px2, py2,  &
          &  min_lon1, max_lon1, min_lat1, max_lat1,   &
          &  min_lon2, max_lon2, min_lat2, max_lat2
 
-
-      !PRINT *, ' Entering AKIMA // #', ithrd
-      
-      IF ( present(icall) ) THEN
+      IF ( PRESENT(icall) ) THEN
          IF ( icall == 1 ) THEN
             l_first_call_interp_routine(ithrd) = .TRUE.
             l_always_first_call  = .TRUE.
@@ -121,10 +116,7 @@ CONTAINS
 
       nx2 = SIZE(Z2,1)
       ny2 = SIZE(Z2,2)
-
-
-      !!                       S T A R T
-
+      
       ALLOCATE ( slpx(nx1,ny1), slpy(nx1,ny1), slpxy(nx1,ny1), poly(nx1-1,ny1-1,nsys) )
 
       !! Computation of partial derivatives:
@@ -136,11 +128,11 @@ CONTAINS
       DEALLOCATE ( slpx, slpy, slpxy )
 
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = minval(X1) ;  max_lon1 = maxval(X1)
-      min_lat1 = minval(Y1) ;  max_lat1 = maxval(Y1)
-
-      min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
-      min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
+      min_lon1 = MINVAL(X1) ;  max_lon1 = MAXVAL(X1)
+      min_lat1 = MINVAL(Y1) ;  max_lat1 = MAXVAL(Y1)
+      
+      min_lon2 = MINVAL(X2) ;  max_lon2 = MAXVAL(X2)
+      min_lat2 = MINVAL(Y2) ;  max_lat2 = MAXVAL(Y2)
       
 
       !! Loop on target domain:
@@ -148,26 +140,26 @@ CONTAINS
          DO ji2 = 1, nx2
 
             !! The coordinates of current target point are (px2,py2) :
-            px2 = X2(ji2,jj2) ;  py2 = Y2(ji2,jj2)
+            px2 = X2(ji2,jj2)
+            py2 = Y2(ji2,jj2)
 
             !! Checking if this belongs to source domain :
             IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
-               !! We know the right location from time = 1 :
-               ji1 = ixy_pos(ji2,jj2,1,ithrd)
-               jj1 = ixy_pos(ji2,jj2,2,ithrd)
+               !! We know the location on source grid from ixy_map:
+               ji1 = ixy_map(ji2,jj2,1,ithrd)
+               jj1 = ixy_map(ji2,jj2,2,ithrd)
 
-               !! It's time to interpolate:
+               !! Interpolation:
                px2 = px2 - X1(ji1,jj1)
                py2 = py2 - Y1(ji1,jj1)
                vpl = poly(ji1,jj1,:)
-
                Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
-
+               
             ELSE
                Z2(ji2,jj2) = 0.  ! point is not on source domain!
             END IF
-
+            
          END DO
       END DO
 

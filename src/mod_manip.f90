@@ -771,10 +771,14 @@ CONTAINS
 
       nxs = SIZE(plon_src,1)
       nys = SIZE(plon_src,2)
-      nxt = SIZE(ixyp_trg,1)
-      nyt = SIZE(ixyp_trg,2)
-      ndm = SIZE(ixyp_trg,3)
 
+      nxt = SIZE(plon_trg,1)
+      nyt = SIZE(plon_trg,2)
+      IF ( (SIZE(ixyp_trg,1)/=nxt).OR.(SIZE(ixyp_trg,2)/=nyt) ) THEN
+         PRINT *, 'ERROR: [find_src_cell@mod_akima_2d.f90] => shape of ixyp_trg disagree with that of plon_trg!!!'
+         STOP
+      END IF
+      ndm = SIZE(ixyp_trg,3)
       IF ( ndm /= 2 ) THEN
          PRINT *, 'ERROR: [find_src_cell@mod_akima_2d.f90] => 3rd dimension of ixyp_trg must be of size 2!!!'
          STOP
