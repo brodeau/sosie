@@ -37,8 +37,6 @@ CONTAINS
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X2, Y2
       REAL(8), DIMENSION(:,:), ALLOCATABLE       :: data_src_x
       REAL(8), DIMENSION(4), SAVE :: xy_range_src
-      INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, SAVE :: ixy_src_cell_map !: table storing source/target grids mapping
-
 
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -149,16 +147,16 @@ CONTAINS
             nx_max_seg = ni_trg
             IF ( Nthrd > 1 ) THEN
                nx_max_seg = MAXVAL(i_seg_s)
-               PRINT *, ' *** Allocating "ixy_src_cell_map" => ', nx_max_seg, nj_trg, 2, Nthrd
+               PRINT *, ' *** Allocating "ixy_mapping" => ', nx_max_seg, nj_trg, 2, Nthrd
             END IF
-            ALLOCATE ( ixy_src_cell_map(nx_max_seg, nj_trg, 2, Nthrd) )
-            ixy_src_cell_map(:,:,:,:) = 0
+            ALLOCATE ( ixy_mapping(nx_max_seg, nj_trg, 2, Nthrd) )
+            ixy_mapping(:,:,:,:) = 0
 
             !PRINT *, 'Calling FIND_SRC_CELL from mod_interp.f90 at time 1!'
             !$OMP PARALLEL DO
             DO jtr = 1, Nthrd
 !$             PRINT *, ' Running "FIND_SRC_CELL" on OMP thread #', INT(jtr,1)
-               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), ixy_src_cell_map(i_b_l(jtr):i_b_r(jtr),:,:,jtr) )
+               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), ixy_mapping(i_b_l(jtr):i_b_r(jtr),:,:,jtr) )
             END DO
             !$OMP END PARALLEL DO
             !PRINT *, 'Done'; PRINT *, ''
@@ -172,7 +170,7 @@ CONTAINS
             !! ewper_src useless now that extension is done above???? right?
             CALL AKIMA_2D( ewper_src, X1_x, Y1_x, data_src_x, &
                &           X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), data_trg(i_b_l(jtr):i_b_r(jtr),:), &
-               &           ixy_src_cell_map(i_b_l(jtr):i_b_r(jtr),:,:,:), jtr )
+               &           ixy_mapping(i_b_l(jtr):i_b_r(jtr),:,:,:), jtr )
          END DO
          !$OMP END PARALLEL DO
 
@@ -242,7 +240,7 @@ CONTAINS
       IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
 
       
-      IF ( jt == Nt ) DEALLOCATE ( X1, Y1, X2, Y2, ixy_src_cell_map )
+      IF ( jt == Nt ) DEALLOCATE ( X1, Y1, X2, Y2, ixy_mapping )
       
       
    END SUBROUTINE INTERP_2D

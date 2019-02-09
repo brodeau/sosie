@@ -14,6 +14,8 @@ MODULE MOD_CONF
    
    LOGICAL, DIMENSION(:), ALLOCATABLE, SAVE :: l_first_call_interp_routine
 
+   INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, SAVE :: ixy_mapping !: table storing source/target grids mapping
+   !                                              !: shape: ni_trg_chunk, nj_trg, 2, Nthrd ("2" => 1->i_src,2->j_src)
    
    LOGICAL, SAVE :: &
       &             l_drown_src, & ! DROWN source field
