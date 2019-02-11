@@ -37,7 +37,7 @@ PROGRAM SOSIE
    !!
    !!--------------------------------------------------------------------------
 
-!$ USE omp_lib
+   !$ USE omp_lib
    USE io_ezcdf     !* routines for netcdf input/output
    USE mod_conf     !* important parameters, namelist, arrays, etc...
    USE mod_init     !* important parameters, namelist, arrays, etc...
@@ -58,9 +58,15 @@ PROGRAM SOSIE
 
    REAL(4) :: rfct_miss=1.
 
+   !! for timing:
+   CHARACTER(LEN=8)      :: cldate
+   CHARACTER(LEN=10)     :: cltime
+   CHARACTER(LEN=5)      :: clzone
+   INTEGER, DIMENSION(8), SAVE :: ivalue1, ivalue2
+
    INTEGER :: NTHREADS, TID
 
-   
+
    !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
    WRITE(6,*)''
@@ -71,20 +77,29 @@ PROGRAM SOSIE
 
    Nthrd = 1
 
+
+   CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue1)
+   !PRINT '(i8,1x,8i4)', istp, ivalue(:)   ! DRAKKAR code : print time step for run monitoring
+   WRITE(6,'(" ### staring at: ",8i4)') ivalue1(:)
+
+
+
+
+
    !! Fecthing command line arguments if any:
    CALL GET_ARGUMENTS()    ! MODULE mod_init
 
 
    !! ========== OpenMP only ==========================================
-!$ CALL OMP_SET_NUM_THREADS(Nthrd_fix)   
+   !$ CALL OMP_SET_NUM_THREADS(Nthrd_fix)
    !$OMP PARALLEL PRIVATE(NTHREADS, TID)
-!$ TID = OMP_GET_THREAD_NUM()
-!$ IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
-   !$OMP END PARALLEL   
-!$ WRITE(6,'(" ### Going to use ",i2," OpenMP threads!")') Nthrd
+   !$ TID = OMP_GET_THREAD_NUM()
+   !$ IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
+   !$OMP END PARALLEL
+   !$ WRITE(6,'(" ### Going to use ",i2," OpenMP threads!")') Nthrd
    !!===================================================================
 
-   
+
    !! Reading namelist:
    CALL READ_NMLST(1)      ! MODULE mod_init
 
@@ -104,10 +119,10 @@ PROGRAM SOSIE
 
    !! OMP decomposition
    !
-!$ PRINT *, ''
-!$ PRINT *, ' OMP thread decomposition along target grid X-axis:'
-!$ PRINT *, '  Nthrd =', Nthrd
-!$ PRINT *, '  ni_trg=', ni_trg
+   !$ PRINT *, ''
+   !$ PRINT *, ' OMP thread decomposition along target grid X-axis:'
+   !$ PRINT *, '  Nthrd =', Nthrd
+   !$ PRINT *, '  ni_trg=', ni_trg
    !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
    !PRINT *, '   noinc =', noinc
    ALLOCATE ( i_b_l(Nthrd), i_b_r(Nthrd), i_seg_s(Nthrd) )
@@ -126,9 +141,9 @@ PROGRAM SOSIE
       !! No OMP (Nthrd==1):
       i_b_l(1) = 1
       i_b_r(1) = ni_trg
-      i_seg_s(1) = ni_trg      
+      i_seg_s(1) = ni_trg
    END IF
-   
+
    PRINT *, '  i_b_l =', i_b_l
    PRINT *, '  i_b_r =', i_b_r
    DO jtr = 1, Nthrd
@@ -281,8 +296,13 @@ PROGRAM SOSIE
 
    IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
 
+   
+   CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue2)
+   WRITE(6,'(" ###  started at: ",8i4)') ivalue1(:)
+   WRITE(6,'(" ### stopping at: ",8i4)') ivalue2(:)
+   
    PRINT *, ''
-
+   
    CLOSE(6)
 
 END PROGRAM SOSIE
