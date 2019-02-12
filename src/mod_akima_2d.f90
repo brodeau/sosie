@@ -70,12 +70,12 @@ CONTAINS
 
 
       !! Input/Output arguments
-      INTEGER,                     INTENT(in)  :: k_ew_per
-      REAL(8), DIMENSION(:,:),     INTENT(in)  :: X1, Y1, Z1
-      REAL(8), DIMENSION(:,:),     INTENT(in)  :: X2, Y2
-      REAL(4), DIMENSION(:,:),     INTENT(out) :: Z2
-      INTEGER, DIMENSION(:,:,:,:), INTENT(in)  :: ixy_map
-      INTEGER,                     INTENT(in)  :: ithrd ! # OMP thread
+      INTEGER,                   INTENT(in)  :: k_ew_per
+      REAL(8), DIMENSION(:,:),   INTENT(in)  :: X1, Y1, Z1
+      REAL(8), DIMENSION(:,:),   INTENT(in)  :: X2, Y2
+      REAL(4), DIMENSION(:,:),   INTENT(out) :: Z2
+      INTEGER, DIMENSION(:,:,:), INTENT(in)  :: ixy_map
+      INTEGER,                   INTENT(in)  :: ithrd ! # OMP thread
 
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
@@ -127,8 +127,8 @@ CONTAINS
             IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
                !! We know the location on source grid from ixy_map:
-               ji1 = ixy_map(ji2,jj2,1,ithrd)
-               jj1 = ixy_map(ji2,jj2,2,ithrd)
+               ji1 = ixy_map(ji2,jj2,1)
+               jj1 = ixy_map(ji2,jj2,2)
 
                !! Interpolation:
                px2 = px2 - X1(ji1,jj1)

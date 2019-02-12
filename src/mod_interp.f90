@@ -30,7 +30,6 @@ CONTAINS
 
       INTEGER :: i1,j1, i2,j2, jtr, ji, jj
       INTEGER :: ni_src_x, nj_src_x
-      INTEGER :: nx_max_seg
       CHARACTER(len=2) :: ctype
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1, Y1, X1_x, Y1_x
@@ -131,19 +130,17 @@ CONTAINS
 
             xy_range_src(:) = (/ MINVAL(X1_x),MAXVAL(X1_x) , MINVAL(Y1_x),MAXVAL(Y1_x) /)  !! Checking if the target grid does not overlap source grid :
 
-            nx_max_seg = ni_trg
             IF ( Nthrd > 1 ) THEN
-               nx_max_seg = MAXVAL(i_seg_s)
-               PRINT *, ' *** Allocating "ixy_mapping" => ', nx_max_seg, nj_trg, 2, Nthrd
+               PRINT *, ' *** Allocating "ixy_mapping" => ', ni_trg, nj_trg, 2
             END IF
-            ALLOCATE ( ixy_mapping(nx_max_seg, nj_trg, 2, Nthrd) )
-            ixy_mapping(:,:,:,:) = 0
+            ALLOCATE ( ixy_mapping(ni_trg, nj_trg, 2) )
+            ixy_mapping(:,:,:) = 0
 
             !PRINT *, 'Calling FIND_SRC_CELL from mod_interp.f90 at time 1!'
             !$OMP PARALLEL DO
             DO jtr = 1, Nthrd
 !$             PRINT *, ' Running "FIND_SRC_CELL" on OMP thread #', INT(jtr,1)
-               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), ixy_mapping(i_b_l(jtr):i_b_r(jtr),:,:,jtr) )
+               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), ixy_mapping(i_b_l(jtr):i_b_r(jtr),:,:) )
             END DO
             !$OMP END PARALLEL DO
             !PRINT *, 'Done'; PRINT *, ''
@@ -157,7 +154,7 @@ CONTAINS
             !! ewper_src useless now that extension is done above???? right?
             CALL AKIMA_2D( ewper_src, X1_x, Y1_x, data_src_x, &
                &           X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), data_trg(i_b_l(jtr):i_b_r(jtr),:), &
-               &           ixy_mapping(i_b_l(jtr):i_b_r(jtr),:,:,:), jtr )
+               &           ixy_mapping(i_b_l(jtr):i_b_r(jtr),:,:), jtr )
          END DO
          !$OMP END PARALLEL DO
 
