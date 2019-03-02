@@ -9,6 +9,7 @@ MODULE MOD_MANIP
 
    PRIVATE
 
+   LOGICAL, PARAMETER :: l_verbose = .TRUE.
 
    INTERFACE flip_ud
       MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i1
@@ -130,34 +131,101 @@ CONTAINS
 
 
 
+      !! ********************
+      !! EAST-WEST extension
+      !! ********************
+
+      
       !! X array :
       !! ---------
 
       IF (k_ew > -1) THEN   ! we can use east-west periodicity of input file to
+         
+         IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using E-W periodicity overlap of ', INT(k_ew,1)         
          !!                   ! fill extra bands :
          XP4( 1     , 3:nyp4-2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
          XP4( 2     , 3:nyp4-2) = XX(nx - k_ew     , :) - 360.
          XP4(nxp4   , 3:nyp4-2) = XX( 2 + k_ew     , :) + 360.
          XP4(nxp4-1 , 3:nyp4-2) = XX( 1 + k_ew     , :) + 360.
-
+         !!
+         YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
+         YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
+         YP4(nxp4   , :) = YP4( 2 + k_ew     + 2, :)
+         YP4(nxp4-1 , :) = YP4( 1 + k_ew     + 2, :)
+         !!
+         FP4( 1     , 3:nyp4-2) = XF(nx - 1 - k_ew , :)
+         FP4( 2     , 3:nyp4-2) = XF(nx - k_ew     , :)
+         FP4(nxp4   , 3:nyp4-2) = XF( 2 + k_ew     , :)
+         FP4(nxp4-1 , 3:nyp4-2) = XF( 1 + k_ew     , :)
+         !!
       ELSE
+         
+         IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: no E-W periodicity!'
 
-         !! Left side :
+         !! WEST
          XP4(2, 3:nyp4-2) = XX(2,:) - (XX(3,:) - XX(1,:))
          XP4(1, 3:nyp4-2) = XX(1,:) - (XX(3,:) - XX(1,:))
-
-         !! Right side :
+         !!
+         YP4(2, :) = YP4(4,:) - (YP4(5,:) - YP4(3,:))
+         YP4(1, :) = YP4(3,:) - (YP4(5,:) - YP4(3,:))
+         !!
+         DO jj = 3, nyp4-2
+            CALL extra_2_east(XP4(nxp4-4,jj),XP4(nxp4-3,jj),XP4(nxp4-2,jj),        &
+               &              XP4(nxp4-1,jj),XP4(nxp4,jj),                         &
+               &              FP4(nxp4-4,jj),FP4(nxp4-3,jj),FP4(nxp4-2,jj),  &
+               &              FP4(nxp4-1,jj),FP4(nxp4,jj) )
+         END DO
+         
+         !! EAST
          XP4(nxp4-1, 3:nyp4-2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
          XP4(nxp4  , 3:nyp4-2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
+         !!
+         YP4(nxp4-1,:) = YP4(nxp4-3,:) + YP4(nxp4-2, :) - YP4(nxp4-4, :)
+         YP4(nxp4,:)   = YP4(nxp4-2,:) + YP4(nxp4-2,:)  - YP4(nxp4-4, :)
+         !!
+         DO jj = 3, nyp4-2
+            CALL extra_2_west(XP4(5,jj),XP4(4,jj),XP4(3,jj),         &
+               &              XP4(2,jj),XP4(1,jj),                   &
+               &              FP4(5,jj),FP4(4,jj),FP4(3,jj),   &
+               &              FP4(2,jj),FP4(1,jj) )
+         END DO
+         
+      END IF !IF (k_ew > -1)
 
-      END IF
 
 
-      !! Bottom side :
+
+      
+      !! ******************
+      !! Southern Extension
+      !! ******************
+
+      !! Default, extrapolation:
+      IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using extrapolation for southern extension...'
       XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
-      !! Top side :
+      YP4(3:nxp4-2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
+      YP4(3:nxp4-2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
+
+      DO ji = 1, nxp4
+         CALL extra_2_west(YP4(ji,5),YP4(ji,4),YP4(ji,3),       &
+            &              YP4(ji,2),YP4(ji,1),                 &
+            &              FP4(ji,5),FP4(ji,4),FP4(ji,3), &
+            &              FP4(ji,2),FP4(ji,1) )
+      END DO
+
+
+
+
+
+
+      
+
+      !! ******************      
+      !! Northern Extension
+      !! ******************
+      
       SELECT CASE( iorca )
          !
       CASE (4)
@@ -180,7 +248,6 @@ CONTAINS
       !! Y array :
       !! ---------
 
-      !! Top side :
       SELECT CASE( iorca )
 
       CASE (4)
@@ -198,60 +265,10 @@ CONTAINS
          YP4(3:nxp4-2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
       END SELECT
 
-
-      !! Bottom side :
-      YP4(3:nxp4-2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
-      YP4(3:nxp4-2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
-
-      IF (k_ew > -1) THEN
-
-         YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
-         YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
-         YP4(nxp4   , :) = YP4( 2 + k_ew     + 2, :)
-         YP4(nxp4-1 , :) = YP4( 1 + k_ew     + 2, :)
-
-      ELSE
-         !! Left side :
-         YP4(2, :) = YP4(4,:) - (YP4(5,:) - YP4(3,:))
-         YP4(1, :) = YP4(3,:) - (YP4(5,:) - YP4(3,:))
-         !! Right side :
-         YP4(nxp4-1,:) = YP4(nxp4-3,:) + YP4(nxp4-2, :) - YP4(nxp4-4, :)
-         YP4(nxp4,:)   = YP4(nxp4-2,:) + YP4(nxp4-2,:)  - YP4(nxp4-4, :)
-
-      END IF
-
-
-      !! Data array :
+      
+      !! DATA array :
       !! ------------
 
-      IF (k_ew > -1) THEN
-
-         FP4( 1     , 3:nyp4-2) = XF(nx - 1 - k_ew , :)
-         FP4( 2     , 3:nyp4-2) = XF(nx - k_ew     , :)
-         FP4(nxp4   , 3:nyp4-2) = XF( 2 + k_ew     , :)
-         FP4(nxp4-1 , 3:nyp4-2) = XF( 1 + k_ew     , :)
-
-      ELSE
-
-         !! Left side :
-         DO jj = 3, nyp4-2
-            CALL extra_2_east(XP4(nxp4-4,jj),XP4(nxp4-3,jj),XP4(nxp4-2,jj),        &
-               &              XP4(nxp4-1,jj),XP4(nxp4,jj),                         &
-               &              FP4(nxp4-4,jj),FP4(nxp4-3,jj),FP4(nxp4-2,jj),  &
-               &              FP4(nxp4-1,jj),FP4(nxp4,jj) )
-         END DO
-
-         !! Right side :
-         DO jj = 3, nyp4-2
-            CALL extra_2_west(XP4(5,jj),XP4(4,jj),XP4(3,jj),         &
-               &              XP4(2,jj),XP4(1,jj),                   &
-               &              FP4(5,jj),FP4(4,jj),FP4(3,jj),   &
-               &              FP4(2,jj),FP4(1,jj) )
-         END DO
-
-      END IF
-
-      !! Top side :
       SELECT CASE( iorca )
 
       CASE (4)
@@ -276,14 +293,12 @@ CONTAINS
          END DO
       END SELECT
 
-      !! Bottom side :
-      DO ji = 1, nxp4
-         CALL extra_2_west(YP4(ji,5),YP4(ji,4),YP4(ji,3),       &
-            &              YP4(ji,2),YP4(ji,1),                 &
-            &              FP4(ji,5),FP4(ji,4),FP4(ji,3), &
-            &              FP4(ji,2),FP4(ji,1) )
-      END DO
 
+
+
+      IF (l_verbose) PRINT *, ' * LOLO / FILL_EXTRA_BANDS: for now upper left corner point of data fucked up!'
+
+      
    END SUBROUTINE FILL_EXTRA_BANDS
 
 
