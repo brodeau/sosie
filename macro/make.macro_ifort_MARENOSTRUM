@@ -6,8 +6,10 @@ FC = ifort
 
 # Root directory for Netcdf:
 NETCDF_DIR = ${NETCDF_PREFIX}
+
 # netcf libraries are in: <NETCDF_DIR>/lib/
 # netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+
 # Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
 L_NCDF = -lnetcdff
 
