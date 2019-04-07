@@ -8,17 +8,34 @@
 FC = ifort
 
 
-# Linking argument: usually -lnetcdf or -lnetcdff (or both):
-L_NCDF =  $(NETCDF_LDFLAGS) $(NETCDFF_LDFLAGS)
 
+
+# Root directory for Netcdf:
+##NETCDF_DIR = $(NETCDF_DIR)
+
+# netcf libraries are in: <NETCDF_DIR>/lib/
+# netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+
+# Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
+L_NCDF = -lnetcdff
+
+
+LIB_COMP_DIR = /opt/intel/composer_xe_2015.3.187/compiler/lib/intel64
 
 
 
 # Fortran compilation flags:
+# -- Production
+#FF = -O3 -i4 -xHOST -traceback -module mod/
+# -- Debugging
+##FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C -module mod/
+#FF = -O2 -g -check all -traceback -debug extended -C -module mod/
 
-#EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -traceback -debug extended -C
+#FF = -O0 -g -check all -warn all -traceback -debug extended -CB -module mod/
+#FF = -O0 -g -traceback -CB -module mod/
 
-FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
+FF = -O3 -g -traceback -fpe0 -module mod/
+
 
 
 # Directory to install binaries:

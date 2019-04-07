@@ -1,25 +1,19 @@
-# Makefile for SOSIE with Intel Ifort on NSC.LIU.SE super computers
-# =================================================================
+# Makefile for SOSIE with Intel Ifort on Linux
+# ============================================
 
 # Fortran compiler:
 FC = ifort
 
-
-
-
 # Root directory for Netcdf:
-##NETCDF_DIR = /opt/hdf5_netcdf4_intel_mpi
-NETCDF_DIR = /opt/hdf5_netcdf4_intel
-
 # netcf libraries are in: <NETCDF_DIR>/lib/
 # netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+NETCDF_DIR = /opt/hdf5_netcdf4_intel
 
 # Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
 L_NCDF = -lnetcdff
 
-
-##LIB_COMP_DIR = /opt/intel/compilers_and_libraries_2019.1.144/linux/compiler/lib/intel64_lin
-##L_OMP  = -liomp5
+# Compiler's libraries location:
+LIB_COMP_DIR = /opt/intel/compilers_and_libraries_2019.1.144/linux/compiler/lib/intel64_lin
 
 
 # Fortran compilation flags:
@@ -28,9 +22,10 @@ L_NCDF = -lnetcdff
 # -- Debugging
 ##FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C -module mod/
 #FF = -O2 -g -check all -traceback -debug extended -C -module mod/
+#FF = -O0 -qopenmp -g -check all -warn all -traceback -debug extended -CB -module mod/
 
-#FF = -O0 -g -check all -warn all -traceback -debug extended -CB -module mod/
-FF = -O0 -g -traceback -CB -module mod/
+
+FF = -O3 -g -traceback -module mod/
 
 
 
