@@ -188,12 +188,13 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!              but on nk_trg levels!
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
-!! idrown : Two values in this structure: np_drown, nt_smooth ([integer],[integer]):
+!! idrown : Three values in this structure: np_drown, nt_smooth, l_msk_chg ([integer],[integer],[boolean]):
 !!          * np_drown : whether we call DROWN land filling procedure (>0) or not (=0)
 !!            which propagates/extrapolates sea values (defined where lsm==1) of field
 !!            cv_src by "np_drown" grid points over land regions (defined where lsm==0)
 !!          * nt_smooth : the number of time smoothing is applied on drowned regions
 !!            (only performed on land regions)
+!!          * l_msk_chg : wether the missing/masked points region (land) on source field is changing with time!
 !!          => this treatment has absolutely no impact over sea regions, only over land
 !!          regions, it is intended to prevent land values to polute/contaminate sea
 !!          regions during the interpolation process!
@@ -239,7 +240,7 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 &ninterp
 cmethod     = 'akima'
 !!
-idrown      = 100,50
+idrown      = 100,50,.false.
 l_save_drwn = .false.
 ismooth     = 0
 jt1         = 0

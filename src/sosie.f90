@@ -49,6 +49,7 @@ PROGRAM SOSIE
    CHARACTER(len=800) :: cextinf
 
    INTEGER    :: &
+      &   ji, jj, &
       &   jt, jte, jct, jcz,  &
       &   idf_o, idf_i, idv_o, idv_i, &  !: netcdf ID for source/target file
       &   idf_id, idv_id  !: drowned source field...
@@ -135,14 +136,18 @@ PROGRAM SOSIE
 
          !! Read data 2D field at time jte :
          CALL GETVAR_2D(idf_i, idv_i, cf_src, cv_src, Ntr, jplev*jcz, jte*jct, data_src, jt1=j_start, jt2=j_stop)
+         
+         !IF ((TRIM(cf_lsm_src)=='nan').OR.(TRIM(cf_lsm_src)=='NaN')) THEN
+         !! Replacing NaN with 0. to avoid some fuck-up later...
+         DO jj =  1, nj_src
+            DO ji =  1, ni_src
+               IF ( ISNAN(data_src(ji,jj)) ) data_src(ji,jj) = -9999.
+            END DO
+         END DO
+         !END IF
 
-         IF ((TRIM(cf_lsm_src)=='nan').OR.(TRIM(cf_lsm_src)=='NaN')) THEN
-            !! Replacing NaN with 0. to avoid some fuck-up later...
-            WHERE(mask_src(:,:,1)==0) data_src = 0.
-         END IF
 
-
-         CALL INTERP_2D()
+         CALL INTERP_2D(jt)
 
          !! => data_trg for current time step is ready to be written in netcdf file
 
@@ -181,7 +186,7 @@ PROGRAM SOSIE
             WHERE(mask_src==0) data3d_src = 0.
          END IF
 
-         CALL INTERP_3D()
+         CALL INTERP_3D(jt)
 
          !! Print current record into netcdf file
          !!  => data3d_trg for current time step is ready to be written in netcdf file

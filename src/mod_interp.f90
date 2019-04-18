@@ -6,9 +6,10 @@ MODULE MOD_INTERP
    USE mod_akima_2d   !* Akima method algorithm
    USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
+   USE mod_grids
 
    USE mod_nemotools, ONLY: lbc_lnk
-   !USE io_ezcdf,      ONLY: DUMP_2D_FIELD ; !LOLOdebug
+   !USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdebug
 
    IMPLICIT NONE
 
@@ -18,14 +19,16 @@ MODULE MOD_INTERP
 
 CONTAINS
 
-   SUBROUTINE INTERP_2D()
+   SUBROUTINE INTERP_2D(jt)
+
+      INTEGER, INTENT(in) :: jt ! current time step
 
       !! ================
       !! 2D INTERPOLATION
       !! ================
 
       INTEGER :: i1,j1, i2,j2
-
+      CHARACTER(len=128) ctmp !debug
 
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -36,8 +39,15 @@ CONTAINS
       IF ( l_drown_src ) THEN
          !! Extrapolate sea values over land :
          !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+         !PRINT *, 'LOLO: update source mask at jt = !!!', jt
+         !WRITE (ctmp,'("data_src_jt",i2.2,".nc")') jt    !debug
+         !CALL DUMP_FIELD(data_src, TRIM(ctmp), 'mask')  !debug
+         IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )         
+         !WRITE (ctmp,'("mask_src_jt",i2.2,".nc")') jt    !debug
+         !CALL DUMP_FIELD(REAL(mask_src(:,:,1),4), TRIM(ctmp), 'mask')  !debug
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
-
+         !WRITE (ctmp,'("data_src_drowned_jt",i2.2,".nc")') jt    !debug
+         !CALL DUMP_FIELD(     data_src, TRIM(ctmp), trim(cv_src) )  !debug
          IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
 
       ELSE
@@ -128,7 +138,9 @@ CONTAINS
 
 
 
-   SUBROUTINE INTERP_3D()
+   SUBROUTINE INTERP_3D(jt)
+
+      INTEGER, INTENT(in) :: jt ! current time step
 
       !! ================
       !! 3D INTERPOLATION
@@ -157,7 +169,8 @@ CONTAINS
          IF ( l_drown_src ) THEN
             !! Extrapolate sea values over land :
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
-            PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+            !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+            IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )         
             CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
             IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
 

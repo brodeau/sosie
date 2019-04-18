@@ -9,10 +9,16 @@ MODULE  MOD_GRIDS
 
    PRIVATE
 
+   INTERFACE CREATE_LSM
+      MODULE PROCEDURE CREATE_LSM_2D, CREATE_LSM_3D
+   END INTERFACE CREATE_LSM
+
+
    PUBLIC :: SRC_DOMAIN, &
       &      TRG_DOMAIN, &
       &      IS_ORCA_NORTH_FOLD, &
-      &      TERMINATE
+      &      TERMINATE, &
+      &      CREATE_LSM
 
    INTEGER :: &
       &     ji, jj, jk, jt0, jz0, &
@@ -37,11 +43,7 @@ CONTAINS
       ALLOCATE ( data_src(ni_src,nj_src), mask_src(ni_src,nj_src,nk_src), data_src_b(ni_src,nj_src),    &
          &       mask_src_b(ni_src,nj_src,nk_src), vt0(Ntr0), vt(Ntr) )
 
-      IF ( l_save_drwn ) THEN
-         PRINT *, 'LOLO: allocating data_src_drowned !!!'
-         ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
-         PRINT *, 'LOLO: done!'
-      END IF
+      IF ( l_save_drwn ) ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
 
       vt(:) = 0.
 
@@ -210,7 +212,6 @@ CONTAINS
                lon_min_1 = degE_to_degWE(lon_min_1)
                lon_max_1 = degE_to_degWE(lon_max_1)
             END IF
-            !CALL DUMP_2D_FIELD(REAL(xdum,4), 'xdum_lon_trg_180-180.nc', 'lon') ; !#lolo
             WHERE ( xdum < lon_min_1 ) IGNORE=0
             WHERE ( xdum > lon_max_1 ) IGNORE=0
          END IF
@@ -229,7 +230,7 @@ CONTAINS
          END IF
 
          !LOLO:
-         !CALL DUMP_2D_FIELD(REAL(IGNORE(:,:),4), 'IGNORE.nc', 'lsm')
+         !CALL DUMP_FIELD(REAL(IGNORE(:,:),4), 'IGNORE.nc', 'lsm')
          !STOP
 
          IF ( (.NOT.l_glob_lon_wize).OR.(.NOT.l_glob_lat_wize) ) DEALLOCATE ( xdum )
@@ -407,7 +408,7 @@ CONTAINS
             & (TRIM(cf_lsm_src) == 'nan')         .OR. &
             & (TRIM(cf_lsm_src) =='NaN') )        THEN
 
-            CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, cf_src, cv_src, mask_src )
+            CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src,   cf_fld=cf_src, cv_fld=cv_src )
 
          ELSE
 
@@ -580,7 +581,7 @@ CONTAINS
       !!  Getting target mask (mandatory doing 3D interpolation!)
       IF ( lmout .OR. l_itrp_3d ) THEN
 
-         
+
          IF ( (l3d).AND.(jplev > 1) ) THEN
             WRITE(6,*) ''
             WRITE(6,*) '****************************************************************'
@@ -593,16 +594,16 @@ CONTAINS
             mask_trg(:,:,:) = 1
 
          ELSE
-            
+
             IF ( TRIM(cf_lsm_trg) =='missing_value' ) THEN
-               CALL CREATE_LSM( 'target', cf_lsm_trg, cv_lsm_trg, cf_x_trg, cv_lsm_trg, mask_trg ) 
-               
+               CALL CREATE_LSM( 'target', cf_lsm_trg, cv_lsm_trg, mask_trg,  cf_fld=cf_x_trg, cv_fld=cv_lsm_trg )
+
             ELSEIF ( (TRIM(cf_lsm_trg) == 'val+')  .OR. &
                &     (TRIM(cf_lsm_trg) == 'val-')  .OR. &
                &     (TRIM(cf_lsm_trg) == 'value') .OR. &
                &     (TRIM(cf_lsm_trg) == 'nan')   .OR. &
                &     (TRIM(cf_lsm_trg) =='NaN') )     THEN
-               WRITE(6,*) 'ERROR! ("get_trg_conf" of mod_grids.f90): CREATE_LSM does not support metho "'//TRIM(cf_lsm_trg)//'" yet!'
+               WRITE(6,*) 'ERROR! ("get_trg_conf" of mod_grids.f90): CREATE_LSM does not support method "'//TRIM(cf_lsm_trg)//'" yet!'
                STOP
 
             ELSE
@@ -1217,51 +1218,72 @@ CONTAINS
    END FUNCTION IS_ORCA_NORTH_FOLD
 
 
-   
-   SUBROUTINE CREATE_LSM( cinfo, cmthd, cnumv, cf, cv, mask )
-      !!
-      !! cf_lsm_xxx -> cmthd
-      !! cv_lsm_xxx -> cnumv (only maters if cmthd is one of 'value','val+','val-'...
-      !!
-      CHARACTER(len=6), INTENT(in) :: cinfo  ! 'target' or 'source'
-      CHARACTER(len=*), INTENT(in) :: cmthd, cnumv  ! 'missing_value','value','val+','val-','nan','Nan'
-      CHARACTER(len=*), INTENT(in) :: cf, cv
+   SUBROUTINE CREATE_LSM_3D( cinfo, cmthd, cnumv, mask,  cf_fld, cv_fld, xfield )
+      CHARACTER(len=6),  INTENT(in) :: cinfo  ! 'target' or 'source'
+      CHARACTER(len=*),  INTENT(in) :: cmthd, cnumv  ! 'missing_value','value','val+','val-','nan','Nan'
       INTEGER(1), DIMENSION(:,:,:), INTENT(inout) :: mask
-      
+      !!       !! if xfield is present then don't read cv out of cf_fld
+      !!         => so it's either cf_fld=xxx, cv_fld=xxx OR xfield=XXXX, not both !!!
+      CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
+      REAL(wpl), OPTIONAL, DIMENSION(:,:,:), INTENT(in) :: xfield
+
+      LOGICAL :: l_use_field_array
       INTEGER :: ni, nj, nk
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
       REAL    :: rval_thrshld
 
       IF ( .NOT. ((cinfo == 'source').OR.(cinfo == 'target')) ) THEN
-         PRINT *, 'ERROR (CREATE_LSM of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
+         PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
       END IF
-      
+      IF (PRESENT(cf_fld)) THEN
+         IF (.NOT. PRESENT(cv_fld)) THEN
+            PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "cf_fld" is specified so must be "cv_fld" !!!'; STOP
+         END IF
+      END IF
+      IF ( (PRESENT(cf_fld)).AND.(PRESENT(xfield)) ) THEN
+         PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "cf_fld" and "cv_fld" are specified then "xfield" should not !!!'; STOP
+      END IF
+
       ni = SIZE(mask,1)
       nj = SIZE(mask,2)
       nk = SIZE(mask,3)
+
+      l_use_field_array = .FALSE.
+      IF (PRESENT(xfield)) THEN
+         l_use_field_array = .TRUE.
+         IF ( (SIZE(xfield,1)/=ni).OR.(SIZE(xfield,2)/=nj).OR.(SIZE(xfield,1)/=nk) ) THEN
+            PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "mask" and "xfield" do not agree in shape!!!'; STOP
+         END IF
+      END IF
+
       ALLOCATE ( z3d_tmp(ni,nj,nk) )
 
-      mask(:,:,:) = 1
-      
-      IF ( TRIM(cmthd) == 'missing_value' ) THEN
+      IF ( l_use_field_array ) THEN
+         z3d_tmp(:,:,:) = xfield(:,:,:)
+      ELSE
+         !! Will read data field (at time record # jt0 if time exists) :
+         IF ( ltime  ) jt0 = 1
+         CALL GETVAR_3D(if0, iv0, cf_fld, cv_fld, Ntr,      jt0, z3d_tmp)
+         DO jk =  1, nk
+            DO jj =  1, nj
+               DO ji =  1, ni
+                  IF ( ISNAN(z3d_tmp(ji,jj,jk)) ) z3d_tmp(ji,jj,jk) = -9999.
+               END DO
+            END DO
+         END DO
 
-         WRITE(6,*) 'Opening land-sea mask "'//TRIM(cinfo)//'" from missing_value of source field "'//TRIM(cv)//'"!'
-         CALL CHECK_4_MISS(cf, cv, lmval, rmv, ca_missval)
+      END IF
+      
+      mask(:,:,:) = 1
+
+      IF ( TRIM(cmthd) == 'missing_value' ) THEN
+         WRITE(6,*) 'Opening land-sea mask "'//TRIM(cinfo)//'" from missing_value of source field "'//TRIM(cv_fld)//'"!'
+         CALL CHECK_4_MISS(cf_fld, cv_fld, lmval, rmv, ca_missval)
          IF ( .NOT. lmval ) THEN
-            PRINT *, 'ERROR (CREATE_LSM of mod_grids.f90) : '//TRIM(cv)//' has no missing value attribute!'
-            PRINT *, '      (in '//TRIM(cf)//')'
+            PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
+            PRINT *, '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
-
-         !! Read data field (at time 1 if time exists) :
-         IF ( ltime  ) jt0 = 1
-         IF ( l_itrp_3d ) THEN
-            CALL GETVAR_3D(if0, iv0, cf, cv, Ntr,      jt0, z3d_tmp)
-         ELSE
-            IF ( l3d ) jz0 = jplev
-            CALL GETVAR_2D(if0, iv0, cf, cv, Ntr, jz0, jt0, z3d_tmp(:,:,1))
-         END IF
-         
          WHERE ( z3d_tmp == rmv ) mask = 0
 
       ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
@@ -1269,15 +1291,6 @@ CONTAINS
          IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld
          IF (TRIM(cmthd) == 'val-')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values <=', rval_thrshld
          IF (TRIM(cmthd) == 'value') WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values ==', rval_thrshld
-
-         !! Read data field (at time 1 if time exists) :
-         IF ( ltime  ) jt0 = 1
-         IF ( l_itrp_3d ) THEN
-            CALL GETVAR_3D(if0, iv0, cf, cv, Ntr,      jt0, z3d_tmp)
-         ELSE
-            IF ( l3d ) jz0 = jplev
-            CALL GETVAR_2D(if0, iv0, cf, cv, Ntr, jz0, jt0, z3d_tmp(:,:,1))
-         END IF
          IF (TRIM(cmthd) == 'val+') THEN
             WHERE ( z3d_tmp >= rval_thrshld ) mask = 0
          END IF
@@ -1289,33 +1302,118 @@ CONTAINS
          END IF
 
       ELSEIF ((TRIM(cmthd)=='nan').OR.(TRIM(cmthd)=='NaN')) THEN
-         !! NaN values are considered mask!
-         WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values larger than', vmax
-         !! Read data field (at time 1 if time exists) :
-         IF ( ltime  ) jt0 = 1
-         IF ( l_itrp_3d ) THEN
-            CALL GETVAR_3D(if0, iv0, cf, cv, Ntr,      jt0, z3d_tmp)
-         ELSE
-            IF ( l3d ) jz0 = jplev
-            CALL GETVAR_2D(if0, iv0, cf, cv, Ntr, jz0, jt0, z3d_tmp(:,:,1))
+         WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from NaN values in '//TRIM(cv_src)//' at jt = ', jt0
+         ! =>  NaN values have been flagged earlier and replaced by -9999.
+         WHERE ( z3d_tmp < -9998. ) mask = 0
+      ELSE
+         WRITE(6,*) 'ERROR! (CREATE_LSM_3D of mod_grids.f90): Unknown value for "cmthd": '//TRIM(cmthd)//' !' ; STOP
+      END IF
+      DEALLOCATE ( z3d_tmp )
+   END SUBROUTINE CREATE_LSM_3D
+
+
+
+
+
+   SUBROUTINE CREATE_LSM_2D( cinfo, cmthd, cnumv, mask,  cf_fld, cv_fld, xfield )
+      CHARACTER(len=6),  INTENT(in) :: cinfo  ! 'target' or 'source'
+      CHARACTER(len=*),  INTENT(in) :: cmthd, cnumv  ! 'missing_value','value','val+','val-','nan','Nan'
+      INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask
+      !!       !! if xfield is present then don't read cv out of cf_fld
+      !!         => so it's either cf_fld=xxx, cv_fld=xxx OR xfield=XXXX, not both !!!
+      CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
+      REAL(wpl), OPTIONAL, DIMENSION(:,:), INTENT(in) :: xfield
+      !!
+      LOGICAL :: l_use_field_array
+      INTEGER :: ni, nj
+      REAL(wpl), DIMENSION(:,:), ALLOCATABLE :: z2d_tmp
+      REAL    :: rval_thrshld
+
+      IF ( .NOT. ((cinfo == 'source').OR.(cinfo == 'target')) ) THEN
+         PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
+      END IF
+      IF (PRESENT(cf_fld)) THEN
+         IF (.NOT. PRESENT(cv_fld)) THEN
+            PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "cf_fld" is specified so must be "cv_fld" !!!'; STOP
          END IF
-         DO jk = 1, nk
-            DO jj =  1, nj
-               DO ji =  1, ni
-                  IF ( ISNAN(z3d_tmp(ji,jj,jk)) ) mask(ji,jj,jk) = 0
-               END DO
+      END IF
+      IF ( (PRESENT(cf_fld)).AND.(PRESENT(xfield)) ) THEN
+         PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "cf_fld" and "cv_fld" are specified then "xfield" should not !!!'; STOP
+      END IF
+
+      ni = SIZE(mask,1)
+      nj = SIZE(mask,2)
+
+      l_use_field_array = .FALSE.
+      IF (PRESENT(xfield)) THEN
+         l_use_field_array = .TRUE.
+         IF ( (SIZE(xfield,1)/=ni).OR.(SIZE(xfield,2)/=nj) ) THEN
+            PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "mask" and "xfield" do not agree in shape!!!'; STOP
+         END IF
+      END IF
+
+      ALLOCATE ( z2d_tmp(ni,nj) )
+
+      IF ( l_use_field_array ) THEN
+         z2d_tmp(:,:) = xfield(:,:)
+      ELSE
+         !! Will read data field (at time record # jt0 if time exists) :
+         IF ( ltime  ) jt0 = 1
+         jz0 = 0
+         IF ( l3d ) jz0 = jplev
+         CALL GETVAR_2D(if0, iv0, cf_fld, cv_fld, Ntr, jz0, jt0, z2d_tmp)
+         DO jj =  1, nj
+            DO ji =  1, ni
+               IF ( ISNAN(z2d_tmp(ji,jj)) ) z2d_tmp(ji,jj) = -9999.
             END DO
          END DO
-         !debug: CALL DUMP_2D_FIELD(REAL(mask(:,:,1),4), 'mask_'//TRIM(cinfo)//'.nc', 'mask')
-
-      ELSE
-         WRITE(6,*) 'ERROR! (CREATE_LSM of mod_grids.f90): Unknown value for "cmthd": '//TRIM(cmthd)//' !' ; STOP
       END IF
-      
-      DEALLOCATE ( z3d_tmp )
-      
-   END SUBROUTINE CREATE_LSM
 
 
-   
+      mask(:,:) = 1
+
+      IF ( TRIM(cmthd) == 'missing_value' ) THEN
+         WRITE(6,*) 'Opening land-sea mask "'//TRIM(cinfo)//'" from missing_value of source field "'//TRIM(cv_fld)//'"!'
+         CALL CHECK_4_MISS(cf_fld, cv_fld, lmval, rmv, ca_missval)
+         IF ( .NOT. lmval ) THEN
+            PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
+            PRINT *, '      (in '//TRIM(cf_fld)//')'
+            STOP
+         END IF
+         WHERE ( z2d_tmp == rmv ) mask = 0
+
+      ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
+         READ(cnumv,*) rval_thrshld
+         IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld
+         IF (TRIM(cmthd) == 'val-')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values <=', rval_thrshld
+         IF (TRIM(cmthd) == 'value') WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values ==', rval_thrshld
+         IF (TRIM(cmthd) == 'val+') THEN
+            WHERE ( z2d_tmp >= rval_thrshld ) mask = 0
+         END IF
+         IF (TRIM(cmthd) == 'val-') THEN
+            WHERE ( z2d_tmp <= rval_thrshld ) mask = 0
+         END IF
+         IF (TRIM(cmthd) == 'value') THEN
+            WHERE ( z2d_tmp == rval_thrshld ) mask = 0
+         END IF
+
+      ELSEIF ((TRIM(cmthd)=='nan').OR.(TRIM(cmthd)=='NaN')) THEN
+         WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from NaN values in '//TRIM(cv_src)//' at jt = ', jt0
+         ! =>  NaN values have been flagged earlier and replaced by -9999.
+         WHERE ( z2d_tmp < -9998. ) mask = 0
+         
+      ELSE
+         WRITE(6,*) 'ERROR! (CREATE_LSM_2D of mod_grids.f90): Unknown value for "cmthd": '//TRIM(cmthd)//' !' ; STOP
+      END IF
+      DEALLOCATE ( z2d_tmp )
+
+   END SUBROUTINE CREATE_LSM_2D
+
+
+
+
+
+
+
+
 END MODULE MOD_GRIDS

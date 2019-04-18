@@ -111,6 +111,7 @@ CONTAINS
 
       idrown%np_penetr = 0 ! defaults
       idrown%nt_smooth = 5
+      idrown%l_msk_chg = .false.
 
       !! Reading interpolation section:
       REWIND( numnam )
@@ -249,6 +250,13 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'Shall we use DROWN on source fields: ', l_drown_src
          WRITE(6,*)''
+         IF ( l_drown_src ) THEN
+            WRITE(6,*)' => about DROWN action:'
+            WRITE(6,*)'    -> continental penetration in # of pixels:', idrown%np_penetr
+            WRITE(6,*)'    -> # of time to apply a smoothing on continents after DROWN:', idrown%nt_smooth
+            WRITE(6,*)'    -> is the mask on the source field is changing with time :', idrown%l_msk_chg
+            WRITE(6,*)''
+         END IF
          WRITE(6,*)'East west periodicity of source grid: ', ewper_src
          WRITE(6,*)''
          WRITE(6,*)'Masking output file: ', lmout
