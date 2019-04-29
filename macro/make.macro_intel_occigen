@@ -1,0 +1,37 @@
+# Makefile for SOSIE with Intel Ifort on ige-meom-xxx machines
+# ===========================================================
+# assumes that the folowing modules are loaded :
+#   intel/intel-15  
+#   netcdf/netcdf-4.4_intel15_hdf5
+
+# Fortran compiler:
+FC = ifort
+
+# Root directory for Netcdf:
+NETCDF_DIR = $(NETCDF4_DIR)
+
+# netcf libraries are in: <NETCDF_DIR>/lib/
+# netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+
+# Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
+L_NCDF = -lnetcdff
+
+LIB_COMP_DIR = $(INTEL_PATH)
+
+# Fortran compilation flags:
+# -- Production
+#FF = -O3 -i4 -xHOST -traceback -module mod/
+# -- Debugging
+##FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C -module mod/
+#FF = -O2 -g -check all -traceback -debug extended -C -module mod/
+
+#FF = -O0 -g -check all -warn all -traceback -debug extended -CB -module mod/
+#FF = -O0 -g -traceback -CB -module mod/
+
+FF = -O3 -g -traceback -module mod/
+
+
+
+# Directory to install binaries:
+INSTALL_DIR = $(HOME)/bin
+
