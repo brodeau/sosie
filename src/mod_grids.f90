@@ -401,11 +401,16 @@ CONTAINS
 
       IF ( l_drown_src ) THEN
 
-         IF ( (TRIM(cf_lsm_src) =='missing_value').OR. &
-            & (TRIM(cf_lsm_src) == 'val+')        .OR. &
-            & (TRIM(cf_lsm_src) == 'val-')        .OR. &
-            & (TRIM(cf_lsm_src) == 'value')       .OR. &
-            & (TRIM(cf_lsm_src) == 'nan')         .OR. &
+         IF ( TRIM(cf_lsm_src) == '' ) THEN
+            WRITE(6,*) 'ERROR! namelist parameter "cf_lsm_src" cannot be an empty string if you speficied "l_drown_src=.true." !'
+            STOP
+         END IF
+         
+         IF ( (TRIM(cf_lsm_src) == 'missing_value' ).OR. &
+            & (TRIM(cf_lsm_src) == 'val+')          .OR. &
+            & (TRIM(cf_lsm_src) == 'val-')          .OR. &
+            & (TRIM(cf_lsm_src) == 'value')         .OR. &
+            & (TRIM(cf_lsm_src) == 'nan')           .OR. &
             & (TRIM(cf_lsm_src) =='NaN') )        THEN
 
             CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src,   cf_fld=cf_src, cv_fld=cv_src )

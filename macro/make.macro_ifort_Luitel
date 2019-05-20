@@ -13,7 +13,7 @@ NETCDF_DIR = /opt/hdf5_netcdf4_intel
 L_NCDF = -lnetcdff
 
 # Compiler's libraries location:
-LIB_COMP_DIR = /opt/intel/compilers_and_libraries_2019.1.144/linux/compiler/lib/intel64_lin
+LIB_COMP_DIR = $(INTEL_DIR)/linux/compiler/lib/intel64_lin
 
 
 # Fortran compilation flags:
