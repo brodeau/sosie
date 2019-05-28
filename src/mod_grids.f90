@@ -400,9 +400,10 @@ CONTAINS
       mask_src(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
 
       IF ( l_drown_src ) THEN
-
+         
          IF ( TRIM(cf_lsm_src) == '' ) THEN
-            WRITE(6,*) 'ERROR! namelist parameter "cf_lsm_src" cannot be an empty string if you speficied "l_drown_src=.true." !'
+            WRITE(6,*) 'ERROR! if you want to "drown" input field (idrown[1]>0) then "cf_lsm_src"'
+            WRITE(6,*) '       cannot be an empty string!'
             STOP
          END IF
          

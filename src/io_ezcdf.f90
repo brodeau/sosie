@@ -808,7 +808,7 @@ CONTAINS
 
 
       !!    Opening MASK netcdf file
-      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in)
+      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE,    id_f),  crtn,cf_in,cv_in)
       CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
 
 
@@ -818,7 +818,7 @@ CONTAINS
          !! ~~~~~~~~~~
 
          IF ( .NOT. present(jlev) ) THEN
-            WRITE(6,*) trim(crtn),': WARNING => mask is 3D, should specify a level to extract, defaulting to 1st level!'
+            WRITE(6,*) TRIM(crtn)//': WARNING => mask is 3D! what level to read? => taking level #1 !'
          END IF
 
          !!  3D+T

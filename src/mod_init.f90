@@ -137,9 +137,10 @@ CONTAINS
       IF ( idrown%np_penetr > 0 ) l_drown_src = .TRUE.
 
       IF ( (.NOT. l_drown_src).AND.(l_save_drwn) ) THEN
-         PRINT *, ' PROBLEM: you cannot save the drowned input field (l_save_drwn) if you'
-         PRINT *, '          do not plan on using DROWN! => set idrown>0,0 !'
-         STOP
+         PRINT *, 'WARNING: forcing "l_save_drwn=.FALSE." because DROWN not called (idrown[1]==0)...'
+         PRINT *, '         if you want to "drown" input field, set idrown[1]>0 !'
+         PRINT *, ''
+         l_save_drwn = .FALSE.
       END IF
 
       IF ( iex == 1 ) THEN
