@@ -1,0 +1,25 @@
+# Makefile for SOSIE with Intel Ifort on ige-meom-xxx machines
+# ===========================================================
+
+# Fortran compiler:
+FC = ifort
+
+NETCDF_DIR = /home/brodeau/opt/hdf5_netcdf4_intel_mpi
+
+# Linking argument: usually -lnetcdf or -lnetcdff (or both):
+L_NCDF = -lnetcdf -lnetcdff
+
+
+
+
+# Fortran compilation flags:
+
+###EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -traceback -debug extended -C
+
+##FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
+FF = -O2 -i4 -traceback -CB -module mod/
+
+
+# Directory to install binaries:
+INSTALL_DIR = $(HOME)/bin
+

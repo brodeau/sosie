@@ -42,7 +42,7 @@ CONTAINS
          !PRINT *, 'LOLO: update source mask at jt = !!!', jt
          !WRITE (ctmp,'("data_src_jt",i2.2,".nc")') jt    !debug
          !CALL DUMP_FIELD(data_src, TRIM(ctmp), 'mask')  !debug
-         IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )         
+         IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
          !WRITE (ctmp,'("mask_src_jt",i2.2,".nc")') jt    !debug
          !CALL DUMP_FIELD(REAL(mask_src(:,:,1),4), TRIM(ctmp), 'mask')  !debug
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
@@ -148,17 +148,37 @@ CONTAINS
 
       INTEGER :: i1,j1, i2,j2
       INTEGER :: ji, jj, jk, jklast=0
-      REAL(8) :: zmax_src, zmax_trg
+      REAL(8) :: zmax_src, zmax_trg, rsum_lsm_lev
 
       CHARACTER(len=128) :: cfdbg !DEBUG
 
       !! Interpolation of each of the nk_src levels onto the target grid
       !! --------------------------------------------------------------
 
-      !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's')
+      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's')
+
+
+
+      IF ( l_drown_src ) THEN
+         !! First, need to do some sort of vertical drown downward to propagate the bottom
+         !! value (last water pomit mask==1) down into the sea-bed...
+         !! => calling drown vertical slice by vertical slices (zonal vertical slices)
+         PRINT *, ''
+         PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
+         DO jj = 1, nj_src
+            !CALL DUMP_FIELD(data3d_src(:,jj,:), 'slice_before', 's')
+            CALL DROWN( -1, data3d_src(:,jj,:), mask_src(:,jj,:), nb_inc=100, nb_smooth=5 )
+            !CALL DUMP_FIELD(data3d_src(:,jj,:), 'slice_after', 's')
+         END DO
+         PRINT *, '   => Done!'
+         PRINT *, ''
+         !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
+      END IF
+
 
 
       DO jk = 1, nk_src
+
          PRINT *, '### Preparing source field at level : ', jk
 
          IF ( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
@@ -167,15 +187,14 @@ CONTAINS
          END IF
 
          IF ( l_drown_src ) THEN
+            !! Now, the official DROWN can be done!
             !! Extrapolate sea values over land :
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
             !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
-            IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )         
+            IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )
             CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
             IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
-
-            !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')
-
+            !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')
          ELSE
             PRINT *, '-------------------'
             PRINT *, 'DROWN NOT CALLED!!!'
@@ -196,21 +215,12 @@ CONTAINS
 
 
 
-      !! Need to do some sort of vertical drown downward to propagate the bottom
-      !! value (last water pomit mask==1) down into the sea-bed...
-      !! => calling drown vertical slice by vertical slices (zonal vertical slices)
-      PRINT *, ''
-      PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
-      DO jj = 1, nj_src
-         !CALL DUMP_2D_FIELD(data3d_src(:,jj,:), 'slice_before', 's')
-         CALL DROWN( -1, data3d_src(:,jj,:), mask_src(:,jj,:), nb_inc=100, nb_smooth=5 )
-         !CALL DUMP_2D_FIELD(data3d_src(:,jj,:), 'slice_after', 's')
-      END DO
-      PRINT *, '   => Done!'
-      PRINT *, ''
 
-      !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
 
+      !rsum_lsm_lev = SUM(mask_src(:,:,nk_src))
+
+      !! This should only be done if the bottom level of source field is 100% rock,
+      !! otherwize DROWN should have done the job...
 
 
 
@@ -220,7 +230,7 @@ CONTAINS
       !LOLOdebug:
       !DO jk = nk_src/2, nk_src
       !   WRITE(cfdbg,'("data_to_be_srcterpolated_lev",i2.2,".nc")') jk ; PRINT *, ' *** saving ', TRIM(cfdbg)
-      !   CALL DUMP_2D_FIELD(data3d_src(:,:,jk), TRIM(cfdbg), cv_src)
+      !   CALL DUMP_FIELD(data3d_src(:,:,jk), TRIM(cfdbg), cv_src)
       !END DO
       !LOLOdebug.
 
@@ -231,7 +241,7 @@ CONTAINS
 
 
 
-      !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '03_Slice_in_before_interp.tmp', 's')
+      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '03_Slice_in_before_interp.tmp', 's')
 
       !! Now! 3D input field ready to be interpolated...
       DO jk = 1, nk_src
