@@ -601,6 +601,7 @@ CONTAINS
 
          ELSE
 
+            
             IF ( TRIM(cf_lsm_trg) =='missing_value' ) THEN
                CALL CREATE_LSM( 'target', cf_lsm_trg, cv_lsm_trg, mask_trg,  cf_fld=cf_x_trg, cv_fld=cv_lsm_trg )
 
@@ -609,9 +610,8 @@ CONTAINS
                &     (TRIM(cf_lsm_trg) == 'value') .OR. &
                &     (TRIM(cf_lsm_trg) == 'nan')   .OR. &
                &     (TRIM(cf_lsm_trg) =='NaN') )     THEN
-               WRITE(6,*) 'ERROR! ("get_trg_conf" of mod_grids.f90): CREATE_LSM does not support method "'//TRIM(cf_lsm_trg)//'" yet!'
+               WRITE(6,*) 'ERROR! ("get_trg_conf" of mod_grids.f90): CREATE_LSM does not support method "'//TRIM(cf_lsm_trg)//'" yet for target domain!'
                STOP
-
             ELSE
 
                IF ( l_itrp_3d ) THEN
@@ -1285,13 +1285,21 @@ CONTAINS
       IF ( TRIM(cmthd) == 'missing_value' ) THEN
          WRITE(6,*) 'Opening land-sea mask "'//TRIM(cinfo)//'" from missing_value of source field "'//TRIM(cv_fld)//'"!'
          CALL CHECK_4_MISS(cf_fld, cv_fld, lmval, rmv, ca_missval)
+         !PRINT *, 'LOLO: rmv =', rmv, ISNAN(rmv)
+
          IF ( .NOT. lmval ) THEN
             PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
             PRINT *, '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
-         WHERE ( z3d_tmp == rmv ) mask = 0
-
+         
+         IF ( ISNAN(rmv) ) THEN
+            WHERE ( z3d_tmp < -9990. ) mask = 0  ! NaN have been replaced with -9999. earlier !
+         ELSE
+            WHERE ( z3d_tmp == rmv   ) mask = 0
+         END IF
+         !!CALL DUMP_FIELD(REAL(mask,4), 'mask_trg.tmp', 'lsm')
+         
       ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
          READ(cnumv,*) rval_thrshld
          IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld
@@ -1386,8 +1394,13 @@ CONTAINS
             PRINT *, '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
-         WHERE ( z2d_tmp == rmv ) mask = 0
-
+         
+         IF ( ISNAN(rmv) ) THEN
+            WHERE ( z2d_tmp < -9990. ) mask = 0  ! NaN have been replaced with -9999. earlier !
+         ELSE            
+            WHERE ( z2d_tmp == rmv )   mask = 0
+         END IF
+         
       ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
          READ(cnumv,*) rval_thrshld
          IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld

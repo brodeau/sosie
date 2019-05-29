@@ -122,13 +122,14 @@ ssig_src =  2,         4,         40,       7.,       2.,     250. ,   15.
 !! cf_lsm_trg : (not needed if "lmout = .FALSE." --> '')
 !!              file containing TARGET land-sea mask [char]
 !!              land-sea mask MUST BE 3D for 3D interpolation!
-!!              - or specify 'missing_value' if a 'missing_value' netcdf
+!!              - or specify 'missing_value' if you want to "scan" field "cv_lsm_trg"
+!!                into file "cf_x_trg" after values that seem to define a masked region!
 !!                attribute defines the mask on a field 'X' in file 'cf_x_trg'
 !!
 !! cv_lsm_trg : (not needed if "lmout = .FALSE." --> '')
 !!              name of land-sea mask variable in 'cf_lsm_trg'     [char]
-!!              - or name of field 'X' in 'cf_x_trg' if you specified
-!!                cf_lsm_trg = 'missing_value'
+!!              - or name of field 'X' in 'cf_x_trg'  that seem to define a masked
+!!                region IF you specified cf_lsm_trg = 'missing_value'
 !!               
 !!
 !! ewper_trg : east-west periodicity on the target file/grid [integer]
