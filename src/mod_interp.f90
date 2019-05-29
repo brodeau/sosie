@@ -148,7 +148,7 @@ CONTAINS
 
       INTEGER :: i1,j1, i2,j2
       INTEGER :: ji, jj, jk, jklast=0
-      REAL(8) :: zmax_src, zmax_trg, rsum_lsm_lev
+      REAL(8) :: zmax_src, zmax_trg
 
       CHARACTER(len=128) :: cfdbg !DEBUG
 
@@ -212,17 +212,6 @@ CONTAINS
          END IF
 
       END DO !DO jk = 1, nk_src
-
-
-
-
-
-      !rsum_lsm_lev = SUM(mask_src(:,:,nk_src))
-
-      !! This should only be done if the bottom level of source field is 100% rock,
-      !! otherwize DROWN should have done the job...
-
-
 
       !! Prevent last level to f-word shit up when not a single water point (last level is only rock!)
       IF ( SUM(mask_src(:,:,nk_src)) == 0) data3d_src(:,:,nk_src) = data3d_src(:,:,nk_src-1) ! persistence!
