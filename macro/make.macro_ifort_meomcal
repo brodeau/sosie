@@ -20,6 +20,6 @@ L_NCDF = -lnetcdf -lnetcdff
 FF = -O2 -i4 -traceback -CB -module mod/
 
 
-# Directory to install binaries:
-INSTALL_DIR = $(HOME)/bin
+# Directory to install:
+INSTALL_DIR = $(HOME)/local
 

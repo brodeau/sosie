@@ -969,7 +969,7 @@ CONTAINS
       IF ( (jt1 > 0).AND.(jt2 > 0) ) THEN
          Ntr = jt2 - jt1 + 1 ;  ;  j_start = jt1 ;  j_stop = jt2
          !! jrec is the time dimension of the source file, Ntr is the length requested by the user :
-         IF ( ( Ntr > jrec ).OR.(jt1 < 1).OR.(jt1 > jt2).OR.(jt2 > jrec) ) THEN
+         IF ( (jplev>=0).AND.( (Ntr>jrec).OR.(jt1 < 1).OR.(jt1 > jt2).OR.(jt2 > jrec) ) ) THEN
             WRITE(6,*) ''; WRITE(6,*) 'Check jt1 and jt2 in the namelist:'
             WRITE(6, '("=> the time dimension of ",a," is ", i5)') TRIM(cv_src), jrec
             WRITE(6, '("   and you specified jt1, jt2 =",i5," ,",i5)') jt1, jt2
