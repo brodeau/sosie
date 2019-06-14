@@ -70,7 +70,8 @@ CONTAINS
             vatt_info_t(1)%ilength = LEN('unknown')
             !!
          ELSE    ! we get time vector and its attributes into source file
-            CALL GETVAR_1D(cf_src, cv_t_src, vt0) ;  vt(:) = vt0(j_start:j_stop)
+            CALL GETVAR_1D(cf_src, cv_t_src, vt0)
+            vt(:) = vt0(j_start:j_stop)
             CALL GETVAR_ATTRIBUTES(cf_src, cv_t_src,  nb_att_t, vatt_info_t)
          END IF
       END IF
@@ -898,6 +899,7 @@ CONTAINS
          WRITE(6,*) '   => because you specified "jplev = -1" in the namelist!'
          WRITE(6,*) '   => the time-record dimension is therefore:', Ntr
          WRITE(6,*) ''
+         Ntr0 = Ntr
 
       ELSE
 
@@ -959,7 +961,9 @@ CONTAINS
 
          IF (.NOT. ltime) Ntr0 = 1
 
-         Ntr = Ntr0;  j_start = 1 ; j_stop = Ntr0
+         Ntr = Ntr0
+         j_start = 1
+         j_stop = Ntr0
 
       END IF
 
