@@ -749,9 +749,6 @@ CONTAINS
 
 
    SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  mask_domain_trg)
-
-      USE mod_conf !LOLO
-      
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -847,9 +844,7 @@ CONTAINS
       END IF
 
       !!  Simplif when [d lat / d j] always has the same sign:
-      !LOLO:!IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_trg ) THEN    !!!.OR. (i_orca_trg > 0) ) THEN
-      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_trg  .OR. (i_orca_trg > 0) ) THEN
-         PRINT *, 'LOLO: BOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO!'
+      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_trg ) THEN    !!!.OR. (i_orca_trg > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
          !!
@@ -1015,8 +1010,7 @@ CONTAINS
       INTEGER, INTENT(in)                       :: j_strt_trg, j_stop_trg, jlat_icr
       !!
       !! Important parameters:
-      !INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
-      INTEGER, PARAMETER :: Nlat_split = 1   ! number of latitude bands to split the search work (for 180. degree south->north)
+      INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
       REAL(8), PARAMETER :: frac_emax = 0.51   ! fraction of emax to test if found!
       !!                                        => 0.5 seems to be too small, for example on ORCA1 grid at around 20 deg N... ???
       INTEGER :: &
@@ -1132,7 +1126,6 @@ CONTAINS
          !! @mbalaro Comment: The two line below can lead to error when working on on small domain ...
          !ij_max_loc = MAXLOC(Ysrc, mask=(Ysrc<=rlat_hgh)) ; jmax_band = ij_max_loc(2)
          !ij_min_loc = MINLOC(Ysrc, mask=(Ysrc>=rlat_low)) ; jmin_band = ij_min_loc(2)
-         !!
          !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_low:rlat_hgh]
          !! Largest ever possible j index of the highest latitude in region where Ysrc<=rlat_hgh
          jmax_band = MAXVAL(MAXLOC(Ysrc, mask=(Ysrc<=rlat_hgh), dim=2))  ! MAXLOC(Ysrc, ..., dim=2) returns ni_src values (the max in each column)
@@ -1145,11 +1138,6 @@ CONTAINS
          J_VLAT_SRC(jlat,1) = MAX(jmin_band - 1,   1  )
          J_VLAT_SRC(jlat,2) = MIN(jmax_band + 1, ny_src)
          !!
-         !!LOLO:
-         PRINT *, 'LOLO: J_VLAT_SRC(jlat,1), J_VLAT_SRC(jlat,2) =>', J_VLAT_SRC(jlat,1), J_VLAT_SRC(jlat,2)
-         IF ( J_VLAT_SRC(jlat,1) >= J_VLAT_SRC(jlat,2) ) J_VLAT_SRC(jlat,1) = 1 !?
-         !!
-         !!
          IF ( ldebug ) THEN
             PRINT *, ' Latitude bin #', jlat
             PRINT *, '     => lat_low, lat_high:', REAL(rlat_low,4), REAL(rlat_hgh,4)
@@ -1158,12 +1146,6 @@ CONTAINS
          !!
       END DO
 
-      !LOLO_debug:
-      VLAT_SPLIT_BOUNDS(:) =  (/ 31. , 89.9 /)
-      J_VLAT_SRC(:,1) = 1
-      J_VLAT_SRC(:,2) = 448
-      !LOLO.
-      
       PRINT *, ''
       PRINT *, '     => VLAT_SPLIT_BOUNDS ='
       PRINT *, VLAT_SPLIT_BOUNDS
