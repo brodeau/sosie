@@ -100,7 +100,7 @@ PROGRAM NEMO_COARSENER
    !cdir_out = '.'
 
 
-   OPEN(UNIT=numout, FORM='FORMATTED', RECL=512)
+   !ifort:OPEN(UNIT=numout, FORM='FORMATTED', RECL=512)
 
 
 
