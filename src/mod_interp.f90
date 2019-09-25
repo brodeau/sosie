@@ -9,7 +9,7 @@ MODULE MOD_INTERP
    USE mod_grids
 
    USE mod_nemotools, ONLY: lbc_lnk
-   !USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdebug
+   USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdebug
 
    IMPLICIT NONE
 
@@ -147,7 +147,7 @@ CONTAINS
       !! ================
 
       INTEGER :: i1,j1, i2,j2
-      INTEGER :: ji, jj, jk, jklast=0
+      INTEGER :: ji, jj, jk, jklast=0, jk_almst_btm
       REAL(8) :: zmax_src, zmax_trg
 
       CHARACTER(len=128) :: cfdbg !DEBUG
@@ -158,17 +158,24 @@ CONTAINS
       !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's')
 
 
-
-      IF ( l_drown_src ) THEN
+      
+      IF ( l_drown_src .AND. (nk_src > 5) ) THEN
          !! First, need to do some sort of vertical drown downward to propagate the bottom
          !! value (last water pomit mask==1) down into the sea-bed...
          !! => calling drown vertical slice by vertical slices (zonal vertical slices)
          PRINT *, ''
          PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
+         !!
+         !! Find the level from which less than 30 % of the rectangular domain is water
+         jk_almst_btm = 2
+         DO jk = jk_almst_btm, nk_src
+            IF ( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.3 ) EXIT
+         END DO
+         jk_almst_btm = MIN( jk , nk_src - 1 )
+         PRINT *, 'LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
+         !!
          DO jj = 1, nj_src
-            !CALL DUMP_FIELD(data3d_src(:,jj,:), 'slice_before', 's')
-            CALL DROWN( -1, data3d_src(:,jj,:), mask_src(:,jj,:), nb_inc=100, nb_smooth=5 )
-            !CALL DUMP_FIELD(data3d_src(:,jj,:), 'slice_after', 's')
+            CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100, nb_smooth=5 )
          END DO
          PRINT *, '   => Done!'
          PRINT *, ''

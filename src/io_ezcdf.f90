@@ -30,6 +30,16 @@ MODULE io_ezcdf
       INTEGER            :: second
    END TYPE t_unit_t0
 
+   TYPE, PUBLIC :: date
+      INTEGER            :: year
+      INTEGER            :: month
+      INTEGER            :: day
+      INTEGER            :: hour
+      INTEGER            :: minute
+      INTEGER            :: second
+   END TYPE date
+
+
 
    PRIVATE
 
@@ -75,6 +85,7 @@ MODULE io_ezcdf
       &    get_time_unit_t0, &
       &    l_is_leap_year,   &
       &    test_xyz,         &
+      &    time_to_date,     &
       &    to_epoch_time_scalar, to_epoch_time_vect, &
       &    coordinates_from_var_attr
    !!===========================
@@ -2211,6 +2222,112 @@ CONTAINS
       IF ( L_IS_LEAP_YEAR(iyear) )  nbd_m = tdml(imonth)
    END FUNCTION nbd_m
 
+
+   FUNCTION time_to_date( cal_unit_ref0, rt )
+      !!
+      !! Converts a time like "hours since 19XX" to "19XX-MM-DD-hh-mm-ss"
+      !!
+      TYPE(date)                  :: time_to_date
+      TYPE(t_unit_t0), INTENT(in) :: cal_unit_ref0 ! date of the origin of the calendar ex: "'d',1950,1,1,0,0,0" for "days since 1950-01-01
+      REAL(8)        , INTENT(in) :: rt ! time as specified as cal_unit_ref0
+      !!
+      REAL(8)    :: zt, zinc
+      INTEGER    :: jy, jmn, jd, jm, jh, jd_old, js
+      LOGICAL    :: lcontinue
+      REAL(8)    :: rjs_t, rjs_t_old, rjs_t_oo, rjs0_epoch, rjs
+      CHARACTER(len=80), PARAMETER :: crtn = 'time_to_date'
+      !!
+      !!
+      !! Converting rt to seconds
+      SELECT CASE(cal_unit_ref0%unit)
+      CASE('d')
+         PRINT *, ' Switching from days to seconds!'
+         zt = rt*24.*3600.
+      CASE('h')
+         PRINT *, ' Switching from hours to seconds!'
+         zt = rt*3600.
+      CASE('s')
+         zt = rt
+      CASE DEFAULT
+         CALL print_err(crtn, 'the only time units we know are "s" (seconds), "h" (hours) and "d" (days)')
+      END SELECT
+      !!
+      !!
+      !! Starting with large time increment (in seconds):
+      zinc = 60. ! increment in seconds!
+      !!
+      jy = cal_unit_ref0%year
+      jmn = cal_unit_ref0%month
+      jd = cal_unit_ref0%day
+      js= cal_unit_ref0%second
+      jm= cal_unit_ref0%minute
+      jh= cal_unit_ref0%hour
+      !!
+      rjs = REAL(js, 8)
+      rjs_t = 0. ; rjs_t_old = 0. ; rjs_t_oo = 0.
+      !!
+      !!
+      !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t
+      lcontinue = .TRUE.
+      DO WHILE ( lcontinue )
+         jd_old = jd
+         rjs_t = rjs_t + zinc
+         rjs = rjs + zinc
+         !!
+
+         IF ( MOD(rjs_t,60.) == 0. ) THEN
+            rjs = 0.
+            jm  = jm+1
+         END IF
+         IF ( jm == 60 ) THEN
+            jm = 0
+            jh = jh+1
+         END IF
+         !IF ( MOD(rjs_t,3600) == 0 ) THEN
+         !   jm = 0
+         !   jh = jh+1
+         !END IF
+         !
+         IF ( jh == 24 ) THEN
+            jh = 0
+            jd = jd + 1
+         END IF
+         IF ( jd == nbd_m(jmn,jy)+1 ) THEN
+            jd = 1
+            jmn = jmn + 1
+         END IF
+         IF ( jmn == 13 ) THEN
+            jmn  = 1
+            jy = jy+1
+         END IF
+         IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
+         !
+         !IF ( jd /= jd_old ) THEN
+         !   WRITE(*,'(" ***  now : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  rjs_t
+         !END IF
+         IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
+         IF ( jy == 2019 ) THEN
+            PRINT *, 'rjs_t =', rjs_t
+            STOP 'ERROR: time_to_date => beyond 2018!'
+         END IF
+         rjs_t_old = rjs_t
+      END DO
+      !
+      !time_to_date = rjs_t - rjs0_epoch
+
+      time_to_date%year   = jy
+      time_to_date%month  = jmn
+      time_to_date%day    = jd
+      time_to_date%hour   = jh
+      time_to_date%minute = jm
+      time_to_date%second = NINT(rjs)
+      !
+      !PRINT *, 'Found !!!', zt, REAL(rjs_t)
+      WRITE(*,'(" *** time_to_date => Date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2)') jy, jmn, jd, jh, jm, NINT(rjs)
+      !PRINT *, ' + rjs0_epoch =', rjs0_epoch
+      !PRINT *, '  Date (epoch) =>', time_to_date
+
+   END FUNCTION time_to_date
 
 
 
