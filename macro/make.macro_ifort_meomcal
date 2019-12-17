@@ -14,10 +14,14 @@ L_NCDF = -lnetcdf -lnetcdff
 
 # Fortran compilation flags:
 
-###EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -traceback -debug extended -C
+###EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -warn all -debug extended -C
+#EXTRA_DEBUG_FLAGS = -g -check all -fpe0 -debug extended -C
+EXTRA_DEBUG_FLAGS = -g -fpe0
 
 ##FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
-FF = -O2 -i4 -traceback -CB -module mod/
+##FF = -O2 -i4 -traceback -CB -module mod/
+
+FF = -O2 -i4 -traceback -module mod/
 
 
 # Directory to install:
