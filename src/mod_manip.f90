@@ -84,7 +84,7 @@ CONTAINS
       iorca = 0
       IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
-
+      PRINT *, 'LOLO YEAH!!! mod_manip!'
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'

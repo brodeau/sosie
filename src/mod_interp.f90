@@ -86,12 +86,27 @@ CONTAINS
       !! Source extended domain:
       ni_src_x = ni_src + n_extd
       nj_src_x = nj_src + n_extd
-      !PRINT *, '  *** allocating data_src_x, X1_x, Y1_x:', ni_src_x,nj_src_x
+      PRINT *, '  *** allocating data_src_x, X1_x, Y1_x:', ni_src_x,nj_src_x, '(',ni_src, nj_src,')'
       ALLOCATE ( X1_x(ni_src_x,nj_src_x), Y1_x(ni_src_x,nj_src_x), data_src_x(ni_src_x,nj_src_x) )
-      !PRINT *, '      => allocation done!'
+      X1_x(:,:) = 0.
+      Y1_x(:,:) = 0.
+      data_src_x(:,:) = 0.
+      PRINT *, '      => allocation done!'
 
 
-      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
+      PRINT *, 'LOLO: about to call FILL_EXTRA_BANDS!!!'
+      PRINT *, '    => ewper_src =', ewper_src
+      PRINT *, '    => X1        =', X1(1::300,1::300); PRINT *, ''
+      PRINT *, '    => Y1        =', Y1(1::300,1::300); PRINT *, ''
+      PRINT *, '    => data_src        =', data_src(1::300,1::300); PRINT *, ''
+      PRINT *, '    => X1_x        =', X1_x(1::300,1::300); PRINT *, ''
+      PRINT *, '    => Y1_x        =', Y1_x(1::300,1::300); PRINT *, ''
+      PRINT *, '    => data_src_x        =', data_src_x(1::300,1::300); PRINT *, ''
+
+      PRINT *, '    => i_orca_src =', i_orca_src
+
+      !    FILL_EXTRA_BANDS(k_ew,      XX, YY,       XF,         XP4,  YP4,   FP4,        is_orca_grid)
+      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x) !,  is_orca_grid=i_orca_src)
       CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
       !STOP'mod_interp.f90'
       !DEALLOCATE (X1, Y1)
