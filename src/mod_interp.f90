@@ -31,7 +31,7 @@ CONTAINS
       INTEGER :: ni_src_x, nj_src_x
       CHARACTER(len=2) :: ctype
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
-      REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1, Y1
+      REAL(8), DIMENSION(:,:), ALLOCATABLE       :: X1, Y1
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X2, Y2
       REAL(8), DIMENSION(:,:), ALLOCATABLE       :: X1_x, Y1_x, data_src_x
       REAL(8), DIMENSION(4),                SAVE :: xy_range_src
@@ -70,18 +70,18 @@ CONTAINS
 
       !! Going to work with 2D longitude,latitude arrays (source domain) => X1, Y1 (regardless regularity of source grid)
       !!LOLO #FIXME put all these squaring-coordinates stuff somewhere else, like in mod_grid..., also known from a module,
-      IF ( jt == 1 ) THEN
-         ctype = TEST_XYZ(lon_src, lat_src, data_src)
-         ALLOCATE ( X1(ni_src,nj_src) , Y1(ni_src,nj_src) )
-         IF ( ctype == '1d' ) THEN
-            FORALL (jj = 1:nj_src) X1(:,jj) = lon_src(:,1)
-            FORALL (ji = 1:ni_src) Y1(ji,:) = lat_src(:,1)
-         ELSE
-            X1 = lon_src
-            Y1 = lat_src
-         END IF
-
+      !IF ( jt == 1 ) THEN
+      !LOLO bad to do this at each time step !!!
+      ctype = TEST_XYZ(lon_src, lat_src, data_src)
+      ALLOCATE ( X1(ni_src,nj_src) , Y1(ni_src,nj_src) )
+      IF ( ctype == '1d' ) THEN
+         FORALL (jj = 1:nj_src) X1(:,jj) = lon_src(:,1)
+         FORALL (ji = 1:ni_src) Y1(ji,:) = lat_src(:,1)
+      ELSE
+         X1 = lon_src
+         Y1 = lat_src
       END IF
+      !END IF
          
       !! Source extended domain:
       ni_src_x = ni_src + n_extd
@@ -92,44 +92,13 @@ CONTAINS
       Y1_x(:,:) = 0.
       data_src_x(:,:) = 0.
       PRINT *, '      => allocation done!'
-
-
-      PRINT *, 'LOLO: about to call FILL_EXTRA_BANDS!!!'
-      PRINT *, '    => ewper_src =', ewper_src
-      PRINT *, '    => X1        =', X1(1::300,1::300); PRINT *, ''
-      PRINT *, '    => Y1        =', Y1(1::300,1::300); PRINT *, ''
-      PRINT *, '    => data_src        =', data_src(1::300,1::300); PRINT *, ''
-      PRINT *, '    => X1_x        =', X1_x(1::300,1::300); PRINT *, ''
-      PRINT *, '    => Y1_x        =', Y1_x(1::300,1::300); PRINT *, ''
-      PRINT *, '    => data_src_x        =', data_src_x(1::300,1::300); PRINT *, ''
-
-      PRINT *, '    => i_orca_src =', i_orca_src
-
-      PRINT *, 'SIZE(X1,1), SIZE(Y1,1), SIZE(data_src,1) =>', SIZE(X1,1), SIZE(Y1,1), SIZE(data_src,1)
-      PRINT *, 'SIZE(X1,2), SIZE(Y1,2), SIZE(data_src,2) =>', SIZE(X1,2), SIZE(Y1,2), SIZE(data_src,2)
-      PRINT *, ''
-      PRINT *, 'SIZE(X1_x,1), SIZE(Y1_x,1), SIZE(data_src_x,1) =>', SIZE(X1_x,1), SIZE(Y1_x,1), SIZE(data_src_x,1)
-      PRINT *, 'SIZE(X1_x,2), SIZE(Y1_x,2), SIZE(data_src_x,2) =>', SIZE(X1_x,2), SIZE(Y1_x,2), SIZE(data_src_x,2)
-      PRINT *, ''
-
-
-      CALL DUMP_FIELD(REAL(X1,4), 'X1.nc', 'var')
-      CALL DUMP_FIELD(REAL(Y1,4), 'Y1.nc', 'var')
-      CALL DUMP_FIELD(data_src, 'data_src.nc', 'var')
-      CALL DUMP_FIELD(REAL(X1_x,4), 'X1_x.nc', 'var')
-      CALL DUMP_FIELD(REAL(Y1_x,4), 'Y1_x.nc', 'var')
-      CALL DUMP_FIELD(REAL(data_src_x), 'data_src_x.nc', 'var')
-
-
       
-      
-      !    FILL_EXTRA_BANDS(k_ew,      XX, YY,       XF,         XP4,  YP4,   FP4,        is_orca_grid)
-      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x) !,  is_orca_grid=i_orca_src)
-
+      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
       
       CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
-      STOP'mod_interp.f90'
-      !DEALLOCATE (X1, Y1)
+      !STOP'mod_interp.f90'
+      DEALLOCATE (X1, Y1) !LOLO bad to do this at each time step
+
       !STOP
       !!  => X1_x, Y1_x are the extended 2D longitude,latitude arrays of source domain !
 
@@ -258,10 +227,8 @@ CONTAINS
       !! If target grid is an ORCA grid, calling "lbc_lnk":
       IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
 
-      
-      IF ( jt == Nt ) DEALLOCATE ( X1, Y1, X2, Y2, ixy_mapping )
-      
-      
+      IF ( jt == Nt ) DEALLOCATE ( X2, Y2, ixy_mapping )
+            
    END SUBROUTINE INTERP_2D
 
 
