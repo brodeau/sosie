@@ -31,10 +31,10 @@ CONTAINS
       INTEGER :: ni_src_x, nj_src_x
       CHARACTER(len=2) :: ctype
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
-      REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1, Y1, X1_x, Y1_x
+      REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1, Y1
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X2, Y2
-      REAL(8), DIMENSION(:,:), ALLOCATABLE       :: data_src_x
-      REAL(8), DIMENSION(4), SAVE :: xy_range_src
+      REAL(8), DIMENSION(:,:), ALLOCATABLE       :: X1_x, Y1_x, data_src_x
+      REAL(8), DIMENSION(4),                SAVE :: xy_range_src
 
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -105,10 +105,30 @@ CONTAINS
 
       PRINT *, '    => i_orca_src =', i_orca_src
 
+      PRINT *, 'SIZE(X1,1), SIZE(Y1,1), SIZE(data_src,1) =>', SIZE(X1,1), SIZE(Y1,1), SIZE(data_src,1)
+      PRINT *, 'SIZE(X1,2), SIZE(Y1,2), SIZE(data_src,2) =>', SIZE(X1,2), SIZE(Y1,2), SIZE(data_src,2)
+      PRINT *, ''
+      PRINT *, 'SIZE(X1_x,1), SIZE(Y1_x,1), SIZE(data_src_x,1) =>', SIZE(X1_x,1), SIZE(Y1_x,1), SIZE(data_src_x,1)
+      PRINT *, 'SIZE(X1_x,2), SIZE(Y1_x,2), SIZE(data_src_x,2) =>', SIZE(X1_x,2), SIZE(Y1_x,2), SIZE(data_src_x,2)
+      PRINT *, ''
+
+
+      CALL DUMP_FIELD(REAL(X1,4), 'X1.nc', 'var')
+      CALL DUMP_FIELD(REAL(Y1,4), 'Y1.nc', 'var')
+      CALL DUMP_FIELD(data_src, 'data_src.nc', 'var')
+      CALL DUMP_FIELD(REAL(X1_x,4), 'X1_x.nc', 'var')
+      CALL DUMP_FIELD(REAL(Y1_x,4), 'Y1_x.nc', 'var')
+      CALL DUMP_FIELD(REAL(data_src_x), 'data_src_x.nc', 'var')
+
+
+      
+      
       !    FILL_EXTRA_BANDS(k_ew,      XX, YY,       XF,         XP4,  YP4,   FP4,        is_orca_grid)
       CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x) !,  is_orca_grid=i_orca_src)
+
+      
       CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
-      !STOP'mod_interp.f90'
+      STOP'mod_interp.f90'
       !DEALLOCATE (X1, Y1)
       !STOP
       !!  => X1_x, Y1_x are the extended 2D longitude,latitude arrays of source domain !

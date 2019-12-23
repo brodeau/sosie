@@ -21,11 +21,11 @@ L_OMP  = -liomp5
 # Fortran compilation flags:
 
 # -- Production
-FF = -O3 -qopenmp -g -traceback -module mod/
+#FF = -O3 -qopenmp -g -traceback -module mod/
 
 
 # -- Debugging
-#FF = -O0 -qopenmp -g -traceback -check all -warn all -debug extended -C -module mod/
+FF = -O0 -qopenmp -g -traceback -check all -warn all -debug extended -C -module mod/
 
 
 

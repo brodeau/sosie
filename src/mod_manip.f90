@@ -35,7 +35,8 @@ MODULE MOD_MANIP
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
-      &      find_src_cell, find_nearest_point, &
+      &      find_src_cell, &
+      &      find_nearest_point, &
       &      shrink_vector, degE_to_degWE, &
       &      ext_north_to_90_regg
 
@@ -81,10 +82,13 @@ CONTAINS
       INTEGER :: nx, ny, nxp4, nyp4
       INTEGER :: ji, jj, iorca
 
+      PRINT *, 'LOLO: inside FILL_EXTRA_BANDS of mod_manip.f90 !'
+
+      
       iorca = 0
       IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
-      PRINT *, 'LOLO YEAH!!! mod_manip!'
+
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'
@@ -125,9 +129,9 @@ CONTAINS
       FP4 = 0.
 
       !! Filling center of domain:
-      XP4(  3:nxp4-2, 3:nyp4-2) = XX(:,:)
-      YP4(  3:nxp4-2, 3:nyp4-2) = YY(:,:)
-      FP4(3:nxp4-2, 3:nyp4-2)   = XF(:,:)
+      XP4(3:nxp4-2, 3:nyp4-2) = XX(:,:)
+      YP4(3:nxp4-2, 3:nyp4-2) = YY(:,:)
+      FP4(3:nxp4-2, 3:nyp4-2) = XF(:,:)
 
 
 
@@ -189,10 +193,8 @@ CONTAINS
                &              FP4(5,jj),FP4(4,jj),FP4(3,jj),   &
                &              FP4(2,jj),FP4(1,jj) )
          END DO
-         
+
       END IF !IF (k_ew > -1)
-
-
 
 
       
@@ -1263,9 +1265,9 @@ CONTAINS
       PRINT *, ''
       PRINT *, '     => VLAT_SPLIT_BOUNDS ='
       PRINT *, VLAT_SPLIT_BOUNDS
-      PRINT *, '     => corresponding start values for j ='
+      PRINT *, '     => corresponding start values for j_src ='
       PRINT *, J_VLAT_SRC(:,1)
-      PRINT *, '     => corresponding stop values for j ='
+      PRINT *, '     => corresponding stop values for j_src ='
       PRINT *, J_VLAT_SRC(:,2)
       PRINT *, ''
 
