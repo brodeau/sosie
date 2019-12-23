@@ -40,10 +40,10 @@ CONTAINS
       CALL know_dim_src()
 
       !! Allocate source arrays with source dimensions :
-      ALLOCATE ( data_src(ni_src,nj_src), mask_src(ni_src,nj_src,nk_src), data_src_b(ni_src,nj_src),    &
+      ALLOCATE ( data_src(ni_src,nj_src), mask_src(ni_src,nj_src,nk_src),    &
          &       mask_src_b(ni_src,nj_src,nk_src), vt0(Ntr0), vt(Ntr) )
 
-      IF ( l_save_drwn ) ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
+      !lolo: IF ( l_save_drwn ) ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
 
       vt(:) = 0.
 
@@ -300,7 +300,7 @@ CONTAINS
 
    SUBROUTINE TERMINATE()
 
-      DEALLOCATE ( data_src, mask_src, data_src_b, lon_src, lat_src, mask_src_b, vt0, vt )
+      DEALLOCATE ( data_src, mask_src, lon_src, lat_src, mask_src_b, vt0, vt )
 
       DEALLOCATE ( mask_trg, data_trg, lat_trg, lon_trg, lon_trg_b )
 

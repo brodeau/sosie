@@ -79,8 +79,8 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
       INTEGER ,   OPTIONAL,    INTENT(in)  :: is_orca_grid
 
-      INTEGER :: nx, ny, nxp4, nyp4
-      INTEGER :: ji, jj, iorca
+      INTEGER :: nx, ny, nxp4, nyp4, np
+      INTEGER :: ji, jj, iorca, i1, i2, j1, j2
 
       PRINT *, 'LOLO: inside FILL_EXTRA_BANDS of mod_manip.f90 !'
 
@@ -118,20 +118,26 @@ CONTAINS
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target y dim is not nj+4!!!'; STOP
       END IF
 
+      np = 4/2
 
+      i1 = np + 1
+      i2 = nxp4 - np
+      
+      j1 = np + 1
+      j2 = nyp4 - np
 
       !!   C r e a t i n g   e x t e n d e d   a r r a y s  :
       !!   --------------------------------------------------
 
-      !! Initializing :
-      XP4 = 0.
-      YP4 = 0.
-      FP4 = 0.
+      !! Initializing : #dodgy because deletes input as well ? lolo
+      !XP4 = 0.
+      !YP4 = 0.
+      !FP4 = 0.
 
       !! Filling center of domain:
-      XP4(3:nxp4-2, 3:nyp4-2) = XX(:,:)
-      YP4(3:nxp4-2, 3:nyp4-2) = YY(:,:)
-      FP4(3:nxp4-2, 3:nyp4-2) = XF(:,:)
+      XP4(i1:i2, j1:j2) = XX(:,:)
+      YP4(i1:i2, j1:j2) = YY(:,:)
+      FP4(i1:i2, j1:j2) = XF(:,:)
 
 
 
@@ -147,28 +153,28 @@ CONTAINS
          
          IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using E-W periodicity overlap of ', INT(k_ew,1)         
          !!                   ! fill extra bands :
-         XP4( 1     , 3:nyp4-2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
-         XP4( 2     , 3:nyp4-2) = XX(nx - k_ew     , :) - 360.
-         XP4(nxp4   , 3:nyp4-2) = XX( 2 + k_ew     , :) + 360.
-         XP4(nxp4-1 , 3:nyp4-2) = XX( 1 + k_ew     , :) + 360.
+         XP4( 1     , j1:j2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
+         XP4( 2     , j1:j2) = XX(nx - k_ew     , :) - 360.
+         XP4(nxp4   , j1:j2) = XX( 2 + k_ew     , :) + 360.
+         XP4(nxp4-1 , j1:j2) = XX( 1 + k_ew     , :) + 360.
          !!
          YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
          YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
          YP4(nxp4   , :) = YP4( 2 + k_ew     + 2, :)
          YP4(nxp4-1 , :) = YP4( 1 + k_ew     + 2, :)
          !!
-         FP4( 1     , 3:nyp4-2) = XF(nx - 1 - k_ew , :)
-         FP4( 2     , 3:nyp4-2) = XF(nx - k_ew     , :)
-         FP4(nxp4   , 3:nyp4-2) = XF( 2 + k_ew     , :)
-         FP4(nxp4-1 , 3:nyp4-2) = XF( 1 + k_ew     , :)
+         FP4( 1     , j1:j2) = XF(nx - 1 - k_ew , :)
+         FP4( 2     , j1:j2) = XF(nx - k_ew     , :)
+         FP4(nxp4   , j1:j2) = XF( 2 + k_ew     , :)
+         FP4(nxp4-1 , j1:j2) = XF( 1 + k_ew     , :)
          !!
       ELSE
          
          IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: no E-W periodicity!'
 
          !! WEST
-         XP4(2, 3:nyp4-2) = XX(2,:) - (XX(3,:) - XX(1,:))
-         XP4(1, 3:nyp4-2) = XX(1,:) - (XX(3,:) - XX(1,:))
+         XP4(2, j1:j2) = XX(2,:) - (XX(3,:) - XX(1,:))
+         XP4(1, j1:j2) = XX(1,:) - (XX(3,:) - XX(1,:))
          !!
          YP4(2, :) = YP4(4,:) - (YP4(5,:) - YP4(3,:))
          YP4(1, :) = YP4(3,:) - (YP4(5,:) - YP4(3,:))
@@ -181,8 +187,8 @@ CONTAINS
          END DO
          
          !! EAST
-         XP4(nxp4-1, 3:nyp4-2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
-         XP4(nxp4  , 3:nyp4-2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
+         XP4(nxp4-1, j1:j2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
+         XP4(nxp4  , j1:j2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
          !!
          YP4(nxp4-1,:) = YP4(nxp4-3,:) + YP4(nxp4-2, :) - YP4(nxp4-4, :)
          YP4(nxp4,:)   = YP4(nxp4-2,:) + YP4(nxp4-2,:)  - YP4(nxp4-4, :)
@@ -207,8 +213,8 @@ CONTAINS
       XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
-      YP4(3:nxp4-2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
-      YP4(3:nxp4-2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
+      YP4(i1:i2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
+      YP4(i1:i2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
 
       DO ji = 1, nxp4
          CALL extra_2_west(YP4(ji,5),YP4(ji,4),YP4(ji,3),       &
@@ -263,8 +269,8 @@ CONTAINS
          YP4(2:nxp4/2               ,nyp4)   = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
          YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = YP4(2:nxp4/2               ,nyp4-5)
       CASE DEFAULT
-         YP4(3:nxp4-2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
-         YP4(3:nxp4-2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
+         YP4(i1:i2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
+         YP4(i1:i2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
       END SELECT
 
       
@@ -322,8 +328,8 @@ CONTAINS
       INTEGER ,   OPTIONAL,    INTENT(in)  :: is_orca_grid
 
       !! Local
-      INTEGER :: nx, ny, nxp4, nyp4
-      INTEGER :: ji, iorca
+      INTEGER :: nx, ny, nxp4, nyp4, np
+      INTEGER :: ji, iorca, j1, j2
 
       iorca = 0
       IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
@@ -344,6 +350,12 @@ CONTAINS
       nxp4 = SIZE(XP4,1)
       nyp4 = SIZE(XP4,2)
 
+      np = 4/2
+      j1 = np + 1
+      j2 = nyp4 - np
+
+      
+
       IF ( nxp4 /= nx ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : target x dim is not ni!!!'; STOP
       END IF
@@ -361,9 +373,9 @@ CONTAINS
       FP4 = 0.
 
       !! Filling center of domain:
-      XP4(:, 3:nyp4-2) = XX(:,:)
-      YP4(:, 3:nyp4-2) = YY(:,:)
-      FP4(:, 3:nyp4-2) = XF(:,:)
+      XP4(:, j1:j2) = XX(:,:)
+      YP4(:, j1:j2) = YY(:,:)
+      FP4(:, j1:j2) = XF(:,:)
 
 
 

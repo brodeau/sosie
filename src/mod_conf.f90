@@ -215,8 +215,8 @@ MODULE MOD_CONF
       &   bathy_trg
 
    REAL(wpl),  DIMENSION(:,:),  ALLOCATABLE ::  &
-      &   data_src,    &   !: data array on source grid
-      &   data_src_b
+      &   data_src             !: data array on source grid
+
 
    REAL(8),  DIMENSION(:,:),  ALLOCATABLE ::  &
       &   lon_src,   &
@@ -225,8 +225,8 @@ MODULE MOD_CONF
    REAL(wpl),  DIMENSION(:,:,:),  ALLOCATABLE ::  &
       &      data3d_src, &
       &      data3d_trg, &
-      &      data3d_tmp, &  ! horizontal target resol. + vertical source resol.
-      &    data_src_drowned
+      &      data3d_tmp   !, &  ! horizontal target resol. + vertical source resol.
+!      &    data_src_drowned
 
    INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0)
    INTEGER(1),   DIMENSION(:,:,:),  ALLOCATABLE ::   &

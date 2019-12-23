@@ -47,7 +47,7 @@ CONTAINS
           IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
 
-         IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
+         !loloIF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
 
       ELSE
          PRINT *, '-------------------'
@@ -67,41 +67,36 @@ CONTAINS
       !! ------------------------------------------------------------
 
       !!LOLO: some stuffs here can be done only at first call! #FIXME
-
-      !! Going to work with 2D longitude,latitude arrays (source domain) => X1, Y1 (regardless regularity of source grid)
-      !!LOLO #FIXME put all these squaring-coordinates stuff somewhere else, like in mod_grid..., also known from a module,
-      !IF ( jt == 1 ) THEN
-      !LOLO bad to do this at each time step !!!
+      
       ctype = TEST_XYZ(lon_src, lat_src, data_src)
-      ALLOCATE ( X1(ni_src,nj_src) , Y1(ni_src,nj_src) )
-      IF ( ctype == '1d' ) THEN
-         FORALL (jj = 1:nj_src) X1(:,jj) = lon_src(:,1)
-         FORALL (ji = 1:ni_src) Y1(ji,:) = lat_src(:,1)
-      ELSE
-         X1 = lon_src
-         Y1 = lat_src
-      END IF
-      !END IF
          
       !! Source extended domain:
       ni_src_x = ni_src + n_extd
       nj_src_x = nj_src + n_extd
       PRINT *, '  *** allocating data_src_x, X1_x, Y1_x:', ni_src_x,nj_src_x, '(',ni_src, nj_src,')'
       ALLOCATE ( X1_x(ni_src_x,nj_src_x), Y1_x(ni_src_x,nj_src_x), data_src_x(ni_src_x,nj_src_x) )
-      X1_x(:,:) = 0.
-      Y1_x(:,:) = 0.
-      data_src_x(:,:) = 0.
       PRINT *, '      => allocation done!'
-      
-      CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
-      
-      CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
-      !STOP'mod_interp.f90'
-      DEALLOCATE (X1, Y1) !LOLO bad to do this at each time step
 
-      !STOP
-      !!  => X1_x, Y1_x are the extended 2D longitude,latitude arrays of source domain !
+      !! Going to work with 2D longitude,latitude arrays (source domain) => X1, Y1 (regardless regularity of source grid)
+      IF ( ctype == '1d' ) THEN
+         FORALL (jj = 1:nj_src) X1_x(3:ni_src_x-2,jj+2) = lon_src(:,1)
+         FORALL (ji = 1:ni_src) Y1_x(ji+2,3:nj_src_x-2) = lat_src(:,1)
+      ELSE
+         X1_x(3:ni_src_x-2,3:nj_src_x-2) = lon_src(:,:)
+         Y1_x(3:ni_src_x-2,3:nj_src_x-2) = lat_src(:,:)
+      END IF
 
+      data_src_x(3:ni_src_x-2,3:nj_src_x-2) = REAL( data_src(:,:) , 8)      
+      !CALL DUMP_FIELD(REAL(X1_x,4), 'X1_ext.nc', 'var')
+      !CALL DUMP_FIELD(REAL(Y1_x,4), 'Y1_ext.nc', 'var')
+      !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_x.nc', 'var')
+      
+
+      !LOLO: dodgy to call the same array as input and output :
+      CALL FILL_EXTRA_BANDS(ewper_src, X1_x(3:ni_src_x-2,3:nj_src_x-2), Y1_x(3:ni_src_x-2,3:nj_src_x-2), data_src_x(3:ni_src_x-2,3:nj_src_x-2), &
+         &                            X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
+      
+      !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
 
 
       IF ( jt == 1 ) THEN
@@ -262,7 +257,7 @@ CONTAINS
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
             PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
             CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
-            IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
+            !lolo IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
 
             !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')
 
