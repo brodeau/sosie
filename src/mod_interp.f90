@@ -94,7 +94,7 @@ CONTAINS
 
       CALL FILL_EXTRA_BANDS(ewper_src, X1, Y1, REAL(data_src,8), X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
       CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
-      STOP'mod_interp.f90'
+      !STOP'mod_interp.f90'
       !DEALLOCATE (X1, Y1)
       !STOP
       !!  => X1_x, Y1_x are the extended 2D longitude,latitude arrays of source domain !
