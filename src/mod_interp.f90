@@ -1,16 +1,15 @@
 MODULE MOD_INTERP
 
-   !!USE omp_lib
    USE mod_conf       !* important parameters, namelist and misc routines
    USE mod_manip      !* misc. manipulation of 2D arrays
    USE mod_drown      !* extrapolation over masked surfaces
    USE mod_akima_2d   !* Akima method algorithm
    !USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
+   USE mod_grids
 
    USE mod_nemotools, ONLY: lbc_lnk
-   USE io_ezcdf,  ONLY: TEST_XYZ, DUMP_FIELD
-   !USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdebug
+   USE io_ezcdf,      ONLY: DUMP_FIELD, TEST_XYZ ; !LOLOdebug
 
    IMPLICIT NONE
 
@@ -45,7 +44,7 @@ CONTAINS
 
       IF ( l_drown_src ) THEN
          !! Extrapolate sea values over land :
-         !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+          IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
 
          IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
