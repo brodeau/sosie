@@ -26,10 +26,10 @@ L_OMP  = -liomp5
 #FF = -O2 -g -check all -traceback -debug extended -C -module mod/
 
 
-FF = -O0 -qopenmp -g -check all -warn all -traceback -debug extended -CB -module mod/
+#FF = -O0 -qopenmp -g -check all -warn all -traceback -debug extended -CB -module mod/
 
 
-#FF = -O0 -qopenmp -g -traceback -CB -module mod/
+FF = -O2 -qopenmp -g -traceback -module mod/
 
 
 

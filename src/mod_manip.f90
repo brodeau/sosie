@@ -56,7 +56,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FILL_EXTRA_BANDS(k_ew, XX, YY, XF, XP4, YP4, FP4,  is_orca_grid)
+   SUBROUTINE FILL_EXTRA_BANDS(jt, k_ew, XX, YY, XF, XP4, YP4, FP4,  is_orca_grid)
 
       !!============================================================================
       !! Extending input arrays with an extraband of two points at north,south,east
@@ -74,6 +74,7 @@ CONTAINS
       !!
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
+      INTEGER ,                INTENT(in)  :: jt        ! extends XX and XY only when jt==1 !
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
@@ -84,32 +85,33 @@ CONTAINS
 
       PRINT *, 'LOLO: inside FILL_EXTRA_BANDS of mod_manip.f90 !'
 
-      
+
       iorca = 0
       IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
+      IF ( jt == 1 ) THEN
+         IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
+            & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
+            PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'
+            PRINT *, 'SIZE(XX,1), SIZE(YY,1), SIZE(XF,1) =>', SIZE(XX,1), SIZE(YY,1), SIZE(XF,1)
+            PRINT *, 'SIZE(XX,2), SIZE(YY,2), SIZE(XF,2) =>', SIZE(XX,2), SIZE(YY,2), SIZE(XF,2)
+            STOP
+         END IF
 
-      IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
-         & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
-         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'
-         PRINT *, 'SIZE(XX,1), SIZE(YY,1), SIZE(XF,1) =>', SIZE(XX,1), SIZE(YY,1), SIZE(XF,1)
-         PRINT *, 'SIZE(XX,2), SIZE(YY,2), SIZE(XF,2) =>', SIZE(XX,2), SIZE(YY,2), SIZE(XF,2)
-         STOP
+         IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
+            & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
+            PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'
+            PRINT *, 'SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1) =>', SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1)
+            PRINT *, 'SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2) =>', SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2)
+            STOP
+         END IF
       END IF
 
-      IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
-         & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
-         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'
-         PRINT *, 'SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1) =>', SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1)
-         PRINT *, 'SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2) =>', SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2)
-         STOP
-      END IF
+      nx = SIZE(XF,1)
+      ny = SIZE(XF,2)
 
-      nx = SIZE(XX,1)
-      ny = SIZE(XX,2)
-
-      nxp4 = SIZE(XP4,1)
-      nyp4 = SIZE(XP4,2)
+      nxp4 = SIZE(FP4,1)
+      nyp4 = SIZE(FP4,2)
 
       IF ( nxp4 /= nx + 4 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target x dim is not ni+4!!!'; STOP
@@ -122,21 +124,18 @@ CONTAINS
 
       i1 = np + 1
       i2 = nxp4 - np
-      
+
       j1 = np + 1
       j2 = nyp4 - np
 
       !!   C r e a t i n g   e x t e n d e d   a r r a y s  :
       !!   --------------------------------------------------
 
-      !! Initializing : #dodgy because deletes input as well ? lolo
-      !XP4 = 0.
-      !YP4 = 0.
-      !FP4 = 0.
-
       !! Filling center of domain:
-      XP4(i1:i2, j1:j2) = XX(:,:)
-      YP4(i1:i2, j1:j2) = YY(:,:)
+      IF ( jt == 1 ) THEN
+         XP4(i1:i2, j1:j2) = XX(:,:)
+         YP4(i1:i2, j1:j2) = YY(:,:)
+      END IF
       FP4(i1:i2, j1:j2) = XF(:,:)
 
 
@@ -145,23 +144,25 @@ CONTAINS
       !! EAST-WEST extension
       !! ********************
 
-      
+
       !! X array :
       !! ---------
 
       IF (k_ew > -1) THEN   ! we can use east-west periodicity of input file to
-         
-         IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using E-W periodicity overlap of ', INT(k_ew,1)         
+
+         IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using E-W periodicity overlap of ', INT(k_ew,1)
          !!                   ! fill extra bands :
-         XP4( 1     , j1:j2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
-         XP4( 2     , j1:j2) = XX(nx - k_ew     , :) - 360.
-         XP4(nxp4   , j1:j2) = XX( 2 + k_ew     , :) + 360.
-         XP4(nxp4-1 , j1:j2) = XX( 1 + k_ew     , :) + 360.
-         !!
-         YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
-         YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
-         YP4(nxp4   , :) = YP4( 2 + k_ew     + 2, :)
-         YP4(nxp4-1 , :) = YP4( 1 + k_ew     + 2, :)
+         IF ( jt == 1 ) THEN
+            XP4( 1     , j1:j2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
+            XP4( 2     , j1:j2) = XX(nx - k_ew     , :) - 360.
+            XP4(nxp4   , j1:j2) = XX( 2 + k_ew     , :) + 360.
+            XP4(nxp4-1 , j1:j2) = XX( 1 + k_ew     , :) + 360.
+            !!
+            YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
+            YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
+            YP4(nxp4   , :) = YP4( 2 + k_ew     + 2, :)
+            YP4(nxp4-1 , :) = YP4( 1 + k_ew     + 2, :)
+         END IF
          !!
          FP4( 1     , j1:j2) = XF(nx - 1 - k_ew , :)
          FP4( 2     , j1:j2) = XF(nx - k_ew     , :)
@@ -169,29 +170,31 @@ CONTAINS
          FP4(nxp4-1 , j1:j2) = XF( 1 + k_ew     , :)
          !!
       ELSE
-         
+
          IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: no E-W periodicity!'
 
          !! WEST
-         XP4(2, j1:j2) = XX(2,:) - (XX(3,:) - XX(1,:))
-         XP4(1, j1:j2) = XX(1,:) - (XX(3,:) - XX(1,:))
-         !!
-         YP4(2, :) = YP4(4,:) - (YP4(5,:) - YP4(3,:))
-         YP4(1, :) = YP4(3,:) - (YP4(5,:) - YP4(3,:))
-         !!
-         DO jj = 3, nyp4-2
-            CALL extra_2_east(XP4(nxp4-4,jj),XP4(nxp4-3,jj),XP4(nxp4-2,jj),        &
-               &              XP4(nxp4-1,jj),XP4(nxp4,jj),                         &
-               &              FP4(nxp4-4,jj),FP4(nxp4-3,jj),FP4(nxp4-2,jj),  &
-               &              FP4(nxp4-1,jj),FP4(nxp4,jj) )
-         END DO
-         
-         !! EAST
-         XP4(nxp4-1, j1:j2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
-         XP4(nxp4  , j1:j2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
-         !!
-         YP4(nxp4-1,:) = YP4(nxp4-3,:) + YP4(nxp4-2, :) - YP4(nxp4-4, :)
-         YP4(nxp4,:)   = YP4(nxp4-2,:) + YP4(nxp4-2,:)  - YP4(nxp4-4, :)
+         IF ( jt == 1 ) THEN
+            XP4(2, j1:j2) = XX(2,:) - (XX(3,:) - XX(1,:))
+            XP4(1, j1:j2) = XX(1,:) - (XX(3,:) - XX(1,:))
+            !!
+            YP4(2, :) = YP4(4,:) - (YP4(5,:) - YP4(3,:))
+            YP4(1, :) = YP4(3,:) - (YP4(5,:) - YP4(3,:))
+            !!
+            DO jj = 3, nyp4-2
+               CALL extra_2_east(XP4(nxp4-4,jj),XP4(nxp4-3,jj),XP4(nxp4-2,jj),        &
+                  &              XP4(nxp4-1,jj),XP4(nxp4,jj),                         &
+                  &              FP4(nxp4-4,jj),FP4(nxp4-3,jj),FP4(nxp4-2,jj),  &
+                  &              FP4(nxp4-1,jj),FP4(nxp4,jj) )
+            END DO
+
+            !! EAST
+            XP4(nxp4-1, j1:j2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
+            XP4(nxp4  , j1:j2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
+            !!
+            YP4(nxp4-1,:) = YP4(nxp4-3,:) + YP4(nxp4-2, :) - YP4(nxp4-4, :)
+            YP4(nxp4,:)   = YP4(nxp4-2,:) + YP4(nxp4-2,:)  - YP4(nxp4-4, :)
+         END IF
          !!
          DO jj = 3, nyp4-2
             CALL extra_2_west(XP4(5,jj),XP4(4,jj),XP4(3,jj),         &
@@ -203,19 +206,20 @@ CONTAINS
       END IF !IF (k_ew > -1)
 
 
-      
+
       !! ******************
       !! Southern Extension
       !! ******************
 
       !! Default, extrapolation:
       IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using extrapolation for southern extension...'
-      XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
-      XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
+      IF ( jt == 1 ) THEN
+         XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
+         XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
-      YP4(i1:i2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
-      YP4(i1:i2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
-
+         YP4(i1:i2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
+         YP4(i1:i2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
+      END IF
       DO ji = 1, nxp4
          CALL extra_2_west(YP4(ji,5),YP4(ji,4),YP4(ji,3),       &
             &              YP4(ji,2),YP4(ji,1),                 &
@@ -226,54 +230,53 @@ CONTAINS
 
 
 
-
-
-      
-
-      !! ******************      
+      !! ******************
       !! Northern Extension
       !! ******************
-      
-      SELECT CASE( iorca )
-         !
-      CASE (4)
-         XP4(2:nxp4/2             ,nyp4-1) = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
-         XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = XP4(2:nxp4/2             ,nyp4-5)
-         XP4(2:nxp4/2             ,nyp4)   = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
-         XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = XP4(2:nxp4/2             ,nyp4-6)
-      CASE (6)
-         XP4(2:nxp4/2               ,nyp4-1) = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
-         XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = XP4(2:nxp4/2               ,nyp4-4)
-         XP4(2:nxp4/2               ,nyp4)   = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
-         XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = XP4(2:nxp4/2               ,nyp4-5)
-      CASE DEFAULT
-         XP4(:,nyp4-1) = XP4(:,nyp4-3) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
-         XP4(:,nyp4)   = XP4(:,nyp4-2) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
 
-      END SELECT
+      IF ( jt == 1 ) THEN
+
+         SELECT CASE( iorca )
+            !
+         CASE (4)
+            XP4(2:nxp4/2             ,nyp4-1) = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
+            XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = XP4(2:nxp4/2             ,nyp4-5)
+            XP4(2:nxp4/2             ,nyp4)   = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
+            XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = XP4(2:nxp4/2             ,nyp4-6)
+         CASE (6)
+            XP4(2:nxp4/2               ,nyp4-1) = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
+            XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = XP4(2:nxp4/2               ,nyp4-4)
+            XP4(2:nxp4/2               ,nyp4)   = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
+            XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = XP4(2:nxp4/2               ,nyp4-5)
+         CASE DEFAULT
+            XP4(:,nyp4-1) = XP4(:,nyp4-3) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+            XP4(:,nyp4)   = XP4(:,nyp4-2) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+
+         END SELECT
 
 
-      !! Y array :
-      !! ---------
+         !! Y array :
+         !! ---------
 
-      SELECT CASE( iorca )
+         SELECT CASE( iorca )
 
-      CASE (4)
-         YP4(2:nxp4/2             ,nyp4-1) = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
-         YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = YP4(2:nxp4/2             ,nyp4-5)
-         YP4(2:nxp4/2             ,nyp4)   = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
-         YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = YP4(2:nxp4/2             ,nyp4-6)
-      CASE (6)
-         YP4(2:nxp4/2               ,nyp4-1) = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
-         YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = YP4(2:nxp4/2               ,nyp4-4)
-         YP4(2:nxp4/2               ,nyp4)   = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
-         YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = YP4(2:nxp4/2               ,nyp4-5)
-      CASE DEFAULT
-         YP4(i1:i2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
-         YP4(i1:i2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
-      END SELECT
+         CASE (4)
+            YP4(2:nxp4/2             ,nyp4-1) = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
+            YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = YP4(2:nxp4/2             ,nyp4-5)
+            YP4(2:nxp4/2             ,nyp4)   = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
+            YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = YP4(2:nxp4/2             ,nyp4-6)
+         CASE (6)
+            YP4(2:nxp4/2               ,nyp4-1) = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
+            YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = YP4(2:nxp4/2               ,nyp4-4)
+            YP4(2:nxp4/2               ,nyp4)   = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
+            YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = YP4(2:nxp4/2               ,nyp4-5)
+         CASE DEFAULT
+            YP4(i1:i2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
+            YP4(i1:i2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
+         END SELECT
 
-      
+      END IF
+
       !! DATA array :
       !! ------------
 
@@ -302,11 +305,9 @@ CONTAINS
       END SELECT
 
 
-
-
       IF (l_verbose) PRINT *, ' * LOLO / FILL_EXTRA_BANDS: for now upper left corner point of data fucked up!'
 
-      
+
    END SUBROUTINE FILL_EXTRA_BANDS
 
 
@@ -354,7 +355,7 @@ CONTAINS
       j1 = np + 1
       j2 = nyp4 - np
 
-      
+
 
       IF ( nxp4 /= nx ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : target x dim is not ni!!!'; STOP
@@ -635,7 +636,7 @@ CONTAINS
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
 
-      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF)
+      CALL FILL_EXTRA_BANDS(1, k_ew, XX, XY, XF, ZX, ZY, ZF)
 
 
       !! Second order finite difference:

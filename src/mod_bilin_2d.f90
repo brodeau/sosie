@@ -18,14 +18,14 @@ MODULE MOD_BILIN_2D
 
    IMPLICIT NONE
 
-   !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
-   REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
-   INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iqdrn at each point
-   INTEGER(2), DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID
-
-
    PRIVATE
 
+   !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
+   REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, PUBLIC, SAVE :: RAB       !: alpha, beta
+   INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, PUBLIC, SAVE :: IMETRICS  !: iP, jP, iqdrn at each point
+   INTEGER(2), DIMENSION(:,:),   ALLOCATABLE, PUBLIC, SAVE :: IPB       !: problem ID
+
+   
    LOGICAL, PARAMETER :: ldebug  = .FALSE.
 
    REAL(8), PARAMETER :: repsilon = 1.E-9
@@ -84,7 +84,7 @@ CONTAINS
 
       REAL(8) :: alpha, beta, rmeanv, ymx
       LOGICAL :: l_add_extra_j, lefw
-      INTEGER :: icpt, ji, jj
+      INTEGER :: icpt, ji, jj, i1, i2
 
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
       REAL(4),    DIMENSION(:,:), ALLOCATABLE :: Z1w
@@ -169,8 +169,13 @@ CONTAINS
          X2 = X20 ; Y2 = Y20
       END IF
 
-      WRITE(cf_wght,'("sosie_mapping_",a,".nc")') TRIM(cnpat)
+      WRITE(cf_wght,'("sosie_mapping_",a,"_omp",i2.2,".nc")') TRIM(cnpat), ithrd
 
+
+      !! OMP i-decomposition:
+      i1 = i_b_l(ithrd)
+      i2 = i_b_r(ithrd)
+      
 
       IF ( l_first_call_interp_routine(ithrd) ) THEN
 
@@ -194,35 +199,34 @@ CONTAINS
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
-
+                  
          !! We read the mapping metrics in the netcdf file (regardless of
          !! whether the mapping file was just created or not) => maybe not that
          !! smart but ensure that we saved the right stuff in the netcdf mapping
          !! file...
-         ALLOCATE ( IMETRICS(nx2,ny2,3), RAB(nx2,ny2,2), IPB(nx2,ny2) )
-         CALL RD_MAPPING_AB(cf_wght, IMETRICS, RAB, IPB)
+         
+         CALL RD_MAPPING_AB( cf_wght, IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:) )
          PRINT *, ''; PRINT *, 'Mapping and weights read into ', TRIM(cf_wght); PRINT *, ''
       END IF
-
-
+      
+      
       Z2(:,:) = rflg ! Flagging non-interpolated output points
       icpt = 0
 
       mask_ignore_trg(:,:) = 1
-      WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_trg = 0
-      WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_trg = 0
+      WHERE ( (IMETRICS(i1:i2,:,1) < 1) ) mask_ignore_trg = 0
+      WHERE ( (IMETRICS(i1:i2,:,2) < 1) ) mask_ignore_trg = 0
 
-      !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_trg = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
-
-      IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
+      
+      IMETRICS(i1:i2,:,1:2) = MAX( IMETRICS(i1:i2,:,1:2) , 1 )  ! so no i or j <= 0
 
       DO jj=1, ny2
          DO ji=1, nx2
-            iP    = IMETRICS(ji,jj,1)
-            jP    = IMETRICS(ji,jj,2)
-            iqdrn = IMETRICS(ji,jj,3)
-            alpha = RAB(ji,jj,1)
-            beta  = RAB(ji,jj,2)
+            iP    = IMETRICS(ji+i1-1,jj,1)
+            jP    = IMETRICS(ji+i1-1,jj,2)
+            iqdrn = IMETRICS(ji+i1-1,jj,3)
+            alpha = RAB(ji+i1-1,jj,1)
+            beta  = RAB(ji+i1-1,jj,2)
             !!
             IF ( (ABS(degE_to_degWE(X1w(iP,jP))-degE_to_degWE(X2(ji,jj)))<1.E-5) .AND. (ABS(Y1w(iP,jP)-Y2(ji,jj))<1.E-5) ) THEN
                !! COPY:

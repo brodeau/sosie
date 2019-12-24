@@ -125,32 +125,71 @@ PROGRAM SOSIE
    !$ PRINT *, '  ni_trg=', ni_trg
    !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
    !PRINT *, '   noinc =', noinc
-   ALLOCATE ( i_b_l(Nthrd), i_b_r(Nthrd), i_seg_s(Nthrd) )
-   IF ( Nthrd > 1) THEN
-      noinc = ni_trg/Nthrd
-      ipl = 0
-      i_b_l(1) = 1
-      i_b_r(1) = i_b_l(1) + noinc -1
-      DO jtr = 2, Nthrd
-         ileft = Nthrd - jtr + 1
-         i_b_l(jtr) = i_b_l(jtr-1) + noinc + ipl
-         IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
-         i_b_r(jtr) = i_b_l(jtr)   + noinc -1 + ipl
+
+   IF ( ji_omp_dcmp == 1 ) THEN
+      !! ALONG I:
+      ALLOCATE ( i_b_l(Nthrd), i_b_r(Nthrd), i_seg_s(Nthrd) )
+      IF ( Nthrd > 1) THEN
+         noinc = ni_trg/Nthrd
+         ipl = 0
+         i_b_l(1) = 1
+         i_b_r(1) = i_b_l(1) + noinc -1
+         DO jtr = 2, Nthrd
+            ileft = Nthrd - jtr + 1
+            i_b_l(jtr) = i_b_l(jtr-1) + noinc + ipl
+            IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
+            i_b_r(jtr) = i_b_l(jtr)   + noinc -1 + ipl
+         END DO
+      ELSE
+         !! No OMP (Nthrd==1):
+         i_b_l(1) = 1
+         i_b_r(1) = ni_trg
+         i_seg_s(1) = ni_trg
+      END IF
+
+      PRINT *, '  i_b_l =', i_b_l
+      PRINT *, '  i_b_r =', i_b_r
+      DO jtr = 1, Nthrd
+         i_seg_s(jtr) = SIZE(lon_trg(i_b_l(jtr):i_b_r(jtr),0)) ! lazy!!! but trustworthy I guess...
+         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)
       END DO
-   ELSE
-      !! No OMP (Nthrd==1):
-      i_b_l(1) = 1
-      i_b_r(1) = ni_trg
-      i_seg_s(1) = ni_trg
+
+   ELSEIF ( ji_omp_dcmp == 2 ) THEN
+
+      !! ALONG J:
+      ALLOCATE ( j_b_l(Nthrd), j_b_r(Nthrd), j_seg_s(Nthrd) )
+      IF ( Nthrd > 1) THEN
+         noinc = nj_trg/Nthrd
+         ipl = 0
+         j_b_l(1) = 1
+         j_b_r(1) = j_b_l(1) + noinc -1
+         DO jtr = 2, Nthrd
+            ileft = Nthrd - jtr + 1
+            j_b_l(jtr) = j_b_l(jtr-1) + noinc + ipl
+            IF ( ileft == MOD(nj_trg,Nthrd) ) ipl=1
+            j_b_r(jtr) = j_b_l(jtr)   + noinc -1 + ipl
+         END DO
+      ELSE
+         !! No OMP (Nthrd==1):
+         j_b_l(1) = 1
+         j_b_r(1) = nj_trg
+         j_seg_s(1) = nj_trg
+      END IF
+
+      PRINT *, '  j_b_l =', j_b_l
+      PRINT *, '  j_b_r =', j_b_r
+      DO jtr = 1, Nthrd
+         j_seg_s(jtr) = SIZE(lon_trg(j_b_l(jtr):j_b_r(jtr),0)) ! lazy!!! but trustworthy I guess...
+         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', j_seg_s(jtr)
+      END DO
    END IF
 
-   PRINT *, '  i_b_l =', i_b_l
-   PRINT *, '  i_b_r =', i_b_r
-   DO jtr = 1, Nthrd
-      i_seg_s(jtr) = SIZE(lon_trg(i_b_l(jtr):i_b_r(jtr),0)) ! lazy!!! but trustworthy I guess...
-      PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)
-   END DO
    PRINT *, ''
+
+
+
+
+
 
 
 
@@ -299,19 +338,19 @@ PROGRAM SOSIE
 
    IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
 
-   
+
    CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue2)
    WRITE(6,'(" ###  started at: ",8i4)') ivalue1(:)
    WRITE(6,'(" ### stopping at: ",8i4)') ivalue2(:)
-   
+
    PRINT *, ''
    rfct_miss = ivalue1(8)/1000. + ivalue1(7) + ivalue1(6)*60. + ivalue1(5)*3600.
    rfct_miss = ivalue2(8)/1000. + ivalue2(7) + ivalue2(6)*60. + ivalue2(5)*3600. - rfct_miss
    WRITE(6,'(" ### Total time in seconds: ",f11.4)') rfct_miss
-   
 
 
-   
+
+
    CLOSE(6)
 
 END PROGRAM SOSIE

@@ -4,7 +4,7 @@ MODULE MOD_INTERP
    USE mod_manip      !* misc. manipulation of 2D arrays
    USE mod_drown      !* extrapolation over masked surfaces
    USE mod_akima_2d   !* Akima method algorithm
-   !USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
+   USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
    USE mod_grids
 
@@ -33,7 +33,8 @@ CONTAINS
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
       REAL(8), DIMENSION(:,:), ALLOCATABLE       :: X1, Y1
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X2, Y2
-      REAL(8), DIMENSION(:,:), ALLOCATABLE       :: X1_x, Y1_x, data_src_x
+      REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: data_src_x
+      REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1_x, Y1_x
       REAL(8), DIMENSION(4),                SAVE :: xy_range_src
 
       !! lon-aranging or lat-flipping field
@@ -73,19 +74,28 @@ CONTAINS
       !! Source extended domain:
       ni_src_x = ni_src + n_extd
       nj_src_x = nj_src + n_extd
-      PRINT *, '  *** allocating data_src_x, X1_x, Y1_x:', ni_src_x,nj_src_x, '(',ni_src, nj_src,')'
-      ALLOCATE ( X1_x(ni_src_x,nj_src_x), Y1_x(ni_src_x,nj_src_x), data_src_x(ni_src_x,nj_src_x) )
-      PRINT *, '      => allocation done!'
-
-      !! Going to work with 2D longitude,latitude arrays (source domain) => X1, Y1 (regardless regularity of source grid)
-      IF ( ctype == '1d' ) THEN
-         FORALL (jj = 1:nj_src) X1_x(3:ni_src_x-2,jj+2) = lon_src(:,1)
-         FORALL (ji = 1:ni_src) Y1_x(ji+2,3:nj_src_x-2) = lat_src(:,1)
-      ELSE
-         X1_x(3:ni_src_x-2,3:nj_src_x-2) = lon_src(:,:)
-         Y1_x(3:ni_src_x-2,3:nj_src_x-2) = lat_src(:,:)
+      
+      IF ( jt == 1 ) THEN
+         PRINT *, '  *** allocating data_src_x, X1_x, Y1_x:', ni_src_x,nj_src_x, '(',ni_src, nj_src,')'
+         ALLOCATE ( data_src_x(ni_src_x,nj_src_x), X1_x(ni_src_x,nj_src_x), Y1_x(ni_src_x,nj_src_x) )
+         PRINT *, '      => allocation done!'
       END IF
+      !PRINT *, '  *** allocating data_src_x:', ni_src_x,nj_src_x, '(',ni_src, nj_src,')'      
+      !ALLOCATE ( data_src_x(ni_src_x,nj_src_x) )
 
+      
+
+      IF ( jt == 1 ) THEN
+         !! Going to work with 2D longitude,latitude arrays (source domain) => X1, Y1 (regardless regularity of source grid)
+         IF ( ctype == '1d' ) THEN
+            FORALL (jj = 1:nj_src) X1_x(3:ni_src_x-2,jj+2) = lon_src(:,1)
+            FORALL (ji = 1:ni_src) Y1_x(ji+2,3:nj_src_x-2) = lat_src(:,1)
+         ELSE
+            X1_x(3:ni_src_x-2,3:nj_src_x-2) = lon_src(:,:)
+            Y1_x(3:ni_src_x-2,3:nj_src_x-2) = lat_src(:,:)
+         END IF
+      END IF
+      
       data_src_x(3:ni_src_x-2,3:nj_src_x-2) = REAL( data_src(:,:) , 8)      
       !CALL DUMP_FIELD(REAL(X1_x,4), 'X1_ext.nc', 'var')
       !CALL DUMP_FIELD(REAL(Y1_x,4), 'Y1_ext.nc', 'var')
@@ -93,7 +103,7 @@ CONTAINS
       
 
       !LOLO: dodgy to call the same array as input and output :
-      CALL FILL_EXTRA_BANDS(ewper_src, X1_x(3:ni_src_x-2,3:nj_src_x-2), Y1_x(3:ni_src_x-2,3:nj_src_x-2), data_src_x(3:ni_src_x-2,3:nj_src_x-2), &
+      CALL FILL_EXTRA_BANDS(jt, ewper_src, X1_x(3:ni_src_x-2,3:nj_src_x-2), Y1_x(3:ni_src_x-2,3:nj_src_x-2), data_src_x(3:ni_src_x-2,3:nj_src_x-2), &
          &                            X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
       
       !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
@@ -135,15 +145,16 @@ CONTAINS
             ALLOCATE ( ixy_mapping(ni_trg, nj_trg, 2) )
             ixy_mapping(:,:,:) = 0
 
-            !PRINT *, 'Calling FIND_SRC_CELL from mod_interp.f90 at time 1!'
             !$OMP PARALLEL DO
             DO jtr = 1, Nthrd
 !$             PRINT *, ' Running "FIND_SRC_CELL" on OMP thread #', INT(jtr,1)
                CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), ixy_mapping(i_b_l(jtr):i_b_r(jtr),:,:) )
+               !CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(:,j_b_l(jtr):j_b_r(jtr)), Y2(:,j_b_l(jtr):j_b_r(jtr)), ixy_mapping(:,j_b_l(jtr):j_b_r(jtr),:) )
             END DO
             !$OMP END PARALLEL DO
-            !PRINT *, 'Done'; PRINT *, ''
-         END IF
+            
+         END IF ! IF ( jt == 1 )
+         
          
 !$       PRINT *, ''
          
@@ -157,9 +168,24 @@ CONTAINS
          END DO
          !$OMP END PARALLEL DO
 
+         
+      CASE('bilin')
 
-         !CASE('bilin')
-         !   CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat, 1,  mask_domain_trg=IGNORE)
+         IF ( jt == 1 ) THEN
+            ALLOCATE ( l_first_call_interp_routine(Nthrd) )
+            l_first_call_interp_routine(:) = .TRUE.
+            ALLOCATE ( IMETRICS(ni_trg,nj_trg,3), RAB(ni_trg,nj_trg,2), IPB(ni_trg,nj_trg) )                        
+         END IF
+         
+         !$OMP PARALLEL DO
+         DO jtr = 1, Nthrd
+!$          PRINT *, ' Running "bilin_2d" on OMP thread #', INT(jtr,1)
+            CALL bilin_2d( ewper_src, X1_x, Y1_x, REAL(data_src_x,4), &
+               &                      X2(i_b_l(jtr):i_b_r(jtr),:), Y2(i_b_l(jtr):i_b_r(jtr),:), data_trg(i_b_l(jtr):i_b_r(jtr),:), &
+               &           cpat, jtr,  mask_domain_trg=IGNORE)
+         END DO
+         !$OMP END PARALLEL DO
+
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
@@ -169,7 +195,8 @@ CONTAINS
          PRINT *, 'Interpolation method ', cmethod, ' is unknown!!!' ; STOP
       END SELECT
 
-      DEALLOCATE ( X1_x, Y1_x, data_src_x )
+      !DEALLOCATE ( data_src_x )
+      !DEALLOCATE ( X1_x, Y1_x )   !! lolo a la fin !!!
 
 
       !! If target grid extends too much in latitude compared to source grid, need to
@@ -210,8 +237,6 @@ CONTAINS
 
 
 
-
-
       !! Masking result if requested
       IF ( lmout ) THEN
          WHERE (mask_trg(:,:,1) == 0)  data_trg = rmiss_val
@@ -222,7 +247,7 @@ CONTAINS
       !! If target grid is an ORCA grid, calling "lbc_lnk":
       IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
 
-      IF ( jt == Nt ) DEALLOCATE ( X2, Y2, ixy_mapping )
+      !IF ( jt == Nt ) DEALLOCATE ( X2, Y2, ixy_mapping )
             
    END SUBROUTINE INTERP_2D
 
