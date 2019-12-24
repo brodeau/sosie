@@ -305,6 +305,12 @@ PROGRAM SOSIE
    WRITE(6,'(" ### stopping at: ",8i4)') ivalue2(:)
    
    PRINT *, ''
+   rfct_miss = ivalue1(8)/1000. + ivalue1(7) + ivalue1(6)*60. + ivalue1(5)*3600.
+   rfct_miss = ivalue2(8)/1000. + ivalue2(7) + ivalue2(6)*60. + ivalue2(5)*3600. - rfct_miss
+   WRITE(6,'(" ### Total time in seconds: ",f11.4)') rfct_miss
+   
+
+
    
    CLOSE(6)
 

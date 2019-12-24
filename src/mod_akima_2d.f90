@@ -29,8 +29,6 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: FILL_EXTRA_BANDS
-   USE io_ezcdf,  ONLY: TEST_XYZ
    
    IMPLICIT NONE
    
@@ -399,7 +397,6 @@ CONTAINS
       !!  k_ew : east-west periodicity on the source file/grid
       !!         k_ew = -1  --> no east-west periodicity (along x)
       !!         k_ew >= 0  --> east-west periodicity with overlap of k_ew points (along x)
-      !! lulu
 
       INTEGER, INTENT(in) :: k_ew
 
@@ -407,8 +404,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(out) :: dFdX, dFdY, d2FdXdY
 
       !! Local variables :
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: ZX, ZY, ZF
-      INTEGER :: nx, ny, ji, jj, ip1, ip2, ip3, jp1, jp2, jp3
+      INTEGER :: nx, ny, ji, jj, im1, ic, ip1, ip2, jm1, jc, jp1, jp2
       REAL(8) :: m1, m2, m3, m4, rx
       REAL(8) :: Wx2, Wx3, Wy2, Wy3
       REAL(8) :: d22, e22, d23, e23, d42, e32, d43, e33
@@ -420,47 +416,53 @@ CONTAINS
       nx = SIZE(PF,1)
       ny = SIZE(PF,2)
 
-      !! Extended arrays with a frame of 2 points...
-      ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
-
-      CALL FILL_EXTRA_BANDS(k_ew, PX, PY, PF, ZX, ZY, ZF,  is_orca_grid=i_orca_src)
-
-
       !! Treating middle of array ( at least 2 points away from the bordures ) :
       !!------------------------------------------------------------------------
 
-      DO jj=1, ny
-         DO ji=1, nx
+      DO jj=2, ny-2
+         DO ji=2, nx-2
 
             ! Initialisation MB Problem when they are close to zero but not zero
             m1=0. ; m2=0. ; m3=0. ; m4=0. ; Wx2=0. ; Wx3=0. ; Wy2=0. ; Wy3=0.
 
+            !im1 = ji+1
+            !ic = ji+2
+            !ip1 = ji+3
+            !ip2 = ji+4
+            
+            !jm1 = jj+1
+            !jc = jj+2
+            !jp1 = jj+3
+            
+            im1 = ji-1
+            ic = ji
             ip1 = ji+1
             ip2 = ji+2
-            ip3 = ji+3
             
+            jm1 = jj-1
+            jc = jj
             jp1 = jj+1
             jp2 = jj+2
-            jp3 = jj+3
 
+            
             !!   SLOPE / X :
             !!   ***********
 
-            rx = ZX(ip1,jp2) - ZX(ji,  jp2)
+            rx = PX(im1,jc) - PX(ji,  jc)
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (ZF(ip1,jp2) - ZF(ji,  jp2)) / m1
+            m1 = (PF(im1,jc) - PF(ji,  jc)) / m1
 
-            rx = ZX(ip2,jp2) - ZX(ip1,jp2)
+            rx = PX(ic,jc) - PX(im1,jc)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (ZF(ip2,jp2) - ZF(ip1,jp2)) / m2
+            m2 = (PF(ic,jc) - PF(im1,jc)) / m2
 
-            rx = ZX(ip3,jp2) - ZX(ip2,jp2)
+            rx = PX(ip1,jc) - PX(ic,jc)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (ZF(ip3,jp2) - ZF(ip2,jp2)) / m3
+            m3 = (PF(ip1,jc) - PF(ic,jc)) / m3
 
-            rx = ZX(ji+4,jp2) - ZX(ip3,jp2)
+            rx = PX(ip2,jc) - PX(ip1,jc)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (ZF(ji+4,jp2) - ZF(ip3,jp2)) / m4
+            m4 = (PF(ip2,jc) - PF(ip1,jc)) / m4
 
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
                dFdX(ji,jj) = 0.5*(m2 + m3)
@@ -472,23 +474,22 @@ CONTAINS
 
             !!   SLOPE / Y :
             !!   ***********
-            rx = ZY(ip2,jp1) - ZY(ip2,jj  )
+            rx = PY(ic,jm1) - PY(ic,jj  )
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (ZF(ip2,jp1) - ZF(ip2,jj  )) / m1
+            m1 = (PF(ic,jm1) - PF(ic,jj  )) / m1
 
-            rx = ZY(ip2,jp2) - ZY(ip2,jp1)
+            rx = PY(ic,jc) - PY(ic,jm1)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (ZF(ip2,jp2) - ZF(ip2,jp1)) / m2
+            m2 = (PF(ic,jc) - PF(ic,jm1)) / m2
 
-            rx = ZY(ip2,jp3) - ZY(ip2,jp2)
+            rx = PY(ic,jp1) - PY(ic,jc)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (ZF(ip2,jp3) - ZF(ip2,jp2)) / m3
-
-            rx = ZY(ip2,jj+4) - ZY(ip2,jp3)
+            m3 = (PF(ic,jp1) - PF(ic,jc)) / m3
+            
+            rx = PY(ic,jp2) - PY(ic,jp1)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (ZF(ip2,jj+4) - ZF(ip2,jp3)) / m4
-
-
+            m4 = (PF(ic,jp2) - PF(ic,jp1)) / m4
+            
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
                dFdY(ji,jj) = 0.5*(m2 + m3)
             ELSE
@@ -501,43 +502,43 @@ CONTAINS
             !!   CROSS DERIVATIVE /XY :
             !!   **********************
             !! d22 = d(i-1,j-1) = [ z(i-1,j)-z(i-1,j-1) ] / [ y(j) - y(j-1) ]
-            rx  = ZY(ip1,jp2) - ZY(ip1,jp1)
+            rx  = PY(im1,jc) - PY(im1,jm1)
             d22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d22 = (ZF(ip1,jp2) - ZF(ip1,jp1)) / d22
+            d22 = (PF(im1,jc) - PF(im1,jm1)) / d22
 
             !! d23 = d(i-1 , j) = [ z(i-1,j+1)-z(i-1,j) ] / [ y(j+1) - y(j) ]
-            rx  = ZY(ip1,jp3) - ZY(ip1,jp2)
+            rx  = PY(im1,jp1) - PY(im1,jc)
             d23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d23 = (ZF(ip1,jp3) - ZF(ip1,jp2)) / d23
+            d23 = (PF(im1,jp1) - PF(im1,jc)) / d23
 
             !! d42 = d(i+1 , j-1) = [ z(i+1 , j) - z(i+1 , j-1) ] / [ y(j) - y(j-1) ]
-            rx  = ZY(ip3,jp2) - ZY(ip3,jp1)
+            rx  = PY(ip1,jc) - PY(ip1,jm1)
             d42 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d42 = (ZF(ip3,jp2) - ZF(ip3,jp1)) / d42
+            d42 = (PF(ip1,jc) - PF(ip1,jm1)) / d42
 
             !! d43 = d(i+1 , j) = [ z(i+1 , j+1)-z(i+1 , j) ] / [ y(j+1) - y(j) ]
-            rx = ZY(ip3,jp3) - ZY(ip3,jp2)
+            rx = PY(ip1,jp1) - PY(ip1,jc)
             d43 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d43 = (ZF(ip3,jp3) - ZF(ip3,jp2)) / d43
+            d43 = (PF(ip1,jp1) - PF(ip1,jc)) / d43
 
 
             !! e22  = [ m2 - d22 ] / [ x(i) - x(i-1) ]
-            rx  = ZX(ip2,jp1) - ZX(ip1,jp1)
+            rx  = PX(ic,jm1) - PX(im1,jm1)
             e22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e22 = ( m2 - d22 ) / e22
 
             !! e23  = [ m3 - d23 ] / [ x(i) - x(i-1) ]
-            rx  = ZX(ip2,jp2) - ZX(ip1,jp2)
+            rx  = PX(ic,jc) - PX(im1,jc)
             e23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e23 = ( m3 - d23 ) / e23
 
             !! e32  = [ d42 - m2 ] / [ x(i+1) - x(i) ]
-            rx  = ZX(ip3,jp2) - ZX(ip2,jp2)
+            rx  = PX(ip1,jc) - PX(ic,jc)
             e32 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e32 = ( d42 - m2 ) / e32
 
             !! e33  = [ d43 - m3 ] / [ x(i+1) - x(i) ]
-            rx  = ZX(ip3,jp2) - ZX(ip2,jp2)
+            rx  = PX(ip1,jc) - PX(ic,jc)
             e33 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e33 = ( d43 - m3 ) / e33
 
@@ -558,8 +559,6 @@ CONTAINS
 
          END DO
       END DO
-
-      DEALLOCATE ( ZX, ZY, ZF )
 
    END SUBROUTINE slopes_akima
 
