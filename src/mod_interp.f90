@@ -174,7 +174,8 @@ CONTAINS
          IF ( jt == 1 ) THEN
             ALLOCATE ( l_first_call_interp_routine(Nthrd) )
             l_first_call_interp_routine(:) = .TRUE.
-            ALLOCATE ( IMETRICS(ni_trg,nj_trg,3), RAB(ni_trg,nj_trg,2), IPB(ni_trg,nj_trg) )                        
+            ALLOCATE ( IMETRICS(ni_trg,nj_trg,3), RAB(ni_trg,nj_trg,2), IPB(ni_trg,nj_trg), DIST_NP(ni_trg,nj_trg) )
+            !ALLOCATE ( IMETRICS(ni_trg,nj_trg,3), RAB(ni_trg,nj_trg,2), IPB(ni_trg,nj_trg) )
          END IF
          
          !$OMP PARALLEL DO

@@ -186,33 +186,33 @@ CONTAINS
          !! (2nd option might be pretty time-consuming!!!
          PRINT*,'';PRINT*,'********************************************************'
          INQUIRE(FILE=cf_wght, EXIST=lefw )
-
          IF ( lefw ) THEN
             PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
             PRINT *, 'Still! Insure that this is really the one you need!!!'
             PRINT *, 'No need to build it, skipping routine MAPPING_BL !'
-            CALL RD_MAPPING_AB( cf_wght, IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:) )
-            PRINT *, ''; PRINT *, 'Mapping and weights sucessfuly read into ', TRIM(cf_wght); PRINT *, ''
-
          ELSE
             PRINT *, 'No mapping file found in the current directory!'
             PRINT *, 'We are going to build it: ', TRIM(cf_wght)
             PRINT *, 'This is very time consuming, but only needs to be done once...'
             PRINT *, 'Therefore, you should keep this file for any future interpolation'
             PRINT *, 'using the same "source-target" setup'
-            !!
-            CALL MAPPING_BL( k_ew_per, X1w, Y1w, X2, Y2,               &
+            
+            CALL MAPPING_BL( k_ew_per, X1w, Y1w, X2, Y2, cf_wght,                &
                &             IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:),  &
-               &             pmsk_trg=mask_ignore_trg, pdist_np=DIST_NP(i1:i2,:) )            
-            !! Saving into netcdf file:
-            PRINT *, ''; PRINT *, 'Saving mapping and weights into ', TRIM(cf_wght); PRINT *, ''
-            CALL P2D_MAPPING_AB( cf_wght, X2, Y2, IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), rflg, &
-               &                 IPB(i1:i2,:),  d2np=DIST_NP(i1:i2,:) )
-            !!            
+               &             mask_domain_trg=mask_ignore_trg, pdist_np=DIST_NP(i1:i2,:) )
+            
+            
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
-
+                  
+         !! We read the mapping metrics in the netcdf file (regardless of
+         !! whether the mapping file was just created or not) => maybe not that
+         !! smart but ensure that we saved the right stuff in the netcdf mapping
+         !! file...
+         
+         CALL RD_MAPPING_AB( cf_wght, IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:) )
+         PRINT *, ''; PRINT *, 'Mapping and weights read into ', TRIM(cf_wght); PRINT *, ''
       END IF
       
       
@@ -373,9 +373,9 @@ CONTAINS
 
 
 
-   SUBROUTINE MAPPING_BL( k_ew_per, X1, Y1, lon_trg, lat_trg,  &
-      &                   pmtrcs, palbet, pidprb,              &
-      &                   pmsk_trg, pdist_np   )
+   SUBROUTINE MAPPING_BL( k_ew_per, X1, Y1, lon_trg, lat_trg, cf_w,  &
+      &                   pmtrcs, palbet, pidprb,                    &
+      &                   mask_domain_trg, pdist_np   )
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
       !!
@@ -383,20 +383,22 @@ CONTAINS
       !!   *  Extract of CDFTOOLS cdfweight.f90 writen by Jean Marc Molines
       !!
       !! OPTIONAL:
-      !!      * pmsk_trg: ignore (dont't treat) regions of the target domain where pmsk_trg==0 !
+      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!----------------------------------------------------------------------------
 
+      USE io_ezcdf
       USE mod_poly, ONLY : L_InPoly
       
       INTEGER,                 INTENT(in) :: k_ew_per
       REAL(8), DIMENSION(:,:), INTENT(in) :: X1, Y1
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_trg, lat_trg
+      CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
       !!
       INTEGER(4), DIMENSION(:,:,:), INTENT(out) :: pmtrcs  !: iP, jP, iqdrn at each point
       REAL(8),    DIMENSION(:,:,:), INTENT(out) :: palbet  !: alpha, beta
       INTEGER(2), DIMENSION(:,:),   INTENT(out) :: pidprb  !: ID of issue encoutered if any
       !!
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in)  :: pmsk_trg
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in)  :: mask_domain_trg
       REAL(4),    OPTIONAL, DIMENSION(:,:), INTENT(out) :: pdist_np
 
       
@@ -448,9 +450,9 @@ CONTAINS
       pidprb(:,:)   = 0
       mask_ignore_trg(:,:) = 1
 
-      IF ( PRESENT(pmsk_trg) ) mask_ignore_trg(:,:) = pmsk_trg(:,:)
+      IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
 
-      CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,   pmsk_ignr=mask_ignore_trg )
+      CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,   mask_domain_trg=mask_ignore_trg )
 
 
       idb = 0 ! i-index of point to debug on target domain
@@ -692,6 +694,9 @@ CONTAINS
       WHERE (mask_ignore_trg <= -1) pidprb = -1 ! Nearest point was not found by "FIND_NEAREST"
       WHERE (mask_ignore_trg ==  0) pidprb = -2 ! No idea if possible... #lolo
       WHERE (mask_ignore_trg <  -2) pidprb = -3 ! No idea if possible... #lolo
+
+      !! Print metrics and weight into a netcdf file 'cf_w':
+      CALL P2D_MAPPING_AB(cf_w, lon_trg, lat_trg, pmtrcs, palbet, rflg, pidprb,  d2np=pdist_np)
 
       DEALLOCATE ( i_nrst_in, j_nrst_in,  mask_ignore_trg )
 

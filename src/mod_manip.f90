@@ -877,7 +877,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  mask_domain_trg)
+   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  pmsk_ignr)
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -890,12 +890,12 @@ CONTAINS
       !!
       !!
       !! OPTIONAL:
-      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
+      !!      * pmsk_ignr: ignore (dont't treat) regions of the target domain where pmsk_ignr==0 !
       !!---------------------------------------------------------------
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIp, JJp  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: mask_domain_trg
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: pmsk_ignr
 
       INTEGER :: jj, nx_src, ny_src, nx_trg, ny_trg, j_strt_trg, j_stop_trg, jlat_icr
       REAL(8) :: y_max_src, y_min_src, rmin_dlat_dj, rtmp
@@ -945,7 +945,7 @@ CONTAINS
 
       ALLOCATE ( mask_ignore_trg(nx_trg,ny_trg) , i1dum(nx_trg) )
       mask_ignore_trg(:,:) = 1
-      IF ( PRESENT( mask_domain_trg ) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
+      IF ( PRESENT( pmsk_ignr ) ) mask_ignore_trg(:,:) = pmsk_ignr(:,:)
 
       y_min_src  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
       y_max_src  = MAXVAL(Ysrc)
@@ -1004,7 +1004,7 @@ CONTAINS
       END IF
       PRINT *, ''
 
-      IF ( PRESENT( mask_domain_trg ) ) mask_domain_trg(:,:) = mask_ignore_trg(:,:)
+      IF ( PRESENT( pmsk_ignr ) ) pmsk_ignr(:,:) = mask_ignore_trg(:,:)
       DEALLOCATE ( mask_ignore_trg )
 
    END SUBROUTINE FIND_NEAREST_POINT
