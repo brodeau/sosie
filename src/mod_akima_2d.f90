@@ -140,7 +140,6 @@ CONTAINS
          END DO
       END DO
 
-      !! Deallocation :
       DEALLOCATE ( poly )
 
       !PRINT *, ' ---> exiting AKIMA // #', ithrd

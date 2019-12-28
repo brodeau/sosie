@@ -54,7 +54,7 @@ PROGRAM SOSIE
       &   idf_o, idf_i, idv_o, idv_i, &  !: netcdf ID for source/target file
       &   idf_id, idv_id  !: drowned source field...
 
-   INTEGER :: jtr, noinc, ileft, ipl
+   INTEGER :: jo, noinc, ileft, ipl
 
    REAL(4) :: rfct_miss=1.
 
@@ -126,69 +126,33 @@ PROGRAM SOSIE
    !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
    !PRINT *, '   noinc =', noinc
 
-   IF ( ji_omp_dcmp == 1 ) THEN
-      !! ALONG I:
-      ALLOCATE ( i_b_l(Nthrd), i_b_r(Nthrd), i_seg_s(Nthrd) )
-      IF ( Nthrd > 1) THEN
-         noinc = ni_trg/Nthrd
-         ipl = 0
-         i_b_l(1) = 1
-         i_b_r(1) = i_b_l(1) + noinc -1
-         DO jtr = 2, Nthrd
-            ileft = Nthrd - jtr + 1
-            i_b_l(jtr) = i_b_l(jtr-1) + noinc + ipl
-            IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
-            i_b_r(jtr) = i_b_l(jtr)   + noinc -1 + ipl
-         END DO
-      ELSE
-         !! No OMP (Nthrd==1):
-         i_b_l(1) = 1
-         i_b_r(1) = ni_trg
-         i_seg_s(1) = ni_trg
-      END IF
-
-      PRINT *, '  i_b_l =', i_b_l
-      PRINT *, '  i_b_r =', i_b_r
-      DO jtr = 1, Nthrd
-         i_seg_s(jtr) = SIZE(lon_trg(i_b_l(jtr):i_b_r(jtr),0)) ! lazy!!! but trustworthy I guess...
-         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', i_seg_s(jtr)
+   !! ALONG I:
+   ALLOCATE ( io1(Nthrd), io2(Nthrd), i_seg_s(Nthrd) )
+   IF ( Nthrd > 1) THEN
+      noinc = ni_trg/Nthrd
+      ipl = 0
+      io1(1) = 1
+      io2(1) = io1(1) + noinc -1
+      DO jo = 2, Nthrd
+         ileft = Nthrd - jo + 1
+         io1(jo) = io1(jo-1) + noinc + ipl
+         IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
+         io2(jo) = io1(jo)   + noinc -1 + ipl
       END DO
-
-   ELSEIF ( ji_omp_dcmp == 2 ) THEN
-
-      !! ALONG J:
-      ALLOCATE ( j_b_l(Nthrd), j_b_r(Nthrd), j_seg_s(Nthrd) )
-      IF ( Nthrd > 1) THEN
-         noinc = nj_trg/Nthrd
-         ipl = 0
-         j_b_l(1) = 1
-         j_b_r(1) = j_b_l(1) + noinc -1
-         DO jtr = 2, Nthrd
-            ileft = Nthrd - jtr + 1
-            j_b_l(jtr) = j_b_l(jtr-1) + noinc + ipl
-            IF ( ileft == MOD(nj_trg,Nthrd) ) ipl=1
-            j_b_r(jtr) = j_b_l(jtr)   + noinc -1 + ipl
-         END DO
-      ELSE
-         !! No OMP (Nthrd==1):
-         j_b_l(1) = 1
-         j_b_r(1) = nj_trg
-         j_seg_s(1) = nj_trg
-      END IF
-
-      PRINT *, '  j_b_l =', j_b_l
-      PRINT *, '  j_b_r =', j_b_r
-      DO jtr = 1, Nthrd
-         j_seg_s(jtr) = SIZE(lon_trg(j_b_l(jtr):j_b_r(jtr),0)) ! lazy!!! but trustworthy I guess...
-         PRINT *, '  SIZE segment #',INT(jtr,1),' => ', j_seg_s(jtr)
-      END DO
+   ELSE
+      !! No OMP (Nthrd==1):
+      io1(1) = 1
+      io2(1) = ni_trg
+      i_seg_s(1) = ni_trg
    END IF
 
+   PRINT *, '  io1 =', io1
+   PRINT *, '  io2 =', io2
+   DO jo = 1, Nthrd
+      i_seg_s(jo) = SIZE(lon_trg(io1(jo):io2(jo),0)) ! lazy!!! but trustworthy I guess...
+      PRINT *, '  SIZE segment #',INT(jo,1),' => ', i_seg_s(jo)
+   END DO
    PRINT *, ''
-
-
-
-
 
 
 

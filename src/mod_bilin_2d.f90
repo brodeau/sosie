@@ -174,8 +174,8 @@ CONTAINS
 
 
       !! OMP i-decomposition:
-      i1 = i_b_l(ithrd)
-      i2 = i_b_r(ithrd)
+      i1 = io1(ithrd)
+      i2 = io2(ithrd)
       
 
       IF ( l_first_call_interp_routine(ithrd) ) THEN

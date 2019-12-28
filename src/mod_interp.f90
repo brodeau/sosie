@@ -27,7 +27,7 @@ CONTAINS
 
       INTEGER, INTENT(in) :: jt, Nt
 
-      INTEGER :: i1, j1, i2, j2, jtr, ji, jj
+      INTEGER :: i1, i2, j1, j2, jo, ji, jj
       INTEGER :: ni_src_x, nj_src_x
       CHARACTER(len=2) :: ctype
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
@@ -145,14 +145,11 @@ CONTAINS
             END IF
             ALLOCATE ( ixy_mapping(ni_trg, nj_trg, 2) )
             ixy_mapping(:,:,:) = 0
-
+            
             !$OMP PARALLEL DO
-            DO jtr = 1, Nthrd
-               i1 = i_b_l(jtr)
-               i2 = i_b_r(jtr)
-               !$             PRINT *, ' Running "FIND_SRC_CELL" on OMP thread #', INT(jtr,1)
-               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(i1:i2,:), Y2(i1:i2,:), ixy_mapping(i1:i2,:,:) )
-               !CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(:,j_b_l(jtr):j_b_r(jtr)), Y2(:,j_b_l(jtr):j_b_r(jtr)), ixy_mapping(:,j_b_l(jtr):j_b_r(jtr),:) )
+            DO jo = 1, Nthrd
+               !$             PRINT *, ' Running "FIND_SRC_CELL" on OMP thread #', INT(jo,1)
+               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), ixy_mapping(io1(jo):io2(jo),:,:) )
             END DO
             !$OMP END PARALLEL DO
 
@@ -162,14 +159,12 @@ CONTAINS
          !$       PRINT *, ''
 
          !$OMP PARALLEL DO
-         DO jtr = 1, Nthrd
-            i1 = i_b_l(jtr)
-            i2 = i_b_r(jtr)
-            !$          PRINT *, ' Running "AKIMA_2D" on OMP thread #', INT(jtr,1)
+         DO jo = 1, Nthrd
+            !$          PRINT *, ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
             !! ewper_src useless now that extension is done above???? right?
             CALL AKIMA_2D( ewper_src, X1_x, Y1_x, data_src_x, &
-               &           X2(i1:i2,:), Y2(i1:i2,:), data_trg(i1:i2,:), &
-               &           ixy_mapping(i1:i2,:,:), jtr )
+               &           X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
+               &           ixy_mapping(io1(jo):io2(jo),:,:), jo )
          END DO
          !$OMP END PARALLEL DO
 
@@ -184,13 +179,11 @@ CONTAINS
          END IF
 
          !$OMP PARALLEL DO
-         DO jtr = 1, Nthrd
-            i1 = i_b_l(jtr)
-            i2 = i_b_r(jtr)
-            !$          PRINT *, ' Running "bilin_2d" on OMP thread #', INT(jtr,1)
+         DO jo = 1, Nthrd
+            !$          PRINT *, ' Running "bilin_2d" on OMP thread #', INT(jo,1)
             CALL bilin_2d( ewper_src, X1_x,        Y1_x,   REAL(data_src_x,4),     &
-               &                      X2(i1:i2,:), Y2(i1:i2,:), data_trg(i1:i2,:), &
-               &           cpat, jtr,  mask_domain_trg=IGNORE(i1:i2,:) )
+               &                      X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
+               &           cpat, jo,  mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
          END DO
          !$OMP END PARALLEL DO
 
