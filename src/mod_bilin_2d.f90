@@ -42,7 +42,7 @@ MODULE MOD_BILIN_2D
 CONTAINS
 
 
-   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat, ithrd,  mask_domain_trg)
+   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, l_comp_map, ithrd,  mask_domain_trg)
 
       !!================================================================
       !!
@@ -56,9 +56,6 @@ CONTAINS
       !!             X20   : 2D target longitude array (ni,nj) or (ni,1)
       !!             Y20   : 2D target latitude  array (ni,nj) or (nj,1)
       !!
-      !!             cnpat : name of current configuration pattern
-      !!                      -> to recognise the mapping/weight file
-      !!
       !! OUTPUT :
       !!             Z2    : field extrapolated from source to target grid
       !!
@@ -68,7 +65,7 @@ CONTAINS
       !!
       !!================================================================
 
-      USE io_ezcdf, ONLY : RD_MAPPING_AB, P2D_MAPPING_AB, TEST_XYZ  ! , DUMP_2D_FIELD
+      USE io_ezcdf, ONLY : TEST_XYZ  ! , DUMP_2D_FIELD
 
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
@@ -76,7 +73,7 @@ CONTAINS
       REAL(4), DIMENSION(:,:), INTENT(in)  :: Z1
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
-      CHARACTER(len=*),        INTENT(in)  :: cnpat
+      LOGICAL,                 INTENT(in)  :: l_comp_map
       INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
@@ -84,15 +81,14 @@ CONTAINS
       INTEGER :: nx1, ny1, ny1w, nx2, ny2
 
       REAL(8) :: alpha, beta, rmeanv, ymx
-      LOGICAL :: l_add_extra_j, lefw
-      INTEGER :: icpt, ji, jj, i1, i2
+      LOGICAL :: l_add_extra_j
+      INTEGER :: ji, jj, i1, i2
 
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
       REAL(4),    DIMENSION(:,:), ALLOCATABLE :: Z1w
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_trg !, msk_res
 
       CHARACTER(len=2)   :: ctype
-      CHARACTER(len=400) :: cf_wght
 
       ctype = TEST_XYZ(X10,Y10,Z1)
       nx1 = SIZE(Z1,1)
@@ -167,57 +163,26 @@ CONTAINS
             Y2(ji,:) = Y20(:,1)
          END DO
       ELSE
-         X2 = X20 ; Y2 = Y20
+         X2 = X20
+         Y2 = Y20
       END IF
-
-      WRITE(cf_wght,'("sosie_mapping_",a,"_omp",i2.2,".nc")') TRIM(cnpat), ithrd
-
-
+      
       !! OMP i-decomposition:
       i1 = io1(ithrd)
       i2 = io2(ithrd)
       
-
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-
+         
          l_last_y_row_missing = .FALSE.
-
-         !! Testing if the file containing weights exists or if we need to create it
-         !! (2nd option might be pretty time-consuming!!!
-         PRINT*,'';PRINT*,'********************************************************'
-         INQUIRE(FILE=cf_wght, EXIST=lefw )
-
-         IF ( lefw ) THEN
-            PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
-            PRINT *, 'Still! Insure that this is really the one you need!!!'
-            PRINT *, 'No need to build it, skipping routine MAPPING_BL !'
-            CALL RD_MAPPING_AB( cf_wght, IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:) )
-            PRINT *, ''; PRINT *, 'Mapping and weights sucessfuly read into ', TRIM(cf_wght); PRINT *, ''
-
-         ELSE
-            PRINT *, 'No mapping file found in the current directory!'
-            PRINT *, 'We are going to build it: ', TRIM(cf_wght)
-            PRINT *, 'This is very time consuming, but only needs to be done once...'
-            PRINT *, 'Therefore, you should keep this file for any future interpolation'
-            PRINT *, 'using the same "source-target" setup'
-            !!
+         
+         IF ( l_comp_map ) &
             CALL MAPPING_BL( k_ew_per, X1w, Y1w, X2, Y2,               &
-               &             IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:),  &
-               &             pmsk_trg=mask_ignore_trg, pdist_np=DIST_NP(i1:i2,:) )            
-            !! Saving into netcdf file:
-            PRINT *, ''; PRINT *, 'Saving mapping and weights into ', TRIM(cf_wght); PRINT *, ''
-            CALL P2D_MAPPING_AB( cf_wght, X2, Y2, IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), rflg, &
-               &                 IPB(i1:i2,:),  d2np=DIST_NP(i1:i2,:) )
-            !!            
-         END IF
-         PRINT *, ''; PRINT *, 'MAPPING_BL OK';
-         PRINT*,'********************************************************';PRINT*,'';PRINT*,''
-
+            &                IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:),  &
+            &                pmsk_trg=mask_ignore_trg, pdist_np=DIST_NP(i1:i2,:) )            
+         
       END IF
       
-      
       Z2(:,:) = rflg ! Flagging non-interpolated output points
-      icpt = 0
 
       mask_ignore_trg(:,:) = 1
       WHERE ( (IMETRICS(i1:i2,:,1) < 1) ) mask_ignore_trg = 0

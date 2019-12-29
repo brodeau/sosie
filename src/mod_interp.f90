@@ -9,7 +9,7 @@ MODULE MOD_INTERP
    USE mod_grids
 
    USE mod_nemotools, ONLY: lbc_lnk
-   USE io_ezcdf,      ONLY: DUMP_FIELD, TEST_XYZ ; !LOLOdebug
+   USE io_ezcdf,      ONLY: P2D_MAPPING_AB, RD_MAPPING_AB, DUMP_FIELD, TEST_XYZ ; !LOLOdebug
 
    IMPLICIT NONE
 
@@ -36,6 +36,8 @@ CONTAINS
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: data_src_x
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1_x, Y1_x
       REAL(8), DIMENSION(4),                SAVE :: xy_range_src
+      LOGICAL :: lefw
+      CHARACTER(len=400) :: cf_wght
 
       !! lon-aranging or lat-flipping field
       IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -103,9 +105,10 @@ CONTAINS
 
 
       !LOLO: dodgy to call the same array as input and output :
-      CALL FILL_EXTRA_BANDS(jt, ewper_src, X1_x(3:ni_src_x-2,3:nj_src_x-2), Y1_x(3:ni_src_x-2,3:nj_src_x-2), data_src_x(3:ni_src_x-2,3:nj_src_x-2), &
-         &                            X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
-
+      CALL FILL_EXTRA_BANDS(jt, ewper_src, &
+         &       X1_x(3:ni_src_x-2,3:nj_src_x-2), Y1_x(3:ni_src_x-2,3:nj_src_x-2), data_src_x(3:ni_src_x-2,3:nj_src_x-2), &
+         &       X1_x, Y1_x, data_src_x,  is_orca_grid=i_orca_src)
+      
       !CALL DUMP_FIELD(REAL(data_src_x,4), 'data_src_ext.nc', 'var') !,   xlon=X1_x, xlat=Y1_x)
 
 
@@ -149,7 +152,8 @@ CONTAINS
             !$OMP PARALLEL DO
             DO jo = 1, Nthrd
                !$             PRINT *, ' Running "FIND_SRC_CELL" on OMP thread #', INT(jo,1)
-               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), ixy_mapping(io1(jo):io2(jo),:,:) )
+               CALL FIND_SRC_CELL( X1_x, Y1_x, xy_range_src, X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), &
+                  &                ixy_mapping(io1(jo):io2(jo),:,:) )
             END DO
             !$OMP END PARALLEL DO
 
@@ -169,13 +173,33 @@ CONTAINS
          !$OMP END PARALLEL DO
 
 
+
+         
       CASE('bilin')
 
          IF ( jt == 1 ) THEN
             ALLOCATE ( l_first_call_interp_routine(Nthrd) )
             l_first_call_interp_routine(:) = .TRUE.
             ALLOCATE ( IMETRICS(ni_trg,nj_trg,3), RAB(ni_trg,nj_trg,2), IPB(ni_trg,nj_trg), DIST_NP(ni_trg,nj_trg) )
-            !ALLOCATE ( IMETRICS(ni_trg,nj_trg,3), RAB(ni_trg,nj_trg,2), IPB(ni_trg,nj_trg) )
+
+            WRITE(cf_wght,'("sosie_mapping_",a,".nc")') TRIM(cpat)
+            
+            INQUIRE( FILE=cf_wght, EXIST=lefw )
+
+            IF ( lefw ) THEN
+               PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
+               PRINT *, 'Still! Insure that this is really the one you need!!!'
+               PRINT *, 'No need to build it, skipping routine MAPPING_BL !'
+               CALL RD_MAPPING_AB( cf_wght, IMETRICS(:,:,:), RAB(:,:,:), IPB(:,:) )
+               PRINT *, ''; PRINT *, 'Mapping and weights sucessfuly read into ', TRIM(cf_wght); PRINT *, ''
+            ELSE
+               PRINT *, 'No mapping file found in the current directory!'
+               PRINT *, 'We are going to build it: ', TRIM(cf_wght)
+               PRINT *, 'This is very time consuming, but only needs to be done once...'
+               PRINT *, 'Therefore, you should keep this file for any future interpolation'
+               PRINT *, 'using the same "source-target" setup'
+            END IF
+            
          END IF
 
          !$OMP PARALLEL DO
@@ -183,11 +207,17 @@ CONTAINS
             !$          PRINT *, ' Running "bilin_2d" on OMP thread #', INT(jo,1)
             CALL bilin_2d( ewper_src, X1_x,        Y1_x,   REAL(data_src_x,4),     &
                &                      X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-               &           cpat, jo,  mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
+               &           (.NOT. lefw), jo,  mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
          END DO
          !$OMP END PARALLEL DO
-
-
+         
+         IF ( (jt == 1) .AND. (.NOT. lefw) ) THEN
+            PRINT *, ''; PRINT *, 'Saving mapping and weights into ', TRIM(cf_wght); PRINT *, ''
+            CALL P2D_MAPPING_AB( cf_wght, X2, Y2, IMETRICS(:,:,:), RAB(:,:,:), rflg, &
+               &                 IPB(:,:),  d2np=DIST_NP(:,:) )
+         END IF
+         
+ 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
          STOP
