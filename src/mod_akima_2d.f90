@@ -44,13 +44,11 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_2D(k_ew_per, X1, Y1, Z1,  X2, Y2, Z2,  ixy_map,  ithrd)
+   SUBROUTINE AKIMA_2D( X1, Y1, Z1,  X2, Y2, Z2,  ixy_map )
       
       !!================================================================
       !!
-      !! INPUT :     k_ew_per : east-west periodicity
-      !!                        k_ew_per = -1  --> no periodicity
-      !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
+      !! INPUT :
       !!             X1   : 2D source longitude array (ni*nj) or (ni*1) (must be regular!)
       !!             Y1   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
       !!             Z1    : source field on source grid
@@ -67,12 +65,10 @@ CONTAINS
 
 
       !! Input/Output arguments
-      INTEGER,                   INTENT(in)  :: k_ew_per
       REAL(8), DIMENSION(:,:),   INTENT(in)  :: X1, Y1, Z1
       REAL(8), DIMENSION(:,:),   INTENT(in)  :: X2, Y2
       REAL(4), DIMENSION(:,:),   INTENT(out) :: Z2
       INTEGER, DIMENSION(:,:,:), INTENT(in)  :: ixy_map
-      INTEGER,                   INTENT(in)  :: ithrd ! # OMP thread
 
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2
@@ -97,7 +93,7 @@ CONTAINS
       ALLOCATE ( slpx(nx1,ny1), slpy(nx1,ny1), slpxy(nx1,ny1), poly(nx1-1,ny1-1,nsys) )
 
       !! Computation of partial derivatives:
-      CALL slopes_akima(k_ew_per, X1, Y1, Z1, slpx, slpy, slpxy)
+      CALL slopes_akima( X1, Y1, Z1, slpx, slpy, slpxy)
       
       !! Polynome:
       CALL build_pol(             X1, Y1, Z1, slpx, slpy, slpxy, poly)
@@ -142,8 +138,6 @@ CONTAINS
 
       DEALLOCATE ( poly )
 
-      !PRINT *, ' ---> exiting AKIMA // #', ithrd
-      
    END SUBROUTINE AKIMA_2D
 
 
@@ -388,20 +382,14 @@ CONTAINS
    END FUNCTION pol_val
 
 
-   SUBROUTINE slopes_akima(k_ew, PX, PY, PF, dFdX, dFdY, d2FdXdY)
+   SUBROUTINE slopes_akima( PX, PY, PF, dFdX, dFdY, d2FdXdY)
 
       !! Slopes ~ partial derivatives of a field ZF according to Akima method
       !! given on a regular gird !!
 
-      !!  k_ew : east-west periodicity on the source file/grid
-      !!         k_ew = -1  --> no east-west periodicity (along x)
-      !!         k_ew >= 0  --> east-west periodicity with overlap of k_ew points (along x)
-
-      INTEGER, INTENT(in) :: k_ew
-
       REAL(8), DIMENSION(:,:), INTENT(in)  :: PX, PY, PF
       REAL(8), DIMENSION(:,:), INTENT(out) :: dFdX, dFdY, d2FdXdY
-
+      
       !! Local variables :
       INTEGER :: nx, ny, ji, jj, im1, ic, ip1, ip2, jm1, jc, jp1, jp2
       REAL(8) :: m1, m2, m3, m4, rx

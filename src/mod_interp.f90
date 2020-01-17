@@ -31,7 +31,6 @@ CONTAINS
       INTEGER :: ni_src_x, nj_src_x
       CHARACTER(len=2) :: ctype
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
-      REAL(8), DIMENSION(:,:), ALLOCATABLE       :: X1, Y1
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X2, Y2
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: data_src_x
       REAL(8), DIMENSION(:,:), ALLOCATABLE, SAVE :: X1_x, Y1_x
@@ -166,9 +165,9 @@ CONTAINS
          DO jo = 1, Nthrd
             !$          PRINT *, ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
             !! ewper_src useless now that extension is done above???? right?
-            CALL AKIMA_2D( ewper_src, X1_x, Y1_x, data_src_x, &
+            CALL AKIMA_2D( X1_x, Y1_x, data_src_x, &
                &           X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-               &           ixy_mapping(io1(jo):io2(jo),:,:), jo )
+               &           ixy_mapping(io1(jo):io2(jo),:,:) )
          END DO
          !$OMP END PARALLEL DO
 
