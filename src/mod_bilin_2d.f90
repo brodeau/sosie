@@ -210,7 +210,7 @@ CONTAINS
          END DO
       END DO
 
-      Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*-9995. ! masking problem points as in mask_ignore_trg
+      Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*(-9995.) ! masking problem points as in mask_ignore_trg
 
 
       IF ( l_first_call_interp_routine(ithrd) ) THEN
