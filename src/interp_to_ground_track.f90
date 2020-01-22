@@ -65,6 +65,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    LOGICAL ::  &
       &     l_get_mask_metrics_from_meshmask = .FALSE., &
+      &     l_mask_input_data = .FALSE., &
       &   l_write_nc_show_track = .FALSE., &
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
@@ -75,6 +76,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CHARACTER(len=400)  :: &
       &    cf_obs = 'ground_track.nc', &
       &    cf_mod = '', &
+      &    cf_msk = 'mask.nc', &
       &    cf_mm  = 'mesh_mask.nc', &
       &    cf_mpg = ''
    !!
@@ -95,7 +97,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
-   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask, imask_ignr
    INTEGER(1), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
    !!
    INTEGER :: jt, it, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
@@ -103,8 +105,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    REAL(8) :: rt, t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta, t_min, t_max
    !!
-   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S' /)
+   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S','-M' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
    REAL(4) :: zdt, zdst, rrr, rfillval_mod
@@ -184,6 +186,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
       CASE('-n')
          CALL GET_MY_ARG('ground track input variable', cv_obs)
 
+      CASE('-M')
+         l_mask_input_data = .TRUE.
+         CALL GET_MY_ARG('masking file', cf_msk)
 
 
       CASE DEFAULT
@@ -259,8 +264,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    END IF
 
    PRINT *, ''
-
-
+   
 
    !! testing variable dimensions
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -296,6 +300,17 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' *** Done!'; PRINT *, ''
 
 
+   !! In case we mask input data with field 'mask' found into file 'cf_msk' (option: "-M")
+   IF ( l_mask_input_data ) THEN
+      CALL DIMS(cf_msk, 'mask', ni1, nj1, nk, Ntm)
+      IF ( (ni1/=ni).OR.(nj1/=nj) ) THEN
+         PRINT *, 'ERROR: shape of mask not consistent with your domain!', ni1,ni, nj1,nj ; STOP
+      END IF
+      ALLOCATE ( imask_ignr(ni,nj) )
+      PRINT *, 'Reading mask "mask" into file '//TRIM(cf_msk)//' !'
+      CALL GETVAR_2D   (i0, j0, cf_msk,  'mask', 0, 0, 0, xdum_r4)
+      imask_ignr(:,:) = INT(xdum_r4, 1) ; i0=0 ; j0=0
+   END IF
 
 
    IF ( l_reg_src ) THEN
@@ -417,7 +432,13 @@ PROGRAM INTERP_TO_GROUND_TRACK
       WHERE ( xdum_r4 == rfillval_mod ) imask = 0
       i0=0 ; j0=0
    END IF
-
+   
+   IF ( l_mask_input_data ) THEN
+      ! taking into consideration the forced masked region 'imask_ignr'
+      WHERE ( imask_ignr(:,:) == 0 ) imask(:,:) = 0
+      DEALLOCATE ( imask_ignr )
+   END IF
+   
    !CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
 
 
@@ -892,7 +913,8 @@ CONTAINS
       END IF
       WRITE(6,*) ' -S                => dump boxes on 2D output field "mask_+_nearest_points.nc" '
       WRITE(6,*) ''
-
+      WRITE(6,*) ' -M <masking_file> => ignore regions of input field where field "mask"==0 in "masking_file"'
+      WRITE(6,*) ''
       WRITE(6,*) ' -h                   => Show this message'
       WRITE(6,*) ''
       !!
