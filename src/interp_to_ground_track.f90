@@ -84,7 +84,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &    jarg,   &
       &    idot, ip1, jp1, im1, jm1, &
       &    i0, j0,  &
-      &    ni, nj, nk=0, Ntm=0, &
+      &    ni, nj, nk=0, Ntm=0, Ntdum, &
       &    ni1, nj1, ni2, nj2, &
       &    iargc, id_f1, id_v1
    !!
@@ -92,8 +92,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs, xvar, xvar1, xvar2, xmean
-   REAL(8), DIMENSION(:,:), ALLOCATABLE ::    &
-      &    xlont, xlatt
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
@@ -246,8 +245,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! testing longitude and latitude
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   CALL DIMS(cf_mm, cv_lon, ni1, nj1, nk, Ntm)
-   CALL DIMS(cf_mm, cv_lat, ni2, nj2, nk, Ntm)
+   CALL DIMS(cf_mm, cv_lon, ni1, nj1, nk, Ntdum)
+   CALL DIMS(cf_mm, cv_lat, ni2, nj2, nk, Ntdum)
 
    IF ( (nj1==-1).AND.(nj2==-1) ) THEN
       ni = ni1 ; nj = ni2
@@ -302,7 +301,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! In case we mask input data with field 'mask' found into file 'cf_msk' (option: "-M")
    IF ( l_mask_input_data ) THEN
-      CALL DIMS(cf_msk, 'mask', ni1, nj1, nk, Ntm)
+      CALL DIMS(cf_msk, 'mask', ni1, nj1, nk, Ntdum)
       IF ( (ni1/=ni).OR.(nj1/=nj) ) THEN
          PRINT *, 'ERROR: shape of mask not consistent with your domain!', ni1,ni, nj1,nj ; STOP
       END IF
@@ -361,8 +360,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Getting longitude, latitude and mask in mesh_mask file:
    ! Longitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xdum_r4)
-   xlont(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
+   CALL GETVAR_2D (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xlont(:,:))  ; i0=0 ; j0=0
+   !xlont(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
    !!
 
 
@@ -402,8 +401,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
    ! Latitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lat, 0, 0, 0, xdum_r4)
-   xlatt(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
+   CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lat, 0, 0, 0, xlatt(:,:)) ; i0=0 ; j0=0
+   !xlatt(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
 
    !! Min an max lat:
    lat_min = MINVAL(xlatt)
