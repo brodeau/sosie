@@ -463,7 +463,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CALL GETVAR_1D(cf_obs, 'time', vt_obs)
    CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
    CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
-
+   
    CALL GETVAR_1D(cf_obs, 'cycle',     rcycle)
 
    CALL GETVAR_1D(cf_obs, cv_obs,      F_gt_0)
@@ -575,10 +575,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    DEALLOCATE ( xlon_gt_0, xlat_gt_0 )
 
-
    IF ( .NOT. l_glob_lon_wize ) THEN
       ALLOCATE ( xdum_r8(1,Nti) )
       xdum_r8 = degE_to_degWE(xlon_gt_i)
+      
       !xdum_r8 = SIGN(1._8, 180._8-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360._8)) ! like xlon_gt_i but between -180 and +180 !
       WHERE ( xdum_r8 < lon_min_1 ) IGNORE=0
       WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
@@ -602,8 +602,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    Ntf = SUM(INT(IGNORE))
    PRINT *, ' - and in the end we only retain Ntf ', Ntf , ' points!'
    PRINT *, ''
-
-
 
 
 

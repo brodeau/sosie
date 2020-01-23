@@ -21,7 +21,7 @@ EXTRA_DEBUG_FLAGS = -g -fpe0
 ##FF = -xHOST -O3 -i4 $(EXTRA_DEBUG_FLAGS) -module mod/
 ##FF = -O2 -i4 -traceback -CB -module mod/
 
-FF = -O2 -i4 -traceback -module mod/
+FF = -O3 -i4 -traceback -module mod/
 
 
 # Directory to install:
