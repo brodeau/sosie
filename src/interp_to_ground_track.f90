@@ -904,10 +904,8 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
       WRITE(6,*) ''
-      IF (l_get_mask_metrics_from_meshmask) THEN
-         WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
-         WRITE(6,*) ''
-      END IF
+      WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
+      WRITE(6,*) ''
       WRITE(6,*) ' -S                => dump boxes on 2D output field "mask_+_nearest_points.nc" '
       WRITE(6,*) ''
       WRITE(6,*) ' -M <masking_file> => ignore regions of input field where field "mask"==0 in "masking_file"'
