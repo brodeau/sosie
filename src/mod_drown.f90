@@ -179,7 +179,6 @@ CONTAINS
          maskv = maskv + mask_coast
          !
       END DO
-      PRINT *, X(1,100), X(2,100), X(3,100), X(ni-2,100), X(ni-1,100), X(ni,100), SIZE(X,1), SIZE(X,2)
 
       !CALL PRTMASK(X, 'drowned_final.nc', 'lsm') ;          STOP 'lolo'
 
