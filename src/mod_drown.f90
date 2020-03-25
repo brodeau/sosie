@@ -38,7 +38,7 @@ CONTAINS
       !!
       !!
       !!                       Author : Laurent BRODEAU, 2014
-      !!                                Pierre Mathiot,  2020 : update the drowning algo
+      !!                                Pierre Mathiot,  2020 : update the drowning algo and add openMP instruction
       !!
       !!#############################################################################
 
@@ -68,6 +68,8 @@ CONTAINS
 
       INTEGER, PARAMETER :: jinc_debg = 2
 
+      !REAL(8) :: tSTART, tEND, omp_get_wtime 
+      !tSTART = omp_get_wtime() 
 
       X = X * mask  ! we rather have 0s on continents than some fucked up high values...
 
@@ -98,7 +100,8 @@ CONTAINS
 
          !! Building mask of the coast-line (belonging to land points)
          mask_coast(:,:) = 0
-         
+         !$OMP PARALLEL DEFAULT(NONE) SHARED(k_ew,maskv,mask_coast,ni,nj) PRIVATE(ji,jj,jjp1,jjm1,ji0,jip1,jim1)
+         !$OMP DO SCHEDULE(STATIC)
          DO jj = 1, nj
             DO ji = 1, ni
                !
@@ -124,6 +127,8 @@ CONTAINS
                !
             END DO
          END DO
+         !$OMP END DO
+         !$OMP END PARALLEL
          !
          !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
          !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
@@ -131,11 +136,13 @@ CONTAINS
          !STOP
 
 
-
          !! mask_coast done, time to fill the coastline points with values from the nearest se points
          !! -----------------------------------------------------------------------------------------
          ns=MIN(jinc,50)
          xtmp = X
+         
+         !$OMP PARALLEL DEFAULT(NONE) SHARED(ni,nj,mask_coast,ns,k_ew,maskv,xtmp,X,jinc ) PRIVATE(zweight,summsk,datmsk,ji,jj,jjm,jim,jic,jjc)
+         !$OMP DO SCHEDULE(DYNAMIC)
          DO jj = 1, nj
             DO ji = 1, ni
                !
@@ -171,12 +178,16 @@ CONTAINS
                END IF
             END DO
          END DO
+         !$OMP END DO
+         !$OMP END PARALLEL
          !
          ! update X
          X = xtmp
          !
          ! Loosing land for the next iteration:
          maskv = maskv + mask_coast
+         !
+         IF ( ldebug ) PRINT *, 'DROWN: jinc =', jinc
          !
       END DO
 
@@ -185,7 +196,8 @@ CONTAINS
 
       DEALLOCATE ( maskv, xtmp, mask_coast )
 
-      IF ( ldebug ) PRINT *, 'DROWN: jinc =', jinc
+      !tEND = omp_get_wtime() 
+      !PRINT *, '~Drowning algo took~', tEND - tSTART, '~seconds~'
 
    END SUBROUTINE DROWN
 
