@@ -332,7 +332,7 @@ PROGRAM mask_drown_field
       IF ( l_drwn_f ) THEN
          PRINT *, ' *** drowning field at time =', jt
          DO jk = 1, nk
-            CALL DROWN(iewper, DATA(:,:,jk), mask(:,:,jk), nb_inc=i_how_far, nb_smooth=20)
+            CALL DROWN(iewper, DATA(:,:,jk), mask(:,:,jk), nb_inc=i_how_far)
          END DO
       END IF
 
@@ -428,6 +428,8 @@ SUBROUTINE usage()
    WRITE(6,*) ' -l  <real>           => to set a lower bound for the field (ex: "-10." not "-10")'
    WRITE(6,*) ''
    WRITE(6,*) ' -u  <real>           => to set an upper bound for the field (ex: "100." not "100")'
+   WRITE(6,*) ''
+   WRITE(6,*) ' -g  <integer>        => DROWN: how far into land the variable is drowned' 
    WRITE(6,*) ''
    WRITE(6,*) ' -o  <output_file.nc> => Output file (default: fout.nc)'
    WRITE(6,*) ''
