@@ -136,7 +136,7 @@ PROGRAM SOSIE
 
          !! Read data 2D field at time jte :
          CALL GETVAR_2D(idf_i, idv_i, cf_src, cv_src, Ntr, jplev*jcz, jte*jct, data_src, jt1=j_start, jt2=j_stop)
-         
+
          !IF ((TRIM(cf_lsm_src)=='nan').OR.(TRIM(cf_lsm_src)=='NaN')) THEN
          !! Replacing NaN with 0. to avoid some fuck-up later...
          DO jj =  1, nj_src
@@ -171,7 +171,7 @@ PROGRAM SOSIE
       ELSE
 
 
-         
+
          !! ================
          !! 3D INTERPOLATION
          !! ================

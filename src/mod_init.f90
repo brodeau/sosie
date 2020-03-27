@@ -5,9 +5,9 @@ MODULE MOD_INIT
    IMPLICIT NONE
 
    PRIVATE
-   
+
    PUBLIC :: GET_ARGUMENTS, READ_NMLST, REMINDER
-   
+
    !! Declaration of namelist :
    !! -------------------------
 
@@ -61,7 +61,7 @@ CONTAINS
                CALL getarg(jarg,cr)
 
                IF ( ANY(clist_opt == trim(cr)) ) THEN
-                  PRINT *, 'ERROR: ', trim(cr), ' is definitively not the name of the namelist!'
+                  PRINT *, 'ERROR: "', trim(cr), '" is definitively not the name of the namelist!'
                   call usage()
                ELSE
                   cf_nml_sosie = trim(cr)

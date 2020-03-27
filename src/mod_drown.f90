@@ -55,16 +55,12 @@ CONTAINS
 
       INTEGER :: &
          &      ninc_max,      &
-         &      nsmooth_max,          &
          &      ni, nj, ns,    &
          &      jinc,          &
-         &      ji, jj, jci,   &
-         &      jim, jip, js,  &
+         &      ji, jj, jim,   &
          &      jjm, jic, jjc, ji0, jip1, jim1, jjp1, jjm1
 
       REAL(4) :: datmsk, summsk, zweight
-
-      INTEGER, DIMENSION(2) :: ivi, vim_per, vip_per
 
       INTEGER, PARAMETER :: jinc_debg = 2
 

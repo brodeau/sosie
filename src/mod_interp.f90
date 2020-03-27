@@ -21,11 +21,11 @@ CONTAINS
 
    SUBROUTINE INTERP_2D(jt)
 
-      INTEGER, INTENT(in) :: jt ! current time step
-
       !! ================
       !! 2D INTERPOLATION
       !! ================
+
+      INTEGER, INTENT(in) :: jt ! current time step
 
       INTEGER :: i1,j1, i2,j2
       CHARACTER(len=128) ctmp !debug
@@ -38,16 +38,9 @@ CONTAINS
 
       IF ( l_drown_src ) THEN
          !! Extrapolate sea values over land :
-         !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
-         !PRINT *, 'LOLO: update source mask at jt = !!!', jt
-         !WRITE (ctmp,'("data_src_jt",i2.2,".nc")') jt    !debug
-         !CALL DUMP_FIELD(data_src, TRIM(ctmp), 'mask')  !debug
          IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
-         !WRITE (ctmp,'("mask_src_jt",i2.2,".nc")') jt    !debug
-         !CALL DUMP_FIELD(REAL(mask_src(:,:,1),4), TRIM(ctmp), 'mask')  !debug
+         !CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
          CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr)
-         !WRITE (ctmp,'("data_src_drowned_jt",i2.2,".nc")') jt    !debug
-         !CALL DUMP_FIELD(     data_src, TRIM(ctmp), trim(cv_src) )  !debug
          IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
 
       ELSE
@@ -98,6 +91,7 @@ CONTAINS
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF (jj_ex_btm > 0) THEN
+         !CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
          CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr)
       END IF
       !lolo.
@@ -175,6 +169,7 @@ CONTAINS
          PRINT *, 'LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
          !!
          DO jj = 1, nj_src
+            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100, nb_smooth=5 )
             CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100 )
          END DO
          PRINT *, '   => Done!'
@@ -199,6 +194,7 @@ CONTAINS
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
             !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
             IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )
+            !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
             CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr )
             IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
             !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')

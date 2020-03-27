@@ -33,7 +33,9 @@ MODULE MOD_MANIP
 
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
-      &      distance, distance_2d, find_nearest_point, SHRINK_VECTOR, degE_to_degWE, &
+      &      distance, distance_2d, &
+      &      find_nearest_point, &
+      &      shrink_vector, degE_to_degWE, &
       &      ext_north_to_90_regg
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
@@ -84,12 +86,18 @@ CONTAINS
 
       IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
-         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'
+         PRINT *, 'SIZE(XX,1), SIZE(YY,1), SIZE(XF,1) =>', SIZE(XX,1), SIZE(YY,1), SIZE(XF,1)
+         PRINT *, 'SIZE(XX,2), SIZE(YY,2), SIZE(XF,2) =>', SIZE(XX,2), SIZE(YY,2), SIZE(XF,2)
+         STOP
       END IF
 
       IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
          & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
-         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'; STOP
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'
+         PRINT *, 'SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1) =>', SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1)
+         PRINT *, 'SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2) =>', SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2)
+         STOP
       END IF
 
       nx = SIZE(XX,1)
@@ -116,8 +124,8 @@ CONTAINS
       FP4 = 0.
 
       !! Filling center of domain:
-      XP4(  3:nxp4-2, 3:nyp4-2) =   XX(:,:)
-      YP4(  3:nxp4-2, 3:nyp4-2) =   YY(:,:)
+      XP4(3:nxp4-2, 3:nyp4-2) = XX(:,:)
+      YP4(3:nxp4-2, 3:nyp4-2) = YY(:,:)
       FP4(3:nxp4-2, 3:nyp4-2) = XF(:,:)
 
 
@@ -134,22 +142,28 @@ CONTAINS
 
       ELSE
 
-         !! Left side :
+         !! WEST
          XP4(2, 3:nyp4-2) = XX(2,:) - (XX(3,:) - XX(1,:))
          XP4(1, 3:nyp4-2) = XX(1,:) - (XX(3,:) - XX(1,:))
 
-         !! Right side :
+         !! EAST
          XP4(nxp4-1, 3:nyp4-2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
          XP4(nxp4  , 3:nyp4-2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
 
-      END IF
+      END IF !IF (k_ew > -1)
 
 
-      !! Bottom side :
+      
+      !! ******************
+      !! Southern Extension
+      !! ******************
       XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
-      !! Top side :
+      !! ******************      
+      !! Northern Extension
+      !! ******************
+      
       SELECT CASE( iorca )
          !
       CASE (4)

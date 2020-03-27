@@ -46,7 +46,7 @@ PROGRAM IJ_FROM_LON_LAT
       &    cf_mod, &
       &    cf_ascii='file_in.txt'
    !!
-   CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cb_name, cf_out
+   CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cb_name
    !!
    INTEGER      :: &
       &    jarg, &

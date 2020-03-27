@@ -32,7 +32,6 @@ MODULE MOD_AKIMA_2D
    USE mod_manip, ONLY: FILL_EXTRA_BANDS
    USE io_ezcdf,  ONLY: TEST_XYZ
 
-
    IMPLICIT NONE
 
 
@@ -179,7 +178,6 @@ CONTAINS
       CALL build_pol(lon_src, lat_src, Z_src, slpx, slpy, slpxy, poly)
 
       DEALLOCATE ( slpx, slpy, slpxy )
-
 
       !! Checking if the target grid does not overlap source grid :
       min_lon1 = minval(lon_src) ;  max_lon1 = maxval(lon_src)
