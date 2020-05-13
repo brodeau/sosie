@@ -195,6 +195,6 @@ clean:
 	rm -f bin/* $(LIB_SOSIE) *.out mod/*.mod *.x *~ *\# src/*~ src/*\# *.log *.tmp fort.*
 	rm -rf bin mod lib obj
 
-mrproper: clean
+distclean: clean
 	rm -f examples/*.nc4 examples/*.nc examples/ORCAX_to_ORCAY/*.nc examples/interp_to_ground_track/*.nc
-	rm -f examples/data/*.drwn
+	rm -f examples/data/*.drwn examples/ij_from_lon_lat/*.out
