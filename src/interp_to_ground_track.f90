@@ -167,7 +167,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          CALL GET_MY_ARG('latitude', cv_lat)
 
       CASE('-z')
-         CALL GET_MY_ARG('depth', cv_z)
+         CALL GET_MY_ARG('input depth', cv_z)
 
       CASE('-t')
          CALL GET_MY_ARG('time', cv_t)
@@ -268,7 +268,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! testing variable dimensions
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
    CALL DIMS(cf_mod, cv_mod, ni1, nj1, nk, Ntm)
-
    IF ( (ni1/=ni).AND.(nj1/=nj) ) THEN
       PRINT *, 'ERROR: dimension of ',trim(cv_mod), 'does not agree with lon/lat' ; STOP
    END IF
@@ -278,9 +277,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    IF ( Ntm < 1 ) THEN
       PRINT *, 'ERROR: ',trim(cv_mod),' must have at least a time record!' ; STOP
    END IF
-
-
-   PRINT *, 'Dimension for ',trim(cv_mod),':'
+   PRINT *, 'Dimension for "'//TRIM(cv_mod)//'" into "'//TRIM(cf_mod)//'":'
    PRINT *, '   => ni =', ni ;   PRINT *, '   => nj =', nj
    PRINT *, '   => nk =', nk ;   PRINT *, '   => Ntm =', Ntm
    PRINT *, ''
@@ -361,9 +358,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! Getting longitude, latitude and mask in mesh_mask file:
    ! Longitude array:
    CALL GETVAR_2D (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xlont(:,:))  ; i0=0 ; j0=0
-   !xlont(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
-   !!
-
 
    !! Min an max lon:
    lon_min_1 = MINVAL(xlont)
@@ -371,7 +365,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' *** Minimum longitude on source domain before : ', lon_min_1
    PRINT *, ' *** Maximum longitude on source domain before : ', lon_max_1
    !!
-   WHERE ( xdum_r4 < 0. ) xlont = xlont + 360.0_8
+   WHERE ( xlont < 0. ) xlont = xlont + 360.0_8
    !!
    lon_min_2 = MINVAL(xlont)
    lon_max_2 = MAXVAL(xlont)
@@ -402,14 +396,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    ! Latitude array:
    CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lat, 0, 0, 0, xlatt(:,:)) ; i0=0 ; j0=0
-   !xlatt(:,:) = xdum_r4(:,:) ; i0=0 ; j0=0
 
    !! Min an max lat:
    lat_min = MINVAL(xlatt)
    lat_max = MAXVAL(xlatt)
    PRINT *, ' *** Minimum latitude on source domain : ', lat_min
    PRINT *, ' *** Maximum latitude on source domain : ', lat_max
-
 
    l_glob_lat_wize = .TRUE.
    IF ( lat_max < 88. ) THEN
@@ -886,7 +878,7 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
       WRITE(6,*) ''
-      WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
+      WRITE(6,*) ' -v  <name>           => Specify variable name of interest in input file'
       WRITE(6,*) ''
       WRITE(6,*) ' -p  <track_file>     => Specify name of NetCDF file containing orbit tack'
       WRITE(6,*) ''
@@ -896,15 +888,15 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) '    Optional:'
       WRITE(6,*)  ''
-      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
+      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: '//TRIM(cv_lon)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: lat)'
+      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: '//TRIM(cv_lat)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
+      WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: '//TRIM(cv_z)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
+      WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: '//TRIM(cv_t)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: mesh_mask.nc)'
+      WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: '//TRIM(cf_mm)//')'
       WRITE(6,*) ''
       WRITE(6,*) ' -S                => dump boxes on 2D output field "mask_+_nearest_points.nc" '
       WRITE(6,*) ''

@@ -284,7 +284,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    PRINT *, '   => nk =', nk ;   PRINT *, '   => Ntm =', Ntm
    PRINT *, ''
 
-   
+
    PRINT *, ''
    PRINT *, ' *** Allocating ni x nj arrays...'
    ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj), &
@@ -820,7 +820,7 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
       WRITE(6,*) ''
-      WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
+      WRITE(6,*) ' -v  <name>           => Specify variable name of interest in input file'
       WRITE(6,*) ''
       WRITE(6,*) ' -p  <track_file>     => Specify name of NetCDF file containing hydrographic section'
       WRITE(6,*) ''
