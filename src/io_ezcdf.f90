@@ -343,68 +343,111 @@ CONTAINS
 
 
 
-   SUBROUTINE GETVAR_1D_R8(cf_in, cv_in, VX)
+   SUBROUTINE GETVAR_1D_R8(cf_in, cv_in, VX,  jrec)
       !!-----------------------------------------------------------------------
       !! This routine extract a variable 1D from a netcdf file
       !!
       !! INPUT :
       !! -------
-      !!          * cf_in      : name of the input file             (character l=100)
-      !!          * cv_in      : name of the variable               (character l=20)
+      !!          * cf_in  : name of the input file             (character l=100)
+      !!          * cv_in  : name of the variable               (character l=20)
       !!
       !! OUTPUT :
       !! --------
-      !!          * VX         : 1D array contening the variable   (double)
+      !!          * VX     : 1D array contening the variable   (double)
       !!
+      !! OPTIONAL INPUT:
+      !! ---------------
+      !!          * jrec   : record to extract if the input field "XX" is 2D: 1D + record
+      !!                          => VX(:) = XX(:,jrec)
       !!------------------------------------------------------------------------
       INTEGER                             :: id_f, id_v
       CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
       REAL(8), DIMENSION (:), INTENT(out) :: VX
-      INTEGER :: ierr1, ierr2
+      INTEGER, OPTIONAL,      INTENT(in)  :: jrec
+      !!
+      INTEGER :: ierr1, ierr2, jr, idr, Nr, lx
       REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D_R8'
+      !!
+      jr = 0
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
+      IF( PRESENT(jrec) ) THEN
+         jr = jrec
+         CALL sherr(  NF90_INQUIRE(         id_f, unlimitedDimId=idr), crtn,cf_in,cv_in ) ! ID of unlimited dimension
+         CALL sherr( NF90_INQUIRE_DIMENSION(id_f, idr,       len=Nr ), crtn,cf_in,cv_in ) ! length of  "        "
+         IF( (jr<1).OR.(jr>Nr) ) CALL print_err(crtn, 'record to read (jrec) does not make sense')
+         lx = SIZE(VX,1)
+      END IF
+      !!
       CALL sherr( NF90_INQ_VARID(id_f, TRIM(cv_in), id_v),  crtn,cf_in,cv_in)
       ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
       ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
-      CALL sherr( NF90_GET_VAR(id_f, id_v, VX),              crtn,cf_in,cv_in)
+      !!
+      IF( jr > 0 ) THEN
+         CALL sherr( NF90_GET_VAR(id_f, id_v, VX, start=(/1,jr/), count=(/lx,1/)),  crtn,cf_in,cv_in)
+      ELSE
+         CALL sherr( NF90_GET_VAR(id_f, id_v, VX                                ),  crtn,cf_in,cv_in)
+      END IF
+      !!
       IF (ierr1 == NF90_NOERR) VX = rsf*VX
       IF (ierr2 == NF90_NOERR) VX = VX + rao
-      CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
+      CALL sherr( NF90_CLOSE(id_f), crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_1D_R8
 
 
-   SUBROUTINE GETVAR_1D_R4(cf_in, cv_in, VX)
+
+   SUBROUTINE GETVAR_1D_R4(cf_in, cv_in, VX,  jrec)
       !!-----------------------------------------------------------------------
       !! This routine extract a variable 1D from a netcdf file
       !!
       !! INPUT :
       !! -------
-      !!          * cf_in      : name of the input file             (character l=100)
-      !!          * cv_in      : name of the variable               (character l=20)
+      !!          * cf_in  : name of the input file             (character l=100)
+      !!          * cv_in  : name of the variable               (character l=20)
       !!
       !! OUTPUT :
       !! --------
-      !!          * VX         : 1D array contening the variable   (double)
+      !!          * VX     : 1D array contening the variable   (double)
       !!
+      !! OPTIONAL INPUT:
+      !! ---------------
+      !!          * jrec   : record to extract if the input field "XX" is 2D: 1D + record
+      !!                          => VX(:) = XX(:,jrec)
       !!------------------------------------------------------------------------
       INTEGER                             :: id_f, id_v
       CHARACTER(len=*),       INTENT(in)  :: cf_in, cv_in
       REAL(4), DIMENSION (:), INTENT(out) :: VX
-      INTEGER :: ierr1, ierr2
+      INTEGER, OPTIONAL,      INTENT(in)  :: jrec
+      !!
+      INTEGER :: ierr1, ierr2, jr, idr, Nr, lx
       REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D_R4'
+      !!
+      jr = 0
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
+      IF( PRESENT(jrec) ) THEN
+         jr = jrec
+         CALL sherr(  NF90_INQUIRE(         id_f, unlimitedDimId=idr), crtn,cf_in,cv_in ) ! ID of unlimited dimension
+         CALL sherr( NF90_INQUIRE_DIMENSION(id_f, idr,       len=Nr ), crtn,cf_in,cv_in ) ! length of  "        "
+         IF( (jr<1).OR.(jr>Nr) ) CALL print_err(crtn, 'record to read (jrec) does not make sense')
+         lx = SIZE(VX,1)
+      END IF
+      !!
       CALL sherr( NF90_INQ_VARID(id_f, TRIM(cv_in), id_v),  crtn,cf_in,cv_in)
       ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
       ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
-      CALL sherr( NF90_GET_VAR(id_f, id_v, VX),              crtn,cf_in,cv_in)
+      !!
+      IF( jr > 0 ) THEN
+         CALL sherr( NF90_GET_VAR(id_f, id_v, VX, start=(/1,jr/), count=(/lx,1/)),  crtn,cf_in,cv_in)
+      ELSE
+         CALL sherr( NF90_GET_VAR(id_f, id_v, VX                                ),  crtn,cf_in,cv_in)
+      END IF
+      !!
       IF (ierr1 == NF90_NOERR) VX = rsf*VX
       IF (ierr2 == NF90_NOERR) VX = VX + rao
-      CALL sherr( NF90_CLOSE(id_f),                         crtn,cf_in,cv_in)
+      CALL sherr( NF90_CLOSE(id_f), crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_1D_R4
-
-
 
 
    SUBROUTINE GETVAR_2D_R4(idx_f, idx_v, cf_in, cv_in, lt, kz, kt, X, jt1, jt2, lz)

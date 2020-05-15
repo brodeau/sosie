@@ -14,7 +14,11 @@ MODULE MOD_MANIP
    INTERFACE flip_ud
       MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i1
    END INTERFACE flip_ud
-
+   
+   INTERFACE to_degE
+      MODULE PROCEDURE to_degE_scal, to_degE_1d, to_degE_2d
+   END INTERFACE to_degE
+   
    INTERFACE degE_to_degWE
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
    END INTERFACE degE_to_degWE
@@ -31,12 +35,12 @@ MODULE MOD_MANIP
       MODULE PROCEDURE long_reorg_3d_i1
    END INTERFACE long_reorg_3d
 
-
+   
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
       &      find_nearest_point, &
-      &      shrink_vector, degE_to_degWE, &
+      &      shrink_vector, to_degE, degE_to_degWE, &
       &      ext_north_to_90_regg
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
@@ -1570,6 +1574,29 @@ CONTAINS
    END FUNCTION SHRINK_VECTOR
 
 
+
+   FUNCTION to_degE_scal( rlong )
+      !! From any longitude to something between 0 and 360 !
+      REAL(8), INTENT(in) :: rlong
+      REAL(8)             :: to_degE_scal
+      to_degE_scal = MOD( rlong + 360._8 , 360._8 )     
+   END FUNCTION to_degE_scal
+   !!
+   FUNCTION to_degE_1d( vlong )
+      !! From any longitude to something between 0 and 360 !
+      REAL(8), DIMENSION(:), INTENT(in) :: vlong
+      REAL(8), DIMENSION(SIZE(vlong,1)) :: to_degE_1d
+      to_degE_1d(:) = MOD( vlong(:) + 360._8 , 360._8 )     
+   END FUNCTION to_degE_1d
+   !!
+   FUNCTION to_degE_2d( xlong )
+      !! From any longitude to something between 0 and 360 !
+      REAL(8), DIMENSION(:,:), INTENT(in) :: xlong
+      REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: to_degE_2d
+      to_degE_2d(:,:) = MOD( xlong(:,:) + 360._8 , 360._8 )     
+   END FUNCTION to_degE_2d
+
+
    FUNCTION degE_to_degWE_scal( rlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8) :: rlong
@@ -1581,14 +1608,14 @@ CONTAINS
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:) :: vlong
       REAL(8), DIMENSION(SIZE(vlong,1)) :: degE_to_degWE_1d
-      degE_to_degWE_1d = SIGN(1._8,180._8-vlong)*MIN(vlong, ABS(vlong-360._8))
+      degE_to_degWE_1d(:) = SIGN(1._8,180._8-vlong(:))*MIN(vlong(:), ABS(vlong(:)-360._8))
    END FUNCTION degE_to_degWE_1d
 
    FUNCTION degE_to_degWE_2d( xlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:,:) :: xlong
       REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: degE_to_degWE_2d
-      degE_to_degWE_2d = SIGN(1._8,180._8-xlong)*MIN(xlong, ABS(xlong-360._8))
+      degE_to_degWE_2d(:,:) = SIGN(1._8,180._8-xlong(:,:))*MIN(xlong(:,:), ABS(xlong(:,:)-360._8))
    END FUNCTION degE_to_degWE_2d
 
 

@@ -20,7 +20,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    !!
    !!  - coordinates: "longitude" and "latitude" variables at each record => "latitude(record)", "longitude(record)"
    !!
-   !!  - since it's a section and not a "track" a depth dimension is needed 
+   !!  - since it's a section and not a "track" a depth dimension is needed
    !!    => depth dimension is "z"
    !!    => depth variable is a 2D array called "depth" => "depth(record,z)"
    !!
@@ -40,15 +40,16 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: Nt0, Nti, Ntf, iP, jP, iquadran
+   INTEGER :: Nrec, jr, nz, iP, jP, iquadran
    !!
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_gt_0, xlat_gt_0, xlon_gt_i, xlat_gt_i, xlon_gt_f, xlat_gt_f, xdum_r8
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_o, xlat_o, xdum_r8
    !!
 
 
    !! Coupe stuff:
-   REAL(8), DIMENSION(:),   ALLOCATABLE :: Ftrack_mod, Ftrack_mod_np, Ftrack_obs, rcycle_obs, vdistance
-   REAL(8), DIMENSION(:),   ALLOCATABLE :: vtf, vt_mod, vt_obs, F_gt_0, F_gt_f, rcycle
+   REAL(8), DIMENSION(:),   ALLOCATABLE :: Fhs_m, Fhs_m_np, Fhs_o, vdistance
+   REAL(8), DIMENSION(:),   ALLOCATABLE :: vtf, vt_mod
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: F_o
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: RES_2D_MOD, RES_2D_OBS
 
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
@@ -77,7 +78,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    LOGICAL ::  &
       &     l_get_mask_metrics_from_meshmask = .FALSE., &
       &     l_mask_input_data = .FALSE., &
-      &   l_write_nc_show_track = .FALSE., &
+      &   l_write_nc_show_route = .FALSE., &
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
       &     l_loc1, l_loc2, &
@@ -103,26 +104,23 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs, xvar, xvar1, xvar2, xmean
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_m, xlat_m
    REAL(8), DIMENSION(:),   ALLOCATABLE :: vdepth_mod
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask, imask_ignr
-   INTEGER(1), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
+   INTEGER(1), DIMENSION(:),   ALLOCATABLE :: Fmask
    !!
-   INTEGER :: jt, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
+   INTEGER :: jt, jt0, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
-   REAL(8) :: rt, t_min_e, t_max_e, t_min_m, t_max_m, &
-      &       alpha, beta, t_min, t_max
+   REAL(8) :: alpha, beta
    !!
    CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S','-M' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
    REAL(4) :: rfillval_mod
-
-   INTEGER :: it1, it2
 
    CHARACTER(80), PARAMETER :: cunit_time_trg = 'seconds since 1970-01-01 00:00:00'
 
@@ -142,7 +140,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
    !! Getting string arguments :
    !! --------------------------
-   
+
    l_get_mask_metrics_from_meshmask = .FALSE.
    jarg = 0
 
@@ -182,7 +180,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
          CALL GET_MY_ARG('mesh_mask file', cf_mm)
 
       CASE('-S')
-         l_write_nc_show_track = .TRUE.
+         l_write_nc_show_route = .TRUE.
 
       CASE('-n')
          CALL GET_MY_ARG('ground track input variable', cv_obs)
@@ -205,14 +203,14 @@ PROGRAM INTERP_TO_HYDRO_SECTION
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
       CALL usage()
    END IF
-   
+
    IF ( TRIM(cv_obs) == '' ) THEN
       PRINT *, ''
       PRINT *, 'You must specify the name of which variable to look at in orbit file ! => -n <name> !!!'
       CALL usage()
    END IF
-   
-   
+
+
 
    PRINT *, ''
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
@@ -226,7 +224,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
    PRINT *, ''
 
-   !! Name of config: lulu
+   !! Name of config:
    idot = SCAN(cf_mod, '/', back=.TRUE.)
    cdum = cf_mod(idot+1:)
    idot = SCAN(cdum, '.', back=.TRUE.)
@@ -265,7 +263,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    END IF
 
    PRINT *, ''
-   
+
 
    !! testing variable dimensions
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -287,7 +285,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
    PRINT *, ''
    PRINT *, ' *** Allocating ni x nj arrays...'
-   ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj), &
+   ALLOCATE ( xlon_m(ni,nj), xlat_m(ni,nj), xdum_r4(ni,nj), &
       &       xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj),    &
       &       vdepth_mod(nk), imask(ni,nj), vt_mod(Ntm) )
    IF ( l_debug ) THEN
@@ -325,18 +323,18 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    ! Longitude array:
-   CALL GETVAR_2D (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xlont(:,:))  ; i0=0 ; j0=0
+   CALL GETVAR_2D (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xlon_m(:,:))  ; i0=0 ; j0=0
 
    !! Min an max lon:
-   lon_min_1 = MINVAL(xlont)
-   lon_max_1 = MAXVAL(xlont)
+   lon_min_1 = MINVAL(xlon_m)
+   lon_max_1 = MAXVAL(xlon_m)
    PRINT *, ' *** Minimum longitude on source domain before : ', lon_min_1
    PRINT *, ' *** Maximum longitude on source domain before : ', lon_max_1
    !!
-   WHERE ( xlont < 0. ) xlont = xlont + 360.0_8
+   WHERE ( xlon_m < 0. ) xlon_m = xlon_m + 360.0_8
    !!
-   lon_min_2 = MINVAL(xlont)
-   lon_max_2 = MAXVAL(xlont)
+   lon_min_2 = MINVAL(xlon_m)
+   lon_max_2 = MAXVAL(xlon_m)
    PRINT *, ' *** Minimum longitude on source domain: ', lon_min_2
    PRINT *, ' *** Maximum longitude on source domain: ', lon_max_2
 
@@ -363,11 +361,11 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
 
    ! Latitude array:
-   CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lat, 0, 0, 0, xlatt(:,:)) ; i0=0 ; j0=0
+   CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lat, 0, 0, 0, xlat_m(:,:)) ; i0=0 ; j0=0
 
    !! Min an max lat:
-   lat_min = MINVAL(xlatt)
-   lat_max = MAXVAL(xlatt)
+   lat_min = MINVAL(xlat_m)
+   lat_max = MAXVAL(xlat_m)
    PRINT *, ' *** Minimum latitude on source domain : ', lat_min
    PRINT *, ' *** Maximum latitude on source domain : ', lat_max
 
@@ -389,7 +387,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
 
 
-   
+
    !! 2D land-sea mask on model grid:
    IF (l_get_mask_metrics_from_meshmask) THEN
       CALL GETMASK_2D(cf_mm, cv_mt, imask, jlev=1)
@@ -401,115 +399,74 @@ PROGRAM INTERP_TO_HYDRO_SECTION
       WHERE ( xdum_r4 == rfillval_mod ) imask = 0
       i0=0 ; j0=0
    END IF
-   
+
    IF ( l_mask_input_data ) THEN
       ! taking into consideration the forced masked region 'imask_ignr'
       WHERE ( imask_ignr(:,:) == 0 ) imask(:,:) = 0
       DEALLOCATE ( imask_ignr )
    END IF
-   
-   IF(l_debug) CALL DUMP_FIELD(REAL(imask), 'mask_surface_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
 
-
-
-   STOP'LOLO!'
+   IF(l_debug) CALL DUMP_FIELD(REAL(imask), 'mask_surface_in.nc', 'lsm') !, xlon_m, xlat_m, 'nav_lon', 'nav_lat', rfill=-9999.)
 
 
 
 
 
-   !! Reading along-track from file:
+
+
+
+
+   !! Time to read the hydrographic section file:
 
    INQUIRE(FILE=TRIM(cf_obs), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
-      PRINT *, 'ERROR: please provide the file containing definition of orbit track'; STOP
+      PRINT *, 'ERROR: please provide the file containing hydrographic section'; STOP
    END IF
 
-   CALL DIMS(cf_obs, 'time', Nt0, nj1, nk, ni1)
-   PRINT *, ' *** Nb. time records in NetCDF track file:', Nt0
-   ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0), rcycle(Nt0) )
-  
-   CALL GETVAR_1D(cf_obs, 'time', vt_obs)
-   CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
-   CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
-   
-   CALL GETVAR_1D(cf_obs, 'cycle',     rcycle)
+   !! Geting dimmensions:
+   CALL DIMS(cf_obs, cv_obs, nz, ni1, nj1, Nrec)
+   IF( (ni1 /= -1).OR.(nj1 /= -1) ) THEN
+      PRINT *, 'ERROR: variable ',TRIM(cv_obs), 'must have only 2 dimmensions [record,z] !' ; STOP
+   END IF
+   PRINT *, ' *** Nb. of records in hydrographic section:', Nrec
+   PRINT *, ' *** Nb. of depths  in hydrographic section:', nz
+   PRINT *, ''
 
-   CALL GETVAR_1D(cf_obs, cv_obs,      F_gt_0)
+
+   ALLOCATE ( xlon_o(1,Nrec), xlat_o(1,Nrec), F_o(nz,Nrec) )
+
+   CALL GETVAR_1D(cf_obs, 'longitude', xlon_o(1,:))
+   CALL GETVAR_1D(cf_obs, 'latitude',  xlat_o(1,:))
+
+   !! Reading the Nrec vertical profiles into F_o:
+   DO jr=1, Nrec
+      CALL GETVAR_1D(cf_obs, cv_obs, F_o(:,jr), jrec=jr)
+   END DO
 
    PRINT *, 'Done!'; PRINT *, ''
-
-
-
 
 
 
    nib = ni ; njb = nj ; ji_min=1 ; ji_max=ni ; jj_min=1 ; jj_max=nj
 
 
-   !! Defaults:
-   Nti = Nt0
-   it1  = 1
-   it2  = Nt0
+   !IF ( .NOT. l_debug_mapping ) THEN
+   !IF ( l_use_anomaly ) THEN
+   !   PRINT *, ''
+   !   PRINT *, ' *** Computing mean of field '//TRIM(cv_mod)//' for considering anomaly later...'
+   !   ALLOCATE ( xmean(ni,nj) )
+   !   xmean = 0.
+   !   DO jt = 1, Ntm
+   !      CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jt, xdum_r4)
+   !      xmean = xmean + xdum_r4/REAL(Ntm,4)
+   !   END DO
+   !   id_f1=0 ;  id_v1=0
+   !   !WHERE ( imask == 0 ) xmean = -9999.
+   !   CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlon_m, xlat_m, 'nav_lon', 'nav_lat', rfill=-9999.)
+   !   !STOP 'lolo'
+   !END IF
+   !END IF ! IF ( .NOT. l_debug_mapping )
 
-   IF ( .NOT. l_debug_mapping ) THEN
-
-
-      IF ( l_use_anomaly ) THEN
-         PRINT *, ''
-         PRINT *, ' *** Computing mean of field '//TRIM(cv_mod)//' for considering anomaly later...'
-         ALLOCATE ( xmean(ni,nj) )
-         xmean = 0.
-         DO jt = 1, Ntm
-            CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jt, xdum_r4)
-            xmean = xmean + xdum_r4/REAL(Ntm,4)
-         END DO
-         id_f1=0 ;  id_v1=0
-         !WHERE ( imask == 0 ) xmean = -9999.
-         CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-         !STOP 'lolo'
-      END IF
-
-      t_min_e = MINVAL(vt_obs)
-      t_max_e = MAXVAL(vt_obs)
-      t_min_m = MINVAL(vt_mod)
-      t_max_m = MAXVAL(vt_mod)
-
-      PRINT *, ''
-      PRINT *, ' *** Max min time for track:', t_min_e, t_max_e
-      PRINT *, ' *** Max min time for model:', t_min_m, t_max_m
-      PRINT *, ''
-
-      IF ( (t_min_m >= t_max_e).OR.(t_min_e >= t_max_m).OR.(t_max_m <= t_min_e).OR.(t_max_e <= t_min_m) ) THEN
-         PRINT *, ' No time overlap for Model and Track file! '
-         STOP
-      END IF
-
-      t_min = MAX(t_min_e, t_min_m)
-      t_max = MIN(t_max_e, t_max_m)
-      PRINT *, ' *** Time overlap for Model and Track file:', t_min, t_max
-
-
-      !! Finding when we can start and stop when scanning the track file:
-      !! it1, it2
-      DO it1 = 1, Nt0-1
-         IF ( (vt_obs(it1) <= t_min).AND.(vt_obs(it1+1) > t_min) ) EXIT
-      END DO
-      DO it2 = it1, Nt0-1
-         IF ( (vt_obs(it2) <= t_max).AND.(vt_obs(it2+1) > t_max) ) EXIT
-      END DO
-
-      Nti = it2 - it1 + 1
-
-      PRINT *, ' it1, it2 =',it1, it2
-      PRINT *, Nti, '  out of ', Nt0
-      PRINT *, ' => ', vt_obs(it1), vt_obs(it2)
-      PRINT *, ''
-   END IF ! IF ( .NOT. l_debug_mapping )
-
-   ALLOCATE ( IGNORE(1,Nti), xlon_gt_i(1,Nti), xlat_gt_i(1,Nti) )
-
-   IGNORE(:,:) = 1 !lolo
 
    !! Main time loop is on time vector in track file!
 
@@ -517,68 +474,25 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    cf_mpg = 'MAPPING__'//TRIM(cconf)//'.nc'
 
 
-   !!
-   xlon_gt_i(:,:) = xlon_gt_0(:,it1:it2)
-   xlat_gt_i(:,:) = xlat_gt_0(:,it1:it2)
+   !PRINT *, '  lon =  20. =>', to_degE(20._8)
+   !PRINT *, '  lon = -20. =>', to_degE(-20._8)
+   !STOP   
 
-   DEALLOCATE ( xlon_gt_0, xlat_gt_0 )
-
-   IF ( .NOT. l_glob_lon_wize ) THEN
-      ALLOCATE ( xdum_r8(1,Nti) )
-      xdum_r8 = degE_to_degWE(xlon_gt_i)
-      
-      !xdum_r8 = SIGN(1._8, 180._8-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360._8)) ! like xlon_gt_i but between -180 and +180 !
-      WHERE ( xdum_r8 < lon_min_1 ) IGNORE=0
-      WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
-      DEALLOCATE ( xdum_r8 )
-   END IF
-
-   IF ( .NOT. l_glob_lat_wize ) THEN
-      WHERE ( xlat_gt_i < lat_min ) IGNORE=0
-      WHERE ( xlat_gt_i > lat_max ) IGNORE=0
-   END IF
-
-
-   !! We are going to shorten our 1D input arrays, only keeping values included
-   !! in target domain (i.e. where IGNORE==1):
-
+   PRINT *, 'LOLO: xlon_o =', xlon_o
    PRINT *, ''
-   PRINT *, ' Intially we had Nt0 ', Nt0, ' points'
-   PRINT *, ' - excluding non relevant time led to Nti', Nti, ' points', SIZE(IGNORE(1,:),1)
+   xlon_o = to_degE(xlon_o) ! to degrees East
+   PRINT *, 'LOLO: xlon_o =', xlon_o
 
-   !Ntf = SUM(INT4(IGNORE)) !lolo wtf Gfortran ???
-   Ntf = SUM(INT(IGNORE))
-   PRINT *, ' - and in the end we only retain Ntf ', Ntf , ' points!'
-   PRINT *, ''
-
-
-
+   
    !! Allocate arrays on the final retained size
-   ALLOCATE ( IMETRICS(1,Ntf,3), RAB(1,Ntf,2), IPB(1,Ntf), xlon_gt_f(1,Ntf), xlat_gt_f(1,Ntf), vtf(Ntf), F_gt_f(Ntf), icycle(Ntf) )
-   ALLOCATE ( Ftrack_mod(Ntf), Ftrack_obs(Ntf), Fmask(Ntf), Ftrack_mod_np(Ntf), rcycle_obs(Ntf), vdistance(Ntf) )
-
-   xlon_gt_f(1,:) = SHRINK_VECTOR(xlon_gt_i(1,:),  IGNORE(1,:), Ntf)
-   xlat_gt_f(1,:) = SHRINK_VECTOR(xlat_gt_i(1,:),  IGNORE(1,:), Ntf)
-   vtf(:)         = SHRINK_VECTOR(rcycle(it1:it2), IGNORE(1,:), Ntf)
-   icycle = INT2(vtf)
-   vtf(:)         = SHRINK_VECTOR(vt_obs(it1:it2), IGNORE(1,:), Ntf) !
-   F_gt_f(:)      = SHRINK_VECTOR(F_gt_0(it1:it2), IGNORE(1,:), Ntf)
-
-   ! 
-   DEALLOCATE ( xlon_gt_i , xlat_gt_i , vt_obs , F_gt_0 , rcycle )
-
-
-   
-
-   
-
-
+   ALLOCATE ( IMETRICS(1,Nrec,3), RAB(1,Nrec,2), IPB(1,Nrec),  vtf(Nrec) )
+   ALLOCATE ( Fhs_m(Nrec), Fhs_o(Nrec), Fmask(Nrec), Fhs_m_np(Nrec), vdistance(Nrec) )
 
 
    INQUIRE(FILE=trim(cf_mpg), EXIST=l_exist ) !
    IF ( .NOT. l_exist ) THEN
       PRINT *, ' *** Creating mapping file...' !
-      CALL MAPPING_BL(-1, xlont, xlatt, xlon_gt_f, xlat_gt_f, cf_mpg ) !,  mask_domain_trg=IGNORE) don't need ignore, points have been removed!
+      CALL MAPPING_BL(-1, xlon_m, xlat_m, xlon_o, xlat_o, cf_mpg ) !,  mask_domain_trg=IGNORE) don't need ignore, points have been removed!
       PRINT *, ' *** Done!'; PRINT *, ''
    ELSE
       PRINT *, ' *** File "',trim(cf_mpg),'" found in current directory, using it!'
@@ -588,26 +502,25 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    CALL RD_MAPPING_AB(cf_mpg, IMETRICS, RAB, IPB)
    PRINT *, ''; PRINT *, ' *** Mapping and weights read into "',trim(cf_mpg),'"'; PRINT *, ''
 
-   ALLOCATE (JIidx(1,Ntf) , JJidx(1,Ntf) )
+   ALLOCATE (JIidx(1,Nrec) , JJidx(1,Nrec) )
    JIidx(1,:) = IMETRICS(1,:,1)
    JJidx(1,:) = IMETRICS(1,:,2)
 
 
-
-   !! Showing iy in file mask_+_nearest_points.nc:
-   IF ( l_write_nc_show_track ) THEN
+   !! Showing route in file mask_+_nearest_points.nc:
+   IF ( l_write_nc_show_route ) THEN
       !! Finding and storing the nearest points of NEMO grid to track points:
-      !CALL FIND_NEAREST_POINT(xlon_gt_0, xlat_gt_0, xlont, xlatt,  JIidx, JJidx)
+      !CALL FIND_NEAREST_POINT(xlon_o, xlat_o, xlon_m, xlat_m,  JIidx, JJidx)
       ALLOCATE ( show_obs(nib,njb) )
       show_obs(:,:) = -9999.
-      DO jtf = 1, Ntf
-         IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
+      DO jr = 1, Nrec
+         IF ( (JIidx(1,jr)>0).AND.(JJidx(1,jr)>0) )  show_obs(JIidx(1,jr), JJidx(1,jr)) = REAL(jr,4)
       END DO
       WHERE (imask == 0) show_obs = -100.
-      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
+      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlon_m, xlat_m, cv_lon, cv_lat, rfill=-9999.)
       !lolo:
-      !CALL DUMP_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
-      !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
+      !CALL DUMP_FIELD(REAL(xlon_m(:,:),4), 'lon_360.nc', 'lon')
+      !show_obs = SIGN(1.,180.-xlon_m)*MIN(xlon_m,ABS(xlon_m-360.))
       !CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'lon_-180-180.nc', 'lon')
       !WHERE ( (show_obs > 10.).OR.(show_obs < -90.) ) show_obs = -800.
       !CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'lon_masked.nc', 'lon')
@@ -620,129 +533,118 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    IF ( l_debug_mapping ) STOP 'l_debug_mapping'
 
 
+   STOP'LOLO0'
 
    !STOP 'mapping done!'
 
 
 
-   Ftrack_mod_np(:) = -9999.
-   Ftrack_obs(:)    = -9999.
-   Ftrack_mod(:)    = -9999.
+   Fhs_m_np(:) = -9999.
+   Fhs_o(:)    = -9999.
+   Fhs_m(:)    = -9999.
    Fmask(:)         = 0
-   rcycle_obs(:)    = -9999.
 
    jtm_1_o = -100
    jtm_2_o = -100
    jt_s    = 1
 
-   DO jtf = 1, Ntf
+   
+   DO jr = 1, Nrec
 
-      rt = vtf(jtf)
+      jtm_1 = jt
+      jtm_2 = jt+1
+      IF (jr==1) jt0 = jtm_1 ! Saving the actual first useful time step of the model!
 
-      IF ( (rt >= t_min_m).AND.(rt < t_max_m) ) THEN
+      !PRINT *, ' * Track time =>', rt, '/ model jtm_1,jtm_2 =', INT2(jtm_1), INT2(jtm_2)
 
-         !! Two surrounding time records in model file => jtm_1 & jtm_2
-         DO jt=jt_s, Ntm-1
-            IF ( (rt >= vt_mod(jt)).AND.(rt < vt_mod(jt+1)) ) EXIT
-         END DO
-         !!
-         jtm_1 = jt
-         jtm_2 = jt+1
-         IF (jtf==1) jt0 = jtm_1 ! Saving the actual first useful time step of the model!
-
-         PRINT *, ' * Track time =>', rt, '/ model jtm_1,jtm_2 =', INT2(jtm_1), INT2(jtm_2)
-
-         !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
-         IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
-            IF ( (jtm_1_o == -100).OR.(jtm_1 > jtm_2_o) ) THEN
-               PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
-               PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt0,')'
-               CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt0)
-               IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
-               IF ( l_drown_in ) CALL DROWN(-1, xvar1, imask, nb_inc=5)
-            ELSE
-               xvar1(:,:) = xvar2(:,:)
-            END IF
+      !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
+      IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
+         IF ( (jtm_1_o == -100).OR.(jtm_1 > jtm_2_o) ) THEN
             PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
-            PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt0,')'
-            CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt0)
-            IF ( l_use_anomaly ) xvar2 = xvar2 - xmean
-            IF ( l_drown_in ) CALL DROWN(-1, xvar2, imask, nb_inc=5)
-
-            xdum_r4 = (xvar2 - xvar1) / (vt_mod(jtm_2) - vt_mod(jtm_1)) ! xdum_r4 is the slope here !!!
-
-            PRINT *, ''
+            PRINT *, '    => at jtm_1=', jtm_1, '  (starting from jt1=',jt0,')'
+            CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_1, xvar1, jt1=jt0)
+            IF ( l_use_anomaly ) xvar1 = xvar1 - xmean
+            IF ( l_drown_in ) CALL DROWN(-1, xvar1, imask, nb_inc=5)
+         ELSE
+            xvar1(:,:) = xvar2(:,:)
          END IF
+         PRINT *, ' *** Reading field '//TRIM(cv_mod)//' in '//TRIM(cf_mod)
+         PRINT *, '    => at jtm_2=', jtm_2, '  (starting from jt1=',jt0,')'
+         CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jtm_2, xvar2, jt1=jt0)
+         IF ( l_use_anomaly ) xvar2 = xvar2 - xmean
+         IF ( l_drown_in ) CALL DROWN(-1, xvar2, imask, nb_inc=5)
 
-         !! Linear interpolation of field at time rt:
-         xvar(:,:) = xvar1(:,:) + xdum_r4(:,:)*(rt - vt_mod(jtm_1))
+         xdum_r4 = (xvar2 - xvar1) / (vt_mod(jtm_2) - vt_mod(jtm_1)) ! xdum_r4 is the slope here !!!
 
-         !! Performing bilinear interpolation:
-         iP       = IMETRICS(1,jtf,1)
-         jP       = IMETRICS(1,jtf,2)
-         iquadran = IMETRICS(1,jtf,3)
-         alpha    = RAB(1,jtf,1)
-         beta     = RAB(1,jtf,2)
+         PRINT *, ''
+      END IF
 
-         !LOLO: IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
-         IF ( (iP>0).AND.(jP>0) ) THEN
-            IF ( imask(iP,jP)==1 ) THEN
-               r_obs    = F_gt_f(jtf)
-               l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
-               IF ( l_obs_ok ) THEN
-                  !! Ignore points that are just 1 point away from land:
-                  ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
-                  im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
-                  idot = imask(ip1,jP) + imask(ip1,jp1) + imask(iP,jp1) + imask(im1,jp1) &
-                     & + imask(im1,jP) + imask(im1,jm1) + imask(iP,jm1) + imask(ip1,jm1)
-                  !! => idot == 8 if in that case...
-                  !!
-                  IF (idot==8) THEN
-                     !! Model, nearest point:
-                     Ftrack_mod_np(jtf) =  xvar(JIidx(1,jtf),JJidx(1,jtf)) ! NEAREST POINT interpolation
-                     !! Model, 2D bilinear interpolation:
-                     Ftrack_mod(jtf) = REAL( INTERP_BL(-1, iP, jP, iquadran, alpha, beta, xvar) , 8)
-                     !! Observations as on their original point:
-                     Ftrack_obs(jtf) = r_obs
-                     IF ( l_debug ) THEN
-                        !! On the model grid for info:
-                        RES_2D_MOD(iP,jP) = Ftrack_mod(jtf)
-                        RES_2D_OBS(iP,jP) = Ftrack_obs(jtf)
-                     END IF
-                     !!
-                     Fmask(jtf) = 1 ! That was a valid point!
-                     !!
-                     rcycle_obs(jtf) = REAL( icycle(jtf), 8 )
-                     !!
+      !! Linear interpolation of field at time rt:
+      !xvar(:,:) = xvar1(:,:) + xdum_r4(:,:)*(rt - vt_mod(jtm_1))
+
+      !! Performing bilinear interpolation:
+      iP       = IMETRICS(1,jr,1)
+      jP       = IMETRICS(1,jr,2)
+      iquadran = IMETRICS(1,jr,3)
+      alpha    = RAB(1,jr,1)
+      beta     = RAB(1,jr,2)
+
+      !LOLO: IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
+      IF ( (iP>0).AND.(jP>0) ) THEN
+         IF ( imask(iP,jP)==1 ) THEN
+            l_obs_ok = ( r_obs > -20.).AND.( r_obs < 20.)
+            IF ( l_obs_ok ) THEN
+               !! Ignore points that are just 1 point away from land:
+               ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
+               im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
+               idot = imask(ip1,jP) + imask(ip1,jp1) + imask(iP,jp1) + imask(im1,jp1) &
+                  & + imask(im1,jP) + imask(im1,jm1) + imask(iP,jm1) + imask(ip1,jm1)
+               !! => idot == 8 if in that case...
+               !!
+               IF (idot==8) THEN
+                  !! Model, nearest point:
+                  Fhs_m_np(jr) =  xvar(JIidx(1,jr),JJidx(1,jr)) ! NEAREST POINT interpolation
+                  !! Model, 2D bilinear interpolation:
+                  Fhs_m(jr) = REAL( INTERP_BL(-1, iP, jP, iquadran, alpha, beta, xvar) , 8)
+                  !! Observations as on their original point:
+                  Fhs_o(jr) = r_obs
+                  IF ( l_debug ) THEN
+                     !! On the model grid for info:
+                     RES_2D_MOD(iP,jP) = Fhs_m(jr)
+                     RES_2D_OBS(iP,jP) = Fhs_o(jr)
                   END IF
+                  !!
+                  Fmask(jr) = 1 ! That was a valid point!
+                  !!
+                  !rcycle_obs(jr) = REAL( icycle(jr), 8 )
+                  !!
                END IF
             END IF
          END IF
-
-         jtm_1_o = jtm_1
-         jtm_2_o = jtm_2
-         jt_s    = jtm_1 ! so we do not rescan from begining...
-
       END IF
+
+      jtm_1_o = jtm_1
+      jtm_2_o = jtm_2
+      jt_s    = jtm_1 ! so we do not rescan from begining...
 
    END DO
 
 
    !! Vector distance (in km)
    vdistance(:) = 0.
-   DO jt = 2, Ntf
-      IF ( (Fmask(jt)==1).AND.(Fmask(jt-1)==1) ) vdistance(jt) = vdistance(jt-1) + DISTANCE( xlon_gt_f(1,jt), xlon_gt_f(1,jt-1), xlat_gt_f(1,jt), xlat_gt_f(1,jt-1) )
+   DO jt = 2, Nrec
+      IF ( (Fmask(jt)==1).AND.(Fmask(jt-1)==1) ) vdistance(jt) = vdistance(jt-1) + DISTANCE( xlon_o(1,jt), xlon_o(1,jt-1), xlat_o(1,jt), xlat_o(1,jt-1) )
    END DO
 
    WHERE ( Fmask == 0 )
-      Ftrack_mod    = -9999.
-      Ftrack_mod_np = -9999.
-      Ftrack_obs    = -9999.
-      rcycle_obs    = -9999.
+      Fhs_m    = -9999.
+      Fhs_m_np = -9999.
+      Fhs_o    = -9999.
+      !rcycle_obs    = -9999.
       vdistance     = -9999.
    END WHERE
 
-   WHERE ( Ftrack_mod < -9990. ) Ftrack_mod = -9999.
+   WHERE ( Fhs_m < -9990. ) Fhs_m = -9999.
 
 
    PRINT *, ''
@@ -751,29 +653,28 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    PRINT *, ' * Output file = ', trim(cf_out)
    PRINT *, ''
 
-   CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
+   CALL PT_SERIES(vtf(:), REAL(Fhs_m,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
       &           ct_unit=TRIM(cunit_time_trg), &
-      &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
-      &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
-      &           vdt4=REAL(xlon_gt_f(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
-      &           vdt5=REAL(xlat_gt_f(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
+      &           vdt2=REAL(Fhs_m_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
+      &           vdt3=REAL(Fhs_o,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
+      &           vdt4=REAL(xlon_o(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
+      &           vdt5=REAL(xlat_o(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
       &           vdt6=REAL(Fmask,4),          cv_dt6='mask',             cln6='Mask', &
-      &           vdt7=REAL(rcycle_obs,4),     cv_dt7='cycle',            cln7='cycle', &
-      &           vdt8=REAL(vdistance,4),      cv_dt8='distance',         cln8='Distance (in km) from first point of segment' )
+      &           vdt7=REAL(vdistance,4),      cv_dt7='distance',         cln7='Distance (in km) from first point of segment' )
 
    IF ( l_debug ) THEN
       WHERE ( imask == 0 )
          RES_2D_MOD = -9999.
          RES_2D_OBS = -9999.
       END WHERE
-      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_M__'//TRIM(cconf)//'.nc', cv_mod, xlon_m, xlat_m, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlon_m, xlat_m, 'nav_lon', 'nav_lat', rfill=-9999.)
    END IF
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
-   !DEALLOCATE ( F_gt_0 )
-   !DEALLOCATE ( Ftrack_mod, Ftrack_mod_np, Ftrack_obs )
-   !DEALLOCATE ( xlont, xlatt, xvar, xvar1, xvar2, xdum_r4, imask, xdum_r8 )
+   DEALLOCATE ( F_o )
+   !DEALLOCATE ( Fhs_m, Fhs_m_np, Fhs_o )
+   !DEALLOCATE ( xlon_m, xlat_m, xvar, xvar1, xvar2, xdum_r4, imask, xdum_r8 )
 
 
    PRINT *, ''
