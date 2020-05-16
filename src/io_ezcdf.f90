@@ -996,26 +996,38 @@ CONTAINS
 
 
 
-
-   SUBROUTINE PT_SERIES(vtime, vdt1, cf_in, cv_t, cv_dt1, cunit, cln1, vflag, &
-      &                 ct_unit,             &
-      &                 vdt2, cv_dt2, cln2,  &
-      &                 vdt3, cv_dt3, cln3,  &
-      &                 vdt4, cv_dt4, cln4,  &
-      &                 vdt5, cv_dt5, cln5,  &
-      &                 vdt6, cv_dt6, cln6,  &
-      &                 vdt7, cv_dt7, cln7,  &
-      &                 vdt8, cv_dt8, cln8 )
+   
+   SUBROUTINE PT_SERIES(vtime, vdt01, cf_in, cv_t, cv_dt01, cun01, cln01, vflag, &
+      &                 ct_unit, ct_clnd,              &
+      &                 vdt02, cv_dt02, cun02, cln02,  &
+      &                 vdt03, cv_dt03, cun03, cln03,  &
+      &                 vdt04, cv_dt04, cun04, cln04,  &
+      &                 vdt05, cv_dt05, cun05, cln05,  &
+      &                 vdt06, cv_dt06, cun06, cln06,  &
+      &                 vdt07, cv_dt07, cun07, cln07,  &
+      &                 vdt08, cv_dt08, cun08, cln08,  &
+      &                 vdt09, cv_dt09, cun09, cln09,  &
+      &                 vdt10, cv_dt10, cun10, cln10,  &
+      &                 vdt11, cv_dt11, cun11, cln11,  &
+      &                 vdt12, cv_dt12, cun12, cln12,  &
+      &                 vdt13, cv_dt13, cun13, cln13,  &
+      &                 vdt14, cv_dt14, cun14, cln14,  &
+      &                 vdt15, cv_dt15, cun15, cln15,  &
+      &                 vdt16, cv_dt16, cun16, cln16,  &
+      &                 vdt17, cv_dt17, cun17, cln17,  &
+      &                 vdt18, cv_dt18, cun18, cln18,  &
+      &                 vdt19, cv_dt19, cun19, cln19,  &
+      &                 vdt20, cv_dt20, cun20, cln20   )
 
       !! INPUT :
       !! -------
       !!        vtime  = time array                               [array 1D real8]
-      !!        vdt1 = 1D array containing time-series         [array 1D real4]
+      !!        vdt01 = 1D array containing time-series         [array 1D real4]
       !!        cf_in  = name of the output file                  [character]
       !!        cv_t = name of time                               [character]
-      !!        cv_dt1  = name of the variable                     [character]
-      !!        cunit  = unit for treated variable                [character]
-      !!        cln1 = long-name for treated variable              [character]
+      !!        cv_dt01  = name of the variable                     [character]
+      !!        cun01  = unit for treated variable                [character]
+      !!        cln01 = long-name for treated variable              [character]
       !!        vflag = flag value or "0."                        [real]
       !!
       !!        ct_unit = time unit
@@ -1023,126 +1035,282 @@ CONTAINS
       !!--------------------------------------------------------------------------
 
       REAL(8), DIMENSION(:),     INTENT(in)   :: vtime
-      REAL(4), DIMENSION(:),      INTENT(in)  :: vdt1
-      CHARACTER(len=*),           INTENT(in)  :: cf_in, cv_t, cv_dt1, cunit, cln1
+      REAL(4), DIMENSION(:),      INTENT(in)  :: vdt01
+      CHARACTER(len=*),           INTENT(in)  :: cf_in, cv_t, cv_dt01, cun01, cln01
       REAL(4),                    INTENT(in)  :: vflag
-      CHARACTER(len=*), OPTIONAL, INTENT(in)  :: ct_unit
-      REAL(4), DIMENSION(:), OPTIONAL, INTENT(in)  :: vdt2, vdt3, vdt4, vdt5, vdt6, vdt7, vdt8
-      CHARACTER(len=*),      OPTIONAL, INTENT(in)  :: cv_dt2, cv_dt3, cv_dt4, cv_dt5, cv_dt6, cv_dt7, cv_dt8, &
-         &                                            cln2, cln3, cln4, cln5, cln6, cln7, cln8
+      CHARACTER(len=*), OPTIONAL, INTENT(in)  :: ct_unit, ct_clnd
+      REAL(4), DIMENSION(:), OPTIONAL, INTENT(in)  :: vdt02, vdt03, vdt04, vdt05, vdt06, vdt07, vdt08, &
+         &                                            vdt09, vdt10, vdt11, vdt12, vdt13, vdt14, vdt15, &
+         &                                            vdt16, vdt17, vdt18, vdt19, vdt20
+      CHARACTER(len=*),      OPTIONAL, INTENT(in)  :: cv_dt02, cv_dt03, cv_dt04, cv_dt05, cv_dt06, cv_dt07, cv_dt08, &
+         &                                            cv_dt09, cv_dt10, cv_dt11, cv_dt12, cv_dt13, cv_dt14, cv_dt15, &
+         &                                            cv_dt16, cv_dt17, cv_dt18, cv_dt19, cv_dt20
+      CHARACTER(len=*),      OPTIONAL, INTENT(in)  :: cun02, cun03, cun04, cun05, cun06, cun07, cun08, &
+         &                                            cun09, cun10, cun11, cun12, cun13, cun14, cun15, &
+         &                                            cun16, cun17, cun18, cun19, cun20
+      CHARACTER(len=*),      OPTIONAL, INTENT(in) ::  cln02, cln03, cln04, cln05, cln06, cln07, cln08,  &
+         &                                            cln09, cln10, cln11, cln12, cln13, cln14, cln15,  &
+         &                                            cln16, cln17, cln18, cln19, cln20
       !!
-      INTEGER          :: idf, idv1, idv2, idv3, idv4, idv5, idv6, idv7, idv8, idtd, idt, nbt, jt
-      REAL(4)          :: rmin, rmax
+      INTEGER :: idf, idtd, idt, nbt, jt
+      INTEGER :: idv01, idv02, idv03, idv04, idv05, idv06, idv07, idv08, idv09, idv10, &
+         &       idv11, idv12, idv13, idv14, idv15, idv16, idv17, idv18, idv19, idv20      
+      REAL(4) :: rmin, rmax
+      LOGICAL :: l_add_time, &
+         &       ldv02=.FALSE.,ldv03=.FALSE.,ldv04=.FALSE.,ldv05=.FALSE.,ldv06=.FALSE.,ldv07=.FALSE.,ldv08=.FALSE.,ldv09=.FALSE., &
+         &       ldv10=.FALSE.,ldv11=.FALSE.,ldv12=.FALSE.,ldv13=.FALSE.,ldv14=.FALSE.,ldv15=.FALSE., &
+         &       ldv16=.FALSE.,ldv17=.FALSE.,ldv18=.FALSE.,ldv19=.FALSE.,ldv20=.FALSE.
 
       CHARACTER(len=80), PARAMETER :: crtn = 'PT_SERIES'
 
-      nbt = size(vtime,1)
+      IF (PRESENT(vdt02)) ldv02=.true.
+      IF (PRESENT(vdt03)) ldv03=.true.
+      IF (PRESENT(vdt04)) ldv04=.true.
+      IF (PRESENT(vdt05)) ldv05=.true.
+      IF (PRESENT(vdt06)) ldv06=.true.
+      IF (PRESENT(vdt07)) ldv07=.true.
+      IF (PRESENT(vdt08)) ldv08=.true.
+      IF (PRESENT(vdt09)) ldv09=.true.
+      IF (PRESENT(vdt10)) ldv10=.true.
+      IF (PRESENT(vdt11)) ldv11=.true.
+      IF (PRESENT(vdt12)) ldv12=.true.
+      IF (PRESENT(vdt13)) ldv13=.true.
+      IF (PRESENT(vdt14)) ldv14=.true.
+      IF (PRESENT(vdt15)) ldv15=.true.
+      IF (PRESENT(vdt16)) ldv16=.true.
+      IF (PRESENT(vdt17)) ldv17=.true.
+      IF (PRESENT(vdt18)) ldv18=.true.
+      IF (PRESENT(vdt19)) ldv19=.true.
+      IF (PRESENT(vdt20)) ldv20=.true.
 
-      IF (                     SIZE(vdt1,1)/=nbt)  CALL print_err(crtn, 'Time vec and series vec #1 dont agree in size! => '//TRIM(cv_dt1))
-      IF (PRESENT(cv_dt2).AND.(SIZE(vdt2,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #2 dont agree in size! => '//TRIM(cv_dt2))
-      IF (PRESENT(cv_dt3).AND.(SIZE(vdt3,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #3 dont agree in size! => '//TRIM(cv_dt3))
-      IF (PRESENT(cv_dt4).AND.(SIZE(vdt4,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #4 dont agree in size! => '//TRIM(cv_dt4))
-      IF (PRESENT(cv_dt5).AND.(SIZE(vdt5,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #5 dont agree in size! => '//TRIM(cv_dt5))
-      IF (PRESENT(cv_dt6).AND.(SIZE(vdt6,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #6 dont agree in size! => '//TRIM(cv_dt6))
-      IF (PRESENT(cv_dt7).AND.(SIZE(vdt7,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #7 dont agree in size! => '//TRIM(cv_dt7))
-      IF (PRESENT(cv_dt8).AND.(SIZE(vdt8,1)/=nbt)) CALL print_err(crtn, 'Time vec and series vec #8 dont agree in size! => '//TRIM(cv_dt8))
+      nbt = SIZE(vdt01,1)
+      
+      IF (                     SIZE(vdt01,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #01 dont agree in size! => '//TRIM(cv_dt01))
+      IF ( ldv02 ) THEN ; IF ( SIZE(vdt02,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #02 dont agree in size! => '//TRIM(cv_dt02)); ENDIF
+      IF ( ldv03 ) THEN ; IF ( SIZE(vdt03,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #03 dont agree in size! => '//TRIM(cv_dt03)); ENDIF
+      IF ( ldv04 ) THEN ; IF ( SIZE(vdt04,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #04 dont agree in size! => '//TRIM(cv_dt04)); ENDIF
+      IF ( ldv05 ) THEN ; IF ( SIZE(vdt05,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #05 dont agree in size! => '//TRIM(cv_dt05)); ENDIF
+      IF ( ldv06 ) THEN ; IF ( SIZE(vdt06,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #06 dont agree in size! => '//TRIM(cv_dt06)); ENDIF
+      IF ( ldv07 ) THEN ; IF ( SIZE(vdt07,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #07 dont agree in size! => '//TRIM(cv_dt07)); ENDIF
+      IF ( ldv08 ) THEN ; IF ( SIZE(vdt08,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #08 dont agree in size! => '//TRIM(cv_dt08)); ENDIF
+      IF ( ldv09 ) THEN ; IF ( SIZE(vdt09,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #09 dont agree in size! => '//TRIM(cv_dt09)); ENDIF
+      IF ( ldv10 ) THEN ; IF ( SIZE(vdt10,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #10 dont agree in size! => '//TRIM(cv_dt10)); ENDIF
+      IF ( ldv11 ) THEN ; IF ( SIZE(vdt11,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #11 dont agree in size! => '//TRIM(cv_dt11)); ENDIF
+      IF ( ldv12 ) THEN ; IF ( SIZE(vdt12,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #12 dont agree in size! => '//TRIM(cv_dt12)); ENDIF
+      IF ( ldv13 ) THEN ; IF ( SIZE(vdt13,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #13 dont agree in size! => '//TRIM(cv_dt13)); ENDIF
+      IF ( ldv14 ) THEN ; IF ( SIZE(vdt14,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #14 dont agree in size! => '//TRIM(cv_dt14)); ENDIF
+      IF ( ldv15 ) THEN ; IF ( SIZE(vdt15,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #15 dont agree in size! => '//TRIM(cv_dt15)); ENDIF
+      IF ( ldv16 ) THEN ; IF ( SIZE(vdt16,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #16 dont agree in size! => '//TRIM(cv_dt16)); ENDIF
+      IF ( ldv17 ) THEN ; IF ( SIZE(vdt17,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #17 dont agree in size! => '//TRIM(cv_dt17)); ENDIF
+      IF ( ldv18 ) THEN ; IF ( SIZE(vdt18,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #18 dont agree in size! => '//TRIM(cv_dt18)); ENDIF
+      IF ( ldv19 ) THEN ; IF ( SIZE(vdt19,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #19 dont agree in size! => '//TRIM(cv_dt19)); ENDIF
+      IF ( ldv20 ) THEN ; IF ( SIZE(vdt20,1)/=nbt ) CALL print_err(crtn, 'Time vec and series vec #20 dont agree in size! => '//TRIM(cv_dt20)); ENDIF
 
       IF ( vflag /= 0.) THEN
          rmin =  1.E6 ; rmax = -1.E6
          DO jt = 1, nbt
-            IF ((vdt1(jt) <= rmin).and.(vdt1(jt) /= vflag)) rmin = vdt1(jt)
-            IF ((vdt1(jt) >= rmax).and.(vdt1(jt) /= vflag)) rmax = vdt1(jt)
+            IF ((vdt01(jt) <= rmin).and.(vdt01(jt) /= vflag)) rmin = vdt01(jt)
+            IF ((vdt01(jt) >= rmax).and.(vdt01(jt) /= vflag)) rmax = vdt01(jt)
          END DO
       ELSE
-         rmin = minval(vdt1) ; rmax = maxval(vdt1)
+         rmin = minval(vdt01) ; rmax = maxval(vdt01)
       END IF
-
-
-      vextrema(3,:) = (/minval(vtime),maxval(vtime)/)
 
 
       !!           CREATE NETCDF OUTPUT FILE :
-      CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idf), crtn,cf_in,cv_dt1)
+      CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idf), crtn,cf_in,cv_dt01)
 
       !! Time
+      l_add_time = ( SUM(vtime) > 0. )      
       CALL sherr( NF90_DEF_DIM(idf, TRIM(cv_t), NF90_UNLIMITED, idtd),                       crtn,cf_in,cv_t)
-      CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=9), crtn,cf_in,cv_t)
-      IF ( PRESENT(ct_unit) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'units', TRIM(ct_unit)),    crtn,cf_in,cv_t)
-      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),                        crtn,cf_in,cv_t)
-      CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),                        crtn,cf_in,cv_t)
+      IF ( l_add_time ) THEN
+         vextrema(3,:) = (/MINVAL(vtime),MAXVAL(vtime)/)
+         CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=9),    crtn,cf_in,cv_t)
+         IF ( PRESENT(ct_unit) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'units',    TRIM(ct_unit)), crtn,cf_in,cv_t)
+         IF ( PRESENT(ct_clnd) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'calendar', TRIM(ct_clnd)), crtn,cf_in,cv_t)
+         CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),                        crtn,cf_in,cv_t)
+         CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_max', vextrema(3,2)),                        crtn,cf_in,cv_t)
+      END IF
 
       !! Variable(s):
-      CALL                      sherr( NF90_DEF_VAR(idf, TRIM(cv_dt1), NF90_FLOAT, idtd, idv1, deflate_level=9), crtn,cf_in,cv_dt1 )
-      IF (PRESENT(cv_dt2)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt2), NF90_FLOAT, idtd, idv2, deflate_level=9), crtn,cf_in,cv_dt2 )
-      IF (PRESENT(cv_dt3)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt3), NF90_FLOAT, idtd, idv3, deflate_level=9), crtn,cf_in,cv_dt3 )
-      IF (PRESENT(cv_dt4)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt4), NF90_FLOAT, idtd, idv4, deflate_level=9), crtn,cf_in,cv_dt4 )
-      IF (PRESENT(cv_dt5)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt5), NF90_FLOAT, idtd, idv5, deflate_level=9), crtn,cf_in,cv_dt5 )
-      IF (PRESENT(cv_dt6)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt6), NF90_FLOAT, idtd, idv6, deflate_level=9), crtn,cf_in,cv_dt6 )
-      IF (PRESENT(cv_dt7)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt7), NF90_FLOAT, idtd, idv7, deflate_level=9), crtn,cf_in,cv_dt7 )
-      IF (PRESENT(cv_dt8)) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt8), NF90_FLOAT, idtd, idv8, deflate_level=9), crtn,cf_in,cv_dt8 )
+      CALL              sherr( NF90_DEF_VAR(idf, TRIM(cv_dt01), NF90_FLOAT, idtd, idv01, deflate_level=9), crtn,cf_in,cv_dt01 )
+      IF ( ldv02 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt02), NF90_FLOAT, idtd, idv02, deflate_level=9), crtn,cf_in,cv_dt02 )
+      IF ( ldv03 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt03), NF90_FLOAT, idtd, idv03, deflate_level=9), crtn,cf_in,cv_dt03 )
+      IF ( ldv04 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt04), NF90_FLOAT, idtd, idv04, deflate_level=9), crtn,cf_in,cv_dt04 )
+      IF ( ldv05 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt05), NF90_FLOAT, idtd, idv05, deflate_level=9), crtn,cf_in,cv_dt05 )
+      IF ( ldv06 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt06), NF90_FLOAT, idtd, idv06, deflate_level=9), crtn,cf_in,cv_dt06 )
+      IF ( ldv07 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt07), NF90_FLOAT, idtd, idv07, deflate_level=9), crtn,cf_in,cv_dt07 )
+      IF ( ldv08 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt08), NF90_FLOAT, idtd, idv08, deflate_level=9), crtn,cf_in,cv_dt08 )
+      IF ( ldv09 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt09), NF90_FLOAT, idtd, idv09, deflate_level=9), crtn,cf_in,cv_dt09 )
+      IF ( ldv10 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt10), NF90_FLOAT, idtd, idv10, deflate_level=9), crtn,cf_in,cv_dt10 )
+      IF ( ldv11 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt11), NF90_FLOAT, idtd, idv11, deflate_level=9), crtn,cf_in,cv_dt11 )
+      IF ( ldv12 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt12), NF90_FLOAT, idtd, idv12, deflate_level=9), crtn,cf_in,cv_dt12 )
+      IF ( ldv13 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt13), NF90_FLOAT, idtd, idv13, deflate_level=9), crtn,cf_in,cv_dt13 )
+      IF ( ldv14 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt14), NF90_FLOAT, idtd, idv14, deflate_level=9), crtn,cf_in,cv_dt14 )
+      IF ( ldv15 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt15), NF90_FLOAT, idtd, idv15, deflate_level=9), crtn,cf_in,cv_dt15 )
+      IF ( ldv16 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt16), NF90_FLOAT, idtd, idv16, deflate_level=9), crtn,cf_in,cv_dt16 )
+      IF ( ldv17 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt17), NF90_FLOAT, idtd, idv17, deflate_level=9), crtn,cf_in,cv_dt17 )
+      IF ( ldv18 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt18), NF90_FLOAT, idtd, idv18, deflate_level=9), crtn,cf_in,cv_dt18 )
+      IF ( ldv19 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt19), NF90_FLOAT, idtd, idv19, deflate_level=9), crtn,cf_in,cv_dt19 )
+      IF ( ldv20 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt20), NF90_FLOAT, idtd, idv20, deflate_level=9), crtn,cf_in,cv_dt20 )
 
-      !! V1:
-      CALL sherr( NF90_PUT_ATT(idf, idv1, 'long_name', trim(cln1)),  crtn,cf_in,cv_dt1)
-      CALL sherr( NF90_PUT_ATT(idf, idv1, 'units', trim(cunit) ),   crtn,cf_in,cv_dt1)
-      IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv1,trim(cmv0),vflag),  crtn,cf_in,cv_dt1)
-      CALL sherr( NF90_PUT_ATT(idf, idv1,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_dt1)
-      CALL sherr( NF90_PUT_ATT(idf, NF90_GLOBAL, 'About', trim(cabout)),  crtn,cf_in,cv_dt1)
+      !! V01:
+      CALL sherr( NF90_PUT_ATT(idf, idv01, 'long_name', trim(cln01) ),  crtn,cf_in,cv_dt01)
+      CALL sherr( NF90_PUT_ATT(idf, idv01, 'units',     trim(cun01) ),  crtn,cf_in,cv_dt01)
+      IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv01,trim(cmv0),vflag),  crtn,cf_in,cv_dt01)
+      !CALL sherr( NF90_PUT_ATT(idf, idv01,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_dt01)
+      CALL sherr( NF90_PUT_ATT(idf, NF90_GLOBAL, 'About', trim(cabout)),  crtn,cf_in,cv_dt01)
 
-      !! V2:
-      IF (PRESENT(cv_dt2)) THEN
-         CALL sherr( NF90_PUT_ATT(idf, idv2, 'long_name', TRIM(cln2)),  crtn,cf_in,cv_dt2)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv2,trim(cmv0),vflag),  crtn,cf_in,cv_dt2)
+      !! V02:
+      IF ( ldv02 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv02, 'long_name', TRIM(cln02) ),  crtn,cf_in,cv_dt02)
+         CALL sherr( NF90_PUT_ATT(idf, idv02, 'units',     TRIM(cun02) ),  crtn,cf_in,cv_dt02)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv02,trim(cmv0),vflag),  crtn,cf_in,cv_dt02)
       END IF
-      !! V3:
-      IF (PRESENT(cv_dt3)) THEN
-         CALL sherr( NF90_PUT_ATT(idf, idv3, 'long_name', TRIM(cln3)),  crtn,cf_in,cv_dt3)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv3,trim(cmv0),vflag),  crtn,cf_in,cv_dt3)
+      !! V03:
+      IF ( ldv03 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv03, 'long_name', TRIM(cln03) ),  crtn,cf_in,cv_dt03)
+         CALL sherr( NF90_PUT_ATT(idf, idv03, 'units',     TRIM(cun03) ),  crtn,cf_in,cv_dt03)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv03,trim(cmv0),vflag),  crtn,cf_in,cv_dt03)
       END IF
-      !! V4:
-      IF (PRESENT(cv_dt4)) THEN
-         CALL sherr( NF90_PUT_ATT(idf, idv4, 'long_name', TRIM(cln4)),  crtn,cf_in,cv_dt4)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv4,trim(cmv0),vflag),  crtn,cf_in,cv_dt4)
+      !! V04:
+      IF ( ldv04 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv04, 'long_name', TRIM(cln04) ),  crtn,cf_in,cv_dt04)
+         CALL sherr( NF90_PUT_ATT(idf, idv04, 'units',     TRIM(cun04) ),  crtn,cf_in,cv_dt04)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv04,trim(cmv0),vflag),  crtn,cf_in,cv_dt04)
       END IF
-      !! V5:
-      IF (PRESENT(cv_dt5)) THEN
-         CALL sherr( NF90_PUT_ATT(idf, idv5, 'long_name', TRIM(cln5)),  crtn,cf_in,cv_dt5)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv5,trim(cmv0),vflag),  crtn,cf_in,cv_dt5)
+      !! V05:
+      IF ( ldv05 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv05, 'long_name', TRIM(cln05) ),  crtn,cf_in,cv_dt05)
+         CALL sherr( NF90_PUT_ATT(idf, idv05, 'units',     TRIM(cun05) ),  crtn,cf_in,cv_dt05)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv05,trim(cmv0),vflag),  crtn,cf_in,cv_dt05)
       END IF
-      !! V6:
-      IF (PRESENT(cv_dt6)) THEN
-         CALL sherr( NF90_PUT_ATT(idf, idv6, 'long_name', TRIM(cln6)),  crtn,cf_in,cv_dt6)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv6,trim(cmv0),vflag),  crtn,cf_in,cv_dt6)
+      !! V06:
+      IF ( ldv06 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv06, 'long_name', TRIM(cln06) ),  crtn,cf_in,cv_dt06)
+         CALL sherr( NF90_PUT_ATT(idf, idv06, 'units',     TRIM(cun06) ),  crtn,cf_in,cv_dt06)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv06,trim(cmv0),vflag),  crtn,cf_in,cv_dt06)
       END IF
-      !! V7:
-      IF (PRESENT(cv_dt7)) THEN
-         CALL sherr( NF90_PUT_ATT(idf, idv7, 'long_name', TRIM(cln7)),  crtn,cf_in,cv_dt7)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv7,trim(cmv0),vflag),  crtn,cf_in,cv_dt7)
+      !! V07:
+      IF ( ldv07 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv07, 'long_name', TRIM(cln07) ),  crtn,cf_in,cv_dt07)
+         CALL sherr( NF90_PUT_ATT(idf, idv07, 'units',     TRIM(cun07) ),  crtn,cf_in,cv_dt07)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv07,trim(cmv0),vflag),  crtn,cf_in,cv_dt07)
       END IF
-      !! V8:
-      IF (PRESENT(cv_dt8)) THEN
-         CALL sherr( NF90_PUT_ATT(idf, idv8, 'long_name', TRIM(cln8)),  crtn,cf_in,cv_dt8)
-         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv8,trim(cmv0),vflag),  crtn,cf_in,cv_dt8)
+      !! V08:
+      IF ( ldv08 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv08, 'long_name', TRIM(cln08) ),  crtn,cf_in,cv_dt08)
+         CALL sherr( NF90_PUT_ATT(idf, idv08, 'units',     TRIM(cun08) ),  crtn,cf_in,cv_dt08)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv08,trim(cmv0),vflag),  crtn,cf_in,cv_dt08)
+      END IF
+      !! V09:
+      IF ( ldv09 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv09, 'long_name', TRIM(cln09) ),  crtn,cf_in,cv_dt09)
+         CALL sherr( NF90_PUT_ATT(idf, idv09, 'units',     TRIM(cun09) ),  crtn,cf_in,cv_dt09)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv09,trim(cmv0),vflag),  crtn,cf_in,cv_dt09)
+      END IF
+      !! V10:
+      IF ( ldv10 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv10, 'long_name', TRIM(cln10) ),  crtn,cf_in,cv_dt10)
+         CALL sherr( NF90_PUT_ATT(idf, idv10, 'units',     TRIM(cun10) ),  crtn,cf_in,cv_dt10)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv10,trim(cmv0),vflag),  crtn,cf_in,cv_dt10)
+      END IF
+      !! V11:
+      IF ( ldv11 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv11, 'long_name', TRIM(cln11) ),  crtn,cf_in,cv_dt11)
+         CALL sherr( NF90_PUT_ATT(idf, idv11, 'units',     TRIM(cun11) ),  crtn,cf_in,cv_dt11)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv11,trim(cmv0),vflag),  crtn,cf_in,cv_dt11)
+      END IF
+      !! V12:
+      IF ( ldv12 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv12, 'long_name', TRIM(cln12) ),  crtn,cf_in,cv_dt12)
+         CALL sherr( NF90_PUT_ATT(idf, idv12, 'units',     TRIM(cun12) ),  crtn,cf_in,cv_dt12)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv12,trim(cmv0),vflag),  crtn,cf_in,cv_dt12)
+      END IF
+      !! V13:
+      IF ( ldv13 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv13, 'long_name', TRIM(cln13) ),  crtn,cf_in,cv_dt13)
+         CALL sherr( NF90_PUT_ATT(idf, idv13, 'units',     TRIM(cun13) ),  crtn,cf_in,cv_dt13)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv13,trim(cmv0),vflag),  crtn,cf_in,cv_dt13)
+      END IF
+      !! V14:
+      IF ( ldv14 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv14, 'long_name', TRIM(cln14) ),  crtn,cf_in,cv_dt14)
+         CALL sherr( NF90_PUT_ATT(idf, idv14, 'units',     TRIM(cun14) ),  crtn,cf_in,cv_dt14)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv14,trim(cmv0),vflag),  crtn,cf_in,cv_dt14)
+      END IF
+      !! V15:
+      IF ( ldv15 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv15, 'long_name', TRIM(cln15) ),  crtn,cf_in,cv_dt15)
+         CALL sherr( NF90_PUT_ATT(idf, idv15, 'units',     TRIM(cun15) ),  crtn,cf_in,cv_dt15)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv15,trim(cmv0),vflag),  crtn,cf_in,cv_dt15)
+      END IF
+      !! V16:
+      IF ( ldv16 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv16, 'long_name', TRIM(cln16) ),  crtn,cf_in,cv_dt16)
+         CALL sherr( NF90_PUT_ATT(idf, idv16, 'units',     TRIM(cun16) ),  crtn,cf_in,cv_dt16)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv16,trim(cmv0),vflag),  crtn,cf_in,cv_dt16)
+      END IF
+      !! V17:
+      IF ( ldv17 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv17, 'long_name', TRIM(cln17) ),  crtn,cf_in,cv_dt17)
+         CALL sherr( NF90_PUT_ATT(idf, idv17, 'units',     TRIM(cun17) ),  crtn,cf_in,cv_dt17)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv17,trim(cmv0),vflag),  crtn,cf_in,cv_dt17)
+      END IF
+      !! V18:
+      IF ( ldv18 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv18, 'long_name', TRIM(cln18) ),  crtn,cf_in,cv_dt18)
+         CALL sherr( NF90_PUT_ATT(idf, idv18, 'units',     TRIM(cun18) ),  crtn,cf_in,cv_dt18)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv18,trim(cmv0),vflag),  crtn,cf_in,cv_dt18)
+      END IF
+      !! V19:
+      IF ( ldv19 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv19, 'long_name', TRIM(cln19) ),  crtn,cf_in,cv_dt19)
+         CALL sherr( NF90_PUT_ATT(idf, idv19, 'units',     TRIM(cun19) ),  crtn,cf_in,cv_dt19)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv19,trim(cmv0),vflag),  crtn,cf_in,cv_dt19)
+      END IF
+      !! V20:
+      IF ( ldv20 ) THEN
+         CALL sherr( NF90_PUT_ATT(idf, idv20, 'long_name', TRIM(cln20) ),  crtn,cf_in,cv_dt20)
+         CALL sherr( NF90_PUT_ATT(idf, idv20, 'units',     TRIM(cun20) ),  crtn,cf_in,cv_dt20)
+         IF ( vflag /= 0. ) CALL sherr( NF90_PUT_ATT(idf, idv20,trim(cmv0),vflag),  crtn,cf_in,cv_dt20)
       END IF
 
-      CALL sherr( NF90_ENDDEF(idf),  crtn,cf_in,cv_dt1)
+      
+      CALL sherr( NF90_ENDDEF(idf),  crtn,cf_in,cv_dt01)
 
       !!       Write time variable :
-      CALL sherr( NF90_PUT_VAR(idf, idt, vtime),    crtn,cf_in,cv_dt1)
-
+      IF ( l_add_time ) CALL sherr( NF90_PUT_VAR(idf, idt, vtime),    crtn,cf_in,cv_dt01)
+      
       !!      WRITE VARIABLE
-      CALL sherr( NF90_PUT_VAR(idf, idv1, vdt1),  crtn,cf_in,cv_dt1)
-      IF (PRESENT(cv_dt2)) CALL sherr( NF90_PUT_VAR(idf, idv2, vdt2),  crtn,cf_in,cv_dt2)
-      IF (PRESENT(cv_dt3)) CALL sherr( NF90_PUT_VAR(idf, idv3, vdt3),  crtn,cf_in,cv_dt3)
-      IF (PRESENT(cv_dt4)) CALL sherr( NF90_PUT_VAR(idf, idv4, vdt4),  crtn,cf_in,cv_dt4)
-      IF (PRESENT(cv_dt5)) CALL sherr( NF90_PUT_VAR(idf, idv5, vdt5),  crtn,cf_in,cv_dt5)
-      IF (PRESENT(cv_dt6)) CALL sherr( NF90_PUT_VAR(idf, idv6, vdt6),  crtn,cf_in,cv_dt6)
-      IF (PRESENT(cv_dt7)) CALL sherr( NF90_PUT_VAR(idf, idv7, vdt7),  crtn,cf_in,cv_dt7)
-      IF (PRESENT(cv_dt8)) CALL sherr( NF90_PUT_VAR(idf, idv8, vdt8),  crtn,cf_in,cv_dt8)
+      CALL sherr( NF90_PUT_VAR(idf, idv01, vdt01),  crtn,cf_in,cv_dt01)
+      IF ( ldv02 ) CALL sherr( NF90_PUT_VAR(idf, idv02, vdt02),  crtn,cf_in,cv_dt02)
+      IF ( ldv03 ) CALL sherr( NF90_PUT_VAR(idf, idv03, vdt03),  crtn,cf_in,cv_dt03)
+      IF ( ldv04 ) CALL sherr( NF90_PUT_VAR(idf, idv04, vdt04),  crtn,cf_in,cv_dt04)
+      IF ( ldv05 ) CALL sherr( NF90_PUT_VAR(idf, idv05, vdt05),  crtn,cf_in,cv_dt05)
+      IF ( ldv06 ) CALL sherr( NF90_PUT_VAR(idf, idv06, vdt06),  crtn,cf_in,cv_dt06)
+      IF ( ldv07 ) CALL sherr( NF90_PUT_VAR(idf, idv07, vdt07),  crtn,cf_in,cv_dt07)
+      IF ( ldv08 ) CALL sherr( NF90_PUT_VAR(idf, idv08, vdt08),  crtn,cf_in,cv_dt08)
+      IF ( ldv09 ) CALL sherr( NF90_PUT_VAR(idf, idv09, vdt09),  crtn,cf_in,cv_dt09)
+      IF ( ldv10 ) CALL sherr( NF90_PUT_VAR(idf, idv10, vdt10),  crtn,cf_in,cv_dt10)
+      IF ( ldv11 ) CALL sherr( NF90_PUT_VAR(idf, idv11, vdt11),  crtn,cf_in,cv_dt11)
+      IF ( ldv12 ) CALL sherr( NF90_PUT_VAR(idf, idv12, vdt12),  crtn,cf_in,cv_dt12)
+      IF ( ldv13 ) CALL sherr( NF90_PUT_VAR(idf, idv13, vdt13),  crtn,cf_in,cv_dt13)
+      IF ( ldv14 ) CALL sherr( NF90_PUT_VAR(idf, idv14, vdt14),  crtn,cf_in,cv_dt14)
+      IF ( ldv15 ) CALL sherr( NF90_PUT_VAR(idf, idv15, vdt15),  crtn,cf_in,cv_dt15)
+      IF ( ldv16 ) CALL sherr( NF90_PUT_VAR(idf, idv16, vdt16),  crtn,cf_in,cv_dt16)
+      IF ( ldv17 ) CALL sherr( NF90_PUT_VAR(idf, idv17, vdt17),  crtn,cf_in,cv_dt17)
+      IF ( ldv18 ) CALL sherr( NF90_PUT_VAR(idf, idv18, vdt18),  crtn,cf_in,cv_dt18)
+      IF ( ldv19 ) CALL sherr( NF90_PUT_VAR(idf, idv19, vdt19),  crtn,cf_in,cv_dt19)
+      IF ( ldv20 ) CALL sherr( NF90_PUT_VAR(idf, idv20, vdt20),  crtn,cf_in,cv_dt20)
 
-      CALL sherr( NF90_CLOSE(idf),  crtn,cf_in,cv_dt1)
+      CALL sherr( NF90_CLOSE(idf),  crtn,cf_in,cv_dt01)
 
    END SUBROUTINE PT_SERIES
 
+
+
+   
 
    SUBROUTINE P2D_T(idx_f, idx_v, lt, lct, xlon, xlat, vtime, x2d, cf_in, &
       &             cv_lo, cv_la, cv_t, cv_in, vflag,      &
