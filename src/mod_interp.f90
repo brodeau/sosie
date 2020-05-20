@@ -314,8 +314,9 @@ CONTAINS
             WRITE(6,'("      => ",i4.4," x ",i4.4," x ",i3.3," to ",i4.4," x ",i4.4," x ",i3.3)') &
                &       SIZE(data3d_tmp,1), SIZE(data3d_tmp,2), SIZE(depth_src_trgt2d(1,1,:),1), &
                &       ni_trg, nj_trg, SIZE(depth_trg(1,1,:),1)
-
-            CALL AKIMA_1D( depth_src_trgt2d(1,1,:), data3d_tmp, depth_trg(1,1,:), data3d_trg(:,:,:), rmiss_val )
+            
+            CALL AKIMA_1D( REAL(depth_src_trgt2d(1,1,:),8), REAL(data3d_tmp,8),                  &
+               &                  REAL(depth_trg(1,1,:),8), data3d_trg(:,:,:), rmiss_val )
 
             PRINT *, '  --- AKIMA_1D_3D done!'
             PRINT *, ''
@@ -367,8 +368,8 @@ CONTAINS
                      !!
                      IF ( (MOD(ji,100)==0).AND.(MOD(jj,100)==0) ) PRINT *, '  ... calling AKIMA_1D for ji_trg,jj_trg =', ji,jj
                      !!
-                     CALL AKIMA_1D( depth_src_trgt2d(ji,jj,:),data3d_tmp(ji,jj,:),  &
-                        &           depth_trg(ji,jj,1:nlev), data3d_trg(ji,jj,1:nlev))
+                     CALL AKIMA_1D( REAL(depth_src_trgt2d(ji,jj,:),8), REAL(data3d_tmp(ji,jj,:),8),  &
+                        &           REAL(depth_trg(ji,jj,1:nlev),8),        data3d_trg(ji,jj,1:nlev) )
                      !!
                      !! Apply persistance at the bottom if target depth goes deeper that source depth
                      !! RD dev notes : I think the indices were off. If jklast is the last target level

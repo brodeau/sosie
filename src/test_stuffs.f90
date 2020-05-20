@@ -377,7 +377,7 @@ PROGRAM TEST_STUFFS
 
    !CALL P2D_T(id_f1, id_v1, Ntr, jt, xlamu, xphiu,         vtime, Uu_c(:,:,1), &
    !   &    cufilout, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-   !   &    rmiss_val, attr_time=vatt_info_t)
+   !   &    rmiss_val, attr_t=vatt_info_t)
 
 
    PRINT *, 'Done!'

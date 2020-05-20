@@ -56,6 +56,7 @@ obj/mod_conf.o \
 obj/mod_manip.o \
 obj/mod_drown.o \
 obj/mod_bilin_2d.o \
+obj/mod_akima_1d.o \
 obj/mod_poly.o
 
 OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o

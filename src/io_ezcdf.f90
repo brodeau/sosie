@@ -1310,11 +1310,154 @@ CONTAINS
 
 
 
+
+
+
+
+
+
+   SUBROUTINE P1D_T(idx_f, idx_v, lt, lct, vdpt, vtime, v1d, cf_in, &
+      &             cv_dpth, cv_t, cv_in, vflag,                    &
+      &             attr_dpt, attr_t, attr_F,                     &
+      &             cextrainfo, l_add_valid_min_max)
+      !!
+      !! INPUT :
+      !! -------
+      !!        idx_f = ID of the file (takes its value on the first call)
+      !!        idx_v = ID of the variable //
+      !!        lt    = t dimension of array to plot              [integer]
+      !!        lct   = current time step                         [integer]
+      !!        vdpt  = 1D array of depth [nz]                    [double]
+      !!        vtime = time array                               [array 1D]
+      !!        v1d   = 1D snap of 1D+T array at time jt to write   [real]
+      !!        cf_in  = name of the output file                  [character]
+      !!        cv_dpth = name of depth                           [character]
+      !!        cv_t = name of time                               [character]
+      !!        cv_in  = name of the variable                     [character]
+      !!        vflag = flag value or "0."                        [real]
+      !!
+      !!        cextrainfo = extra information to go in "Info" of header of netcdf
+      !!        l_add_valid_min_max = for each variable write valid_min and valid_max (default=.true.)
+      !!
+      !!--------------------------------------------------------------------------
+      !!
+      INTEGER,                    INTENT(inout) :: idx_f, idx_v
+      INTEGER,                    INTENT(in)    :: lt, lct
+      REAL(8), DIMENSION(:),      INTENT(in)    :: vdpt
+      REAL(4), DIMENSION(:),      INTENT(in)    :: v1d
+      REAL(8), DIMENSION(lt),     INTENT(in)    :: vtime
+      CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_dpth, cv_t, cv_in
+      REAL(4),                    INTENT(in)    :: vflag
+      !! Optional:
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_dpt, attr_t, attr_F
+      CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
+      LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
+
+      INTEGER  :: id_z, id_t
+      INTEGER  :: id_dpt, id_tim
+      INTEGER  :: lz
+      REAL(4)  :: rmin, rmax
+      LOGICAL  :: lcopy_att_F = .FALSE., l_add_extrema=.true.
+      INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
+
+      CHARACTER(len=80), PARAMETER :: crtn = 'P1D_T'
+
+      IF ( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
+
+      IF ( PRESENT(l_add_valid_min_max) ) l_add_extrema = l_add_valid_min_max
+
+      !! About dimensions of vdpt and v1d:
+      lz = SIZE(v1d)
+      IF ( SIZE(vdpt) /= lz ) CALL print_err( crtn, 'Data and depth do not have the same size' )
+      
+      IF ( lct == 1 ) THEN
+
+         IF ( vflag /= 0.) THEN
+            rmin =  1.E6 ; rmax = -1.E6
+            DO jk=1, lz
+               IF ((v1d(jk) <= rmin).AND.(v1d(jk) /= vflag)) rmin = v1d(jk)
+               IF ((v1d(jk) >= rmax).AND.(v1d(jk) /= vflag)) rmax = v1d(jk)
+            END DO
+         ELSE
+            rmin = minval(v1d) ; rmax = maxval(v1d)
+         END IF
+
+      END IF ! lct == 1
+
+      IF ( lct == 1 ) THEN
+
+         vextrema(1,:) = (/minval(vdpt),maxval(vdpt)/)
+         vextrema(3,:) = (/minval(vtime),maxval(vtime)/)
+
+         !!           CREATE NETCDF OUTPUT FILE :
+         CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, idx_f), crtn,cf_in,cv_in)
+
+         !-----
+         
+         !! Depth:
+         CALL sherr( NF90_DEF_DIM(idx_f, 'z', lz,                    id_z                         ), crtn,cf_in,cv_in)
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z, id_dpt, deflate_level=9), crtn,cf_in,cv_in)
+         !CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_lon, attr_dpt,  crtn,cf_in,cv_in)
+         !CALL sherr( NF90_PUT_ATT(idx_f, id_lon, 'valid_min', vxtrm(1,1)), crtn,cf_in,cv_in)
+         !CALL sherr( NF90_PUT_ATT(idx_f, id_lon, 'valid_max', vxtrm(1,2)), crtn,cf_in,cv_in)
+         !!
+         !!  TIME
+         CALL sherr( NF90_DEF_DIM(idx_f, TRIM(cv_t), NF90_UNLIMITED, id_t                         ), crtn,cf_in,cv_in)
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_t), NF90_DOUBLE,    id_t, id_tim, deflate_level=9), crtn,cf_in,cv_in)
+         !IF ( lcopy_att_tim )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_time, attr_t,  crtn,cf_in,cv_in)
+         !IF ( l_add_extrema ) THEN
+         !CALL sherr( NF90_PUT_ATT(idx_f, id_time, 'valid_min',vxtrm(3,1)), crtn,cf_in,cv_in)
+         !CALL sherr( NF90_PUT_ATT(idx_f, id_time, 'valid_max',vxtrm(3,2)), crtn,cf_in,cv_in)
+         
+         
+         !! Variable
+         IF ( TRIM(cv_t) /= '' ) THEN
+            ALLOCATE (vidim(2))
+            vidim = (/id_z,id_t/)
+         ELSE
+            ALLOCATE (vidim(1))
+            vidim = (/id_z/)
+         END IF
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
+            &      crtn,cf_in,cv_in )
+         DEALLOCATE ( vidim )
+
+         !!  VARIABLE ATTRIBUTES
+         IF ( lcopy_att_F ) CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
+         ! Forcing these attributes (given in namelist):
+         IF (vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,trim(cmv0),           vflag),  crtn,cf_in,cv_in)
+         CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
+         CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
+            &                                TRIM(cv_t)//" "//TRIM(cv_dpth)),  crtn,cf_in,cv_in)
+
+         !! Global attributes
+         IF ( PRESENT(cextrainfo) ) &
+            CALL sherr( NF90_PUT_ATT(idx_f, NF90_GLOBAL, 'Info', TRIM(cextrainfo)),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_PUT_ATT(idx_f, NF90_GLOBAL, 'About', TRIM(cabout)),  crtn,cf_in,cv_in)
+
+         !!           END OF DEFINITION
+         CALL sherr( NF90_ENDDEF(idx_f),  crtn,cf_in,cv_in)
+
+         !!       Write depth variable :
+         CALL sherr( NF90_PUT_VAR(idx_f, id_dpt, vdpt),  crtn,cf_in,cv_in)
+         !!
+         !!       Write time variable :
+         IF ( TRIM(cv_t) /= '' ) CALL sherr( NF90_PUT_VAR(idx_f, id_tim, vtime),  crtn,cf_in,cv_in)
+         !!
+      END IF
+
+      !!               WRITE VARIABLE
+      CALL sherr( NF90_PUT_VAR(idx_f, idx_v, v1d,  start=(/1,lct/), count=(/lz,1/)),  crtn,cf_in,cv_in)
+
+      IF ( lct == lt ) CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
+      
+   END SUBROUTINE P1D_T
    
+
 
    SUBROUTINE P2D_T(idx_f, idx_v, lt, lct, xlon, xlat, vtime, x2d, cf_in, &
       &             cv_lo, cv_la, cv_t, cv_in, vflag,      &
-      &             attr_lon, attr_lat, attr_time, attr_F, &
+      &             attr_lon, attr_lat, attr_t, attr_F, &
       &             cextrainfo, l_add_valid_min_max)
       !!
       !! INPUT :
@@ -1347,7 +1490,7 @@ CONTAINS
       CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in
       REAL(4),                    INTENT(in)    :: vflag
       !! Optional:
-      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_time, attr_F
+      TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_t, attr_F
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
 
@@ -1404,11 +1547,11 @@ CONTAINS
          !PRINT *, 'cf_in = ', TRIM(cf_in),'---'
          !PRINT *, 'cv_in = ', TRIM(cv_in),'---'
          !PRINT *, 'attr_lat = ', attr_lat,'---'
-         !PRINT *, 'attr_time = ', attr_time,'---'
+         !PRINT *, 'attr_t = ', attr_t,'---'
 
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time, &
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_t, &
             &            l_add_valid_min_max=l_add_extrema)
          !!
          !! Variable
@@ -1463,7 +1606,7 @@ CONTAINS
 
    SUBROUTINE P3D_T(idx_f, idx_v, lt, lct, xlon, xlat, vdpth, vtime, x3d, cf_in, &
       &             cv_lo, cv_la, cv_dpth, cv_t, cv_in, vflag, &
-      &             attr_lon, attr_lat, attr_z, attr_time, attr_F, &
+      &             attr_lon, attr_lat, attr_z, attr_t, attr_F, &
       &             cextrainfo, l_add_valid_min_max)
 
       !! INPUT :
@@ -1499,7 +1642,7 @@ CONTAINS
       REAL(4),                    INTENT(in)    :: vflag
       !! Optional:
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_z, &
-         &                                                          attr_time, attr_F
+         &                                                          attr_t, attr_F
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
 
@@ -1552,7 +1695,7 @@ CONTAINS
          !!
          CALL prepare_nc(idx_f, cdt, lx, ly, cv_lo, cv_la, cv_t, vextrema, &
             &            id_x, id_y, id_t, id_lo, id_la, id_tim, crtn,cf_in,cv_in, &
-            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_time, &
+            &            attr_lon=attr_lon, attr_lat=attr_lat, attr_tim=attr_t, &
             &            l_add_valid_min_max=l_add_extrema)
          !! Depth vector:
          IF ( (TRIM(cv_dpth) == 'lev').OR.(TRIM(cv_dpth) == 'depth') ) THEN

@@ -5,6 +5,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    USE mod_bilin_2d
    USE mod_manip
    USE mod_drown
+   USE mod_akima_1d
 
    !!========================================================================
    !! Purpose :
@@ -47,9 +48,10 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
 
    !! Coupe stuff:
-   REAL(8), DIMENSION(:),   ALLOCATABLE :: Fhs_m, Fhs_m_np, Fhs_o, vdist
+   REAL(8), DIMENSION(:),   ALLOCATABLE :: vdist
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: vdp_o, Fhs_m, Fhs_m_np, Fhs_o
+   REAL(8), DIMENSION(:,:), ALLOCATABLE :: Fhs_m_zm, Fhs_m_np_zm, Fhs_o_zm ! same but on the vertical grid of the model!
    REAL(8), DIMENSION(:),   ALLOCATABLE :: vzo, vfo, vrec, vt_mod
-   REAL(8), DIMENSION(:,:), ALLOCATABLE :: z_o, F_o
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: RES_2D_MOD, RES_2D_OBS
 
    REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: RAB       !: alpha, beta
@@ -104,14 +106,14 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    !!
    INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
 
-   REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs, xf_m, xmean
+   REAL(4), DIMENSION(:,:),   ALLOCATABLE :: xdum_r4, show_obs, xmean
+   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: xf_m
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_m, xlat_m
-   REAL(8), DIMENSION(:),   ALLOCATABLE :: vdepth_mod
+   REAL(8), DIMENSION(:),   ALLOCATABLE :: vdp_m
    !!
    INTEGER, DIMENSION(:,:), ALLOCATABLE :: JJidx, JIidx    ! debug
    !!
-   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask, imask_ignr
-   INTEGER(1), DIMENSION(:),   ALLOCATABLE :: Fmask
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask, imask_ignr, Fmask, Fmask_zm
    !!
    INTEGER :: jt, jt0, jt_s
    !!
@@ -120,7 +122,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
       &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S','-M' /)
 
-   REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
+   REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs_surf
    REAL(4) :: rfillval_mod
 
    CHARACTER(80), PARAMETER :: cunit_time_trg = 'seconds since 1970-01-01 00:00:00'
@@ -286,9 +288,8 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
    PRINT *, ''
    PRINT *, ' *** Allocating ni x nj arrays...'
-   ALLOCATE ( xlon_m(ni,nj), xlat_m(ni,nj), xdum_r4(ni,nj), &
-      &       xf_m(ni,nj),  &
-      &       vdepth_mod(nk), imask(ni,nj), vt_mod(Ntm) )
+   ALLOCATE ( xlon_m(ni,nj), xlat_m(ni,nj), xdum_r4(ni,nj), xf_m(ni,nj,nk),  &
+      &       vdp_m(nk), imask(ni,nj), vt_mod(Ntm) )
    IF ( l_debug ) THEN
       ALLOCATE ( RES_2D_MOD(ni,nj), RES_2D_OBS(ni,nj) )
       RES_2D_MOD(:,:) = 0.
@@ -379,11 +380,11 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
 
    !! Depth array
-   CALL GETVAR_1D(cf_mm, cv_z, vdepth_mod(:))
+   CALL GETVAR_1D(cf_mm, cv_z, vdp_m(:))
 
    PRINT *, ''
    PRINT *, ' *** Model depths:'
-   PRINT *, vdepth_mod
+   PRINT *, vdp_m
    PRINT *, ''
 
 
@@ -434,14 +435,14 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    PRINT *, ''
 
 
-   ALLOCATE ( xlon_o(1,Nrec), xlat_o(1,Nrec), vzo(nz), vfo(nz), z_o(nz,Nrec), F_o(nz,Nrec) )
+   ALLOCATE ( xlon_o(1,Nrec), xlat_o(1,Nrec), vzo(nz), vfo(nz), vdp_o(nz,Nrec) )
 
    CALL GETVAR_1D(cf_obs, 'longitude', xlon_o(1,:))
    CALL GETVAR_1D(cf_obs, 'latitude',  xlat_o(1,:))
 
-   
+
    !DO jr=1, Nrec
-   !   
+   !
    !END DO
 
    PRINT *, 'Done!'; PRINT *, ''
@@ -477,17 +478,19 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
    !PRINT *, '  lon =  20. =>', to_degE(20._8)
    !PRINT *, '  lon = -20. =>', to_degE(-20._8)
-   !STOP   
+   !STOP
 
    PRINT *, 'LOLO: xlon_o =', xlon_o
    PRINT *, ''
    xlon_o = to_degE(xlon_o) ! to degrees East
    PRINT *, 'LOLO: xlon_o =', xlon_o
 
-   
+
    !! Allocate arrays on the final retained size
    ALLOCATE ( IMETRICS(1,Nrec,3), RAB(1,Nrec,2), IPB(1,Nrec),  vrec(Nrec) )
-   ALLOCATE ( Fhs_m(Nrec), Fhs_o(Nrec), Fmask(Nrec), Fhs_m_np(Nrec), vdist(Nrec) )
+
+   ALLOCATE (    Fhs_m(nz,Nrec),    Fhs_o(nz,Nrec),    Fhs_m_np(nz,Nrec),    Fmask(nz,Nrec), vdist(Nrec) )
+   ALLOCATE ( Fhs_m_zm(nk,Nrec), Fhs_o_zm(nk,Nrec), Fhs_m_np_zm(nk,Nrec), Fmask_zm(nk,Nrec) )
 
 
    INQUIRE(FILE=trim(cf_mpg), EXIST=l_exist ) !
@@ -540,46 +543,48 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
 
 
-   Fhs_m_np(:) = -9999.
-   Fhs_o(:)    = -9999.
-   Fhs_m(:)    = -9999.
-   Fmask(:)         = 0
+   Fhs_m_np_zm(:,:) = -9999.
+   Fhs_o_zm(:,:)    = -9999.
+   Fhs_m_zm(:,:)    = -9999.
+   Fmask_zm(:,:)    = 0
 
    jt_s    = 1
 
 
 
-   ! Reading model field:
-   jt_m = 1   
-   CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jt_m, xf_m) !#lolo: whole domain! => improve
+   ! Reading model 3D snapshot:
+   jt_m = 1
+   !CALL GETVAR_2D(id_f1, id_v1, cf_mod, cv_mod, Ntm, 0, jt_m, xf_m) !#lolo: whole domain! => improve
+   CALL GETVAR_3D(id_f1, id_v1, cf_mod, cv_mod, Ntm,    jt_m, xf_m) !, jt1, jt2, jz1, jz2)
 
-   
    DO jr = 1, Nrec
 
-      !! Reading the input vertical grid at record jr into F_o:
+      !! Reading the vertical grid at record jr for observation:
       CALL GETVAR_1D(cf_obs, 'depth', vzo, jrec=jr)
       vzo = ABS(vzo)      ! we want depth to be positive:
-                  
-      !! Reading the input vertical profiles at record jr into F_o:
+
+      !! Reading the input vertical profiles at record jr into vfo:
       CALL GETVAR_1D(cf_obs, cv_obs, vfo, jrec=jr)
       !! => technically useless, only for extra info in result file and to test if was a valid profile...
-
-      PRINT *, vfo
+      !!
+      !! Fix upside-down profiles:
       l_z_o_upd = ( vzo(1) > vzo(nz) )
-      
       IF (l_z_o_upd) THEN
          PRINT *, 'Depth and data are upside-down into input file...'
-         z_o(:,jr) = vzo(nz:1:-1)
-         F_o(:,jr) = vfo(nz:1:-1)
+         vdp_o(:,jr) = vzo(nz:1:-1)
+         Fhs_o(:,jr) = vfo(nz:1:-1)
          PRINT *, ''
+      ELSE
+         vdp_o(:,jr) = vzo(:)
+         Fhs_o(:,jr) = vfo(:)
       END IF
-      
+
       !PRINT *, 'DEPTHS at record jr =',jr
-      !PRINT *, z_o(:,jr)      
+      !PRINT *, vdp_o(:,jr)
       !PRINT *, 'PROFILE at record jr =',jr
-      !PRINT *, F_o(:,jr)
+      !PRINT *, Fhs_o(:,jr)
       !STOP'LALA'
-      
+
       !! If first time we have these jtm_1 & jtm_2, getting the two surrounding fields:
       !IF ( (jtm_1>jtm_1_o).AND.(jtm_2>jtm_2_o) ) THEN
       !   IF ( (jtm_1_o == -100).OR.(jtm_1 > jtm_2_o) ) THEN
@@ -614,68 +619,92 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
 
 
-      jk = 1   ! #lolo only first level for now
-      
-      !LOLO: IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
+
       IF ( (iP>0).AND.(jP>0) ) THEN
          IF ( imask(iP,jP)==1 ) THEN
-            r_obs    = F_o(jk,jr)
-            l_obs_ok = ( r_obs > -20.).AND.( r_obs < 50.)
-            IF ( l_obs_ok ) THEN
-               !! Ignore points that are just 1 point away from land:
-               ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
-               im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
-               idot = imask(ip1,jP) + imask(ip1,jp1) + imask(iP,jp1) + imask(im1,jp1) &
-                  & + imask(im1,jP) + imask(im1,jm1) + imask(iP,jm1) + imask(ip1,jm1)
-               !! => idot == 8 if in that case...
-               !!
-               
-               IF (idot==8) THEN
+
+            !! Ignore points that are just 1 point away from land:
+            ip1 = MIN(iP+1,ni) ; jp1 = MIN(jP+1,nj)
+            im1 = MAX(iP-1,1)  ; jm1 = MAX(jP-1,1)
+            idot = imask(ip1,jP) + imask(ip1,jp1) + imask(iP,jp1) + imask(im1,jp1) &
+               & + imask(im1,jP) + imask(im1,jm1) + imask(iP,jm1) + imask(ip1,jm1)
+            !! => idot == 8 if in that case...
+
+            r_obs_surf    = Fhs_o(1,jr)  ! surface value
+            l_obs_ok = ( r_obs_surf > -20.).AND.( r_obs_surf < 50.)
+
+
+            IF ( l_obs_ok .AND. (idot==8) ) THEN
+
+               DO jk = 1, nk
+               !DO jk = 1, 1
                   !! Model, nearest point:
-                  Fhs_m_np(jr) =  xf_m(JIidx(1,jr),JJidx(1,jr)) ! NEAREST POINT interpolation
+                  Fhs_m_np_zm(jk,jr) =  xf_m(JIidx(1,jr),JJidx(1,jr),jk) ! NEAREST POINT interpolation
                   !! Model, 2D bilinear interpolation:
-                  Fhs_m(jr) = REAL( INTERP_BL(-1, iP, jP, iquadran, alpha, beta, xf_m) , 8)
-                  !! Observations as on their original point:
-                  Fhs_o(jr) = r_obs
+                  Fhs_m_zm(jk,jr) = REAL( INTERP_BL(-1, iP, jP, iquadran, alpha, beta, xf_m(:,:,jk)) , 8)
+                  
                   IF ( l_debug ) THEN
                      !! On the model grid for info:
-                     RES_2D_MOD(iP,jP) = Fhs_m(jr)
-                     RES_2D_OBS(iP,jP) = Fhs_o(jr)
+                     RES_2D_MOD(iP,jP) = Fhs_m_zm(jk,jr) !
+                     RES_2D_OBS(iP,jP) = Fhs_o_zm(jk,jr)
                   END IF
                   !!
-                  Fmask(jr) = 1 ! That was a valid point!
+                  Fmask_zm(jk,jr) = 1 ! That was a valid point!
                   !!
                   !rcycle_obs(jr) = REAL( icycle(jr), 8 )
                   !!
-               END IF
-            END IF
-         END IF
-      END IF
+                  !END IF !IF (idot==8)
+               END DO  !DO jk = 1, nk
+
+               !! Ok we have just performed horizontal interpolation on the nk vertical grid points
+               !! => it's time to performe a 1D interpolation to interpolate from vertical model grid vdp_m [nk]
+               !!    to vertical obs grid vdp_o (nz) !
+               CALL AKIMA_1D( vdp_m(:), Fhs_m_np_zm(:,jr), vdp_o(:,jr), Fhs_m_np(:,jr))
+               CALL AKIMA_1D( vdp_m(:),    Fhs_m_zm(:,jr), vdp_o(:,jr),    Fhs_m(:,jr))
+               
+               
+               PRINT *, ' Solution on model z grid:'
+               DO jk=1, nk
+                  PRINT *, vdp_m(jk), Fhs_m_np_zm(jk,jr)
+               END DO
+               PRINT *, ''
+               PRINT *, ' Solution on obs z grid and original data:'
+               DO jk=1, nz
+                  PRINT *, vdp_o(jk,jr), Fhs_m_np(jk,jr), Fhs_o(jk,jr)
+               END DO
+               PRINT *, ''
+               STOP'lolo1'
+               
+               
+            END IF !IF ( l_obs_ok .AND. (idot==8) )
+         END IF !IF ( imask(iP,jP)==1 )
+      END IF !IF ( (iP>0).AND.(jP>0) )
 
 
    END DO
 
 
 
-   
+
    !! Vector distance (in km)
+   jk = 1
    vdist(:) = 0.
-   DO jt = 2, Nrec
-      IF ( (Fmask(jt)==1).AND.(Fmask(jt-1)==1) ) vdist(jt) = vdist(jt-1) + DISTANCE( xlon_o(1,jt), xlon_o(1,jt-1), xlat_o(1,jt), xlat_o(1,jt-1) )
+   DO jr = 2, Nrec
+      IF ( (Fmask_zm(jk,jr)==1).AND.(Fmask_zm(jk,jr-1)==1) ) vdist(jr) = vdist(jr-1) + DISTANCE( xlon_o(1,jr), xlon_o(1,jr-1), xlat_o(1,jr), xlat_o(1,jr-1) )
    END DO
 
-   WHERE ( Fmask == 0 )
+   WHERE ( Fmask_zm == 0 )
       Fhs_m    = -9999.
       Fhs_m_np = -9999.
       Fhs_o    = -9999.
-      vdist     = -9999.
+      !vdist     = -9999.
    END WHERE
 
    WHERE ( Fhs_m < -9990. ) Fhs_m = -9999.
 
 
    PRINT *, 'LOLO Fhs_m = ', Fhs_m
-   
+
 
    PRINT *, ''
    !WRITE(cf_out, '("track_",a,"_",a,".nc")') TRIM(cv_mod), TRIM(cf_obs)
@@ -685,23 +714,25 @@ PROGRAM INTERP_TO_HYDRO_SECTION
 
 
    vrec(:) = 0. ! => forces no variable record into PT_SERIES
+
+   jk=1 ; !debug
    
-   CALL PT_SERIES(vrec(:), REAL(Fhs_m,4), cf_out, 'record', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999.,      &
+   CALL PT_SERIES(vrec(:), REAL(Fhs_m(jk,:),4), cf_out, 'record', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999.,      &
       &           ct_unit=TRIM(cunit_time_trg),                                                                              &
-      &           vdt02=REAL(Fhs_m_np,4),    cv_dt02=TRIM(cv_mod)//'_np',cln02='Model data, nearest-point interpolation',    &
-      &           vdt03=REAL(Fhs_o,4),       cv_dt03=cv_obs,             cln03='Original data as in track file...',          &
+      &           vdt02=REAL(Fhs_m_np(jk,:),4),    cv_dt02=TRIM(cv_mod)//'_np',cln02='Model data, nearest-point interpolation',    &
+      &           vdt03=REAL(Fhs_o(jk,:),4),       cv_dt03=cv_obs,             cln03='Original data as in track file...',          &
       &           vdt04=REAL(xlon_o(1,:),4), cv_dt04='longitude',        cln04='Longitude (as in track file)',               &
       &           vdt05=REAL(xlat_o(1,:),4), cv_dt05='latitude',         cln05='Latitude (as in track file)' ,               &
-      &           vdt06=REAL(Fmask,4),       cv_dt06='mask',             cln06='Mask' ,                                      &
+      &           vdt06=REAL(Fmask_zm(jk,:),4),       cv_dt06='mask',             cln06='Mask' ,                                      &
       &           vdt07=REAL(vdist,4),       cv_dt07='distance',         cln07='Distance (in km) from first point of segment' )
-   
+
 
    !#lulu
    STOP'LOLO0'
 
 
 
-   
+
    IF ( l_debug ) THEN
       WHERE ( imask == 0 )
          RES_2D_MOD = -9999.
@@ -712,7 +743,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    END IF
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )
-   DEALLOCATE ( F_o )
+   DEALLOCATE ( Fhs_o )
    !DEALLOCATE ( Fhs_m, Fhs_m_np, Fhs_o )
    !DEALLOCATE ( xlon_m, xlat_m, xf_m, xf_m1, xf_m2, xdum_r4, imask, xdum_r8 )
 
