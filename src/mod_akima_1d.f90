@@ -35,7 +35,7 @@ CONTAINS
       INTEGER :: nk1, nk2, nk1e, jk1, jk2, jp1, jp2, jk1e
       REAL(8)  :: a0, a1, a2, a3, dz, dz2
       LOGICAL  :: lfnd, l_do_interp
-      REAL(8), DIMENSION(:), ALLOCATABLE  :: vz1e, vf1e, vslp
+      REAL(4), DIMENSION(:), ALLOCATABLE  :: vz1e, vf1e, vslp
       !!___________________________________________________
       !!
       !!
@@ -205,18 +205,18 @@ CONTAINS
 
    SUBROUTINE AKIMA_1D_3D( vz1, xf1, vz2, xf2, rfill_val)
       !!
-      REAL(8), DIMENSION(:),     INTENT(in)  :: vz1
-      REAL(8), DIMENSION(:,:,:), INTENT(in)  :: xf1
-      REAL(8), DIMENSION(:),     INTENT(in)  :: vz2
+      REAL(4), DIMENSION(:),     INTENT(in)  :: vz1
+      REAL(4), DIMENSION(:,:,:), INTENT(in)  :: xf1
+      REAL(4), DIMENSION(:),     INTENT(in)  :: vz2
       REAL(4), DIMENSION(:,:,:), INTENT(out) :: xf2
       REAL(4), INTENT(in)  :: rfill_val
       !!___________________________________________________
       INTEGER :: nk1, nk2, nk1e, nx, ny, jk1, jk2, jp1, jp2, jk1e
-      REAL(8) :: dz, dz2
+      REAL(4) :: dz, dz2
       LOGICAL :: lfnd, l_do_interp
-      REAL(8), DIMENSION(:,:),   ALLOCATABLE :: a0, a1, a2, a3
-      REAL(8), DIMENSION(:),     ALLOCATABLE :: vz1e
-      REAL(8), DIMENSION(:,:,:), ALLOCATABLE :: xf1e, xslp
+      REAL(4), DIMENSION(:,:),   ALLOCATABLE :: a0, a1, a2, a3
+      REAL(4), DIMENSION(:),     ALLOCATABLE :: vz1e
+      REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: xf1e, xslp
       !!___________________________________________________
 
       !! Vertical dimensions and n+4 extension:
@@ -268,7 +268,7 @@ CONTAINS
          lfnd = .FALSE.
 
          IF ( vz2(jk2) < vz1(1) ) THEN       !! Persistence: if point of output grid is shallower
-            xf2(:,:,jk2) = REAL(xf1(:,:,1),4)                !!              than first point of input grid
+            xf2(:,:,jk2) = xf1(:,:,1)                !!              than first point of input grid
             l_do_interp = .FALSE.            !!              (should occur only when jk2 = 1)
          END IF
 
@@ -283,12 +283,12 @@ CONTAINS
                lfnd = .TRUE.
             ELSE
                IF ( vz2(jk2) == vz1(jk1) ) THEN
-                  xf2(:,:,jk2) = REAL(xf1(:,:,jk1),4)
+                  xf2(:,:,jk2) = xf1(:,:,jk1)
                   l_do_interp = .FALSE.
                   EXIT
                ELSE
                   IF ( vz2(jk2) == vz1(jk1+1) ) THEN
-                     xf2(:,:,jk2) = REAL(xf1(:,:,jk1+1),4)
+                     xf2(:,:,jk2) = xf1(:,:,jk1+1)
                      l_do_interp = .FALSE.
                      EXIT
                   END IF
@@ -298,7 +298,7 @@ CONTAINS
          END DO ! DO WHILE ( .NOT. lfnd )
 
          IF ( (jk1 == nk1).AND.(.NOT. lfnd) ) THEN  !!  (PM) Take bottom value below the last data
-            xf2(:,:,jk2) = REAL(xf1(:,:,nk1),4)
+            xf2(:,:,jk2) = xf1(:,:,nk1)
             l_do_interp = .FALSE.
          END IF
 
@@ -323,7 +323,7 @@ CONTAINS
             dz = vz2(jk2) - vz1e(jp1)
             dz2 = dz*dz
             !!
-            xf2(:,:,jk2) = REAL( a0 + a1*dz + a2*dz2 + a3*dz2*dz , 4)
+            xf2(:,:,jk2) = a0 + a1*dz + a2*dz2 + a3*dz2*dz
             !!
          END IF
          !!
@@ -337,7 +337,7 @@ CONTAINS
       ! in source domain:
       jk2 = 1
       DO WHILE ( (vz2(jk2) < vz1(1)).AND.(jk2<nk2) )
-         xf2(:,:,jk2) = REAL(xf1(:,:,1),4)
+         xf2(:,:,jk2) = xf1(:,:,1)
          jk2 = jk2 + 1
       END DO
 
@@ -345,7 +345,7 @@ CONTAINS
       ! source domain:
       jk2 = nk2
       DO WHILE ( (vz2(jk2) > vz1(nk1)).AND.(jk2>0) )
-         xf2(:,:,jk2) = REAL(xf1(:,:,nk1),4)
+         xf2(:,:,jk2) = xf1(:,:,nk1)
          jk2 = jk2 - 1
       END DO
 
@@ -375,13 +375,13 @@ CONTAINS
       !! Author : Laurent Brodeau, dec. 2004
       !!
       !!-------------------------------------------------------------------
-      REAL(8), DIMENSION(:), INTENT(in)  :: x, y
-      REAL(8), DIMENSION(:), INTENT(out) :: slope
+      REAL(4), DIMENSION(:), INTENT(in)  :: x, y
+      REAL(4), DIMENSION(:), INTENT(out) :: slope
       !!_______________________________________________________
       !!
       !! Local :
       INTEGER :: nz, k
-      REAL(8) :: m1, m2, m3, m4
+      REAL(4) :: m1, m2, m3, m4
       !!
       nz = SIZE(x)
       !!
@@ -429,12 +429,12 @@ CONTAINS
 
 
    SUBROUTINE slopes_3d(vz, Xf, slope)
-      REAL(8), DIMENSION(:),     INTENT(in)  :: vz
-      REAL(8), DIMENSION(:,:,:), INTENT(in)  :: Xf
-      REAL(8), DIMENSION(:,:,:), INTENT(out) :: slope
+      REAL(4), DIMENSION(:),     INTENT(in)  :: vz
+      REAL(4), DIMENSION(:,:,:), INTENT(in)  :: Xf
+      REAL(4), DIMENSION(:,:,:), INTENT(out) :: slope
       !! Local :
       INTEGER :: k, nx, ny, nz
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: m1, m2, m3, m4
+      REAL(4), DIMENSION(:,:), ALLOCATABLE :: m1, m2, m3, m4
       !!
       nx = SIZE(Xf,1)
       ny = SIZE(Xf,2)
@@ -501,13 +501,13 @@ CONTAINS
       !!
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
-      REAL(8),                                     INTENT(in)   :: x1, x2, x3, x4, x5
-      REAL(8), DIMENSION(:,:),                     INTENT(in)   :: Xf1, Xf2, Xf3
-      REAL(8), DIMENSION(SIZE(Xf1,1),SIZE(Xf1,2)), INTENT(out)  :: Xf4, Xf5
+      REAL(4),                                     INTENT(in)   :: x1, x2, x3, x4, x5
+      REAL(4), DIMENSION(:,:),                     INTENT(in)   :: Xf1, Xf2, Xf3
+      REAL(4), DIMENSION(SIZE(Xf1,1),SIZE(Xf1,2)), INTENT(out)  :: Xf4, Xf5
       !! Local :
       INTEGER :: nx, ny
-      REAL(8) :: A, B, C, D
-      REAL(8),  DIMENSION(:,:), ALLOCATABLE :: ALF, BET
+      REAL(4) :: A, B, C, D
+      REAL(4),  DIMENSION(:,:), ALLOCATABLE :: ALF, BET
 
       nx = SIZE(Xf1,1)
       ny = SIZE(Xf1,2)
@@ -535,13 +535,13 @@ CONTAINS
 
    SUBROUTINE extra_2_bottom_3d(x5, x4, x3, x2, x1, Xf5, Xf4, Xf3, Xf2, Xf1)
       !!============================================================================
-      REAL(8),                                    INTENT(in) :: x1, x2, x3, x4, x5
-      REAL(8), DIMENSION(:,:),                    INTENT(in) :: Xf5, Xf4, Xf3
-      REAL(8), DIMENSION(SIZE(Xf5,1),SIZE(Xf5,2)), INTENT(out) :: Xf1, Xf2
+      REAL(4),                                    INTENT(in) :: x1, x2, x3, x4, x5
+      REAL(4), DIMENSION(:,:),                    INTENT(in) :: Xf5, Xf4, Xf3
+      REAL(4), DIMENSION(SIZE(Xf5,1),SIZE(Xf5,2)), INTENT(out) :: Xf1, Xf2
       !! Local:
       INTEGER :: nx, ny
-      REAL(8) :: A, B, C, D
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: ALF, BET
+      REAL(4) :: A, B, C, D
+      REAL(4), DIMENSION(:,:), ALLOCATABLE :: ALF, BET
 
       nx = SIZE(Xf5,1)
       ny = SIZE(Xf5,2)
