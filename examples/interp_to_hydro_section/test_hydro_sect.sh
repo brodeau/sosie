@@ -6,6 +6,9 @@ F_HYS="../data/coord_section_OVIDE2012.nc"
 
 HERE=`pwd`
 
+
+rm -f *.nc *.dat
+
 echo
 
     if [ ! -f ${F_MOD} ]; then
@@ -18,3 +21,6 @@ echo
 
 ../../bin/interp_to_hydro_section.x -i  ${F_MOD} -v temp \
                                 -p ${F_HYS} -n temp_OVIDE -S
+
+
+./plot.gp

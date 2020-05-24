@@ -25,173 +25,210 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_1D_1D( vz1, vf1,  vz2, vf2)
+   SUBROUTINE AKIMA_1D_1D( vz1, vf1, vz2, vf2,  rmask_val, l_surf_persist, l_botm_persist )
       !!
       REAL(8), DIMENSION(:), INTENT(in)  :: vz1
       REAL(8), DIMENSION(:), INTENT(in)  :: vf1
       REAL(8), DIMENSION(:), INTENT(in)  :: vz2
       REAL(4), DIMENSION(:), INTENT(out) :: vf2
+      REAL(8), OPTIONAL    , INTENT(in)  :: rmask_val ! value for missing points into vf1 !!! => only at boundaries...
+      LOGICAL, OPTIONAL    , INTENT(in)  :: l_surf_persist ! do we extrapolate surface missing points based on persistence ?
+      LOGICAL, OPTIONAL    , INTENT(in)  :: l_botm_persist ! do we extrapolate bottom  missing points based on persistence ?
       !!___________________________________________________
-      INTEGER :: nk1, nk2, nk1e, jk1, jk2, jp1, jp2, jk1e
-      REAL(8)  :: a0, a1, a2, a3, dz, dz2
+      INTEGER :: nk1, nk2, nk1e, jk1, jk2, jp1, jp2, jk1e, k1_1, k1_n, nmissv, nz1
+      REAL(8)  :: rmv, a0, a1, a2, a3, dz, dz2
       LOGICAL  :: lfnd, l_do_interp
+      LOGICAL  :: l_sp=.FALSE., l_bp=.FALSE.
       REAL(4), DIMENSION(:), ALLOCATABLE  :: vz1e, vf1e, vslp
+      INTEGER(1), DIMENSION(:), ALLOCATABLE  :: imiss1
       !!___________________________________________________
-      !!
-      !!
-      IF ( size(vz1) /= size(vf1) ) THEN
-         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vz1 and vf1 do not have the same size!'; STOP
+
+      IF( PRESENT(l_surf_persist) )  l_sp = l_surf_persist
+      IF( PRESENT(l_botm_persist) )  l_bp = l_botm_persist
+
+      nmissv = 0
+
+      vf2(:) = -6666.0 ! target missing value
+
+      nk1 = SIZE(vz1)
+      nk2 = SIZE(vz2)
+
+      IF ( nk1 /= SIZE(vf1) ) THEN
+         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vz1 and vf1 do not have the same SIZE!'; STOP
       END IF
-      IF ( size(vz2) /= size(vf2) ) THEN
-         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vz2 and vf2 do not have the same size!'; STOP
+      IF ( nk2 /= SIZE(vf2) ) THEN
+         PRINT *, 'ERROR, mod_akima_1d.f90 => AKIMA_1D_1D: vz2 and vf2 do not have the same SIZE!'; STOP
       END IF
-      !!
-      nk1 = size(vz1)
-      nk2 = size(vz2)
-      !!
-      nk1e = nk1 + 4
-      !!
-      ALLOCATE ( vz1e(nk1e), vf1e(nk1e), vslp(nk1e) )
-      !!
-      vz1e(3:nk1+2) = vz1(:)
-      vf1e(3:nk1+2) = vf1(:)
-      !!
-      !! Extending input X array :
-      !! =========================
-      !! - if vz is regularly spaced, it's not a big deal, otherwise we use
-      !!   what's been proposed by Akima (1970) :
-      !!
-      !! Bottom (or West) :
-      vz1e(2) =  vz1e(4) - (vz1e(5) - vz1e(3))
-      vz1e(1) =  vz1e(3) - (vz1e(5) - vz1e(3))
-      !!
-      !! Top (or East) :
-      vz1e(nk1e-1) =  vz1e(nk1e-3) + vz1e(nk1e-2) - vz1e(nk1e-4)
-      vz1e(nk1e)   =  vz1e(nk1e-2) + vz1e(nk1e-2) - vz1e(nk1e-4)
-      !!
-      !!
-      !! Now extrapolating input Y values on these 4 extra points :
-      !! ==========================================================
-      !!
-      !! Bottom (or West) :
-      CALL extra_2_west(vz1e(5), vz1e(4), vz1e(3), vz1e(2), vz1e(1), &
-         &              vf1e(5), vf1e(4), vf1e(3), vf1e(2), vf1e(1) )
-      !!
-      !! Top (or East) :
-      CALL extra_2_east(vz1e(nk1e-4), vz1e(nk1e-3), vz1e(nk1e-2), vz1e(nk1e-1), vz1e(nk1e), &
-         &              vf1e(nk1e-4), vf1e(nk1e-3), vf1e(nk1e-2), vf1e(nk1e-1), vf1e(nk1e) )
-      !!
-      !!
-      !! Computing slopes :
-      !! ==================
-      !!
-      CALL SLOPES_1D(vz1e, vf1e, vslp)
-      !!
-      !!
-      !!
-      !! Ok! Now, each point of the target grid must be interpolated :
-      !! =============================================================
-      !!
-      !! We INTERPOLATE and don't extrapolate so checking the bounds !
-      !! input X array is supposed to be orgnised so :
-      !    xstart = vz1(1)  !  xstart = minval(x1) ;   xstop  = maxval(x1)
-      !    xstop  = vz1(nk1)
-      !!
-      !!
-      !! Treating each target point :
-      !! ============================
-      !!
-      !! !LB : we assume so far that x2 is totally in-organised !!!
-      !!        -> should be fixed !!!
-      !!        x1 is totally ORGANISED (increasing!)
-      !!
-      !jk1_o = 1
-      !!
-      DO jk2 = 1, nk2
-         !!
-         !jk1  = MAX(jk1_o,1)
-         l_do_interp = .TRUE.
-         jk1 = 1
-         lfnd = .FALSE.
-         !!
-         !! Persistence: if point of output grid is shallower
-         !!              than first point of input grid
-         !!              (should occur only when jk2 = 1)
-         IF ( vz2(jk2) < vz1(1) ) THEN
-            vf2(jk2) = REAL( vf1(1), 4 )
-            l_do_interp = .FALSE.
+
+      !! Defaults before checking missing values at boundaries:
+      nz1 = nk1        ! nz1 = number of valid (non-masked) points into vf1 (nz1 <= nk1)
+      k1_1 = 1
+      k1_n = nk1
+
+
+      IF( PRESENT(rmask_val) ) THEN
+         !! Get real SIZE of vz1 and vf1 based on "missing values" (only at the beginning or the end of the vector):
+         rmv = rmask_val
+         ALLOCATE ( imiss1(nk1) )
+         imiss1(:)    = 0
+         WHERE( vf1 == rmv ) imiss1 = 1
+         nmissv = SUM(imiss1)
+         PRINT *, ' ### AKIMA_1D_1D => there are missing values into vf1: number =', nmissv
+      END IF
+
+
+      IF ( nmissv < nk1 ) THEN
+         !! ALWAYS TRUE, unless the entire vector vf1 contains missing values!
+
+         IF ( nmissv > 0 ) THEN
+            !! Index of the first valid point ?
+            k1_1 = FINDLOC(imiss1, 0, 1)
+            k1_n = FINDLOC(imiss1(k1_1:), 1, 1) + k1_1 - 2
+            nz1 = nk1 - nmissv
          END IF
+
+         nk1e = nz1 + 4
+         ALLOCATE ( vz1e(nk1e), vf1e(nk1e), vslp(nk1e) )
+
+         vz1e(3:nz1+2) = vz1(k1_1:k1_n)
+         vf1e(3:nz1+2) = vf1(k1_1:k1_n)
+
+         !! Extending input X array :
+         !! =========================
+         !! - if vz is regularly spaced, it's not a big deal, otherwise we use
+         !!   what's been proposed by Akima (1970) :
+         !!
+         !! Bottom (or West) :
+         vz1e(2) =  vz1e(4) - (vz1e(5) - vz1e(3))
+         vz1e(1) =  vz1e(3) - (vz1e(5) - vz1e(3))
+         !!
+         !! Top (or East) :
+         vz1e(nk1e-1) =  vz1e(nk1e-3) + vz1e(nk1e-2) - vz1e(nk1e-4)
+         vz1e(nk1e)   =  vz1e(nk1e-2) + vz1e(nk1e-2) - vz1e(nk1e-4)
          !!
          !!
-         DO WHILE ( (.NOT. lfnd).AND.(l_do_interp) )
+         !! Now extrapolating input Y values on these 4 extra points :
+         !! ==========================================================
+         !!
+         !! Bottom (or West) :
+         CALL extra_2_west(vz1e(5), vz1e(4), vz1e(3), vz1e(2), vz1e(1), &
+            &              vf1e(5), vf1e(4), vf1e(3), vf1e(2), vf1e(1) )
+         !!
+         !! Top (or East) :
+         CALL extra_2_east(vz1e(nk1e-4), vz1e(nk1e-3), vz1e(nk1e-2), vz1e(nk1e-1), vz1e(nk1e), &
+            &              vf1e(nk1e-4), vf1e(nk1e-3), vf1e(nk1e-2), vf1e(nk1e-1), vf1e(nk1e) )
+         !!
+         !!
+         !! Computing slopes :
+         !! ==================
+         !!
+         CALL SLOPES_1D(vz1e, vf1e, vslp)
+         !!
+         !!
+         !!
+         !! Ok! Now, each point of the target grid must be interpolated :
+         !! =============================================================
+         !!
+         !! We INTERPOLATE and don't extrapolate so checking the bounds !
+         !! input X array is supposed to be orgnised so :
+         !    xstart = vz1(1)  !  xstart = minval(x1) ;   xstop  = maxval(x1)
+         !    xstop  = vz1(nk1)
+         !!
+         !!
+         !! Treating each target point :
+         !! ============================
+         !!
+         !! !LB : we assume so far that x2 is totally in-organised !!!
+         !!        -> should be fixed !!!
+         !!        x1 is totally ORGANISED (increasing!)
+         !!
+         DO jk2 = 1, nk2
             !!
-            IF ( jk1 == nk1 ) EXIT
-            !!
-            ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
-            !            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) < vz1(jk1+1)) ) THEN
-            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) <= vz1(jk1+1)) ) THEN
-               jk1e  = jk1 + 2
-               jp1    = jk1e
-               jp2    = jk1e + 1
+            l_do_interp = .TRUE.
+            jk1 = k1_1
+            lfnd = .FALSE.
+
+            !! Surface Persistence ?
+            IF ( (vz2(jk2) < vz1(k1_1)).AND.( l_sp ) ) THEN
+               !! If point of target grid is shallower than first point of input grid...
+               vf2(jk2) = REAL( vf1(k1_1), 4 )
+               l_do_interp = .FALSE.
                lfnd = .TRUE.
-               !!
-            ELSE
-               !!
-               IF ( vz2(jk2) == vz1(jk1) ) THEN
-                  vf2(jk2) = REAL( vf1(jk1) , 4)
-                  l_do_interp = .FALSE.
-                  EXIT
+            END IF
+            
+            DO WHILE ( (.NOT. lfnd).AND.(l_do_interp) )
+
+               IF ( jk1 == k1_n ) EXIT
+
+               ! JMM fix in case of tgr depth == src depth : w/o fix put missing_value on this level
+               !            IF ( (vz2(jk2) > vz1(jk1)).and.(vz2(jk2) < vz1(jk1+1)) ) THEN
+               IF ( (vz2(jk2) > vz1(jk1)).AND.(vz2(jk2) <= vz1(jk1+1)) ) THEN
+                  jk1e  = jk1 + 2    - k1_1 + 1
+                  jp1   = jk1e
+                  jp2   = jk1e + 1
+                  lfnd  = .TRUE.
+                  !!
                ELSE
-                  IF ( vz2(jk2) == vz1(jk1+1) ) THEN
-                     vf2(jk2) = REAL( vf1(jk1+1) , 4)
+                  !!
+                  IF ( vz2(jk2) == vz1(jk1) ) THEN
+                     vf2(jk2) = REAL( vf1(jk1) , 4)
                      l_do_interp = .FALSE.
                      EXIT
+                  ELSE
+                     IF ( vz2(jk2) == vz1(jk1+1) ) THEN
+                        vf2(jk2) = REAL( vf1(jk1+1) , 4)
+                        l_do_interp = .FALSE.
+                        EXIT
+                     END IF
                   END IF
+                  !!
                END IF
+
+               jk1 = jk1 + 1
+
+            END DO ! DO WHILE ( (.NOT. lfnd).AND.(l_do_interp) )
+
+
+            IF ( .NOT. lfnd ) THEN
+               l_do_interp = .FALSE.
+               !!
+               !! Persistence below last level:
+               IF ( (jk1 == k1_n).AND.( l_bp ) ) vf2(jk2) = REAL( vf1(k1_n) , 4 )
+            END IF
+            
+            
+            IF ( l_do_interp ) THEN
+               !! Estimating vf2(jk2) with a third order polynome :
+               !! -----------------------------------------------
+               !! Coefficients of the polynome
+               !!
+               !! MIND ! : jp1 and jp2 are given in 've' (n+4 extended arrays)
+               a0 = vf1e(jp1)
+               a1 = vslp(jp1)
+               dz = 1./(vz1e(jp2) - vz1e(jp1))
+               dz2 = dz*dz
+               a2 = ( 3*(vf1e(jp2) - vf1e(jp1))*dz - 2*vslp(jp1) - vslp(jp2) ) * dz
+               a3 = ( vslp(jp1) + vslp(jp2) - 2*(vf1e(jp2)-vf1e(jp1))/(vz1e(jp2)-vz1e(jp1)) ) * dz2
+               !!
+               dz = vz2(jk2) - vz1e(jp1)
+               dz2 = dz*dz
+               !!
+               vf2(jk2) = REAL( a0 + a1*dz + a2*dz2 + a3*dz2*dz , 4 )
                !!
             END IF
             !!
-            jk1 = jk1 + 1
-            !!
-         END DO ! DO WHILE ( .NOT. lfnd )
+         END DO  !DO jk2 = 1, nk2
+         !!
+         DEALLOCATE ( vz1e, vf1e, vslp )
 
-         !!  (PM) Take bottom value below the last data
-         IF (( jk1 == nk1) .and. (.not. lfnd)) THEN
-            vf2(jk2) = REAL( vf1(nk1) , 4 )
-            l_do_interp = .FALSE.
-         END IF
-         !!
-         IF ( .not. lfnd ) THEN
-            vf2(jk2) = -6666.0
-            l_do_interp = .FALSE.
-         END IF
-         !!
-         !!
-         !!
-         IF ( l_do_interp ) THEN
-            !! Estimating vf2(jk2) with a third order polynome :
-            !! -----------------------------------------------
-            !! Coefficients of the polynome
-            !!
-            !! MIND ! : jp1 and jp2 are given in 've' (n+4 extended arrays)
-            a0 = vf1e(jp1)
-            a1 = vslp(jp1)
-            dz = 1./(vz1e(jp2) - vz1e(jp1))
-            dz2 = dz*dz
-            a2 = ( 3*(vf1e(jp2) - vf1e(jp1))*dz - 2*vslp(jp1) - vslp(jp2) ) * dz
-            a3 = ( vslp(jp1) + vslp(jp2) - 2*(vf1e(jp2)-vf1e(jp1))/(vz1e(jp2)-vz1e(jp1)) ) * dz2
-            !!
-            dz = vz2(jk2) - vz1e(jp1)
-            dz2 = dz*dz
-            !!
-            vf2(jk2) = REAL( a0 + a1*dz + a2*dz2 + a3*dz2*dz , 4 )
-            !!
-         END IF
-         !!
-      END DO  !DO jk2 = 1, nk2
-      !!
-      DEALLOCATE ( vz1e, vf1e, vslp )
-      !!
+      ELSE
+         PRINT *, ''
+         PRINT *, ' AKIMA_1D_1D => DOING NOTHING, the entire input data vector is missing values!!!'
+         PRINT *, ''
+      END IF
+
+      IF (nmissv>0) DEALLOCATE ( imiss1 )
+
    END SUBROUTINE AKIMA_1D_1D
 
 
@@ -203,7 +240,7 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_1D_3D( vz1, xf1, vz2, xf2, rfill_val)
+   SUBROUTINE AKIMA_1D_3D( vz1, xf1, vz2, xf2, rfill_val )
       !!
       REAL(4), DIMENSION(:),     INTENT(in)  :: vz1
       REAL(4), DIMENSION(:,:,:), INTENT(in)  :: xf1
