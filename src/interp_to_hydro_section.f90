@@ -65,8 +65,8 @@ PROGRAM INTERP_TO_HYDRO_SECTION
       &    cv_t   = 'time_counter',  &
       &    cv_mt  = 'tmask',         &
       &    cv_z   = 'depth',         &
-      &    cv_lon = 'nav_lon',         & ! input grid longitude name, T-points
-      &    cv_lat = 'nav_lat'            ! input grid latitude name,  T-points
+      &    cv_lon = 'nav_lon',       & ! input grid longitude name, T-points
+      &    cv_lat = 'nav_lat'          ! input grid latitude name,  T-points
 
    CHARACTER(len=256)  :: cr, cnm_fill
    CHARACTER(len=512)  :: cdum, cconf

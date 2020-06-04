@@ -51,9 +51,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &    cv_obs = '', &
       &    cv_t   = 'time_counter',  &
       &    cv_mt  = 'tmask',         &
-      &    cv_z   = 'deptht',        &
-      &    cv_lon = 'glamt',         & ! input grid longitude name, T-points
-      &    cv_lat = 'gphit'            ! input grid latitude name,  T-points
+      &    cv_z   = 'depth',         &
+      &    cv_lon = 'nav_lon',       & ! input grid longitude name, T-points
+      &    cv_lat = 'nav_lat'          ! input grid latitude name,  T-points
 
    CHARACTER(len=256)  :: cr, cunit, cnm_fill
    CHARACTER(len=512)  :: cdum, cconf
@@ -98,6 +98,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: imask, imask_ignr
    INTEGER(1), DIMENSION(:),   ALLOCATABLE :: Fmask, icycle
+   LOGICAL,    DIMENSION(:,:), ALLOCATABLE :: lmask
    !!
    INTEGER :: jt, it, jt0, jtf, jt_s, jtm_1, jtm_2, jtm_1_o, jtm_2_o
    !!
@@ -140,7 +141,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! Getting string arguments :
    !! --------------------------
-   
+
    l_get_mask_metrics_from_meshmask = .FALSE.
    jarg = 0
 
@@ -203,14 +204,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
       CALL usage()
    END IF
-   
+
    IF ( TRIM(cv_obs) == '' ) THEN
       PRINT *, ''
       PRINT *, 'You must specify the name of which variable to look at in orbit file ! => -n <name> !!!'
       CALL usage()
    END IF
-   
-   
+
+
 
    PRINT *, ''
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
@@ -224,7 +225,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    PRINT *, ''
 
-   !! Name of config: lulu
+   !! Name of config:
    idot = SCAN(cf_mod, '/', back=.TRUE.)
    cdum = cf_mod(idot+1:)
    idot = SCAN(cdum, '.', back=.TRUE.)
@@ -263,7 +264,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    END IF
 
    PRINT *, ''
-   
+
 
    !! testing variable dimensions
    !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -287,7 +288,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' *** Allocating ni x nj arrays...'
    ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj), &
       &       xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj),    &
-      &       imask(ni,nj), vt_mod(Ntm) )
+      &       imask(ni,nj), lmask(ni,nj), vt_mod(Ntm) )
    IF ( l_debug ) THEN
       ALLOCATE ( RES_2D_MOD(ni,nj), RES_2D_OBS(ni,nj) )
       RES_2D_MOD(:,:) = 0.
@@ -343,7 +344,32 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
+   !! Getting 2D land-sea mask on model grid
+   !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   
+   IF (l_get_mask_metrics_from_meshmask) THEN
+      CALL GETMASK_2D(cf_mm, cv_mt, imask, jlev=1)
+   ELSE
+      !! getting mask from _FillValue on first field of file:
+      CALL CHECK_4_MISS(cf_mod, cv_mod, lfillval, rfillval_mod, cnm_fill)
+      CALL GETVAR_2D(i0, j0, cf_mod, cv_mod, Ntm, 0, 1, xdum_r4, jt1=1, jt2=1)
+      imask(:,:) = 1
+      WHERE ( xdum_r4 == rfillval_mod ) imask = 0
+      i0=0 ; j0=0
+   END IF
 
+   IF ( l_mask_input_data ) THEN
+      ! taking into consideration the forced masked region 'imask_ignr'
+      WHERE ( imask_ignr(:,:) == 0 ) imask(:,:) = 0
+      DEALLOCATE ( imask_ignr )
+   END IF
+
+   CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+   !STOP;!lolo
+   
+   lmask(:,:) = .FALSE.
+   WHERE( imask == 1 ) lmask = .TRUE.
+   
 
    !! Getting coordinates
    !! ~~~~~~~~~~~~~~~~~~~
@@ -355,25 +381,24 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CALL GETVAR_1D(cf_mod, cv_t, vt_mod)
 
 
-   !! Getting longitude, latitude and mask in mesh_mask file:
+   !! Getting longitude and latitude arrays
+   !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
    ! Longitude array:
+   
    CALL GETVAR_2D (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xlont(:,:))  ; i0=0 ; j0=0
+   lon_min_1 = MINVAL(xlont, mask=lmask)
+   lon_max_1 = MAXVAL(xlont, mask=lmask)
 
-   !! Min an max lon:
-   lon_min_1 = MINVAL(xlont)
-   lon_max_1 = MAXVAL(xlont)
-   PRINT *, ' *** Minimum longitude on source domain before : ', lon_min_1
-   PRINT *, ' *** Maximum longitude on source domain before : ', lon_max_1
-   !!
-   WHERE ( xlont < 0. ) xlont = xlont + 360.0_8
-   !!
-   lon_min_2 = MINVAL(xlont)
-   lon_max_2 = MAXVAL(xlont)
+   PRINT *, ' lon_min_1 =',lon_min_1
+   PRINT *, ' lon_max_1 =',lon_max_1
+   
+   xlont = to_degE(xlont)
+   lon_min_2 = MINVAL(xlont, mask=lmask)
+   lon_max_2 = MAXVAL(xlont, mask=lmask)
    PRINT *, ' *** Minimum longitude on source domain: ', lon_min_2
-   PRINT *, ' *** Maximum longitude on source domain: ', lon_max_2
-
+   PRINT *, ' *** Maximum longitude on source domain: ', lon_max_2   
    ! lolo: disgusting!:
-   !l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -170.).AND.(lon_max_1 >  0. ).AND.(lon_min_1 <  170.)
    l_loc1 = ((lon_min_1 <  0.).AND.(lon_min_1 > -170.)).OR.((lon_max_1 >  0. ).AND.(lon_min_1 <  170.))
    l_loc2 = (lon_min_2 >= 0.).AND.(lon_min_2 <   2.5).AND.(lon_max_2 >357.5).AND.(lon_max_2 <= 360.)
    IF (.NOT. l_loc1) THEN
@@ -391,18 +416,15 @@ PROGRAM INTERP_TO_GROUND_TRACK
    END IF
    PRINT *, ''
 
-
-
-
    ! Latitude array:
    CALL GETVAR_2D   (i0, j0, cf_mm,  cv_lat, 0, 0, 0, xlatt(:,:)) ; i0=0 ; j0=0
 
    !! Min an max lat:
-   lat_min = MINVAL(xlatt)
-   lat_max = MAXVAL(xlatt)
+   lat_min = MINVAL(xlatt, mask=lmask)
+   lat_max = MAXVAL(xlatt, mask=lmask)
    PRINT *, ' *** Minimum latitude on source domain : ', lat_min
    PRINT *, ' *** Maximum latitude on source domain : ', lat_max
-
+   !!
    l_glob_lat_wize = .TRUE.
    IF ( lat_max < 88. ) THEN
       l_glob_lat_wize =.FALSE.
@@ -412,35 +434,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   !! 2D land-sea mask on model grid:
-   IF (l_get_mask_metrics_from_meshmask) THEN
-      CALL GETMASK_2D(cf_mm, cv_mt, imask, jlev=1)
-   ELSE
-      !! getting mask from _FillValue on first field of file:
-      CALL CHECK_4_MISS(cf_mod, cv_mod, lfillval, rfillval_mod, cnm_fill)
-      CALL GETVAR_2D(i0, j0, cf_mod, cv_mod, Ntm, 0, 1, xdum_r4, jt1=1, jt2=1)
-      imask(:,:) = 1
-      WHERE ( xdum_r4 == rfillval_mod ) imask = 0
-      i0=0 ; j0=0
-   END IF
-   
-   IF ( l_mask_input_data ) THEN
-      ! taking into consideration the forced masked region 'imask_ignr'
-      WHERE ( imask_ignr(:,:) == 0 ) imask(:,:) = 0
-      DEALLOCATE ( imask_ignr )
-   END IF
-   
-   !CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
 
 
 
 
-
-
-
-
-
-   !! Reading along-track from file:
+   !! Reading along-track from file
+   !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    INQUIRE(FILE=TRIM(cf_obs), EXIST=l_exist )
    IF ( .NOT. l_exist ) THEN
@@ -450,10 +449,18 @@ PROGRAM INTERP_TO_GROUND_TRACK
    CALL DIMS(cf_obs, 'time', Nt0, nj1, nk, ni1)
    PRINT *, ' *** Nb. time records in NetCDF track file:', Nt0
    ALLOCATE ( xlon_gt_0(1,Nt0), xlat_gt_0(1,Nt0), vt_obs(Nt0), F_gt_0(Nt0), rcycle(Nt0) )
-  
+
    CALL GETVAR_1D(cf_obs, 'time', vt_obs)
    CALL GETVAR_1D(cf_obs, 'longitude', xlon_gt_0(1,:))
    CALL GETVAR_1D(cf_obs, 'latitude',  xlat_gt_0(1,:))
+
+   IF( MAXVAL(ABS(xlon_gt_0(1,:))) > 360. ) THEN
+      PRINT *, 'ERROR: longitude values in satelllite track file make no sense!'; STOP
+   END IF
+   IF( MAXVAL(ABS(xlat_gt_0(1,:))) > 90. ) THEN
+      PRINT *, 'ERROR: latitude values in satelllite track file make no sense!'; STOP
+   END IF
+   
    
    CALL GETVAR_1D(cf_obs, 'cycle',     rcycle)
 
@@ -566,10 +573,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    DEALLOCATE ( xlon_gt_0, xlat_gt_0 )
 
+   PRINT *, 'xlon_gt_i =', xlon_gt_i ; STOP
+   
    IF ( .NOT. l_glob_lon_wize ) THEN
       ALLOCATE ( xdum_r8(1,Nti) )
       xdum_r8 = degE_to_degWE(xlon_gt_i)
-      
+
       !xdum_r8 = SIGN(1._8, 180._8-xlon_gt_i)*MIN(xlon_gt_i,ABS(xlon_gt_i-360._8)) ! like xlon_gt_i but between -180 and +180 !
       WHERE ( xdum_r8 < lon_min_1 ) IGNORE=0
       WHERE ( xdum_r8 > lon_max_1 ) IGNORE=0
@@ -587,6 +596,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    PRINT *, ''
    PRINT *, ' Intially we had Nt0 ', Nt0, ' points'
+   IF( SIZE(IGNORE(1,:),1) /= Nti ) THEN
+      PRINT *, 'ERROR: Problem with Nti and shape of array "IGNORE"!' ;   STOP
+   END IF
    PRINT *, ' - excluding non relevant time led to Nti', Nti, ' points', SIZE(IGNORE(1,:),1)
 
    !Ntf = SUM(INT4(IGNORE)) !lolo wtf Gfortran ???
@@ -607,11 +619,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
    vtf(:)         = SHRINK_VECTOR(vt_obs(it1:it2), IGNORE(1,:), Ntf) !
    F_gt_f(:)      = SHRINK_VECTOR(F_gt_0(it1:it2), IGNORE(1,:), Ntf)
 
-   ! 
+   !
    DEALLOCATE ( xlon_gt_i , xlat_gt_i , vt_obs , F_gt_0 , rcycle )
 
 
-   
+
    IF ( l_debug_SARAL ) THEN
       OPEN(16, FILE='debug_saral.txt', FORM='FORMATTED', RECL=256, STATUS='unknown')
       !WRITE(16,*) '#     Fucked-up points! '
@@ -628,7 +640,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       STOP 'You are in SARAL debug mode (l_debug_SARAL=.TRUE.), we stop here! An check file "debug_saral.txt"!!!'
    END IF
 
-   
+
 
 
 
@@ -854,7 +866,7 @@ CONTAINS
       CHARACTER(len=*), INTENT(inout) :: cvalue
       !!
       IF ( jarg + 1 > iargc() ) THEN
-         PRINT *, 'ERROR: Missing ',trim(cname),' name!' ; call usage()
+         PRINT *, 'ERROR: Missing ',TRIM(cname),' name!' ; CALL usage()
       ELSE
          jarg = jarg + 1 ;  CALL getarg(jarg,cr)
          IF ( ANY(clist_opt == trim(cr)) ) THEN
