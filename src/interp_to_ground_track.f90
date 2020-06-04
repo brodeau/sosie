@@ -19,9 +19,9 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! ************************ Configurable part ****************************
    !!
-   LOGICAL, PARAMETER :: &
+   INTEGER, PARAMETER :: iverbose = 2
+   LOGICAL, PARAMETER :: &      
       &   l_debug_SARAL = .FALSE., &
-      &   l_debug = .FALSE., &
       &   l_debug_mapping = .FALSE., &
       &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
       &   l_akima = .TRUE., &
@@ -289,13 +289,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
    ALLOCATE ( xlont(ni,nj), xlatt(ni,nj), xdum_r4(ni,nj), &
       &       xvar(ni,nj), xvar1(ni,nj), xvar2(ni,nj),    &
       &       imask(ni,nj), lmask(ni,nj), vt_mod(Ntm) )
-   IF ( l_debug ) THEN
+   IF ( iverbose == 3 ) THEN
       ALLOCATE ( RES_2D_MOD(ni,nj), RES_2D_OBS(ni,nj) )
       RES_2D_MOD(:,:) = 0.
       RES_2D_OBS(:,:) = 0.
    END IF
    PRINT *, ' *** Done!'; PRINT *, ''
-
 
    !! In case we mask input data with field 'mask' found into file 'cf_msk' (option: "-M")
    IF ( l_mask_input_data ) THEN
@@ -355,6 +354,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       CALL GETVAR_2D(i0, j0, cf_mod, cv_mod, Ntm, 0, 1, xdum_r4, jt1=1, jt2=1)
       imask(:,:) = 1
       WHERE ( xdum_r4 == rfillval_mod ) imask = 0
+      WHERE ( xdum_r4 ==     0.0      ) imask = 0 !lolo: ugly but true, a pure 0, is a mask value in NEMO...
       i0=0 ; j0=0
    END IF
 
@@ -364,8 +364,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       DEALLOCATE ( imask_ignr )
    END IF
 
-   CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-   !STOP;!lolo
+   IF( iverbose == 2 ) CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
    
    lmask(:,:) = .FALSE.
    WHERE( imask == 1 ) lmask = .TRUE.
@@ -517,7 +516,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
          id_f1=0 ;  id_v1=0
          !WHERE ( imask == 0 ) xmean = -9999.
          CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-         !STOP 'lolo'
       END IF
 
       t_min_e = MINVAL(vt_obs)
@@ -559,7 +557,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    ALLOCATE ( IGNORE(1,Nti), xlon_gt_i(1,Nti), xlat_gt_i(1,Nti) )
 
-   IGNORE(:,:) = 1 !lolo
+   IGNORE(:,:) = 1
 
    !! Main time loop is on time vector in track file!
 
@@ -573,8 +571,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    DEALLOCATE ( xlon_gt_0, xlat_gt_0 )
 
-   PRINT *, 'xlon_gt_i =', xlon_gt_i ; STOP
-   
    IF ( .NOT. l_glob_lon_wize ) THEN
       ALLOCATE ( xdum_r8(1,Nti) )
       xdum_r8 = degE_to_degWE(xlon_gt_i)
@@ -774,7 +770,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
                      Ftrack_mod(jtf) = REAL( INTERP_BL(-1, iP, jP, iquadran, alpha, beta, xvar) , 8)
                      !! Observations as on their original point:
                      Ftrack_obs(jtf) = r_obs
-                     IF ( l_debug ) THEN
+                     IF ( iverbose == 3 ) THEN
                         !! On the model grid for info:
                         RES_2D_MOD(iP,jP) = Ftrack_mod(jtf)
                         RES_2D_OBS(iP,jP) = Ftrack_obs(jtf)
@@ -831,7 +827,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &     vdt07=REAL(rcycle_obs,4),     cv_dt07='cycle',             cln07='cycle', &
       &     vdt08=REAL(vdistance,4),      cv_dt08='distance',          cln08='Distance (in km) from first point of segment' )
 
-   IF ( l_debug ) THEN
+   IF ( iverbose == 3 ) THEN
       WHERE ( imask == 0 )
          RES_2D_MOD = -9999.
          RES_2D_OBS = -9999.
