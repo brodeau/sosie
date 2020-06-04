@@ -810,14 +810,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ''
 
    CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
-      &           ct_unit=TRIM(cunit_time_trg), &
-      &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
-      &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
-      &           vdt4=REAL(xlon_gt_f(1,:),4), cv_dt4='longitude',        cln4='Longitude (as in track file)',  &
-      &           vdt5=REAL(xlat_gt_f(1,:),4), cv_dt5='latitude',         cln5='Latitude (as in track file)' ,  &
-      &           vdt6=REAL(Fmask,4),          cv_dt6='mask',             cln6='Mask', &
-      &           vdt7=REAL(rcycle_obs,4),     cv_dt7='cycle',            cln7='cycle', &
-      &           vdt8=REAL(vdistance,4),      cv_dt8='distance',         cln8='Distance (in km) from first point of segment' )
+      &     ct_unit=TRIM(cunit_time_trg), &
+      &     vdt02=REAL(Ftrack_mod_np,4),  cv_dt02=TRIM(cv_mod)//'_np', cln02='Model data, nearest-point interpolation', &
+      &     vdt03=REAL(Ftrack_obs,4),     cv_dt03=cv_obs,              cln03='Original data as in track file...',   &
+      &     vdt04=REAL(xlon_gt_f(1,:),4), cv_dt04='longitude',         cln04='Longitude (as in track file)',  &
+      &     vdt05=REAL(xlat_gt_f(1,:),4), cv_dt05='latitude',          cln05='Latitude (as in track file)' ,  &
+      &     vdt06=REAL(Fmask,4),          cv_dt06='mask',              cln06='Mask', &
+      &     vdt07=REAL(rcycle_obs,4),     cv_dt07='cycle',             cln07='cycle', &
+      &     vdt08=REAL(vdistance,4),      cv_dt08='distance',          cln08='Distance (in km) from first point of segment' )
 
    IF ( l_debug ) THEN
       WHERE ( imask == 0 )
