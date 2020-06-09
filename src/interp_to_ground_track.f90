@@ -648,7 +648,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   !! Showing iy in file mask_+_nearest_points.nc:
+   !! Showing iy in file NP_track.nc:
    IF ( l_write_nc_show_track ) THEN
       !! Finding and storing the nearest points of NEMO grid to track points:
       !CALL FIND_NEAREST_POINT(xlon_gt_0, xlat_gt_0, xlont, xlatt,  JIidx, JJidx)
@@ -658,7 +658,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
       WHERE (imask == 0) show_obs = -100.
-      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'track', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
+      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'NP_track__'//TRIM(cconf)//'.nc', 'track', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
       !lolo:
       !CALL DUMP_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
       !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
@@ -893,7 +893,7 @@ CONTAINS
       WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: '//TRIM(cf_mm)//')'
       WRITE(6,*) ''
       WRITE(6,*) ' -S                   => show nearest-point along-track on 2D model domain'
-      WRITE(6,*) '                      => saved into file "mask_+_nearest_points.nc" '
+      WRITE(6,*) '                      => saved into file "NP_track__***.nc" '
       WRITE(6,*) ''
       WRITE(6,*) ' -M <masking_file>    => ignore regions of model domain for which "mask"==0 in "masking_file"'
       WRITE(6,*) ''
