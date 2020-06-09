@@ -19,7 +19,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    !! ************************ Configurable part ****************************
    !!
-   INTEGER, PARAMETER :: iverbose = 2
+   INTEGER, PARAMETER :: iverbose = 1
    LOGICAL, PARAMETER :: &      
       &   l_debug_SARAL = .FALSE., &
       &   l_debug_mapping = .FALSE., &
@@ -51,7 +51,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
       &    cv_obs = '', &
       &    cv_t   = 'time_counter',  &
       &    cv_mt  = 'tmask',         &
-      &    cv_z   = 'depth',         &
       &    cv_lon = 'nav_lon',       & ! input grid longitude name, T-points
       &    cv_lat = 'nav_lat'          ! input grid latitude name,  T-points
 
@@ -105,8 +104,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
    REAL(8) :: rt, t_min_e, t_max_e, t_min_m, t_max_m, &
       &       alpha, beta, t_min, t_max
    !!
-   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
-      &            clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-p','-n','-m','-S','-M' /)
+   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
+      &            clist_opt = (/ '-h','-v','-x','-y','-t','-i','-p','-n','-m','-S','-M' /)
 
    REAL(8) :: lon_min_2, lon_max_2, lat_min, lat_max, r_obs
    REAL(4) :: zdt, zdst, rrr, rfillval_mod
@@ -166,9 +165,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
       CASE('-y')
          CALL GET_MY_ARG('latitude', cv_lat)
-
-      CASE('-z')
-         CALL GET_MY_ARG('input depth', cv_z)
 
       CASE('-t')
          CALL GET_MY_ARG('time', cv_t)
@@ -373,18 +369,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !! Getting coordinates
    !! ~~~~~~~~~~~~~~~~~~~
 
-   !!IF ( nk > 1 ) CALL GETVAR_1D(cf_mod, cv_z, vdepth(:,1))
-
-
    !! Reading it in input file:
    CALL GETVAR_1D(cf_mod, cv_t, vt_mod)
 
-
-   !! Getting longitude and latitude arrays
-   !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-   ! Longitude array:
-   
+   ! Longitude array:   
    CALL GETVAR_2D (i0, j0, cf_mm,  cv_lon, 0, 0, 0, xlont(:,:))  ; i0=0 ; j0=0
    lon_min_1 = MINVAL(xlont, mask=lmask)
    lon_max_1 = MAXVAL(xlont, mask=lmask)
@@ -670,7 +658,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
       WHERE (imask == 0) show_obs = -100.
-      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
+      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'track', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
       !lolo:
       !CALL DUMP_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
       !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
@@ -884,31 +872,30 @@ CONTAINS
       WRITE(6,*) '   List of command line options:'
       WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       WRITE(6,*) ''
-      WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
+      WRITE(6,*) ' -i <model_file.nc>      => Model input file'
       WRITE(6,*) ''
-      WRITE(6,*) ' -v  <name>           => Specify variable name of interest in input file'
+      WRITE(6,*) ' -v <name>               => Name of variable interest in input file'
       WRITE(6,*) ''
-      WRITE(6,*) ' -p  <track_file>     => Specify name of NetCDF file containing orbit tack'
+      WRITE(6,*) ' -p <satellite_track.nc> => Satellite along-track observations file'
       WRITE(6,*) ''
-      WRITE(6,*) ' -n  <name>           => name of variable of interest in orbit tack file'
+      WRITE(6,*) ' -n <name>               => Name of variable of interest in satellite file'
       WRITE(6,*) ''
       !!
       WRITE(6,*) ''
       WRITE(6,*) '    Optional:'
       WRITE(6,*)  ''
-      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: '//TRIM(cv_lon)//')'
+      WRITE(6,*) ' -x  <name>           => Name of longitude in model input file (default: '//TRIM(cv_lon)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file  (default: '//TRIM(cv_lat)//')'
+      WRITE(6,*) ' -y  <name>           => Name of latitude  in model input file  (default: '//TRIM(cv_lat)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: '//TRIM(cv_z)//')'
-      WRITE(6,*) ''
-      WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: '//TRIM(cv_t)//')'
+      WRITE(6,*) ' -t  <name>           => Name of time in model input file (default: '//TRIM(cv_t)//')'
       WRITE(6,*) ''
       WRITE(6,*) ' -m  <mesh_mask_file> => Specify mesh_mask file to be used (default: '//TRIM(cf_mm)//')'
       WRITE(6,*) ''
-      WRITE(6,*) ' -S                => dump boxes on 2D output field "mask_+_nearest_points.nc" '
+      WRITE(6,*) ' -S                   => show nearest-point along-track on 2D model domain'
+      WRITE(6,*) '                      => saved into file "mask_+_nearest_points.nc" '
       WRITE(6,*) ''
-      WRITE(6,*) ' -M <masking_file> => ignore regions of input field where field "mask"==0 in "masking_file"'
+      WRITE(6,*) ' -M <masking_file>    => ignore regions of model domain for which "mask"==0 in "masking_file"'
       WRITE(6,*) ''
       WRITE(6,*) ' -h                   => Show this message'
       WRITE(6,*) ''

@@ -9,7 +9,9 @@ MODULE io_ezcdf
 
    IMPLICIT NONE
 
-   INTEGER, PARAMETER, PUBLIC :: nbatt_max=20
+   INTEGER, PARAMETER, PUBLIC :: &
+      &                            idflt = 5 , &  ! level of deflation for NETCDF-4 [0 to 9]
+      &                          nbatt_max=20
 
    TYPE, PUBLIC :: var_attr
       CHARACTER(LEN=128) :: cname
@@ -1125,7 +1127,7 @@ CONTAINS
       CALL sherr( NF90_DEF_DIM(idf, TRIM(cv_t), NF90_UNLIMITED, idtd),                       crtn,cf_in,cv_t)
       IF ( l_add_time ) THEN
          vextrema(3,:) = (/MINVAL(vtime),MAXVAL(vtime)/)
-         CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=9),    crtn,cf_in,cv_t)
+         CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_t), NF90_DOUBLE, idtd, idt, deflate_level=idflt),    crtn,cf_in,cv_t)
          IF ( PRESENT(ct_unit) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'units',    TRIM(ct_unit)), crtn,cf_in,cv_t)
          IF ( PRESENT(ct_clnd) ) CALL sherr( NF90_PUT_ATT(idf, idt, 'calendar', TRIM(ct_clnd)), crtn,cf_in,cv_t)
          CALL sherr( NF90_PUT_ATT(idf, idt, 'valid_min', vextrema(3,1)),                        crtn,cf_in,cv_t)
@@ -1133,26 +1135,26 @@ CONTAINS
       END IF
 
       !! Variable(s):
-      CALL              sherr( NF90_DEF_VAR(idf, TRIM(cv_dt01), NF90_FLOAT, idtd, idv01, deflate_level=9), crtn,cf_in,cv_dt01 )
-      IF ( ldv02 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt02), NF90_FLOAT, idtd, idv02, deflate_level=9), crtn,cf_in,cv_dt02 )
-      IF ( ldv03 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt03), NF90_FLOAT, idtd, idv03, deflate_level=9), crtn,cf_in,cv_dt03 )
-      IF ( ldv04 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt04), NF90_FLOAT, idtd, idv04, deflate_level=9), crtn,cf_in,cv_dt04 )
-      IF ( ldv05 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt05), NF90_FLOAT, idtd, idv05, deflate_level=9), crtn,cf_in,cv_dt05 )
-      IF ( ldv06 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt06), NF90_FLOAT, idtd, idv06, deflate_level=9), crtn,cf_in,cv_dt06 )
-      IF ( ldv07 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt07), NF90_FLOAT, idtd, idv07, deflate_level=9), crtn,cf_in,cv_dt07 )
-      IF ( ldv08 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt08), NF90_FLOAT, idtd, idv08, deflate_level=9), crtn,cf_in,cv_dt08 )
-      IF ( ldv09 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt09), NF90_FLOAT, idtd, idv09, deflate_level=9), crtn,cf_in,cv_dt09 )
-      IF ( ldv10 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt10), NF90_FLOAT, idtd, idv10, deflate_level=9), crtn,cf_in,cv_dt10 )
-      IF ( ldv11 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt11), NF90_FLOAT, idtd, idv11, deflate_level=9), crtn,cf_in,cv_dt11 )
-      IF ( ldv12 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt12), NF90_FLOAT, idtd, idv12, deflate_level=9), crtn,cf_in,cv_dt12 )
-      IF ( ldv13 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt13), NF90_FLOAT, idtd, idv13, deflate_level=9), crtn,cf_in,cv_dt13 )
-      IF ( ldv14 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt14), NF90_FLOAT, idtd, idv14, deflate_level=9), crtn,cf_in,cv_dt14 )
-      IF ( ldv15 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt15), NF90_FLOAT, idtd, idv15, deflate_level=9), crtn,cf_in,cv_dt15 )
-      IF ( ldv16 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt16), NF90_FLOAT, idtd, idv16, deflate_level=9), crtn,cf_in,cv_dt16 )
-      IF ( ldv17 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt17), NF90_FLOAT, idtd, idv17, deflate_level=9), crtn,cf_in,cv_dt17 )
-      IF ( ldv18 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt18), NF90_FLOAT, idtd, idv18, deflate_level=9), crtn,cf_in,cv_dt18 )
-      IF ( ldv19 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt19), NF90_FLOAT, idtd, idv19, deflate_level=9), crtn,cf_in,cv_dt19 )
-      IF ( ldv20 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt20), NF90_FLOAT, idtd, idv20, deflate_level=9), crtn,cf_in,cv_dt20 )
+      CALL              sherr( NF90_DEF_VAR(idf, TRIM(cv_dt01), NF90_FLOAT, idtd, idv01, deflate_level=idflt), crtn,cf_in,cv_dt01 )
+      IF ( ldv02 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt02), NF90_FLOAT, idtd, idv02, deflate_level=idflt), crtn,cf_in,cv_dt02 )
+      IF ( ldv03 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt03), NF90_FLOAT, idtd, idv03, deflate_level=idflt), crtn,cf_in,cv_dt03 )
+      IF ( ldv04 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt04), NF90_FLOAT, idtd, idv04, deflate_level=idflt), crtn,cf_in,cv_dt04 )
+      IF ( ldv05 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt05), NF90_FLOAT, idtd, idv05, deflate_level=idflt), crtn,cf_in,cv_dt05 )
+      IF ( ldv06 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt06), NF90_FLOAT, idtd, idv06, deflate_level=idflt), crtn,cf_in,cv_dt06 )
+      IF ( ldv07 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt07), NF90_FLOAT, idtd, idv07, deflate_level=idflt), crtn,cf_in,cv_dt07 )
+      IF ( ldv08 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt08), NF90_FLOAT, idtd, idv08, deflate_level=idflt), crtn,cf_in,cv_dt08 )
+      IF ( ldv09 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt09), NF90_FLOAT, idtd, idv09, deflate_level=idflt), crtn,cf_in,cv_dt09 )
+      IF ( ldv10 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt10), NF90_FLOAT, idtd, idv10, deflate_level=idflt), crtn,cf_in,cv_dt10 )
+      IF ( ldv11 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt11), NF90_FLOAT, idtd, idv11, deflate_level=idflt), crtn,cf_in,cv_dt11 )
+      IF ( ldv12 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt12), NF90_FLOAT, idtd, idv12, deflate_level=idflt), crtn,cf_in,cv_dt12 )
+      IF ( ldv13 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt13), NF90_FLOAT, idtd, idv13, deflate_level=idflt), crtn,cf_in,cv_dt13 )
+      IF ( ldv14 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt14), NF90_FLOAT, idtd, idv14, deflate_level=idflt), crtn,cf_in,cv_dt14 )
+      IF ( ldv15 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt15), NF90_FLOAT, idtd, idv15, deflate_level=idflt), crtn,cf_in,cv_dt15 )
+      IF ( ldv16 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt16), NF90_FLOAT, idtd, idv16, deflate_level=idflt), crtn,cf_in,cv_dt16 )
+      IF ( ldv17 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt17), NF90_FLOAT, idtd, idv17, deflate_level=idflt), crtn,cf_in,cv_dt17 )
+      IF ( ldv18 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt18), NF90_FLOAT, idtd, idv18, deflate_level=idflt), crtn,cf_in,cv_dt18 )
+      IF ( ldv19 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt19), NF90_FLOAT, idtd, idv19, deflate_level=idflt), crtn,cf_in,cv_dt19 )
+      IF ( ldv20 ) CALL sherr( NF90_DEF_VAR(idf, TRIM(cv_dt20), NF90_FLOAT, idtd, idv20, deflate_level=idflt), crtn,cf_in,cv_dt20 )
 
       !! V01:
       CALL sherr( NF90_PUT_ATT(idf, idv01, 'long_name', trim(cln01) ),  crtn,cf_in,cv_dt01)
@@ -1396,14 +1398,14 @@ CONTAINS
          
          !! Depth:
          CALL sherr( NF90_DEF_DIM(idx_f, 'z', lz,                    id_z                         ), crtn,cf_in,cv_in)
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z, id_dpt, deflate_level=9), crtn,cf_in,cv_in)
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z, id_dpt, deflate_level=idflt), crtn,cf_in,cv_in)
          !CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_lon, attr_dpt,  crtn,cf_in,cv_in)
          !CALL sherr( NF90_PUT_ATT(idx_f, id_lon, 'valid_min', vxtrm(1,1)), crtn,cf_in,cv_in)
          !CALL sherr( NF90_PUT_ATT(idx_f, id_lon, 'valid_max', vxtrm(1,2)), crtn,cf_in,cv_in)
          !!
          !!  TIME
          CALL sherr( NF90_DEF_DIM(idx_f, TRIM(cv_t), NF90_UNLIMITED, id_t                         ), crtn,cf_in,cv_in)
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_t), NF90_DOUBLE,    id_t, id_tim, deflate_level=9), crtn,cf_in,cv_in)
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_t), NF90_DOUBLE,    id_t, id_tim, deflate_level=idflt), crtn,cf_in,cv_in)
          !IF ( lcopy_att_tim )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_time, attr_t,  crtn,cf_in,cv_in)
          !IF ( l_add_extrema ) THEN
          !CALL sherr( NF90_PUT_ATT(idx_f, id_time, 'valid_min',vxtrm(3,1)), crtn,cf_in,cv_in)
@@ -1418,7 +1420,7 @@ CONTAINS
             ALLOCATE (vidim(1))
             vidim = (/id_z/)
          END IF
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=idflt), &
             &      crtn,cf_in,cv_in )
          DEALLOCATE ( vidim )
 
@@ -1562,7 +1564,7 @@ CONTAINS
             ALLOCATE (vidim(2))
             vidim = (/id_x,id_y/)
          END IF
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=idflt), &
             &      crtn,cf_in,cv_in )
          DEALLOCATE ( vidim )
 
@@ -1703,7 +1705,7 @@ CONTAINS
          ELSE
             CALL sherr( NF90_DEF_DIM(idx_f, 'z', lz, id_z),  crtn,cf_in,cv_in)
          END IF
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z,id_dpt, deflate_level=9),  crtn,cf_in,cv_in)
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z,id_dpt, deflate_level=idflt),  crtn,cf_in,cv_in)
          IF ( lcopy_att_z )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_dpt, attr_z, crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_min', MINVAL(vdpth)),  crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_max', MAXVAL(vdpth)),  crtn,cf_in,cv_in)
@@ -1716,7 +1718,7 @@ CONTAINS
             ALLOCATE (vidim(3))
             vidim = (/id_x,id_y,id_z/)
          END IF
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=9), &
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=idflt), &
             &       crtn,cf_in,cv_in)
          DEALLOCATE ( vidim )
 
@@ -1914,6 +1916,7 @@ CONTAINS
       INTEGER     :: lx, ly, i01, i02
       LOGICAL :: lzcoord, l_mask
       CHARACTER(len=80), PARAMETER :: crtn = 'DUMP_2D_FIELD'
+      !!
       lx = size(xfld,1) ; ly = size(xfld,2)
       lzcoord = .FALSE.
       l_mask  = .FALSE.
@@ -1937,7 +1940,7 @@ CONTAINS
             &            id_x, id_y, i01, id_lo, id_la, i02, &
             &            crtn,cf_in,cv_in)
       END IF
-      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=9), crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=idflt), crtn,cf_in,cv_in)
       IF (l_mask)  CALL sherr( NF90_PUT_ATT(id_f, id_v,trim(cmv0),        rfill                 ), crtn,cf_in,cv_in)
       IF (lzcoord) CALL sherr( NF90_PUT_ATT(id_f, id_v,'coordinates',TRIM(cv_la)//" "//TRIM(cv_lo)), crtn,cf_in,cv_in)
       CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in)
@@ -1990,7 +1993,7 @@ CONTAINS
 
       CALL sherr( NF90_DEF_DIM(id_f, 'z', lz, id_z),  crtn,cf_in,cv_in)
 
-      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y,id_z/), id_v, deflate_level=9), crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y,id_z/), id_v, deflate_level=idflt), crtn,cf_in,cv_in)
       IF (l_mask)  CALL sherr( NF90_PUT_ATT(id_f, id_v,TRIM(cmv0),        rfill                 ), crtn,cf_in,cv_in)
       IF (lzcoord) CALL sherr( NF90_PUT_ATT(id_f, id_v,'coordinates',TRIM(cv_la)//" "//TRIM(cv_lo)), crtn,cf_in,cv_in)
       CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in)
@@ -2052,19 +2055,19 @@ CONTAINS
       CALL sherr( NF90_DEF_DIM(id_f, 'n2',  2, id_n2), crtn,cf_out,cdum)
       CALL sherr( NF90_DEF_DIM(id_f, 'n3',  3, id_n3), crtn,cf_out,cdum)
 
-      CALL sherr( NF90_DEF_VAR(id_f, 'lon',       NF90_DOUBLE, (/id_x,id_y/),       id_lo, deflate_level=9), &
+      CALL sherr( NF90_DEF_VAR(id_f, 'lon',       NF90_DOUBLE, (/id_x,id_y/),       id_lo, deflate_level=idflt), &
          &        crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_VAR(id_f, 'lat',       NF90_DOUBLE, (/id_x,id_y/),       id_la, deflate_level=9), &
+      CALL sherr( NF90_DEF_VAR(id_f, 'lat',       NF90_DOUBLE, (/id_x,id_y/),       id_la, deflate_level=idflt), &
          &        crtn,cf_out,cdum)
-      !CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT64,    (/id_x,id_y,id_n3/), id_v1, deflate_level=9), &
-      CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT,    (/id_x,id_y,id_n3/), id_v1, deflate_level=9), &
+      !CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT64,    (/id_x,id_y,id_n3/), id_v1, deflate_level=idflt), &
+      CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT,    (/id_x,id_y,id_n3/), id_v1, deflate_level=idflt), &
          &        crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_VAR(id_f, 'alphabeta', NF90_DOUBLE, (/id_x,id_y,id_n2/), id_v2, deflate_level=9), &
+      CALL sherr( NF90_DEF_VAR(id_f, 'alphabeta', NF90_DOUBLE, (/id_x,id_y,id_n2/), id_v2, deflate_level=idflt), &
          &        crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_VAR(id_f, 'iproblem',  NF90_INT,    (/id_x,id_y/),       id_v3, deflate_level=9), &
+      CALL sherr( NF90_DEF_VAR(id_f, 'iproblem',  NF90_INT,    (/id_x,id_y/),       id_v3, deflate_level=idflt), &
          &        crtn,cf_out,cdum)
       IF ( l_save_distance_to_np ) THEN
-         CALL sherr( NF90_DEF_VAR(id_f, 'dist_np', NF90_REAL, (/id_x,id_y/), id_dnp, deflate_level=9),  crtn,cf_out,cdum)
+         CALL sherr( NF90_DEF_VAR(id_f, 'dist_np', NF90_REAL, (/id_x,id_y/), id_dnp, deflate_level=idflt),  crtn,cf_out,cdum)
          CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'long_name', 'Distance to nearest point'),  crtn,cf_out,cdum)
          CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'units'    , 'km'                       ),  crtn,cf_out,cdum)
       END IF
@@ -2180,7 +2183,7 @@ CONTAINS
       CALL prepare_nc(id_f, '1d', lx, ly, cv_x, cv_y, '', vextrema, &
          &            id_x, id_y, i01, id_lo, id_la, i02, crtn,cf_in,cv_in)
 
-      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=9), crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=idflt), crtn,cf_in,cv_in)
 
       CALL sherr( NF90_PUT_ATT(id_f, id_v, 'long_name', trim(cln)),  crtn,cf_in,cv_in)
       CALL sherr( NF90_PUT_ATT(id_f, id_v, 'units',  trim(cunit) ),  crtn,cf_in,cv_in)
@@ -2419,14 +2422,14 @@ CONTAINS
          IF ( (cdt0 == '2d').OR.(cdt0 == 'y1') ) THEN
             CALL sherr( NF90_DEF_DIM(id_file, 'x', nx, id_ji), cri,cfi,cvi)
             CALL sherr( NF90_DEF_DIM(id_file, 'y', ny, id_jj), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, (/id_ji,id_jj/), id_lon, deflate_level=9), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, (/id_ji,id_jj/), id_lat, deflate_level=9), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, (/id_ji,id_jj/), id_lon, deflate_level=idflt), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, (/id_ji,id_jj/), id_lat, deflate_level=idflt), cri,cfi,cvi)
             !!
          ELSE IF ( cdt0 == '1d' ) THEN
             CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_lon), nx, id_ji), cri,cfi,cvi)
             CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_lat), ny, id_jj), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, id_ji, id_lon, deflate_level=9), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, id_jj, id_lat, deflate_level=9), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, id_ji, id_lon, deflate_level=idflt), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, id_jj, id_lat, deflate_level=idflt), cri,cfi,cvi)
          END IF
          !!
          IF ( lcopy_att_lon )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_lon, attr_lon,  cri,cfi,cvi)
@@ -2449,7 +2452,7 @@ CONTAINS
       !!  TIME
       IF ( TRIM(cv_time) /= '' ) THEN
          CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_time), NF90_UNLIMITED, id_jt), cri,cfi,cvi)
-         CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time, deflate_level=9), cri,cfi,cvi)
+         CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time, deflate_level=idflt), cri,cfi,cvi)
          IF ( lcopy_att_tim )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_time, attr_tim,  cri,cfi,cvi)
          IF ( l_add_extrema ) THEN
             CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)
