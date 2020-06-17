@@ -2827,17 +2827,17 @@ CONTAINS
       LOGICAL        , OPTIONAL, INTENT(in) :: l_dt_below_sec
       !!
       REAL(8)    :: zt !, dt_min
-      REAL(8), DIMENSION(:), ALLOCATABLE :: vtmp
+      REAL(8), DIMENSION(:), ALLOCATABLE :: vtmp, vscan
 
-      INTEGER    :: ntr, jt, jd_old
+      INTEGER    :: ntr, jt, jd_old, icpt
       INTEGER    :: jy, jmn, jd, jh, jm, js, jx
       LOGICAL    :: lcontinue, l_be_accurate
       REAL(8)    :: rjs_t, rjs_t_old, rjs0_epoch, zinc, rjs
       CHARACTER(len=80), PARAMETER :: crtn = 'to_epoch_time_vect'
-      !!
+      
       l_be_accurate = .FALSE.
       IF ( PRESENT(l_dt_below_sec) ) l_be_accurate = l_dt_below_sec
-      !!
+
       SELECT CASE(cal_unit_ref0%unit)
       CASE('d')
          PRINT *, ' Switching from days to seconds!'
@@ -2855,22 +2855,22 @@ CONTAINS
       !!
 
       ntr = SIZE(vt,1)
-      !PRINT *, ' ntr =', ntr
-      !ALLOCATE ( vtmp(ntr-1) )
-      !vtmp(:) = vt(2:ntr) - vt(1:ntr-1)
-      !dt_min = MINVAL(vtmp)
-      !PRINT *, ' * Minimum time-step (in seconds) => ', dt_min
-      !dt_min = dt_min - dt_min/100.
-      !PRINT *, vtmp(1:40)
-      !DEALLOCATE ( vtmp )
-
+      
+      !! Scanning time vector to ensure it is not fucked up...
+      ALLOCATE ( vscan(ntr-1) )
+      vscan(:) = vt(2:ntr) - vt(1:ntr-1)
+      PRINT *, ' *** to_epoch_time_vect => Max dt in vt =', MAXVAL(vscan), '[s]'
+      PRINT *, ' *** to_epoch_time_vect => Min dt in vt =', MINVAL(vscan), '[s]'
+      IF( MINVAL(vscan)<=0._8  ) STOP 'ERROR: to_epoch_time_vect => input time vector has negative or 0 increments!!! !'
+      IF(    ANY(vscan<  1._8) ) STOP 'ERROR: to_epoch_time_vect => input time vector has increments below 1 second!!! !'
+      DEALLOCATE( vscan )
 
       ALLOCATE ( vtmp(ntr) )
       !!
       !! Starting with large time increment (in seconds):
 
       !!
-      jy = cal_unit_ref0%year
+      jy  = cal_unit_ref0%year
       jmn = cal_unit_ref0%month
       jd  = cal_unit_ref0%day
       jh  = cal_unit_ref0%hour
@@ -2880,16 +2880,18 @@ CONTAINS
       !!
       !!
       rjs = REAL(js, 8)
-      rjs_t = 0. ; rjs_t_old = 0.
+      rjs_t = 0.
+      rjs_t_old = 0.
       !!
       zinc = 60. ! seconds
       !!
       DO jt = 0, ntr ! 0 is the initial pass to find the start
 
-         zt   = vt(MAX(jt,1))
+         zt   = vt(MAX(jt,1))  ! current time in seconds since origin date...
 
-         !PRINT *, '' ; PRINT *, ' jt, zt = ', jt, zt
-
+         PRINT *, ''
+         PRINT *, 'LOLO: jt, zt =', jt, zt
+         
          IF ( (l_be_accurate).AND.(jt > 0) ) zinc = 0.01 ! seconds
 
          !PRINT *, ' after previous jt:', jy, jmn, jd, jh, jm, js, jx
@@ -2899,18 +2901,28 @@ CONTAINS
             rjs_t     = rjs_t - 120.
             rjs_t_old = rjs_t - zinc
          END IF
+
          !PRINT *, ' before comming jt:', jy, jmn, jd, jh, jm, js, jx
 
-
          !WRITE(*,'(" *** start: ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2," s cum =",i," d cum =",i)') jy, jmn, jd, jh, jm, js,  js_t
+         
+         icpt = 0
          lcontinue = .TRUE.
          DO WHILE ( lcontinue )
+            icpt = icpt + 1 ; !lolo debug
             jd_old = jd
             rjs_t = rjs_t + zinc
 
-            !IF ( jt > 0 ) PRINT *, ' *** LOOP before zinc: jh, jm, js, jx =>', jh, jm, js, jx
-
             js = js + INT(zinc)
+            
+            !LOLO:
+            !IF(icpt<10) THEN
+            !   PRINT *, ' rjs_t_old, rjs_t, js =', rjs_t_old, rjs_t, js
+            !END IF
+            IF( (icpt==1).AND.(zt<=rjs_t_old) ) STOP 'ERROR: to_epoch_time_vect => zt <= rjs_t_old !' ; !;lulu
+            !LOLO.
+            
+            !IF ( jt > 0 ) PRINT *, ' *** LOOP before zinc: jh, jm, js, jx =>', jh, jm, js, jx
             IF ( l_be_accurate ) jx = jx + NINT(100.*MOD(zinc, 1.0))
 
             IF ( jt == 0 ) THEN
@@ -2948,20 +2960,25 @@ CONTAINS
             !
             IF ( (jy==1970).AND.(jmn==1).AND.(jd==1).AND.(jh==0).AND.(jm==0).AND.(rjs==0.) ) rjs0_epoch = rjs_t
             !
+            !PRINT *, ' lolo: zt, rjs_t, rjs_t_old',  zt, rjs_t, rjs_t_old
             IF ( (zt <= rjs_t).AND.(zt > rjs_t_old) ) lcontinue = .FALSE.
+
             IF ( jy == 2019 ) THEN
                PRINT *, 'rjs_t =', rjs_t
-               STOP 'ERROR: to_epoch_time_vect => beyond 2018!'
+               STOP 'ERROR: to_epoch_time_vect => beyond 2018!' ; !lulu
             END IF
+            !
             rjs_t_old = rjs_t
-         END DO
+         END DO !DO WHILE ( lcontinue )
          !
          vtmp(MAX(jt,1)) = rjs_t - rjs0_epoch
          !
-         IF ( jt==1   ) WRITE(*,'(" *** to_epoch_time_vect => Start date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
-         IF ( jt==ntr ) WRITE(*,'(" *** to_epoch_time_vect =>   End date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
-         !
-      END DO
+         !IF ( jt==1   ) WRITE(*,'(" *** to_epoch_time_vect => Start date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
+         WRITE(*,'(" *** to_epoch_time_vect: jt =",i8.8," => ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jt, jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
+         !IF ( jt==ntr ) WRITE(*,'(" *** to_epoch_time_vect =>   End date : ",i4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,":",i2.2," epoch: ",f15.4)') jy, jmn, jd, jh, jm, js,jx, vtmp(MAX(jt,1))
+         
+         PRINT *, ''; PRINT *, ''
+      END DO !DO jt = 0, ntr
 
       vt(:) = vtmp(:)
 
