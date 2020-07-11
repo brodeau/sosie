@@ -35,7 +35,7 @@ obj/mod_conf.o \
 obj/mod_init.o \
 obj/mod_manip.o \
 obj/mod_grids.o \
-obj/mod_drown.o \
+obj/mod_bdrown.o \
 obj/mod_akima_2d.o \
 obj/mod_bilin_2d.o \
 obj/mod_akima_1d.o \
@@ -44,17 +44,21 @@ obj/mod_interp.o \
 obj/mod_nemotools.o \
 obj/mod_poly.o
 
+#obj/mod_drown.o \
+
 OBJ_I2GT = obj/io_ezcdf.o \
 obj/mod_conf.o \
 obj/mod_manip.o \
-obj/mod_drown.o \
+obj/mod_bdrown.o \
 obj/mod_bilin_2d.o \
 obj/mod_poly.o
+
+#obj/mod_drown.o \
 
 OBJ_I2HS = obj/io_ezcdf.o \
 obj/mod_conf.o \
 obj/mod_manip.o \
-obj/mod_drown.o \
+obj/mod_bdrown.o \
 obj/mod_bilin_2d.o \
 obj/mod_akima_1d.o \
 obj/mod_poly.o
@@ -65,7 +69,7 @@ OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o
 # Modules to install in $INSTALL_DIR/include :
 MOD_INST= mod/io_ezcdf.mod \
 mod/mod_akima_2d.mod \
-mod/mod_drown.mod
+mod/mod_bdrown.mod
 
 all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/ij_from_lon_lat.x
 
@@ -162,6 +166,9 @@ obj/mod_manip.o: src/mod_manip.f90
 
 obj/mod_drown.o: src/mod_drown.f90
 	$(FC) $(FF) -c src/mod_drown.f90 -o obj/mod_drown.o
+
+obj/mod_bdrown.o: src/mod_bdrown.f90
+	$(FC) $(FF) -c src/mod_bdrown.f90 -o obj/mod_bdrown.o
 
 obj/mod_akima_2d.o: src/mod_akima_2d.f90
 	$(FC) $(FF) -c src/mod_akima_2d.f90 -o obj/mod_akima_2d.o

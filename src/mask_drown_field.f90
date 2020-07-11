@@ -6,7 +6,7 @@ PROGRAM mask_drown_field
    !!         Extrapolate sea values over continents thanks to the DROWN algorithm
 
    use io_ezcdf
-   use mod_drown
+   use mod_bdrown
 
    IMPLICIT NONE
 
@@ -332,7 +332,7 @@ PROGRAM mask_drown_field
       IF ( l_drwn_f ) THEN
          PRINT *, ' *** drowning field at time =', jt
          DO jk = 1, nk
-            CALL DROWN(iewper, DATA(:,:,jk), mask(:,:,jk), nb_inc=i_how_far)
+            CALL BDROWN(iewper, DATA(:,:,jk), mask(:,:,jk), nb_inc=i_how_far)
          END DO
       END IF
 

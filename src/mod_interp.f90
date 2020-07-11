@@ -2,7 +2,8 @@ MODULE MOD_INTERP
 
    USE mod_conf       !* important parameters, namelist and misc routines
    USE mod_manip      !* misc. manipulation of 2D arrays
-   USE mod_drown      !* extrapolation over masked surfaces
+   !USE mod_drown      !* extrapolation over masked surfaces
+   USE mod_bdrown      !* extrapolation over masked surfaces
    USE mod_akima_2d   !* Akima method algorithm
    USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
@@ -39,8 +40,8 @@ CONTAINS
       IF ( l_drown_src ) THEN
          !! Extrapolate sea values over land :
          IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
-         !CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
-         CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr)
+         CALL BDROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth) !lolo
+         !CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr)
          IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
 
       ELSE
@@ -91,8 +92,8 @@ CONTAINS
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF (jj_ex_btm > 0) THEN
-         !CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth)
-         CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr)
+         CALL BDROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth) !lolo
+         !CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr)
       END IF
       !lolo.
 
@@ -169,8 +170,8 @@ CONTAINS
          PRINT *, 'LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
          !!
          DO jj = 1, nj_src
-            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100, nb_smooth=5 )
-            CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100 )
+            CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100, nb_smooth=5 ) !lolo
+            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100 )
          END DO
          PRINT *, '   => Done!'
          PRINT *, ''
@@ -194,8 +195,8 @@ CONTAINS
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
             !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
             IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )
-            !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
-            CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr )
+            CALL BDROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth ) !lolo
+            !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr )
             IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
             !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')
          ELSE
