@@ -46,7 +46,7 @@ PROGRAM SOSIE
 
    IMPLICIT NONE
 
-   CHARACTER(len=800) :: cextinf
+   CHARACTER(len=800) :: cextinf, cf_drwn
 
    INTEGER    :: &
       &   ji, jj, &
@@ -106,6 +106,9 @@ PROGRAM SOSIE
 
 
 
+   jj = SCAN(TRIM(cf_src), '.', BACK=.TRUE.) - 1
+   ji = SCAN(TRIM(cf_src), '/', BACK=.TRUE.)
+   cf_drwn = '.'//TRIM(cf_src(ji:jj))//'_DROWNED.nc'
 
 
 
@@ -162,7 +165,7 @@ PROGRAM SOSIE
          IF ( l_save_drwn ) THEN
             CALL P2D_T(idf_id, idv_id, Ntr, jt,    &
                &       lon_src, lat_src, vt, data_src_drowned(:,:,1),    &
-               &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_t_src,    &
+               &       TRIM(cf_drwn), cv_lon_src, cv_lat_src, cv_t_src,    &
                &       cv_src, 0., &
                &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_t=vatt_info_t, attr_F=vatt_info_F )
          END IF
@@ -203,7 +206,7 @@ PROGRAM SOSIE
             IF ( l_save_drwn ) THEN
                CALL P3D_T(idf_id, idv_id, Ntr, jt,    &
                   &       lon_src, lat_src, REAL(depth_src(1,1,:),8), vt, data_src_drowned(:,:,:), &
-                  &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_z_src, cv_t_src,    &
+                  &       TRIM(cf_drwn), cv_lon_src, cv_lat_src, cv_z_src, cv_t_src,    &
                   &       cv_src, 0., &
                   &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_z=vatt_info_z_src, &
                   &       attr_t=vatt_info_t, attr_F=vatt_info_F )
@@ -232,7 +235,7 @@ PROGRAM SOSIE
 
    PRINT *, ''; PRINT *, TRIM(cf_out), ' is created'; PRINT *, ''
 
-   IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
+   IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_drwn)
 
    PRINT *, ''
 
