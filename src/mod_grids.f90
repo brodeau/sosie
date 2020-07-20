@@ -367,13 +367,15 @@ CONTAINS
       PRINT *, ' *** Minimum longitude on source domain before reorg. : ', REAL(lon_min_1,4)
       PRINT *, ' *** Maximum longitude on source domain before reorg. : ', REAL(lon_max_1,4)
 
-      IF ( l_reg_src ) THEN
-         !! Fixing source 1D longitude:
-         CALL FIX_LONG_1D(ni_src, lon_src(:,1), nlon_icr_src, i_chg_lon)
-         !! Fixing source 1D latitude:
-         CALL FIX_LATD_1D(nj_src, lat_src(:,1), nlat_icr_src)
-      ELSE
-         WHERE ( lon_src < 0. )  lon_src = lon_src + 360.
+      IF ( TRIM(cmethod) /= 'no_xy' ) THEN
+         IF ( l_reg_src ) THEN
+            !! Fixing source 1D longitude:
+            CALL FIX_LONG_1D(ni_src, lon_src(:,1), nlon_icr_src, i_chg_lon)
+            !! Fixing source 1D latitude:
+            CALL FIX_LATD_1D(nj_src, lat_src(:,1), nlat_icr_src)
+         ELSE
+            WHERE ( lon_src < 0. )  lon_src = lon_src + 360.
+         END IF
       END IF
 
       lon_min_2 = MINVAL(lon_src)
@@ -401,13 +403,13 @@ CONTAINS
       mask_src(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
 
       IF ( l_drown_src ) THEN
-         
+
          IF ( TRIM(cf_lsm_src) == '' ) THEN
             WRITE(6,*) 'ERROR! if you want to "drown" input field (idrown[1]>0) then "cf_lsm_src"'
             WRITE(6,*) '       cannot be an empty string!'
             STOP
          END IF
-         
+
          IF ( (TRIM(cf_lsm_src) == 'missing_value' ).OR. &
             & (TRIM(cf_lsm_src) == 'val+')          .OR. &
             & (TRIM(cf_lsm_src) == 'val-')          .OR. &
@@ -602,7 +604,7 @@ CONTAINS
 
          ELSE
 
-            
+
             IF ( TRIM(cf_lsm_trg) =='missing_value' ) THEN
                CALL CREATE_LSM( 'target', cf_lsm_trg, cv_lsm_trg, mask_trg,  cf_fld=cf_x_trg, cv_fld=cv_lsm_trg )
 
@@ -1283,7 +1285,7 @@ CONTAINS
          END DO
 
       END IF
-      
+
       mask(:,:,:) = 1
 
       IF ( TRIM(cmthd) == 'missing_value' ) THEN
@@ -1296,14 +1298,14 @@ CONTAINS
             PRINT *, '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
-         
+
          IF ( ISNAN(rmv) ) THEN
             WHERE ( z3d_tmp < -9990. ) mask = 0  ! NaN have been replaced with -9999. earlier !
          ELSE
             WHERE ( z3d_tmp == rmv   ) mask = 0
          END IF
          !!CALL DUMP_FIELD(REAL(mask,4), 'mask_trg.tmp', 'lsm')
-         
+
       ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
          READ(cnumv,*) rval_thrshld
          IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld
@@ -1398,13 +1400,13 @@ CONTAINS
             PRINT *, '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
-         
+
          IF ( ISNAN(rmv) ) THEN
             WHERE ( z2d_tmp < -9990. ) mask = 0  ! NaN have been replaced with -9999. earlier !
-         ELSE            
+         ELSE
             WHERE ( z2d_tmp == rmv )   mask = 0
          END IF
-         
+
       ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
          READ(cnumv,*) rval_thrshld
          IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld
@@ -1424,7 +1426,7 @@ CONTAINS
          WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from NaN values in '//TRIM(cv_src)//' at jt = ', jt0
          ! =>  NaN values have been flagged earlier and replaced by -9999.
          WHERE ( z2d_tmp < -9998. ) mask = 0
-         
+
       ELSE
          WRITE(6,*) 'ERROR! (CREATE_LSM_2D of mod_grids.f90): Unknown value for "cmthd": '//TRIM(cmthd)//' !' ; STOP
       END IF
