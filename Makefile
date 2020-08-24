@@ -36,6 +36,7 @@ obj/mod_init.o \
 obj/mod_manip.o \
 obj/mod_grids.o \
 obj/mod_bdrown.o \
+obj/mod_drown.o \
 obj/mod_akima_2d.o \
 obj/mod_bilin_2d.o \
 obj/mod_akima_1d.o \
@@ -49,6 +50,7 @@ obj/mod_poly.o
 OBJ_I2GT = obj/io_ezcdf.o \
 obj/mod_conf.o \
 obj/mod_manip.o \
+obj/mod_drown.o \
 obj/mod_bdrown.o \
 obj/mod_bilin_2d.o \
 obj/mod_poly.o

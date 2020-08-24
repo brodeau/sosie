@@ -150,35 +150,7 @@ CONTAINS
       !! Interpolation of each of the nk_src levels onto the target grid
       !! --------------------------------------------------------------
 
-      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's')
-
-
-      
-      IF ( l_drown_src .AND. (nk_src > 5) ) THEN
-         !! First, need to do some sort of vertical drown downward to propagate the bottom
-         !! value (last water pomit mask==1) down into the sea-bed...
-         !! => calling drown vertical slice by vertical slices (zonal vertical slices)
-         PRINT *, ''
-         PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
-         !!
-         !! Find the level from which less than 30 % of the rectangular domain is water
-         jk_almst_btm = 2
-         DO jk = jk_almst_btm, nk_src
-            IF ( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.3 ) EXIT
-         END DO
-         jk_almst_btm = MIN( jk , nk_src - 1 )
-         PRINT *, 'LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
-         !!
-         DO jj = 1, nj_src
-            CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100, nb_smooth=5 ) !lolo
-            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100 )
-         END DO
-         PRINT *, '   => Done!'
-         PRINT *, ''
-         !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
-      END IF
-
-
+      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's') !#LB
 
       DO jk = 1, nk_src
 
@@ -198,12 +170,13 @@ CONTAINS
             CALL BDROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth ) !lolo
             !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr )
             IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
-            !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')
+            !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's') !#LB
          ELSE
             PRINT *, '-------------------'
             PRINT *, 'DROWN NOT CALLED!!!'
             PRINT *, '-------------------'
          END IF
+
 
          IF ( ismooth > 0 ) THEN
             IF ( TRIM(cmethod) == 'no_xy' ) THEN
@@ -216,6 +189,35 @@ CONTAINS
          END IF
 
       END DO !DO jk = 1, nk_src
+
+
+      IF ( l_drown_src .AND. (nk_src > 5) ) THEN
+         !! First, need to do some sort of vertical drown downward to propagate the bottom
+         !! value (last water pomit mask==1) down into the sea-bed...
+         !! => calling drown vertical slice by vertical slices (zonal vertical slices)
+         PRINT *, ''
+         PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
+         !!
+         !! Find the level from which less than 50 % of the rectangular domain is water
+         jk_almst_btm = 2
+         DO jk = jk_almst_btm, nk_src
+            IF ( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.5 ) EXIT
+         END DO
+         jk_almst_btm = MIN( jk , nk_src - 1 )
+         PRINT *, 'LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
+         !!
+         DO jj = 1, nj_src
+            CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100, nb_smooth=5 ) !lolo
+            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100 )
+         END DO
+         PRINT *, '   => Done!'
+         PRINT *, ''
+         !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
+         !!
+      END IF !IF ( l_drown_src .AND. (nk_src > 5) )
+
+
+
 
       !! Prevent last level to f-word shit up when not a single water point (last level is only rock!)
       IF ( SUM(mask_src(:,:,nk_src)) == 0) data3d_src(:,:,nk_src) = data3d_src(:,:,nk_src-1) ! persistence!
@@ -232,10 +234,9 @@ CONTAINS
       PRINT *, ' 3D field prepared at all levels, ready to be interpolated...'
       PRINT *, ''
 
+      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '03_Slice_in_before_interp.tmp', 's') !#LB
 
-
-      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '03_Slice_in_before_interp.tmp', 's')
-
+      
       !! Now! 3D input field ready to be interpolated...
       DO jk = 1, nk_src
 
@@ -315,7 +316,7 @@ CONTAINS
             WRITE(6,'("      => ",i4.4," x ",i4.4," x ",i3.3," to ",i4.4," x ",i4.4," x ",i3.3)') &
                &       SIZE(data3d_tmp,1), SIZE(data3d_tmp,2), SIZE(depth_src_trgt2d(1,1,:),1), &
                &       ni_trg, nj_trg, SIZE(depth_trg(1,1,:),1)
-            
+
             CALL AKIMA_1D( depth_src_trgt2d(1,1,:), data3d_tmp(:,:,:), depth_trg(1,1,:), data3d_trg(:,:,:), rmiss_val )
 
             PRINT *, '  --- AKIMA_1D_3D done!'
