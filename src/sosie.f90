@@ -107,10 +107,9 @@ PROGRAM SOSIE
 
 
    jj = SCAN(TRIM(cf_src), '.', BACK=.TRUE.) - 1
-   ji = SCAN(TRIM(cf_src), '/', BACK=.TRUE.)
+   ji = SCAN(TRIM(cf_src), '/', BACK=.TRUE.) + 1
    cf_drwn = TRIM(cf_src(ji:jj))//'_DROWNED.nc'
-
-
+   
 
 
    !!                -------------------------------
