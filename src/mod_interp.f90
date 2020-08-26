@@ -152,6 +152,33 @@ CONTAINS
 
       !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's') !#LB
 
+
+      IF ( l_drown_src .AND. (nk_src > 5) ) THEN
+         !! First, need to do some sort of vertical drown downward to propagate the bottom
+         !! value (last water pomit mask==1) down into the sea-bed...
+         !! => calling drown vertical slice by vertical slices (zonal vertical slices)
+         PRINT *, ''
+         PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
+         !!
+         !! Find the level from which less than 10 % of the rectangular domain is water
+         jk_almst_btm = 2
+         DO jk = jk_almst_btm, nk_src
+            IF ( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.1 ) EXIT
+         END DO
+         jk_almst_btm = MIN( jk , nk_src - nk_src/5 )
+         PRINT *, '#LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
+         !!
+         DO jj = 1, nj_src
+            CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=20, nb_smooth=5 ) !lolo
+            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=20 )
+         END DO
+         PRINT *, '   => Done!'
+         PRINT *, ''
+         !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
+         !!
+      END IF !IF ( l_drown_src .AND. (nk_src > 5) )
+
+
       DO jk = 1, nk_src
 
          PRINT *, '### Preparing source field at level : ', jk
@@ -191,30 +218,6 @@ CONTAINS
       END DO !DO jk = 1, nk_src
 
 
-      IF ( l_drown_src .AND. (nk_src > 5) ) THEN
-         !! First, need to do some sort of vertical drown downward to propagate the bottom
-         !! value (last water pomit mask==1) down into the sea-bed...
-         !! => calling drown vertical slice by vertical slices (zonal vertical slices)
-         PRINT *, ''
-         PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
-         !!
-         !! Find the level from which less than 50 % of the rectangular domain is water
-         jk_almst_btm = 2
-         DO jk = jk_almst_btm, nk_src
-            IF ( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.5 ) EXIT
-         END DO
-         jk_almst_btm = MIN( jk , nk_src - 1 )
-         PRINT *, 'LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
-         !!
-         DO jj = 1, nj_src
-            CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100, nb_smooth=5 ) !lolo
-            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=100 )
-         END DO
-         PRINT *, '   => Done!'
-         PRINT *, ''
-         !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
-         !!
-      END IF !IF ( l_drown_src .AND. (nk_src > 5) )
 
 
 
@@ -236,7 +239,7 @@ CONTAINS
 
       !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '03_Slice_in_before_interp.tmp', 's') !#LB
 
-      
+
       !! Now! 3D input field ready to be interpolated...
       DO jk = 1, nk_src
 
