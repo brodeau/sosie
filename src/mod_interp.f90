@@ -142,7 +142,7 @@ CONTAINS
       !! ================
 
       INTEGER :: i1,j1, i2,j2
-      INTEGER :: ji, jj, jk, jk_bot, jk_wet, jklast=0, jk_almst_btm
+      INTEGER :: ji, jj, jk, jk_bot, jklast=0, jk_almst_btm
       REAL(8) :: zwet, zmax_src, zmax_trg
 
       CHARACTER(len=128) :: cfdbg !DEBUG
@@ -152,11 +152,11 @@ CONTAINS
 
       !IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_before_bedrock_extrapolation.nc', TRIM(cv_src) )
 
-      
+
       PRINT *, ''
-      IF( ixtrpl_bot>0 ) PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
-      
+
       IF( ixtrpl_bot == 1 ) THEN
+         PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
          PRINT *, '    ==> using persistence method'
          !! Downward extrapolation of last wet value into the sea-bed
          DO jj=1, nj_src
@@ -164,9 +164,8 @@ CONTAINS
                !IF( mask_src(ji,jj,1)==1 ) THEN  ! only on sea regions
                jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
                IF( jk_bot>1 ) THEN
-                  jk_wet = jk_bot-1
-                  zwet   = data3d_src(ji,jj,jk_bot-1) 
-                  !PRINT *, 'LOLO: bottom: jk_bot, jk_wet, nk_src, zwet =', jk_bot, jk_wet, nk_src, zwet
+                  zwet   = data3d_src(ji,jj,jk_bot-1)
+                  !PRINT *, 'LOLO: bottom: jk_bot, nk_src, zwet =', jk_bot, nk_src, zwet
                   data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
                END IF
                !END IF
@@ -175,6 +174,7 @@ CONTAINS
       END IF
 
       IF( (ixtrpl_bot == 2).AND.(nk_src > 5) ) THEN
+         PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
          PRINT *, '    ==> using DROWN method'
          !! First, need to do some sort of vertical drown downward to propagate the bottom
          !! value (last water pomit mask==1) down into the sea-bed...
@@ -198,8 +198,8 @@ CONTAINS
       IF( ixtrpl_bot>0 ) PRINT *, '   => Done!'
       !IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_after_bedrock_extrapolation.nc', TRIM(cv_src) )
 
-      PRINT *, ''      
-      
+      PRINT *, ''
+
       DO jk = 1, nk_src
 
          PRINT *, '### Preparing source field at level : ', jk
@@ -224,6 +224,24 @@ CONTAINS
             PRINT *, 'DROWN NOT CALLED!!!'
             PRINT *, '-------------------'
          END IF
+         
+         !! Again:
+         IF( ixtrpl_bot == 1 ) THEN
+            !PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
+            !PRINT *, '    ==> using persistence method'
+            !! Downward extrapolation of last wet value into the sea-bed
+            DO jj=1, nj_src
+               DO ji=1, ni_src
+                  jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
+                  IF( jk_bot>1 ) THEN
+                     zwet   = data3d_src(ji,jj,jk_bot-1)
+                     data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
+                  END IF
+               END DO
+            END DO
+            IF( l_save_drwn ) data_src_drowned(:,:,:) = data3d_src(:,:,:)
+         END IF
+
 
 
          IF( ismooth > 0 ) THEN
