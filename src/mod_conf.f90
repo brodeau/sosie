@@ -126,6 +126,8 @@ MODULE MOD_CONF
    TYPE(idrown_info) ::  idrown    ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
    !                               ! and how many times to smooth the drowned area
 
+   INTEGER :: ixtrpl_bot = 0
+   
 
    !! S-coordinates specific
    !! -----------------------

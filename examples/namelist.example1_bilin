@@ -9,7 +9,7 @@
 &ndom_src
 csource    = '360x180'
 ivect      = 0    ! this is not a vector interpolation
-l_reg_src  = T    ! input grid is regular (lon and lat are "1D")
+l_reg_src  = .true. ! input grid is regular (lon and lat are "1D")
 cf_src     = 'data/sst.ltm.1971-2000.nc'
 cv_src     = 'sst'
 cv_t_src   = 'time'
@@ -24,7 +24,7 @@ ewper_src  = 0          ! input field does have east-west periodicity with 0 ove
 !!
 &ndom_trg
 ctarget    = 'ORCA1'
-l_reg_trg  = F
+l_reg_trg  = .false.
 cf_x_trg   = 'data/mesh_mask_ORCA1_light.nc'
 cv_lon_trg = 'nav_lon'
 cv_lat_trg = 'nav_lat'
@@ -37,7 +37,9 @@ ewper_trg  = 2
 &ninterp
 cmethod  = 'bilin'
 !!
-idrown      = 100
+idrown      = 100,50
+ixtrpl_bot  = 0
+l_save_drwn = .true.
 ismooth     = 0
 jt1         = 0    ! we want to interpolate each time record
 jt2         = 0    !           //
@@ -55,9 +57,9 @@ cln_out   = 'Reynolds Sea Surface Temperature, Long Term Mean, 1971-2000'
 cv_t_out  = 'time_counter'
 cd_out    = '.'
 cextra    = 'REYNOLDS_LTM_bilin'
-lmout     = T      ! We want to mask continents!
+lmout     = .true.      ! We want to mask continents!
 rmiss_val = -9999.
-lct       = F      ! we use time vector from input file
+lct       = .false.      ! we use time vector from input file
 t0        = 0.
 t_stp     = 0.
 /

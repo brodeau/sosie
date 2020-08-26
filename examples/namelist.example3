@@ -39,6 +39,7 @@ cmethod  = 'bilin'
 !!
 idrown      = 100,50
 l_save_drwn = .true.
+ixtrpl_bot  = 0
 ismooth     = 0
 jt1         = 0    ! we want to interpolate each time record
 jt2         = 0    !           //

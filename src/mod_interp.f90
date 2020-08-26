@@ -32,17 +32,17 @@ CONTAINS
       CHARACTER(len=128) ctmp !debug
 
       !! lon-aranging or lat-flipping field
-      IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
-      IF ( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_src)
+      IF( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
+      IF( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_src)
 
       mask_src = mask_src_b    ! re-filling the mask with trusted values...
 
-      IF ( l_drown_src ) THEN
+      IF( l_drown_src ) THEN
          !! Extrapolate sea values over land :
-         IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
+         IF( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
          CALL BDROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth) !lolo
          !CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr)
-         IF ( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
+         IF( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
 
       ELSE
          PRINT *, '-------------------'
@@ -50,7 +50,7 @@ CONTAINS
          PRINT *, '-------------------'
       END IF
 
-      IF ( ismooth > 0 ) THEN
+      IF( ismooth > 0 ) THEN
          !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
          WRITE(6,'("     --- ",a,": smoothing ",i4," times!")') TRIM(cv_src), ismooth
          PRINT *, ' Smoothing '//TRIM(cv_src)//'!', ismooth, ' times'
@@ -80,7 +80,7 @@ CONTAINS
 
       !! If target grid extends too much in latitude compared to source grid, need to
       !! extrapolate a bit at bottom and top of the domain :
-      IF (l_reg_trg) CALL extrp_hl(data_trg)
+      IF(l_reg_trg) CALL extrp_hl(data_trg)
 
 
       !! Applying bound corrections
@@ -91,13 +91,13 @@ CONTAINS
       !lolo:
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
-      IF (jj_ex_btm > 0) THEN
+      IF(jj_ex_btm > 0) THEN
          CALL BDROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth) !lolo
          !CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr)
       END IF
       !lolo.
 
-      IF ( ibx_xtra_sm(0) > 0 ) THEN
+      IF( ibx_xtra_sm(0) > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp extra smoothing ",i4," times!")') TRIM(cv_out), ibx_xtra_sm(0)
          i1=ibx_xtra_sm(1)
          j1=ibx_xtra_sm(2)
@@ -109,7 +109,7 @@ CONTAINS
          PRINT *, ''
       END IF
 
-      IF ( ismooth_out > 0 ) THEN
+      IF( ismooth_out > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
          CALL SMOOTHER(ewper_trg, data_trg,  nb_smooth=ismooth_out, msk=mask_trg(:,:,1), l_exclude_mask_points=.true.)
          PRINT *, ''
@@ -120,14 +120,14 @@ CONTAINS
 
 
       !! Masking result if requested
-      IF ( lmout ) THEN
+      IF( lmout ) THEN
          WHERE (mask_trg(:,:,1) == 0)  data_trg = rmiss_val
       ELSE
          rmiss_val = 0.
       ENDIF
 
       !! If target grid is an ORCA grid, calling "lbc_lnk":
-      IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
+      IF( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
 
    END SUBROUTINE INTERP_2D
 
@@ -142,8 +142,8 @@ CONTAINS
       !! ================
 
       INTEGER :: i1,j1, i2,j2
-      INTEGER :: ji, jj, jk, jklast=0, jk_almst_btm
-      REAL(8) :: zmax_src, zmax_trg
+      INTEGER :: ji, jj, jk, jk_bot, jk_wet, jklast=0, jk_almst_btm
+      REAL(8) :: zwet, zmax_src, zmax_trg
 
       CHARACTER(len=128) :: cfdbg !DEBUG
 
@@ -152,8 +152,27 @@ CONTAINS
 
       !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's') !#LB
 
+      IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_before_bedrock_extrapolation.nc', TRIM(cv_src) )
 
-      IF ( l_drown_src .AND. (nk_src > 5) ) THEN
+      IF( ixtrpl_bot == 1 ) THEN
+         !! Downward extrapolation of last wet value into the sea-bed
+         DO jj=1, nj_src
+            DO ji=1, ni_src
+               !IF( mask_src(ji,jj,1)==1 ) THEN  ! only on sea regions
+               jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
+               IF( jk_bot>1 ) THEN
+                  jk_wet = jk_bot-1
+                  zwet   = data3d_src(ji,jj,jk_bot-1) 
+                  PRINT *, 'LOLO: bottom: jk_bot, jk_wet, nk_src, zwet =', jk_bot, jk_wet, nk_src, zwet
+                  data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
+               END IF
+               !END IF
+            END DO
+         END DO
+      END IF
+
+
+      IF( (ixtrpl_bot == 2).AND.(nk_src > 5) ) THEN
          !! First, need to do some sort of vertical drown downward to propagate the bottom
          !! value (last water pomit mask==1) down into the sea-bed...
          !! => calling drown vertical slice by vertical slices (zonal vertical slices)
@@ -163,10 +182,10 @@ CONTAINS
          !! Find the level from which less than 10 % of the rectangular domain is water
          jk_almst_btm = 2
          DO jk = jk_almst_btm, nk_src
-            IF ( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.1 ) EXIT
+            IF( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.1 ) EXIT
          END DO
          jk_almst_btm = MIN( jk , nk_src - nk_src/5 )
-         PRINT *, '#LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
+         !PRINT *, '#LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
          !!
          DO jj = 1, nj_src
             CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=20, nb_smooth=5 ) !lolo
@@ -176,27 +195,29 @@ CONTAINS
          PRINT *, ''
          !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
          !!
-      END IF !IF ( l_drown_src .AND. (nk_src > 5) )
+      END IF !IF( (ixtrpl_bot == 2).AND.(nk_src > 5) )
 
+      IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_after_bedrock_extrapolation.nc', TRIM(cv_src) )
 
+      
       DO jk = 1, nk_src
 
          PRINT *, '### Preparing source field at level : ', jk
 
-         IF ( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
-            IF ( nlat_icr_src == -1 ) CALL FLIP_UD(data3d_src(:,:,jk))
-            IF ( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_src(:,:,jk))
+         IF( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
+            IF( nlat_icr_src == -1 ) CALL FLIP_UD(data3d_src(:,:,jk))
+            IF( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data3d_src(:,:,jk))
          END IF
 
-         IF ( l_drown_src ) THEN
+         IF( l_drown_src ) THEN
             !! Now, the official DROWN can be done!
             !! Extrapolate sea values over land :
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
             !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
-            IF ( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )
+            IF( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )
             CALL BDROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth ) !lolo
             !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr )
-            IF ( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
+            IF( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
             !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's') !#LB
          ELSE
             PRINT *, '-------------------'
@@ -205,8 +226,8 @@ CONTAINS
          END IF
 
 
-         IF ( ismooth > 0 ) THEN
-            IF ( TRIM(cmethod) == 'no_xy' ) THEN
+         IF( ismooth > 0 ) THEN
+            IF( TRIM(cmethod) == 'no_xy' ) THEN
                PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
                STOP
             END IF
@@ -223,7 +244,7 @@ CONTAINS
 
 
       !! Prevent last level to f-word shit up when not a single water point (last level is only rock!)
-      IF ( SUM(mask_src(:,:,nk_src)) == 0) data3d_src(:,:,nk_src) = data3d_src(:,:,nk_src-1) ! persistence!
+      IF( SUM(mask_src(:,:,nk_src)) == 0) data3d_src(:,:,nk_src) = data3d_src(:,:,nk_src-1) ! persistence!
 
       !LOLOdebug:
       !DO jk = nk_src/2, nk_src
@@ -243,14 +264,14 @@ CONTAINS
       !! Now! 3D input field ready to be interpolated...
       DO jk = 1, nk_src
 
-         IF (TRIM(cmethod) /= 'no_xy' ) PRINT *, '  *** interpolating at level ', jk
+         IF(TRIM(cmethod) /= 'no_xy' ) PRINT *, '  *** interpolating at level ', jk
 
          SELECT CASE(TRIM(cmethod))
 
          CASE('akima')
             CALL akima_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
                &              lon_trg, lat_trg, data3d_tmp(:,:,jk))
-            IF ( trim(ctype_z_src) == 'z' ) THEN
+            IF( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
                depth_src_trgt2d(:,:,jk) = depth_src(1,1,jk)
             ELSE
@@ -263,10 +284,10 @@ CONTAINS
             CALL bilin_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
                &              lon_trg, lat_trg, data3d_tmp(:,:,jk), cpat)
 
-            IF ( trim(ctype_z_src) == 'z' ) THEN
+            IF( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
                depth_src_trgt2d(:,:,jk) = depth_src(1,1,jk)
-               IF ( l_identical_levels ) depth_src_trgt2d(:,:,jk) = depth_trg(1,1,jk) !lolo
+               IF( l_identical_levels ) depth_src_trgt2d(:,:,jk) = depth_trg(1,1,jk) !lolo
             ELSE
                !! input is sigma, layers are non-flat
                CALL bilin_2d(ewper_src, lon_src,  lat_src, depth_src(:,:,jk), &
@@ -276,7 +297,7 @@ CONTAINS
          CASE('no_xy')
             PRINT *, '  *** copying at level ', jk
             data3d_tmp(:,:,jk) = data3d_src(:,:,jk)
-            IF ( TRIM(ctype_z_src) == 'z' ) THEN
+            IF( TRIM(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
                depth_src_trgt2d(:,:,jk) = depth_src(1,1,jk)
             ELSE
@@ -288,7 +309,7 @@ CONTAINS
             PRINT *, 'Interpolation method "', trim(cmethod), '" is unknown!!!'; STOP
          END SELECT
 
-         IF (l_reg_trg) CALL extrp_hl(data3d_tmp(:,:,jk))
+         IF(l_reg_trg) CALL extrp_hl(data3d_tmp(:,:,jk))
 
       END DO !DO jk = 1, nk_src
 
@@ -301,8 +322,8 @@ CONTAINS
       !! Time for vertical interpolation
 
 
-      !IF ( .NOT. (TRIM(cf_x_trg)  == 'spheric') ) THEN  !LOLO WTF was this???
-      IF ( .NOT. l_identical_levels ) THEN  ! ( l_identical_levels always false for S-coordinates...)
+      !IF( .NOT. (TRIM(cf_x_trg)  == 'spheric') ) THEN  !LOLO WTF was this???
+      IF( .NOT. l_identical_levels ) THEN  ! ( l_identical_levels always false for S-coordinates...)
 
          depth_src  = ABS(depth_src)
          depth_trg = ABS(depth_trg)
@@ -312,7 +333,7 @@ CONTAINS
 
 
          PRINT *, ''
-         IF ( (TRIM(ctype_z_src) == 'z').AND.(TRIM(ctype_z_trg) == 'z') ) THEN
+         IF( (TRIM(ctype_z_src) == 'z').AND.(TRIM(ctype_z_trg) == 'z') ) THEN
 
             !! Go for the vectorial routine...
             PRINT *, ' *** CALLING AKIMA_1D_3D for vertical interpolation !!!'
@@ -333,12 +354,12 @@ CONTAINS
 
                   !! RD dev notes : we need to make sure that the depth vector for both in and out
                   !! are from smallest to largest value so that persistance works
-                  IF ( trim(ctype_z_src) == 'sigma' ) THEN
+                  IF( trim(ctype_z_src) == 'sigma' ) THEN
                      CALL FLIP_UD(depth_src_trgt2d(ji,jj,:))
                      CALL FLIP_UD(data3d_tmp(ji,jj,:))
                   ENDIF
 
-                  IF ( trim(ctype_z_trg) == 'sigma' ) THEN
+                  IF( trim(ctype_z_trg) == 'sigma' ) THEN
                      CALL FLIP_UD(depth_trg(ji,jj,:))
                   ENDIF
 
@@ -347,30 +368,30 @@ CONTAINS
                   zmax_src  = MAXVAL(depth_src_trgt2d(ji,jj,:))
                   zmax_trg = MAXVAL(depth_trg(ji,jj,:))
 
-                  IF ( zmax_trg > zmax_src ) THEN
+                  IF( zmax_trg > zmax_src ) THEN
                      !! Must find the last target level less deep than zmax_src
                      jklast = 1
                      DO WHILE ( jklast < nk_trg )
-                        IF ( depth_trg(ji,jj,jklast+1) > zmax_src ) EXIT
+                        IF( depth_trg(ji,jj,jklast+1) > zmax_src ) EXIT
                         jklast = jklast + 1
                      END DO
                   ELSE
                      jklast = nk_trg
                   END IF
 
-                  IF ( (mask_trg(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
-                     IF ( lmout ) THEN  ! adapting nlev if masking target
+                  IF( (mask_trg(ji,jj,1) == 1) .OR. (.NOT. lmout) ) THEN
+                     IF( lmout ) THEN  ! adapting nlev if masking target
                         nlev = 1
                         !! RD while loop causes seg fault in debug
                         DO jk=1,nk_trg
-                           IF ( mask_trg(ji,jj,jk) == 1 ) nlev = nlev + 1
+                           IF( mask_trg(ji,jj,jk) == 1 ) nlev = nlev + 1
                         ENDDO
                         nlev = nlev - 1
                      ELSE
                         nlev = jklast
                      END IF
                      !!
-                     IF ( (MOD(ji,100)==0).AND.(MOD(jj,100)==0) ) PRINT *, '  ... calling AKIMA_1D for ji_trg,jj_trg =', ji,jj
+                     IF( (MOD(ji,100)==0).AND.(MOD(jj,100)==0) ) PRINT *, '  ... calling AKIMA_1D for ji_trg,jj_trg =', ji,jj
                      !!
                      CALL AKIMA_1D( REAL(depth_src_trgt2d(ji,jj,:),8), REAL(data3d_tmp(ji,jj,:),8),  &
                         &           REAL(depth_trg(ji,jj,1:nlev),8),        data3d_trg(ji,jj,1:nlev) )
@@ -379,14 +400,14 @@ CONTAINS
                      !! RD dev notes : I think the indices were off. If jklast is the last target level
                      !! that can be properly computed then we want to apply persistance to jklast + 1 to nk_trg
                      !! btw, interp from z to sigma works slightly better without this on my test case
-                     IF ( (jklast > 0).AND.(jklast < nk_trg) ) THEN
+                     IF( (jklast > 0).AND.(jklast < nk_trg) ) THEN
                         DO jk = jklast+1, nk_trg
                            data3d_trg(ji,jj,jk) = data3d_trg(ji,jj,jklast)
                         END DO
                      END IF
 
                      !! RD dev notes : when interpolating to sigma, need to reverse again arrays
-                     IF ( trim(ctype_z_trg) == 'sigma' ) THEN
+                     IF( trim(ctype_z_trg) == 'sigma' ) THEN
                         CALL FLIP_UD(depth_trg(ji,jj,:))
                         CALL FLIP_UD(data3d_trg(ji,jj,:))
                      ENDIF
@@ -394,14 +415,14 @@ CONTAINS
                   END IF
                END DO
             END DO
-         END IF  !IF ( (TRIM(ctype_z_src) == 'z').AND.(TRIM(ctype_z_trg) == 'z') ) THEN
+         END IF  !IF( (TRIM(ctype_z_src) == 'z').AND.(TRIM(ctype_z_trg) == 'z') ) THEN
 
       ELSE
 
          WRITE(6,*) '  *** skipping vertical interpolation as source and target vertical levels are identical!'
          data3d_trg = data3d_tmp ! target levels are same than source levels
 
-      END IF  !IF ( .NOT. l_identical_levels )      ! => no vertical interpolation required...
+      END IF  !IF( .NOT. l_identical_levels )      ! => no vertical interpolation required...
 
 
       !! avoid working with 3D arrays as a whole : produce SEGV on some machines (small)
@@ -415,7 +436,7 @@ CONTAINS
             &   data3d_trg(:,:,jk) = vmin
 
 
-         IF ( ibx_xtra_sm(0) > 0 ) THEN
+         IF( ibx_xtra_sm(0) > 0 ) THEN
             WRITE(6,'("     --- ",a,": post-interp extra smoothing ",i4," times at level ",i3.3,"!")') TRIM(cv_out), ibx_xtra_sm(0), jk
             i1=ibx_xtra_sm(1)
             j1=ibx_xtra_sm(2)
@@ -426,16 +447,16 @@ CONTAINS
             PRINT *, ''
          END IF
 
-         IF ( ismooth_out > 0 ) THEN
+         IF( ismooth_out > 0 ) THEN
             WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
             CALL SMOOTHER(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, msk=mask_trg(:,:,jk), l_exclude_mask_points=.TRUE.)
             PRINT *, ''
          END IF
 
          !! If target grid is an ORCA grid, calling "lbc_lnk":
-         IF ( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data3d_trg(:,:,jk), c_orca_trg, 1.0_8 )
+         IF( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data3d_trg(:,:,jk), c_orca_trg, 1.0_8 )
 
-         IF ( lmout ) data3d_trg(:,:,jk) = data3d_trg(:,:,jk)*mask_trg(:,:,jk) + (1. - mask_trg(:,:,jk))*rmiss_val
+         IF( lmout ) data3d_trg(:,:,jk) = data3d_trg(:,:,jk)*mask_trg(:,:,jk) + (1. - mask_trg(:,:,jk))*rmiss_val
 
       END DO
 
@@ -459,13 +480,13 @@ CONTAINS
 
       INTEGER :: jj
 
-      IF (jj_ex_top > 0) THEN
+      IF(jj_ex_top > 0) THEN
          DO jj=jj_ex_top,(nlat_icr_trg+1)/2*nj_trg+(1 - nlat_icr_trg)/2,nlat_icr_trg
             X2d(:,jj) = X2d(:,jj_ex_top-nlat_icr_trg)
          END DO
       END IF
 
-      IF (jj_ex_btm > 0) THEN
+      IF(jj_ex_btm > 0) THEN
          DO jj=(nlat_icr_trg + 1)/2+(1 - nlat_icr_trg)/2*nj_trg,jj_ex_btm,nlat_icr_trg
             X2d(:,jj) = X2d(:,jj_ex_btm+nlat_icr_trg)
             !PRINT *, ' LOLO: jj_trg=', jj, 'values of jj_trg=',jj_ex_btm+nlat_icr_trg

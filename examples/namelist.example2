@@ -48,6 +48,7 @@ ctype_z_trg = 'z'
 cmethod  = 'akima'
 !!
 idrown      = 100,50
+ixtrpl_bot  = 1
 l_save_drwn = .true.
 ismooth     = 0
 jt1         = 0

@@ -38,6 +38,7 @@ ewper_trg  = 2
 cmethod     = 'akima'
 !!
 idrown      = 100,50
+ixtrpl_bot  = 0
 l_save_drwn = .true.
 ismooth     = 0
 jt1         = 0    ! we want to interpolate each time record

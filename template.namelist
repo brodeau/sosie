@@ -199,7 +199,15 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 !!          regions, it is intended to prevent land values to polute/contaminate sea
 !!          regions during the interpolation process!
 !!
-!! l_save_drwn : save the input field that has been drowned (idrown must be > 0!)
+!! ixtrpl_bot : in case of 3D interpolation, this option forces sosie to vertically
+!!              extrapolate the source field (on its source grid) downward into the
+!!              bedrock prior to interpolation
+!!              = 0 : not used
+!!              = 1 : used, method => persistence of the wet bottom point value
+!!              = 2 : used, method => using the DROWN routine...
+!!
+!! l_save_drwn : save the input field after it has undergone "DROWNING" (idrown > 0!)
+!!               and/or downward bedrock extrapolation (ixtrpl_bot > 0!)
 !!
 !! ismooth : if ismooth > 0 the field to be interpolated will be smoothed
 !!           prior to interpolation. By applying ismooth times a type of
@@ -240,7 +248,8 @@ ssig_trg = 2,         4,         40,       7.,       2.,     250. ,   15.
 &ninterp
 cmethod     = 'akima'
 !!
-idrown      = 100,50,.false.
+idrown      = 100,50,.FALSE.
+ixtrpl_bot  = 0
 l_save_drwn = .false.
 ismooth     = 0
 jt1         = 0
