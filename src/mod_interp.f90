@@ -150,11 +150,14 @@ CONTAINS
       !! Interpolation of each of the nk_src levels onto the target grid
       !! --------------------------------------------------------------
 
-      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '00_Slice_before_anything.tmp', 's') !#LB
+      !IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_before_bedrock_extrapolation.nc', TRIM(cv_src) )
 
-      IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_before_bedrock_extrapolation.nc', TRIM(cv_src) )
-
+      
+      PRINT *, ''
+      IF( ixtrpl_bot>0 ) PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
+      
       IF( ixtrpl_bot == 1 ) THEN
+         PRINT *, '    ==> using persistence method'
          !! Downward extrapolation of last wet value into the sea-bed
          DO jj=1, nj_src
             DO ji=1, ni_src
@@ -163,7 +166,7 @@ CONTAINS
                IF( jk_bot>1 ) THEN
                   jk_wet = jk_bot-1
                   zwet   = data3d_src(ji,jj,jk_bot-1) 
-                  PRINT *, 'LOLO: bottom: jk_bot, jk_wet, nk_src, zwet =', jk_bot, jk_wet, nk_src, zwet
+                  !PRINT *, 'LOLO: bottom: jk_bot, jk_wet, nk_src, zwet =', jk_bot, jk_wet, nk_src, zwet
                   data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
                END IF
                !END IF
@@ -171,14 +174,11 @@ CONTAINS
          END DO
       END IF
 
-
       IF( (ixtrpl_bot == 2).AND.(nk_src > 5) ) THEN
+         PRINT *, '    ==> using DROWN method'
          !! First, need to do some sort of vertical drown downward to propagate the bottom
          !! value (last water pomit mask==1) down into the sea-bed...
          !! => calling drown vertical slice by vertical slices (zonal vertical slices)
-         PRINT *, ''
-         PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
-         !!
          !! Find the level from which less than 10 % of the rectangular domain is water
          jk_almst_btm = 2
          DO jk = jk_almst_btm, nk_src
@@ -191,14 +191,14 @@ CONTAINS
             CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=20, nb_smooth=5 ) !lolo
             !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=20 )
          END DO
-         PRINT *, '   => Done!'
-         PRINT *, ''
          !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
          !!
       END IF !IF( (ixtrpl_bot == 2).AND.(nk_src > 5) )
 
-      IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_after_bedrock_extrapolation.nc', TRIM(cv_src) )
+      IF( ixtrpl_bot>0 ) PRINT *, '   => Done!'
+      !IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_after_bedrock_extrapolation.nc', TRIM(cv_src) )
 
+      PRINT *, ''      
       
       DO jk = 1, nk_src
 
