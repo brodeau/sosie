@@ -12,3 +12,9 @@ bin
 lib
 obj
 mod
+*.tar.gz
+*.dat
+*.old
+*.new
+*.OLD
+*.NEW
