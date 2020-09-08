@@ -201,7 +201,6 @@ CONTAINS
 
 
    SUBROUTINE SMOOTHER(k_ew, X,  nb_smooth, msk, l_exclude_mask_points)
-
       !!#############################################################################
       !!
       !!  PURPOSE : Smooth a fied with a nearest-points box-car typ of smoothing

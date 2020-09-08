@@ -48,13 +48,17 @@ CONTAINS
          PRINT *, '-------------------'
          PRINT *, 'DROWN NOT CALLED!!!'
          PRINT *, '-------------------'
-      END IF
+      END IF !IF( l_drown_src )
 
       IF( ismooth > 0 ) THEN
          !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
          WRITE(6,'("     --- ",a,": smoothing ",i4," times!")') TRIM(cv_src), ismooth
          PRINT *, ' Smoothing '//TRIM(cv_src)//'!', ismooth, ' times'
-         CALL SMOOTHER(ewper_src, data_src,  nb_smooth=ismooth, msk=mask_src(:,:,1), l_exclude_mask_points=.true.)
+         IF( l_drown_src ) THEN
+            CALL SMOOTHER(ewper_src, data_src,  nb_smooth=ismooth)
+         ELSE
+            CALL SMOOTHER(ewper_src, data_src,  nb_smooth=ismooth, msk=mask_src(:,:,1), l_exclude_mask_points=.TRUE.)
+         END IF
       END IF
 
 
@@ -223,24 +227,6 @@ CONTAINS
             PRINT *, '-------------------'
          END IF
          
-         !! Again:
-         !IF( ixtrpl_bot == 1 ) THEN
-         !   !PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
-         !   !PRINT *, '    ==> using persistence method'
-         !   !! Downward extrapolation of last wet value into the sea-bed
-         !   DO jj=1, nj_src
-         !      DO ji=1, ni_src
-         !         jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
-         !         IF( jk_bot>1 ) THEN
-         !            zwet   = data3d_src(ji,jj,jk_bot-1)
-         !            data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
-         !         END IF
-         !      END DO
-         !   END DO
-         !   IF( l_save_drwn ) data_src_drowned(:,:,:) = data3d_src(:,:,:)
-         !END IF
-
-
          IF( ismooth > 0 ) THEN
             IF( TRIM(cmethod) == 'no_xy' ) THEN
                PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
@@ -248,9 +234,22 @@ CONTAINS
             END IF
             !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
             WRITE(6,'("     --- ",a,": Smoothing level #",i3.3," ",i2," times!")') TRIM(cv_src), jk, ismooth
-            CALL SMOOTHER(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, msk=mask_src(:,:,jk), l_exclude_mask_points=.true.)
+            IF( l_drown_src ) THEN
+               CALL SMOOTHER(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth)
+            ELSE
+               CALL SMOOTHER(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, msk=mask_src(:,:,jk), l_exclude_mask_points=.TRUE.)
+            END IF
          END IF
-
+         
+         !! If source field is from NEMO (Glorys, etc...), then the last level
+         !! is 100% mask, we just want to copy the drowned level just above to
+         !! prevent shit in vertical interpolation to come...
+         IF( jk == nk_src ) THEN
+            IF( l_drown_src .AND. (SUM(mask_src(:,:,jk))==0) ) THEN
+               data_src_drowned(:,:,jk) = data_src_drowned(:,:,jk-1)
+            END IF
+         END IF
+         
       END DO !DO jk = 1, nk_src
 
 
@@ -349,7 +348,8 @@ CONTAINS
 
          PRINT *, ''
          IF( (TRIM(ctype_z_src) == 'z').AND.(TRIM(ctype_z_trg) == 'z') ) THEN
-
+            !CALL DUMP_FIELD( data3d_tmp(:,:,:), TRIM(cv_src)//'_INPUT_INTERP_BEFORE_VERT_INTERP.nc', TRIM(cv_src) ) ; !lolo
+            
             !! Go for the vectorial routine...
             PRINT *, ' *** CALLING AKIMA_1D_3D for vertical interpolation !!!'
             WRITE(6,'("      => ",i4.4," x ",i4.4," x ",i3.3," to ",i4.4," x ",i4.4," x ",i3.3)') &
