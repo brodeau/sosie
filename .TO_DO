@@ -1,4 +1,7 @@
 
 
+* SMOOTHER() not reliable when mask point exclusion, fucks up the field!
+  -> add to use IF block to test if DROWN used 
+
 * long_name as specified in namelist, "cln_out", not taken into account in final file...
 
