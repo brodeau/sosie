@@ -161,18 +161,16 @@ CONTAINS
          !! Downward extrapolation of last wet value into the sea-bed
          DO jj=1, nj_src
             DO ji=1, ni_src
-               !IF( mask_src(ji,jj,1)==1 ) THEN  ! only on sea regions
                jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
                IF( jk_bot>1 ) THEN
                   zwet   = data3d_src(ji,jj,jk_bot-1)
                   !PRINT *, 'LOLO: bottom: jk_bot, nk_src, zwet =', jk_bot, nk_src, zwet
                   data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
                END IF
-               !END IF
             END DO
          END DO
       END IF
-
+      
       IF( (ixtrpl_bot == 2).AND.(nk_src > 5) ) THEN
          PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
          PRINT *, '    ==> using DROWN method'
@@ -226,22 +224,21 @@ CONTAINS
          END IF
          
          !! Again:
-         IF( ixtrpl_bot == 1 ) THEN
-            !PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
-            !PRINT *, '    ==> using persistence method'
-            !! Downward extrapolation of last wet value into the sea-bed
-            DO jj=1, nj_src
-               DO ji=1, ni_src
-                  jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
-                  IF( jk_bot>1 ) THEN
-                     zwet   = data3d_src(ji,jj,jk_bot-1)
-                     data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
-                  END IF
-               END DO
-            END DO
-            IF( l_save_drwn ) data_src_drowned(:,:,:) = data3d_src(:,:,:)
-         END IF
-
+         !IF( ixtrpl_bot == 1 ) THEN
+         !   !PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
+         !   !PRINT *, '    ==> using persistence method'
+         !   !! Downward extrapolation of last wet value into the sea-bed
+         !   DO jj=1, nj_src
+         !      DO ji=1, ni_src
+         !         jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
+         !         IF( jk_bot>1 ) THEN
+         !            zwet   = data3d_src(ji,jj,jk_bot-1)
+         !            data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
+         !         END IF
+         !      END DO
+         !   END DO
+         !   IF( l_save_drwn ) data_src_drowned(:,:,:) = data3d_src(:,:,:)
+         !END IF
 
 
          IF( ismooth > 0 ) THEN
