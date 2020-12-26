@@ -4,17 +4,21 @@ MODULE MOD_MANIP
 
    !! Author: L. Brodeau
 
+   USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
 
    IMPLICIT NONE
-
+   
    PRIVATE
 
-   LOGICAL, PARAMETER :: l_verbose = .TRUE.
 
    INTERFACE flip_ud
       MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i1
    END INTERFACE flip_ud
-
+   
+   INTERFACE to_degE
+      MODULE PROCEDURE to_degE_scal, to_degE_1d, to_degE_2d
+   END INTERFACE to_degE
+   
    INTERFACE degE_to_degWE
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
    END INTERFACE degE_to_degWE
@@ -31,13 +35,12 @@ MODULE MOD_MANIP
       MODULE PROCEDURE long_reorg_3d_i1
    END INTERFACE long_reorg_3d
 
-
+   
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
-      &      find_src_cell, &
       &      find_nearest_point, &
-      &      shrink_vector, degE_to_degWE, &
+      &      shrink_vector, to_degE, degE_to_degWE, &
       &      ext_north_to_90_regg
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
@@ -56,7 +59,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FILL_EXTRA_BANDS(jt, k_ew, XX, YY, XF, XP4, YP4, FP4,  is_orca_grid)
+   SUBROUTINE FILL_EXTRA_BANDS(k_ew, XX, YY, XF, XP4, YP4, FP4,  is_orca_grid)
 
       !!============================================================================
       !! Extending input arrays with an extraband of two points at north,south,east
@@ -74,44 +77,39 @@ CONTAINS
       !!
       !!                       Author : Laurent BRODEAU, 2007
       !!============================================================================
-      INTEGER ,                INTENT(in)  :: jt        ! extends XX and XY only when jt==1 !
       INTEGER ,                INTENT(in)  :: k_ew
       REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: XP4, YP4, FP4
       INTEGER ,   OPTIONAL,    INTENT(in)  :: is_orca_grid
 
-      INTEGER :: nx, ny, nxp4, nyp4, np
-      INTEGER :: ji, jj, iorca, i1, i2, j1, j2
-
-      PRINT *, 'LOLO: inside FILL_EXTRA_BANDS of mod_manip.f90 !'
-
+      INTEGER :: nx, ny, nxp4, nyp4
+      INTEGER :: ji, jj, iorca
 
       iorca = 0
       IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
-      IF ( jt == 1 ) THEN
-         IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
-            & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
-            PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'
-            PRINT *, 'SIZE(XX,1), SIZE(YY,1), SIZE(XF,1) =>', SIZE(XX,1), SIZE(YY,1), SIZE(XF,1)
-            PRINT *, 'SIZE(XX,2), SIZE(YY,2), SIZE(XF,2) =>', SIZE(XX,2), SIZE(YY,2), SIZE(XF,2)
-            STOP
-         END IF
 
-         IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
-            & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
-            PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'
-            PRINT *, 'SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1) =>', SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1)
-            PRINT *, 'SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2) =>', SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2)
-            STOP
-         END IF
+      IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
+         & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'
+         PRINT *, 'SIZE(XX,1), SIZE(YY,1), SIZE(XF,1) =>', SIZE(XX,1), SIZE(YY,1), SIZE(XF,1)
+         PRINT *, 'SIZE(XX,2), SIZE(YY,2), SIZE(XF,2) =>', SIZE(XX,2), SIZE(YY,2), SIZE(XF,2)
+         STOP
       END IF
 
-      nx = SIZE(XF,1)
-      ny = SIZE(XF,2)
+      IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
+         & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
+         PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'
+         PRINT *, 'SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1) =>', SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1)
+         PRINT *, 'SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2) =>', SIZE(XP4,2), SIZE(YP4,2), SIZE(FP4,2)
+         STOP
+      END IF
 
-      nxp4 = SIZE(FP4,1)
-      nyp4 = SIZE(FP4,2)
+      nx = SIZE(XX,1)
+      ny = SIZE(XX,2)
+
+      nxp4 = SIZE(XP4,1)
+      nyp4 = SIZE(XP4,2)
 
       IF ( nxp4 /= nx + 4 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target x dim is not ni+4!!!'; STOP
@@ -120,82 +118,141 @@ CONTAINS
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target y dim is not nj+4!!!'; STOP
       END IF
 
-      np = 4/2
 
-      i1 = np + 1
-      i2 = nxp4 - np
-
-      j1 = np + 1
-      j2 = nyp4 - np
 
       !!   C r e a t i n g   e x t e n d e d   a r r a y s  :
       !!   --------------------------------------------------
 
+      !! Initializing :
+      XP4 = 0.
+      YP4 = 0.
+      FP4 = 0.
+
       !! Filling center of domain:
-      IF ( jt == 1 ) THEN
-         XP4(i1:i2, j1:j2) = XX(:,:)
-         YP4(i1:i2, j1:j2) = YY(:,:)
-      END IF
-      FP4(i1:i2, j1:j2) = XF(:,:)
+      XP4(3:nxp4-2, 3:nyp4-2) = XX(:,:)
+      YP4(3:nxp4-2, 3:nyp4-2) = YY(:,:)
+      FP4(3:nxp4-2, 3:nyp4-2) = XF(:,:)
 
-
-
-      !! ********************
-      !! EAST-WEST extension
-      !! ********************
 
 
       !! X array :
       !! ---------
 
       IF (k_ew > -1) THEN   ! we can use east-west periodicity of input file to
-
-         IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using E-W periodicity overlap of ', INT(k_ew,1)
          !!                   ! fill extra bands :
-         IF ( jt == 1 ) THEN
-            XP4( 1     , j1:j2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
-            XP4( 2     , j1:j2) = XX(nx - k_ew     , :) - 360.
-            XP4(nxp4   , j1:j2) = XX( 2 + k_ew     , :) + 360.
-            XP4(nxp4-1 , j1:j2) = XX( 1 + k_ew     , :) + 360.
-            !!
-            YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
-            YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
-            YP4(nxp4   , :) = YP4( 2 + k_ew     + 2, :)
-            YP4(nxp4-1 , :) = YP4( 1 + k_ew     + 2, :)
-         END IF
-         !!
-         FP4( 1     , j1:j2) = XF(nx - 1 - k_ew , :)
-         FP4( 2     , j1:j2) = XF(nx - k_ew     , :)
-         FP4(nxp4   , j1:j2) = XF( 2 + k_ew     , :)
-         FP4(nxp4-1 , j1:j2) = XF( 1 + k_ew     , :)
-         !!
+         XP4( 1     , 3:nyp4-2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
+         XP4( 2     , 3:nyp4-2) = XX(nx - k_ew     , :) - 360.
+         XP4(nxp4   , 3:nyp4-2) = XX( 2 + k_ew     , :) + 360.
+         XP4(nxp4-1 , 3:nyp4-2) = XX( 1 + k_ew     , :) + 360.
+
       ELSE
 
-         IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: no E-W periodicity!'
-
          !! WEST
-         IF ( jt == 1 ) THEN
-            XP4(2, j1:j2) = XX(2,:) - (XX(3,:) - XX(1,:))
-            XP4(1, j1:j2) = XX(1,:) - (XX(3,:) - XX(1,:))
-            !!
-            YP4(2, :) = YP4(4,:) - (YP4(5,:) - YP4(3,:))
-            YP4(1, :) = YP4(3,:) - (YP4(5,:) - YP4(3,:))
-            !!
-            DO jj = 3, nyp4-2
-               CALL extra_2_east(XP4(nxp4-4,jj),XP4(nxp4-3,jj),XP4(nxp4-2,jj),        &
-                  &              XP4(nxp4-1,jj),XP4(nxp4,jj),                         &
-                  &              FP4(nxp4-4,jj),FP4(nxp4-3,jj),FP4(nxp4-2,jj),  &
-                  &              FP4(nxp4-1,jj),FP4(nxp4,jj) )
-            END DO
+         XP4(2, 3:nyp4-2) = XX(2,:) - (XX(3,:) - XX(1,:))
+         XP4(1, 3:nyp4-2) = XX(1,:) - (XX(3,:) - XX(1,:))
 
-            !! EAST
-            XP4(nxp4-1, j1:j2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
-            XP4(nxp4  , j1:j2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
-            !!
-            YP4(nxp4-1,:) = YP4(nxp4-3,:) + YP4(nxp4-2, :) - YP4(nxp4-4, :)
-            YP4(nxp4,:)   = YP4(nxp4-2,:) + YP4(nxp4-2,:)  - YP4(nxp4-4, :)
-         END IF
-         !!
+         !! EAST
+         XP4(nxp4-1, 3:nyp4-2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
+         XP4(nxp4  , 3:nyp4-2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
+
+      END IF !IF (k_ew > -1)
+
+
+      
+      !! ******************
+      !! Southern Extension
+      !! ******************
+      XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
+      XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
+
+      !! ******************      
+      !! Northern Extension
+      !! ******************
+      
+      SELECT CASE( iorca )
+         !
+      CASE (4)
+         XP4(2:nxp4/2             ,nyp4-1) = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
+         XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = XP4(2:nxp4/2             ,nyp4-5)
+         XP4(2:nxp4/2             ,nyp4)   = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
+         XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = XP4(2:nxp4/2             ,nyp4-6)
+      CASE (6)
+         XP4(2:nxp4/2               ,nyp4-1) = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
+         XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = XP4(2:nxp4/2               ,nyp4-4)
+         XP4(2:nxp4/2               ,nyp4)   = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
+         XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = XP4(2:nxp4/2               ,nyp4-5)
+      CASE DEFAULT
+         XP4(:,nyp4-1) = XP4(:,nyp4-3) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+         XP4(:,nyp4)   = XP4(:,nyp4-2) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
+
+      END SELECT
+
+
+      !! Y array :
+      !! ---------
+
+      !! Top side :
+      SELECT CASE( iorca )
+
+      CASE (4)
+         YP4(2:nxp4/2             ,nyp4-1) = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
+         YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = YP4(2:nxp4/2             ,nyp4-5)
+         YP4(2:nxp4/2             ,nyp4)   = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
+         YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = YP4(2:nxp4/2             ,nyp4-6)
+      CASE (6)
+         YP4(2:nxp4/2               ,nyp4-1) = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
+         YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = YP4(2:nxp4/2               ,nyp4-4)
+         YP4(2:nxp4/2               ,nyp4)   = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
+         YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = YP4(2:nxp4/2               ,nyp4-5)
+      CASE DEFAULT
+         YP4(3:nxp4-2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
+         YP4(3:nxp4-2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
+      END SELECT
+
+
+      !! Bottom side :
+      YP4(3:nxp4-2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
+      YP4(3:nxp4-2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
+
+      IF (k_ew > -1) THEN
+
+         YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
+         YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
+         YP4(nxp4   , :) = YP4( 2 + k_ew     + 2, :)
+         YP4(nxp4-1 , :) = YP4( 1 + k_ew     + 2, :)
+
+      ELSE
+         !! Left side :
+         YP4(2, :) = YP4(4,:) - (YP4(5,:) - YP4(3,:))
+         YP4(1, :) = YP4(3,:) - (YP4(5,:) - YP4(3,:))
+         !! Right side :
+         YP4(nxp4-1,:) = YP4(nxp4-3,:) + YP4(nxp4-2, :) - YP4(nxp4-4, :)
+         YP4(nxp4,:)   = YP4(nxp4-2,:) + YP4(nxp4-2,:)  - YP4(nxp4-4, :)
+
+      END IF
+
+
+      !! Data array :
+      !! ------------
+
+      IF (k_ew > -1) THEN
+
+         FP4( 1     , 3:nyp4-2) = XF(nx - 1 - k_ew , :)
+         FP4( 2     , 3:nyp4-2) = XF(nx - k_ew     , :)
+         FP4(nxp4   , 3:nyp4-2) = XF( 2 + k_ew     , :)
+         FP4(nxp4-1 , 3:nyp4-2) = XF( 1 + k_ew     , :)
+
+      ELSE
+
+         !! Left side :
+         DO jj = 3, nyp4-2
+            CALL extra_2_east(XP4(nxp4-4,jj),XP4(nxp4-3,jj),XP4(nxp4-2,jj),        &
+               &              XP4(nxp4-1,jj),XP4(nxp4,jj),                         &
+               &              FP4(nxp4-4,jj),FP4(nxp4-3,jj),FP4(nxp4-2,jj),  &
+               &              FP4(nxp4-1,jj),FP4(nxp4,jj) )
+         END DO
+
+         !! Right side :
          DO jj = 3, nyp4-2
             CALL extra_2_west(XP4(5,jj),XP4(4,jj),XP4(3,jj),         &
                &              XP4(2,jj),XP4(1,jj),                   &
@@ -203,83 +260,9 @@ CONTAINS
                &              FP4(2,jj),FP4(1,jj) )
          END DO
 
-      END IF !IF (k_ew > -1)
-
-
-
-      !! ******************
-      !! Southern Extension
-      !! ******************
-
-      !! Default, extrapolation:
-      IF (l_verbose) PRINT *, ' * FILL_EXTRA_BANDS: using extrapolation for southern extension...'
-      IF ( jt == 1 ) THEN
-         XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
-         XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
-
-         YP4(i1:i2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
-         YP4(i1:i2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
-      END IF
-      DO ji = 1, nxp4
-         CALL extra_2_west(YP4(ji,5),YP4(ji,4),YP4(ji,3),       &
-            &              YP4(ji,2),YP4(ji,1),                 &
-            &              FP4(ji,5),FP4(ji,4),FP4(ji,3), &
-            &              FP4(ji,2),FP4(ji,1) )
-      END DO
-
-
-
-
-      !! ******************
-      !! Northern Extension
-      !! ******************
-
-      IF ( jt == 1 ) THEN
-
-         SELECT CASE( iorca )
-            !
-         CASE (4)
-            XP4(2:nxp4/2             ,nyp4-1) = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
-            XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = XP4(2:nxp4/2             ,nyp4-5)
-            XP4(2:nxp4/2             ,nyp4)   = XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
-            XP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = XP4(2:nxp4/2             ,nyp4-6)
-         CASE (6)
-            XP4(2:nxp4/2               ,nyp4-1) = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
-            XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = XP4(2:nxp4/2               ,nyp4-4)
-            XP4(2:nxp4/2               ,nyp4)   = XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
-            XP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = XP4(2:nxp4/2               ,nyp4-5)
-         CASE DEFAULT
-            XP4(:,nyp4-1) = XP4(:,nyp4-3) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
-            XP4(:,nyp4)   = XP4(:,nyp4-2) + XP4(:,nyp4-2) - XP4(:,nyp4-4)
-
-         END SELECT
-
-
-         !! Y array :
-         !! ---------
-
-         SELECT CASE( iorca )
-
-         CASE (4)
-            YP4(2:nxp4/2             ,nyp4-1) = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-5)
-            YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-1) = YP4(2:nxp4/2             ,nyp4-5)
-            YP4(2:nxp4/2             ,nyp4)   = YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4-6)
-            YP4(nxp4:nxp4-nxp4/2-2:-1,nyp4)   = YP4(2:nxp4/2             ,nyp4-6)
-         CASE (6)
-            YP4(2:nxp4/2               ,nyp4-1) = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-4)
-            YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-1) = YP4(2:nxp4/2               ,nyp4-4)
-            YP4(2:nxp4/2               ,nyp4)   = YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4-5)
-            YP4(nxp4-1:nxp4-nxp4/2+1:-1,nyp4)   = YP4(2:nxp4/2               ,nyp4-5)
-         CASE DEFAULT
-            YP4(i1:i2, nyp4-1) = YY(:, ny-1) + YY(:,ny) - YY(:,ny-2)
-            YP4(i1:i2, nyp4)   = YY(:, ny)   + YY(:,ny) - YY(:,ny-2)
-         END SELECT
-
       END IF
 
-      !! DATA array :
-      !! ------------
-
+      !! Top side :
       SELECT CASE( iorca )
 
       CASE (4)
@@ -304,9 +287,13 @@ CONTAINS
          END DO
       END SELECT
 
-
-      IF (l_verbose) PRINT *, ' * LOLO / FILL_EXTRA_BANDS: for now upper left corner point of data fucked up!'
-
+      !! Bottom side :
+      DO ji = 1, nxp4
+         CALL extra_2_west(YP4(ji,5),YP4(ji,4),YP4(ji,3),       &
+            &              YP4(ji,2),YP4(ji,1),                 &
+            &              FP4(ji,5),FP4(ji,4),FP4(ji,3), &
+            &              FP4(ji,2),FP4(ji,1) )
+      END DO
 
    END SUBROUTINE FILL_EXTRA_BANDS
 
@@ -329,8 +316,8 @@ CONTAINS
       INTEGER ,   OPTIONAL,    INTENT(in)  :: is_orca_grid
 
       !! Local
-      INTEGER :: nx, ny, nxp4, nyp4, np
-      INTEGER :: ji, iorca, j1, j2
+      INTEGER :: nx, ny, nxp4, nyp4
+      INTEGER :: ji, iorca
 
       iorca = 0
       IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
@@ -351,12 +338,6 @@ CONTAINS
       nxp4 = SIZE(XP4,1)
       nyp4 = SIZE(XP4,2)
 
-      np = 4/2
-      j1 = np + 1
-      j2 = nyp4 - np
-
-
-
       IF ( nxp4 /= nx ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : target x dim is not ni!!!'; STOP
       END IF
@@ -374,9 +355,9 @@ CONTAINS
       FP4 = 0.
 
       !! Filling center of domain:
-      XP4(:, j1:j2) = XX(:,:)
-      YP4(:, j1:j2) = YY(:,:)
-      FP4(:, j1:j2) = XF(:,:)
+      XP4(:, 3:nyp4-2) = XX(:,:)
+      YP4(:, 3:nyp4-2) = YY(:,:)
+      FP4(:, 3:nyp4-2) = XF(:,:)
 
 
 
@@ -636,7 +617,7 @@ CONTAINS
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
 
-      CALL FILL_EXTRA_BANDS(1, k_ew, XX, XY, XF, ZX, ZY, ZF)
+      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF)
 
 
       !! Second order finite difference:
@@ -783,149 +764,58 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_SRC_CELL( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
-      !!---------------------------------------------------------------------------------------
-      !! Laboriuously scanning the entire source grid to find which cell of the source domain
-      !! contains each point of the target domain.
-      !! => returns "ixyp_trg" which  contains the i,j coordinates of the bottom left corner of
-      !!    the cell of the source grid inside which each target point lies
-      !!---------------------------------------------------------------------------------------
-      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
-      REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
-      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
-      INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_trg
-
-      INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt, ndm
-      REAL(8) :: pxt, pyt
-      LOGICAL :: l_x_found, l_y_found
-
-      nxs = SIZE(plon_src,1)
-      nys = SIZE(plon_src,2)
-
-      nxt = SIZE(plon_trg,1)
-      nyt = SIZE(plon_trg,2)
-      IF ( (SIZE(ixyp_trg,1)/=nxt).OR.(SIZE(ixyp_trg,2)/=nyt) ) THEN
-         PRINT *, 'ERROR: [find_src_cell@mod_akima_2d.f90] => shape of ixyp_trg disagree with that of plon_trg!!!'
-         STOP
-      END IF
-      ndm = SIZE(ixyp_trg,3)
-      IF ( ndm /= 2 ) THEN
-         PRINT *, 'ERROR: [find_src_cell@mod_akima_2d.f90] => 3rd dimension of ixyp_trg must be of size 2!!!'
-         STOP
-      END IF
-
-      !! Loop on target domain:
-      DO jjt = 1, nyt
-         DO jit = 1, nxt
-
-            jis = 1
-            jjs = 1
-
-            l_x_found = .FALSE.
-            l_y_found = .FALSE.
-
-            pxt = plon_trg(jit,jjt)
-            pyt = plat_trg(jit,jjt)
-
-            !! Only searching if inside source domain:
-            IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) ) THEN
-
-               DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
-
-                  l_x_found = .FALSE.
-                  DO WHILE ( .NOT. l_x_found )
-                     IF (jis < nxs) THEN
-                        IF ((plon_src(jis,jjs) <= pxt).and.(plon_src(jis+1,jjs) > pxt)) THEN
-                           l_x_found = .TRUE.
-                        ELSE
-                           jis = jis+1
-                        END IF
-                     ELSE   ! jis = nxs
-                        jis = jis-1  ! we are at the top need to use former pol.
-                        l_x_found = .TRUE.
-                     END IF
-                  END DO
-
-                  l_y_found = .FALSE.
-                  DO WHILE ( .NOT. l_y_found )
-                     IF ( jjs < nys ) THEN
-                        IF ((plat_src(jis,jjs) <= pyt).and.(plat_src(jis,jjs+1) > pyt)) THEN
-                           l_y_found = .TRUE.
-                        ELSE
-                           jjs = jjs + 1
-                           l_x_found = .FALSE.
-                           l_y_found = .TRUE. ! just so that we exit the loop on l_y_found
-                        END IF
-                     ELSE   ! jjs == nys
-                        jjs = nys-1        ! we are using polynome at (ji,nys-1)
-                        l_y_found = .TRUE. ! for extreme right boundary
-                     END IF
-                  END DO
-
-               END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
-
-               ixyp_trg(jit,jjt,:) = (/ jis, jjs /)
-
-            END IF !IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) )
-
-         END DO !DO jit = 1, nxt
-      END DO !DO jjt = 1, nyt
-
-   END SUBROUTINE FIND_SRC_CELL
 
 
 
-
-
-   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  pmsk_ignr)
+   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  mask_domain_trg)
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
       !!   Source domain: Xsrc, Ysrc
       !!   Target domain: Xtrg, Ytrg
-      !!     => for each point of target domain: i_src,j_src location of nearest point on source domain
+      !!     => for each point of target domain: i_s,j_s location of nearest point on source domain
       !!        => JIp & JJp have same shape as Xtrg & Ytrg !
       !!
       !!                Laurent Brodeau, July, 2017
       !!
       !!
       !! OPTIONAL:
-      !!      * pmsk_ignr: ignore (dont't treat) regions of the target domain where pmsk_ignr==0 !
+      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!---------------------------------------------------------------
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIp, JJp  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: pmsk_ignr
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: mask_domain_trg
 
-      INTEGER :: jj, nx_src, ny_src, nx_trg, ny_trg, j_strt_trg, j_stop_trg, jlat_icr
-      REAL(8) :: y_max_src, y_min_src, rmin_dlat_dj, rtmp
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_trg
+      INTEGER :: jj, nx_s, ny_s, nx_t, ny_t, j_strt_t, j_stop_t, jlat_icr
+      REAL(8) :: y_max_s, y_min_s, rmin_dlat_dj, rtmp
+      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_t
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
-      REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_trg
-      LOGICAL :: l_is_reg_src, l_is_reg_trg
+      REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_t
+      LOGICAL :: l_is_reg_s, l_is_reg_t
 
-      nx_src  = SIZE(Xsrc,1)
-      ny_src  = SIZE(Xsrc,2)
-      nx_trg = SIZE(Xtrg,1)
-      ny_trg = SIZE(Xtrg,2)
+      nx_s  = SIZE(Xsrc,1)
+      ny_s  = SIZE(Xsrc,2)
+      nx_t = SIZE(Xtrg,1)
+      ny_t = SIZE(Xtrg,2)
 
-      PRINT *, ' Source domain size: ', nx_src, ny_src
-      PRINT *, ' Target domain size: ', nx_trg, ny_trg
+      PRINT *, ' Source domain size: ', nx_s, ny_s
+      PRINT *, ' Target domain size: ', nx_t, ny_t
 
-      IF ( (SIZE(Ysrc,1) /= nx_src) .OR. (SIZE(Ysrc,2) /= ny_src) ) THEN
+      IF ( (SIZE(Ysrc,1) /= nx_s) .OR. (SIZE(Ysrc,2) /= ny_s) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Ysrc dont agree in shape with Xsrc'
          STOP
       END IF
-      IF ( (SIZE(Ytrg,1) /= nx_trg) .OR. (SIZE(Ytrg,2) /= ny_trg) ) THEN
+      IF ( (SIZE(Ytrg,1) /= nx_t) .OR. (SIZE(Ytrg,2) /= ny_t) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Ytrg dont agree in shape with Xtrg'
          STOP
       END IF
-      IF ( (SIZE(JIp,1) /= nx_trg) .OR. (SIZE(JIp,2) /= ny_trg) ) THEN
+      IF ( (SIZE(JIp,1) /= nx_t) .OR. (SIZE(JIp,2) /= ny_t) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JIp dont agree in shape with Xtrg'
-         PRINT *, SIZE(JIp,1), SIZE(JIp,2), 'vs', nx_trg, ny_trg
+         PRINT *, SIZE(JIp,1), SIZE(JIp,2), 'vs', nx_t, ny_t
          STOP
       END IF
-      IF ( (SIZE(JJp,1) /= nx_trg) .OR. (SIZE(JJp,2) /= ny_trg) ) THEN
+      IF ( (SIZE(JJp,1) /= nx_t) .OR. (SIZE(JJp,2) /= ny_t) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JJp dont agree in shape with Xtrg'
          STOP
       END IF
@@ -934,111 +824,111 @@ CONTAINS
       !! Checking if source domain is regular or not.  => will allow later to
       !!  decide the level of complexity of the algorithm that find nearest
       !!  points...
-      l_is_reg_src = L_IS_GRID_REGULAR( Xsrc , Ysrc )
-      PRINT *, ' *** FIND_NEAREST_POINT => Is source grid regular ??? =>', l_is_reg_src
+      l_is_reg_s = L_IS_GRID_REGULAR( Xsrc , Ysrc )
+      PRINT *, ' *** FIND_NEAREST_POINT => Is source grid regular ??? =>', l_is_reg_s
 
       !! Checking if target domain is regular or not.  => will allow later to
       !!  decide the level of complexity of the algorithm that find nearest
       !!  points...
-      l_is_reg_trg = L_IS_GRID_REGULAR( Xtrg , Ytrg )
-      PRINT *, ' *** FIND_NEAREST_POINT => Is target grid regular ??? =>', l_is_reg_trg
+      l_is_reg_t = L_IS_GRID_REGULAR( Xtrg , Ytrg )
+      PRINT *, ' *** FIND_NEAREST_POINT => Is target grid regular ??? =>', l_is_reg_t
 
-      ALLOCATE ( mask_ignore_trg(nx_trg,ny_trg) , i1dum(nx_trg) )
-      mask_ignore_trg(:,:) = 1
-      IF ( PRESENT( pmsk_ignr ) ) mask_ignore_trg(:,:) = pmsk_ignr(:,:)
+      ALLOCATE ( mask_ignore_t(nx_t,ny_t) , i1dum(nx_t) )
+      mask_ignore_t(:,:) = 1
+      IF ( PRESENT( mask_domain_trg ) ) mask_ignore_t(:,:) = mask_domain_trg(:,:)
 
-      y_min_src  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
-      y_max_src  = MAXVAL(Ysrc)
+      y_min_s  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
+      y_max_s  = MAXVAL(Ysrc)
 
       !! General case:
-      j_strt_trg = 1
-      j_stop_trg = ny_trg
+      j_strt_t = 1
+      j_stop_t = ny_t
       jlat_icr   = 1
 
       !! We need to know if the target latitude ONLY keeps on systematically
       !! increasing (or decreasing) as j increases:
       rmin_dlat_dj = -100.
-      !IF ( REAL(nx_trg)/REAL(ny_trg) > 0.15  ) THEN
-      IF ( nx_trg > 2 ) THEN !! We can reasonably say it's a map and not a vector or almost a vectot...
-         ALLOCATE ( ztmp_trg(nx_trg, ny_trg) )
-         DO jj = 2, ny_trg
-            ztmp_trg(:,jj) = Ytrg(:,jj) - Ytrg(:,jj-1)
+      !IF ( REAL(nx_t)/REAL(ny_t) > 0.15  ) THEN
+      IF ( nx_t > 2 ) THEN !! We can reasonably say it's a map and not a vector or almost a vectot...
+         ALLOCATE ( ztmp_t(nx_t, ny_t) )
+         DO jj = 2, ny_t
+            ztmp_t(:,jj) = Ytrg(:,jj) - Ytrg(:,jj-1)
          END DO
-         rtmp = SUM(ztmp_trg(:,ny_trg/2)) ! know if increasing (>0) or decreasing (<0)
-         ztmp_trg = SIGN(1.0_8 , rtmp)*ztmp_trg
-         !IF (ldebug) CALL DUMP_2D_FIELD(REAL(ztmp_trg,4), 'dlat_dj_trg.nc', 'dist')
-         rmin_dlat_dj = MINVAL(ztmp_trg(:,2:))
-         IF (ldebug) PRINT *, ' Minimum dlat_dj_trg =>', rmin_dlat_dj
-         DEALLOCATE ( ztmp_trg )
+         rtmp = SUM(ztmp_t(:,ny_t/2)) ! know if increasing (>0) or decreasing (<0)
+         ztmp_t = SIGN(1.0_8 , rtmp)*ztmp_t
+         !IF (ldebug) CALL DUMP_FIELD(REAL(ztmp_t,4), 'dlat_dj_t.nc', 'dist')
+         rmin_dlat_dj = MINVAL(ztmp_t(:,2:))
+         IF (ldebug) PRINT *, ' Minimum dlat_dj_t =>', rmin_dlat_dj
+         DEALLOCATE ( ztmp_t )
       END IF
 
       !!  Simplif when [d lat / d j] always has the same sign:
-      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_trg ) THEN    !!!.OR. (i_orca_trg > 0) ) THEN
+      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_t ) THEN    !!!.OR. (i_orca_t > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
          !!
          !! *** Will ignore regions of the TARGET domain that
          !!     are not covered by source domain:
-         !ij_min_loc = MINLOC(Ytrg, mask=(Ytrg>=y_min_src))  ! possible bug identified by Max (aka MB)
-         !ij_max_loc = MAXLOC(Ytrg, mask=(Ytrg<=y_max_src))
-         !j_strt_trg = MINVAL(MINLOC(Ytrg, mask=(Ytrg>=y_min_src), dim=2))  ! smallest j on target source that covers smallest source latitude
-         i1dum = MINLOC(Ytrg, mask=(Ytrg>=y_min_src), dim=2)
-         j_strt_trg = MINVAL(i1dum, mask=(i1dum>0))
+         !ij_min_loc = MINLOC(Ytrg, mask=(Ytrg>=y_min_s))  ! possible bug identified by Max (aka MB)
+         !ij_max_loc = MAXLOC(Ytrg, mask=(Ytrg<=y_max_s))
+         !j_strt_t = MINVAL(MINLOC(Ytrg, mask=(Ytrg>=y_min_s), dim=2))  ! smallest j on target source that covers smallest source latitude
+         i1dum = MINLOC(Ytrg, mask=(Ytrg>=y_min_s), dim=2)
+         j_strt_t = MINVAL(i1dum, mask=(i1dum>0))
          DEALLOCATE ( i1dum )
-         j_stop_trg = MAXVAL(MAXLOC(Ytrg, mask=(Ytrg<=y_max_src), dim=2))  ! largest j on target source that covers largest source latitude
-         IF ( j_strt_trg > j_stop_trg ) jlat_icr = -1 ! latitude decreases as j increases (like ECMWF grids...)
+         j_stop_t = MAXVAL(MAXLOC(Ytrg, mask=(Ytrg<=y_max_s), dim=2))  ! largest j on target source that covers largest source latitude
+         IF ( j_strt_t > j_stop_t ) jlat_icr = -1 ! latitude decreases as j increases (like ECMWF grids...)
          IF (ldebug) THEN
-            PRINT *, ' j_strt_trg, j_stop_trg / nj_trg =>', j_strt_trg, j_stop_trg, '/', ny_trg
+            PRINT *, ' j_strt_t, j_stop_t / nj_t =>', j_strt_t, j_stop_t, '/', ny_t
             PRINT *, ''
          END IF
-      END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_trg .OR. (i_orca_trg > 0) )
+      END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_t .OR. (i_orca_t > 0) )
 
-      IF ( l_is_reg_src .AND. (.NOT. l_force_use_of_twisted) ) THEN
+      IF ( l_is_reg_s .AND. (.NOT. l_force_use_of_twisted) ) THEN
          PRINT *, '                 => going for simple FIND_NEAREST algorithm !'; PRINT *, ''
-         CALL FIND_NEAREST_EASY(    Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_trg, &
-            &                       j_strt_trg, j_stop_trg, jlat_icr )
+         CALL FIND_NEAREST_EASY(    Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_t, &
+            &                       j_strt_t, j_stop_t, jlat_icr )
       ELSE
          PRINT *, '                  => going for advanced FIND_NEAREST algorithm !'; PRINT *, ''
-         CALL FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_trg, &
-            &                       j_strt_trg, j_stop_trg, jlat_icr )
+         CALL FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_t, &
+            &                       j_strt_t, j_stop_t, jlat_icr )
       END IF
       PRINT *, ''
 
-      IF ( PRESENT( pmsk_ignr ) ) pmsk_ignr(:,:) = mask_ignore_trg(:,:)
-      DEALLOCATE ( mask_ignore_trg )
+      IF ( PRESENT( mask_domain_trg ) ) mask_domain_trg(:,:) = mask_ignore_t(:,:)
+      DEALLOCATE ( mask_ignore_t )
 
    END SUBROUTINE FIND_NEAREST_POINT
 
 
 
-   SUBROUTINE FIND_NEAREST_EASY( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_trg, &
-      &                          j_strt_trg, j_stop_trg, jlat_icr )
+   SUBROUTINE FIND_NEAREST_EASY( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_t, &
+      &                          j_strt_t, j_stop_t, jlat_icr )
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_EASY  ***
       !!
       !!   Source domain: Xsrc, Ysrc
       !!   Target domain: Xtrg, Ytrg
-      !!     => for each point of target domain: i_src,j_src location of nearest point on source domain
+      !!     => for each point of target domain: i_s,j_s location of nearest point on source domain
       !!        => JIpos & JJpos have same shape as Xtrg & Ytrg !
       !!
       !!                Laurent Brodeau, July, 2017
       !!
       !!
-      !!      * mask_trg: ignore (dont't treat) regions of the target domain where mask_trg==0 !
+      !!      * mask_t: ignore (dont't treat) regions of the target domain where mask_t==0 !
       !!---------------------------------------------------------------
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_trg
-      INTEGER,                    INTENT(in)  :: j_strt_trg, j_stop_trg, jlat_icr
+      INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_t
+      INTEGER,                    INTENT(in)  :: j_strt_t, j_stop_t, jlat_icr
 
       !! Important parameters:
       INTEGER, PARAMETER :: nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
 
       INTEGER :: &
-         &    nx_src, ny_src, nx_trg, ny_trg, &
-         &    ji_trg, jj_trg, ji_src, jj_src, &
-         &    jmin_src, jmax_src, imin_src, imax_src
+         &    nx_s, ny_s, nx_t, ny_t, &
+         &    ji_t, jj_t, ji_s, jj_s, &
+         &    j1s, j2s, i1s, i2s
 
       REAL(8) :: rlon, rlat
 
@@ -1048,59 +938,59 @@ CONTAINS
       REAL(8), DIMENSION(:),   ALLOCATABLE :: vlat, vlon
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: Xdist
 
-      nx_src  = SIZE(Xsrc,1)
-      ny_src  = SIZE(Xsrc,2)
-      nx_trg = SIZE(Xtrg,1)
-      ny_trg = SIZE(Xtrg,2)
+      nx_s  = SIZE(Xsrc,1)
+      ny_s  = SIZE(Xsrc,2)
+      nx_t = SIZE(Xtrg,1)
+      ny_t = SIZE(Xtrg,2)
 
       JIpos(:,:) = -1
       JJpos(:,:) = -1
 
-      ALLOCATE ( vlon(nx_src) , vlat(ny_src) , Xdist(nx_src,ny_src) )
+      ALLOCATE ( vlon(nx_s) , vlat(ny_s) , Xdist(nx_s,ny_s) )
 
       vlon(:) = Xsrc(:,3)   ! 3 => make sure we're inside the domain
       vlat(:) = Ysrc(3,:)   ! 3 => make sure we're inside the domain
 
-      DO jj_trg = j_strt_trg, j_stop_trg, jlat_icr
-         DO ji_trg = 1, nx_trg
+      DO jj_t = j_strt_t, j_stop_t, jlat_icr
+         DO ji_t = 1, nx_t
 
-            IF ( mask_trg(ji_trg,jj_trg) == 1 ) THEN
+            IF ( mask_t(ji_t,jj_t) == 1 ) THEN
 
-               IF ( (ji_trg==1) .AND. MOD(jj_trg,10)==0 ) PRINT *, ' *** Treated j-point of target domain =', jj_trg !REAL(rlat,4)
+               IF ( (ji_t==1) .AND. MOD(jj_t,10)==0 ) PRINT *, ' *** Treated j-point of target domain =', jj_t !REAL(rlat,4)
 
-               rlon = Xtrg(ji_trg,jj_trg)
-               rlat = Ytrg(ji_trg,jj_trg)
+               rlon = Xtrg(ji_t,jj_t)
+               rlat = Ytrg(ji_t,jj_t)
 
                ! Nearest point (in terms of index):
                ip =  MINLOC(ABS(vlon(:)-rlon))
                jp =  MINLOC(ABS(vlat(:)-rlat))
 
                !! Define the box to scan for shortest distance:
-               imin_src = MAX(ip(1)-nframe_scan ,  1)
-               imax_src = MIN(ip(1)+nframe_scan , nx_src)
-               jmin_src = MAX(jp(1)-nframe_scan ,  1)
-               jmax_src = MIN(jp(1)+nframe_scan , ny_src)
+               i1s = MAX(ip(1)-nframe_scan ,  1)
+               i2s = MIN(ip(1)+nframe_scan , nx_s)
+               j1s = MAX(jp(1)-nframe_scan ,  1)
+               j2s = MIN(jp(1)+nframe_scan , ny_s)
 
                ! Nearest point (in terms of distance):
                Xdist = 1.E12
-               Xdist(imin_src:imax_src,jmin_src:jmax_src) = DISTANCE_2D(rlon, Xsrc(imin_src:imax_src,jmin_src:jmax_src), rlat, Ysrc(imin_src:imax_src,jmin_src:jmax_src))
-               ij_min_loc = MINLOC(Xdist(imin_src:imax_src,jmin_src:jmax_src))
-               ji_src = ij_min_loc(1) + imin_src - 1
-               jj_src = ij_min_loc(2) + jmin_src - 1
-               JIpos(ji_trg,jj_trg) = ji_src
-               JJpos(ji_trg,jj_trg) = jj_src
-               IF ((ji_src==0).OR.(jj_src==0)) THEN
+               Xdist(i1s:i2s,j1s:j2s) = DISTANCE_2D(rlon, Xsrc(i1s:i2s,j1s:j2s), rlat, Ysrc(i1s:i2s,j1s:j2s))
+               ij_min_loc = MINLOC(Xdist(i1s:i2s,j1s:j2s))
+               ji_s = ij_min_loc(1) + i1s - 1
+               jj_s = ij_min_loc(2) + j1s - 1
+               JIpos(ji_t,jj_t) = ji_s
+               JJpos(ji_t,jj_t) = jj_s
+               IF ((ji_s==0).OR.(jj_s==0)) THEN
                   PRINT *, ''
                   PRINT *, 'The nearest point was not found!'
-                  PRINT *, ' !!! ji_src or jj_src = 0 !!!'
+                  PRINT *, ' !!! ji_s or jj_s = 0 !!!'
                   PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
                   PRINT *, ' Nearest point found on source grid:', &
-                     &  REAL(Xsrc(ji_src,jj_src) , 4), &
-                     &  REAL(Ysrc(ji_src,jj_src) , 4)
+                     &  REAL(Xsrc(ji_s,jj_s) , 4), &
+                     &  REAL(Ysrc(ji_s,jj_s) , 4)
                   STOP
                END IF
 
-               IF ( ( JIpos(ji_trg,jj_trg) == -1 ).OR.( JJpos(ji_trg,jj_trg) == -1 ) ) THEN
+               IF ( ( JIpos(ji_t,jj_t) == -1 ).OR.( JJpos(ji_t,jj_t) == -1 ) ) THEN
                   PRINT *, 'ERROR in FIND_NEAREST_EASY of mod_bilin_2d.f90 !'
                   PRINT *, 'Point rlon, rlat', rlon, rlat
                   PRINT *, 'not found on the source grid!'
@@ -1117,43 +1007,43 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_trg, &
-      &                             j_strt_trg, j_stop_trg, jlat_icr )
+   SUBROUTINE FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_t, &
+      &                             j_strt_t, j_stop_t, jlat_icr )
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
       !!   Source domain: Xsrc, Ysrc
       !!   Target domain: Xtrg, Ytrg
-      !!     => for each point of target domain: i_src,j_src location of nearest point on source domain
+      !!     => for each point of target domain: i_s,j_s location of nearest point on source domain
       !!        => JIpos & JJpos have same shape as Xtrg & Ytrg !
       !!
       !!                Laurent Brodeau, July, 2017
       !!
       !!
-      !!      * mask_trg: ignore (dont't treat) regions of the target domain where mask_trg==0 !
+      !!      * mask_t: ignore (dont't treat) regions of the target domain where mask_t==0 !
       !!---------------------------------------------------------------
       REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out)   :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask_trg
-      INTEGER, INTENT(in)                       :: j_strt_trg, j_stop_trg, jlat_icr
+      INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask_t
+      INTEGER, INTENT(in)                       :: j_strt_t, j_stop_t, jlat_icr
       !!
       !! Important parameters:
       INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
       REAL(8), PARAMETER :: frac_emax = 0.51   ! fraction of emax to test if found!
       !!                                        => 0.5 seems to be too small, for example on ORCA1 grid at around 20 deg N... ???
       INTEGER :: &
-         &    nx_src, ny_src, nx_trg, ny_trg, &
-         &    jlat, ji_trg, jj_trg, ji_src, jj_src, jj_trg_old, &
-         &    jmin_src, jmax_src, imin_src, imax_src, niter, &
+         &    nx_s, ny_s, nx_t, ny_t, &
+         &    jlat, ji_t, jj_t, ji_s, jj_s, jj_t_old, &
+         &    j1s, j2s, i1s, i2s, niter, &
          &    nsplit, jmax_band, jmin_band
 
       REAL(8) :: emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old
-      REAL(8) :: y_max_trg, y_min_trg, y_max_bnd, y_min_bnd, y_max_bnd0, y_min_bnd0, dy, &
-         &       y_max_src, y_min_src
+      REAL(8) :: y_max_t, y_min_t, y_max_bnd, y_min_bnd, y_max_bnd0, y_min_bnd0, dy, &
+         &       y_max_s, y_min_s
       REAL(8),    DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
-      REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_src, e2_src    !: grid layout and metrics
-      INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_SRC
+      REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_s, e2_s    !: grid layout and metrics
+      INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_S
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
 
@@ -1162,24 +1052,24 @@ CONTAINS
       LOGICAL :: lagain
 
 
-      nx_src  = SIZE(Xsrc,1)
-      ny_src  = SIZE(Xsrc,2)
-      nx_trg = SIZE(Xtrg,1)
-      ny_trg = SIZE(Xtrg,2)
+      nx_s  = SIZE(Xsrc,1)
+      ny_s  = SIZE(Xsrc,2)
+      nx_t = SIZE(Xtrg,1)
+      ny_t = SIZE(Xtrg,2)
 
-      ALLOCATE ( Xdist(nx_src,ny_src) , mspot_lon(nx_src,ny_src) , mspot_lat(nx_src,ny_src) , i1dum(nx_src) )
+      ALLOCATE ( Xdist(nx_s,ny_s) , mspot_lon(nx_s,ny_s) , mspot_lat(nx_s,ny_s) , i1dum(nx_s) )
 
-      y_min_src  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
-      y_max_src  = MAXVAL(Ysrc)
-      y_min_trg = MINVAL(Ytrg) ; ! Min and Max latitude of target domain
-      y_max_trg = MAXVAL(Ytrg)
+      y_min_s  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
+      y_max_s  = MAXVAL(Ysrc)
+      y_min_t = MINVAL(Ytrg) ; ! Min and Max latitude of target domain
+      y_max_t = MAXVAL(Ytrg)
 
 
       !! Control if source & target domains overlap:
-      PRINT *, ' Min. latitude on source & target domains =>', REAL(y_min_src,4), REAL(y_min_trg,4)
-      PRINT *, ' Max. latitude on source & target domains =>', REAL(y_max_src,4), REAL(y_max_trg,4)
+      PRINT *, ' Min. latitude on source & target domains =>', REAL(y_min_s,4), REAL(y_min_t,4)
+      PRINT *, ' Max. latitude on source & target domains =>', REAL(y_max_s,4), REAL(y_max_t,4)
 
-      IF ( (y_min_trg>=y_max_src).OR.(y_max_trg<=y_min_src) ) THEN
+      IF ( (y_min_t>=y_max_s).OR.(y_max_t<=y_min_s) ) THEN
          WRITE(6,*)' ERROR (FIND_NEAREST_TWISTED of mod_manip.f90): Target and source latitudes do not overlap!'
          STOP
       END IF
@@ -1189,51 +1079,53 @@ CONTAINS
       JIpos(:,:) = -1
       JJpos(:,:) = -1
 
-      ALLOCATE ( e1_src(nx_src,ny_src), e2_src(nx_src,ny_src) )
+      ALLOCATE ( e1_s(nx_s,ny_s), e2_s(nx_s,ny_s) )
 
       !! We need metric of input grid
-      e1_src(:,:) = 40000. ;  e2_src(:,:) = 40000.
-      DO jj_src=1, ny_src
-         DO ji_src=1, nx_src-1
-            e1_src(ji_src,jj_src) = distance(Xsrc(ji_src,jj_src),Xsrc(ji_src+1,jj_src),Ysrc(ji_src,jj_src),Ysrc(ji_src+1,jj_src))*1000. ! (m)
+      e1_s(:,:) = 40000. ;  e2_s(:,:) = 40000.
+      DO jj_s=1, ny_s
+         DO ji_s=1, nx_s-1
+            e1_s(ji_s,jj_s) = distance(Xsrc(ji_s,jj_s),Xsrc(ji_s+1,jj_s),Ysrc(ji_s,jj_s),Ysrc(ji_s+1,jj_s))*1000. ! (m)
          END DO
       END DO
-      DO jj_src=1, ny_src-1
-         DO ji_src=1, nx_src
-            e2_src(ji_src,jj_src) = distance(Xsrc(ji_src,jj_src),Xsrc(ji_src,jj_src+1),Ysrc(ji_src,jj_src),Ysrc(ji_src,jj_src+1))*1000. !(m)
+      DO jj_s=1, ny_s-1
+         DO ji_s=1, nx_s
+            e2_s(ji_s,jj_s) = distance(Xsrc(ji_s,jj_s),Xsrc(ji_s,jj_s+1),Ysrc(ji_s,jj_s),Ysrc(ji_s,jj_s+1))*1000. !(m)
          END DO
       END DO
-      IF (nx_src>1) e1_src(nx_src,:) = e1_src(nx_src-1,:)
-      IF (ny_src>1) e2_src(:,ny_src) = e2_src(:,ny_src-1)
+      IF (nx_s>1) e1_s(nx_s,:) = e1_s(nx_s-1,:)
+      IF (ny_s>1) e2_s(:,ny_s) = e2_s(:,ny_s-1)
       !IF (ldebug) THEN
-      !   CALL DUMP_2D_FIELD(REAL(e1_src,4), 'e1_src.nc', 'e1')
-      !   CALL DUMP_2D_FIELD(REAL(e2_src,4), 'e2_src.nc', 'e2')
+      !   CALL DUMP_FIELD(REAL(e1_s,4), 'e1_s.nc', 'e1')
+      !   CALL DUMP_FIELD(REAL(e2_s,4), 'e2_s.nc', 'e2')
       !END IF
 
       !! Min and Max latitude to use for binning :
       PRINT *, ''
       PRINT *, '    *** Latitude binning for more efficient localization *** '
-      y_max_bnd = MIN( y_max_trg , y_max_src )  !lolo: why MIN() ??? I don't remember why
+      y_max_bnd = MIN( y_max_t , y_max_s )  !lolo: why MIN() ??? I don't remember why
       y_max_bnd0 = y_max_bnd
-      y_min_bnd = MAX( y_min_trg , y_min_src )  !lolo: same, MAX()???
+      y_min_bnd = MAX( y_min_t , y_min_s )  !lolo: same, MAX()???
       y_min_bnd0 = y_min_bnd
-      !PRINT *, ' y_max_bnd #1 => ', y_max_bnd ; PRINT *, ' y_min_bnd #1 => ', y_min_bnd
-      y_max_bnd = MIN( REAL(INT(y_max_bnd+1),8) ,  90.)
-      y_min_bnd = MAX( REAL(INT(y_min_bnd-1),8) , -90.)
-      !PRINT *, ' y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd
+      !PRINT *, 'LOLO y_max_bnd #1 => ', y_max_bnd ; PRINT *, ' y_min_bnd #1 => ', y_min_bnd
+      y_max_bnd = MIN( REAL(INT(y_max_bnd+2.),8) ,  90.)
+      y_min_bnd = MAX( REAL(INT(y_min_bnd-2.),8) , -90.)
+      !PRINT *, 'LOLO y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd      
       !! Multiple of 0.5:
       y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
       y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
-      !lolo:
-      y_max_bnd = MIN( y_max_bnd , y_max_bnd0)
-      y_min_bnd = MAX( y_min_bnd , y_min_bnd0)
+      !PRINT *, 'LOLO y_max_bnd #3 => ', y_max_bnd ; PRINT *, ' y_min_bnd #3 => ', y_min_bnd      
+
+      !lolo: WHY????
+      y_max_bnd = MAX( y_max_bnd , y_max_bnd0)
+      y_min_bnd = MIN( y_min_bnd , y_min_bnd0)
       !lolo.
 
       PRINT *, '   => binning from ', y_min_bnd, ' to ', y_max_bnd
       !!
       nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
       !!
-      ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), J_VLAT_SRC(nsplit,2) )
+      ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), J_VLAT_S(nsplit,2) )
       dy = (y_max_bnd - y_min_bnd)/REAL(nsplit)
       DO jlat=1,nsplit+1
          VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
@@ -1247,7 +1139,7 @@ CONTAINS
          STOP
       END IF
 
-      J_VLAT_SRC = 0
+      J_VLAT_S = 0
 
       DO jlat = 1, nsplit
          rlat_low = VLAT_SPLIT_BOUNDS(jlat)
@@ -1257,20 +1149,20 @@ CONTAINS
          !ij_min_loc = MINLOC(Ysrc, mask=(Ysrc>=rlat_low)) ; jmin_band = ij_min_loc(2)
          !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_low:rlat_hgh]
          !! Largest ever possible j index of the highest latitude in region where Ysrc<=rlat_hgh
-         jmax_band = MAXVAL(MAXLOC(Ysrc, mask=(Ysrc<=rlat_hgh), dim=2))  ! MAXLOC(Ysrc, ..., dim=2) returns ni_src values (the max in each column)
+         jmax_band = MAXVAL(MAXLOC(Ysrc, mask=(Ysrc<=rlat_hgh), dim=2))  ! MAXLOC(Ysrc, ..., dim=2) returns ni_s values (the max in each column)
          !! Smalles ever possible j index of the smallest latitude in region where Ysrc>=rlat_low
          i1dum = MINLOC(Ysrc, mask=(Ysrc .GT. rlat_low), dim=2)
          jmin_band = MINVAL(i1dum, mask=(i1dum>0))
          DEALLOCATE ( i1dum )
          !!
          !! To be sure to include everything, adding 1 extra points below and above:
-         J_VLAT_SRC(jlat,1) = MAX(jmin_band - 1,   1  )
-         J_VLAT_SRC(jlat,2) = MIN(jmax_band + 1, ny_src)
+         J_VLAT_S(jlat,1) = MAX(jmin_band - 1,   1  )
+         J_VLAT_S(jlat,2) = MIN(jmax_band + 1, ny_s)
          !!
          IF ( ldebug ) THEN
             PRINT *, ' Latitude bin #', jlat
             PRINT *, '     => lat_low, lat_high:', REAL(rlat_low,4), REAL(rlat_hgh,4)
-            PRINT *, '     => JJ min and max on input domain =>', J_VLAT_SRC(jlat,1), J_VLAT_SRC(jlat,2)
+            PRINT *, '     => JJ min and max on input domain =>', J_VLAT_S(jlat,1), J_VLAT_S(jlat,2)
          END IF
          !!
       END DO
@@ -1278,37 +1170,37 @@ CONTAINS
       PRINT *, ''
       PRINT *, '     => VLAT_SPLIT_BOUNDS ='
       PRINT *, VLAT_SPLIT_BOUNDS
-      PRINT *, '     => corresponding start values for j_src ='
-      PRINT *, J_VLAT_SRC(:,1)
-      PRINT *, '     => corresponding stop values for j_src ='
-      PRINT *, J_VLAT_SRC(:,2)
+      PRINT *, '     => corresponding start values for j_s ='
+      PRINT *, J_VLAT_S(:,1)
+      PRINT *, '     => corresponding stop values for j_s ='
+      PRINT *, J_VLAT_S(:,2)
       PRINT *, ''
 
       DO jlat = 1, nsplit
-         IF ( J_VLAT_SRC(jlat,2) <= J_VLAT_SRC(jlat,1) ) THEN
-            PRINT *, ' ERROR: jj_stop > jj_start ! ', J_VLAT_SRC(jlat,2), J_VLAT_SRC(jlat,1)
+         IF ( J_VLAT_S(jlat,2) <= J_VLAT_S(jlat,1) ) THEN
+            PRINT *, ' ERROR: jj_stop > jj_start ! ', J_VLAT_S(jlat,2), J_VLAT_S(jlat,1)
             PRINT *, '   => for latitude bin #', jlat
             STOP
          END IF
       END DO
 
       rlat_old   = rflg
-      jj_trg_old = -10
+      jj_t_old = -10
 
-      DO jj_trg = j_strt_trg, j_stop_trg, jlat_icr
-         DO ji_trg = 1, nx_trg
-            IF ( mask_trg(ji_trg,jj_trg) == 1 ) THEN
+      DO jj_t = j_strt_t, j_stop_t, jlat_icr
+         DO ji_t = 1, nx_t
+            IF ( mask_t(ji_t,jj_t) == 1 ) THEN
 
-               rlon = Xtrg(ji_trg,jj_trg)
-               rlat = Ytrg(ji_trg,jj_trg)
+               rlon = Xtrg(ji_t,jj_t)
+               rlat = Ytrg(ji_t,jj_t)
 
                !! Display progression in stdout:
-               IF ( (ji_trg == nx_trg/2).AND.(jj_trg /= jj_trg_old) ) THEN
-                  WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_trg = ",i5.5,")")') REAL(rlat,4), jj_trg
-                  jj_trg_old = jj_trg
+               IF ( (ji_t == nx_t/2).AND.(jj_t /= jj_t_old) ) THEN
+                  WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_t = ",i5.5,")")') REAL(rlat,4), jj_t
+                  jj_t_old = jj_t
                END IF
-               IF ( (nx_trg == 1).AND.(MOD(jj_trg,10)==0) ) &
-                  & WRITE(*,'("*** Treated point of target domain = ",i7," (ouf of ",i7,")")') jj_trg, ABS(j_stop_trg-j_strt_trg+1) ! in case of trajectory/ephem stuff
+               IF ( (nx_t == 1).AND.(MOD(jj_t,10)==0) ) &
+                  & WRITE(*,'("*** Treated point of target domain = ",i7," (ouf of ",i7,")")') jj_t, ABS(j_stop_t-j_strt_t+1) ! in case of trajectory/ephem stuff
 
                !! Need to find which jlat of our latitude bins rlat is located in!
                IF ( rlat /= rlat_old ) THEN
@@ -1328,48 +1220,49 @@ CONTAINS
                   IF ( niter == -1 ) THEN
                      !! Bluff !
                      !! It's not stupid to assume that the next point to locate is
-                     !! pretty near the previously found point (ji_src,jj_src):
-                     imin_src = MAX(ji_src - 5 , 1)
-                     imax_src = MIN(ji_src + 5 , nx_src)
-                     jmin_src = MAX(jj_src - 5 , 1)
-                     jmax_src = MIN(jj_src + 5 , ny_src)
+                     !! pretty near the previously found point (ji_s,jj_s):
+                     i1s = MAX(ji_s - 5 , 1)
+                     i2s = MIN(ji_s + 5 , nx_s)
+                     j1s = MAX(jj_s - 5 , 1)
+                     j2s = MIN(jj_s + 5 , ny_s)
                   ELSE
-                     imin_src = 1
-                     imax_src = nx_src
-                     jmin_src = J_VLAT_SRC(MAX(jlat-niter,1)     , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
-                     jmax_src = J_VLAT_SRC(MIN(jlat+niter,nsplit), 2)  !! MB Comment: Force to ny_src if necessary when nearest point not found whereas it exist really
+                     i1s = 1
+                     i2s = nx_s
+                     j1s = J_VLAT_S(MAX(jlat-niter,1)     , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
+                     j2s = J_VLAT_S(MIN(jlat+niter,nsplit), 2)  !! MB Comment: Force to ny_s if necessary when nearest point not found whereas it exist really
                      IF ( ldebug ) THEN
                         PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter, jlat
                         PRINT *, '     => bin #', jlat
-                        PRINT *, '       => jmin & jmax on source domain =', jmin_src, jmax_src
+                        PRINT *, '       => jmin & jmax on source domain =', j1s, j2s
                      END IF
                   END IF
 
                   Xdist = 1.E12
-                  Xdist(imin_src:imax_src,jmin_src:jmax_src) = DISTANCE_2D(rlon, Xsrc(imin_src:imax_src,jmin_src:jmax_src), rlat, Ysrc(imin_src:imax_src,jmin_src:jmax_src))
-                  !CALL DUMP_2D_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
+                  Xdist(i1s:i2s,j1s:j2s) = DISTANCE_2D(rlon, Xsrc(i1s:i2s,j1s:j2s), rlat, Ysrc(i1s:i2s,j1s:j2s))
+                  !CALL DUMP_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
+                  !PRINT *, 'LOLO STOP! mod_manip.f90 !!!'; STOP
 
                   !! Nearest point is where distance is smallest:
-                  ij_min_loc = MINLOC(Xdist(imin_src:imax_src,jmin_src:jmax_src))
-                  ji_src = ij_min_loc(1) + imin_src - 1
-                  jj_src = ij_min_loc(2) + jmin_src - 1
+                  ij_min_loc = MINLOC(Xdist(i1s:i2s,j1s:j2s))
+                  ji_s = ij_min_loc(1) + i1s - 1
+                  jj_s = ij_min_loc(2) + j1s - 1
 
-                  IF ((ji_src==0).OR.(jj_src==0)) THEN
+                  IF ((ji_s==0).OR.(jj_s==0)) THEN
                      PRINT *, ''
                      PRINT *, ' W E I R D  !!!'
                      PRINT *, 'The nearest point was not found!'
-                     PRINT *, ' !!! ji_src or jj_src = 0 !!!'
+                     PRINT *, ' !!! ji_s or jj_s = 0 !!!'
                      PRINT *, ' ** Target point (lon,lat) =>', rlon, rlat
                      STOP
                   END IF
 
-                  emax = MAX(e1_src(ji_src,jj_src),e2_src(ji_src,jj_src))/1000.*SQRT(2.)
+                  emax = MAX(e1_s(ji_s,jj_s),e2_s(ji_s,jj_s))/1000.*SQRT(2.)
 
-                  IF ( Xdist(ji_src,jj_src) <= frac_emax*emax) THEN
+                  IF ( Xdist(ji_s,jj_s) <= frac_emax*emax) THEN
                      !! Found !
                      lagain = .FALSE.
-                     JIpos(ji_trg,jj_trg) = ji_src
-                     JJpos(ji_trg,jj_trg) = jj_src
+                     JIpos(ji_t,jj_t) = ji_s
+                     JJpos(ji_t,jj_t) = jj_s
                      IF ( ldebug ) THEN
                         IF ( niter == -1 ) THEN
                            PRINT *, '    --- F O U N D  with bluff !!! ---'
@@ -1400,22 +1293,22 @@ CONTAINS
                         lagain = .FALSE.
                      END IF
 
-                  END IF    ! IF (Xdist(ji_src,jj_src) <= frac_emax*emax)
+                  END IF    ! IF (Xdist(ji_s,jj_s) <= frac_emax*emax)
 
                   niter  = niter + 1
 
                END DO !DO WHILE ( lagain )
                rlat_old = rlat
 
-            END IF ! IF ( mask_trg(ji_trg,jj_trg) == 1 )
-         END DO    ! DO ji_trg = 1, nx_trg
-      END DO       ! DO jj_trg = j_strt_trg, j_stop_trg, jlat_icr
+            END IF ! IF ( mask_t(ji_t,jj_t) == 1 )
+         END DO    ! DO ji_t = 1, nx_t
+      END DO       ! DO jj_t = j_strt_t, j_stop_t, jlat_icr
 
 
-      WHERE ( JIpos == -1 ) mask_trg = -1
-      WHERE ( JJpos == -1 ) mask_trg = -2
+      WHERE ( JIpos == -1 ) mask_t = -1
+      WHERE ( JJpos == -1 ) mask_t = -2
 
-      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_SRC, e1_src, e2_src, mspot_lon , mspot_lat , Xdist )
+      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_S, e1_s, e2_s, mspot_lon , mspot_lat , Xdist )
 
    END SUBROUTINE FIND_NEAREST_TWISTED
 
@@ -1681,6 +1574,29 @@ CONTAINS
    END FUNCTION SHRINK_VECTOR
 
 
+
+   FUNCTION to_degE_scal( rlong )
+      !! From any longitude to something between 0 and 360 !
+      REAL(8), INTENT(in) :: rlong
+      REAL(8)             :: to_degE_scal
+      to_degE_scal = MOD( rlong + 360._8 , 360._8 )     
+   END FUNCTION to_degE_scal
+   !!
+   FUNCTION to_degE_1d( vlong )
+      !! From any longitude to something between 0 and 360 !
+      REAL(8), DIMENSION(:), INTENT(in) :: vlong
+      REAL(8), DIMENSION(SIZE(vlong,1)) :: to_degE_1d
+      to_degE_1d(:) = MOD( vlong(:) + 360._8 , 360._8 )     
+   END FUNCTION to_degE_1d
+   !!
+   FUNCTION to_degE_2d( xlong )
+      !! From any longitude to something between 0 and 360 !
+      REAL(8), DIMENSION(:,:), INTENT(in) :: xlong
+      REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: to_degE_2d
+      to_degE_2d(:,:) = MOD( xlong(:,:) + 360._8 , 360._8 )     
+   END FUNCTION to_degE_2d
+
+
    FUNCTION degE_to_degWE_scal( rlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8) :: rlong
@@ -1692,14 +1608,14 @@ CONTAINS
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:) :: vlong
       REAL(8), DIMENSION(SIZE(vlong,1)) :: degE_to_degWE_1d
-      degE_to_degWE_1d = SIGN(1._8,180._8-vlong)*MIN(vlong, ABS(vlong-360._8))
+      degE_to_degWE_1d(:) = SIGN(1._8,180._8-vlong(:))*MIN(vlong(:), ABS(vlong(:)-360._8))
    END FUNCTION degE_to_degWE_1d
 
    FUNCTION degE_to_degWE_2d( xlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
       REAL(8), DIMENSION(:,:) :: xlong
       REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: degE_to_degWE_2d
-      degE_to_degWE_2d = SIGN(1._8,180._8-xlong)*MIN(xlong, ABS(xlong-360._8))
+      degE_to_degWE_2d(:,:) = SIGN(1._8,180._8-xlong(:,:))*MIN(xlong(:,:), ABS(xlong(:,:)-360._8))
    END FUNCTION degE_to_degWE_2d
 
 

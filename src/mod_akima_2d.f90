@@ -29,84 +29,166 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   
+   USE mod_manip, ONLY: FILL_EXTRA_BANDS
+   USE io_ezcdf,  ONLY: TEST_XYZ
+
    IMPLICIT NONE
-   
+
    PRIVATE
-   
+
    PUBLIC :: AKIMA_2D
-
-   REAL(8), PARAMETER :: repsilon = 1.E-9
-
-   INTEGER, PARAMETER  :: nsys = 16 !: Dimmension of the linear sytem to solve
    
+   REAL(8), PARAMETER :: repsilon = 1.E-9
+   
+   INTEGER, PARAMETER  :: nsys = 16 !: Dimmension of the linear sytem to solve
+
 CONTAINS
 
 
 
-   SUBROUTINE AKIMA_2D( X1, Y1, Z1,  X2, Y2, Z2,  ixy_map )
-      
+
+
+
+
+   SUBROUTINE AKIMA_2D(k_ew_per, ithrd, X10, Y10, Z1, X20, Y20, Z2, imapping,   icall)
+
       !!================================================================
       !!
-      !! INPUT :
-      !!             X1   : 2D source longitude array (ni*nj) or (ni*1) (must be regular!)
-      !!             Y1   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
+      !! INPUT :     k_ew_per : east-west periodicity
+      !!                        k_ew_per = -1  --> no periodicity
+      !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
+      !!             X10   : 2D source longitude array (ni*nj) or (ni*1) (must be regular!)
+      !!             Y10   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
       !!             Z1    : source field on source grid
       !!
-      !!             X2   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
-      !!             Y2   : 2D target latitude  array (ni*nj) or (nj*1) (can be irregular)
-      !!
-      !!           ixy_map : contains target/src mapping... #FIXME
+      !!             X20   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
+      !!             Y20   : 2D target latitude  array (ni*nj) or (nj*1) (can be irregular)
       !!
       !! OUTPUT :
       !!             Z2    : input field on target grid
+      !!
+      !! input (optional)  : icall : if icall=1, will always force 'l_first_call_interp_routine' to .TRUE.
       !!
       !!================================================================
 
 
       !! Input/Output arguments
-      REAL(8), DIMENSION(:,:),   INTENT(in)  :: X1, Y1, Z1
-      REAL(8), DIMENSION(:,:),   INTENT(in)  :: X2, Y2
-      REAL(4), DIMENSION(:,:),   INTENT(out) :: Z2
-      INTEGER, DIMENSION(:,:,:), INTENT(in)  :: ixy_map
-
+      INTEGER,                   INTENT(in)    :: k_ew_per
+      INTEGER,                   INTENT(in)    :: ithrd
+      REAL(8), DIMENSION(:,:),   INTENT(in)    :: X10, Y10
+      REAL(4), DIMENSION(:,:),   INTENT(in)    :: Z1
+      REAL(8), DIMENSION(:,:),   INTENT(in)    :: X20, Y20
+      REAL(4), DIMENSION(:,:),   INTENT(out)   :: Z2
+      INTEGER, DIMENSION(:,:,:), INTENT(inout) :: imapping
+      INTEGER,       OPTIONAL,   INTENT(in)    :: icall
+      
       !! Local variables
-      INTEGER :: nx1, ny1, nx2, ny2
-      
-      INTEGER :: ji1, jj1, ji2, jj2
-      
+      INTEGER :: nx1, ny1, nx2, ny2, ji, jj
+
+      INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
+
+      INTEGER :: &
+         &     ji1, jj1, ji2, jj2,   &
+         &     ni1, nj1
+
       REAL(8), DIMENSION(nsys) ::  vpl
+
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
-      REAL(8), DIMENSION(:,:),   ALLOCATABLE :: slpx, slpy, slpxy
+
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
+         &    X1, Y1, X2, Y2,   &
+         &    Z_src , lon_src , lat_src
+
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
 
       REAL(8) :: &
          &  px2, py2,  &
          &  min_lon1, max_lon1, min_lat1, max_lat1,   &
          &  min_lon2, max_lon2, min_lat2, max_lat2
 
+      REAL(8), DIMENSION(4) :: xy_range_src
+
+      CHARACTER(len=2) :: ctype
+
+      IF ( present(icall) ) THEN
+         IF ( icall == 1 ) THEN
+            l_first_call_interp_routine(ithrd) = .TRUE.
+            l_always_first_call(ithrd)  = .TRUE.
+         END IF
+      END IF
+
+
+
+      !! Create 2D (ni*nj) arrays out of 1d (ni*1 and nj*1) arrays if needed:
+      !! => TEST_XYZ tests if a 2D array is a true 2D array (NxM) or a fake (Nx1)
+      !!    and returns '1d' if it is a fake 2D array
+
+      ctype = TEST_XYZ(X10, Y10, Z1)
       nx1 = SIZE(Z1,1)
       ny1 = SIZE(Z1,2)
+      ALLOCATE ( X1(nx1,ny1) , Y1(nx1,ny1) )
+      IF ( ctype == '1d' ) THEN
+         FORALL (jj = 1:ny1) X1(:,jj) = X10(:,1)
+         FORALL (ji = 1:nx1) Y1(ji,:) = Y10(:,1)
+      ELSE
+         X1 = X10 ; Y1 = Y10
+      END IF
 
+      ctype = '00'
+      ctype = TEST_XYZ(X20, Y20, Z2)
       nx2 = SIZE(Z2,1)
       ny2 = SIZE(Z2,2)
-      
-      ALLOCATE ( slpx(nx1,ny1), slpy(nx1,ny1), slpxy(nx1,ny1), poly(nx1-1,ny1-1,nsys) )
+      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) )
+      IF ( ctype == '1d' ) THEN
+         FORALL (jj=1:ny2) X2(:,jj) = X20(:,1)
+         FORALL (ji=1:nx2) Y2(ji,:) = Y20(:,1)
+      ELSE
+         X2 = X20 ; Y2 = Y20
+      END IF
+
+
+      !!                       S T A R T
+
+      !! Extending the source 2D domain with a frame of 2 points:
+      !!    We extend initial 2D array with a frame, adding n_extd points in each
+      !!    dimension This is really needed specially for preserving good east-west
+      !!    perdiodicity...
+
+      ni1 = nx1 + n_extd  ;   nj1 = ny1 + n_extd
+
+      ALLOCATE ( Z_src(ni1,nj1), lon_src(ni1,nj1), lat_src(ni1,nj1), &
+         &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
+         &       poly(ni1-1,nj1-1,nsys)    )
+
+      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_src, lat_src, Z_src,  is_orca_grid=i_orca_src)
+
+      DEALLOCATE (X1, Y1)
+
+
 
       !! Computation of partial derivatives:
-      CALL slopes_akima( X1, Y1, Z1, slpx, slpy, slpxy)
-      
+      CALL slopes_akima(k_ew_per, lon_src, lat_src, Z_src, slpx, slpy, slpxy)
+
       !! Polynome:
-      CALL build_pol(             X1, Y1, Z1, slpx, slpy, slpxy, poly)
+      CALL build_pol(lon_src, lat_src, Z_src, slpx, slpy, slpxy, poly)
 
       DEALLOCATE ( slpx, slpy, slpxy )
 
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = MINVAL(X1) ;  max_lon1 = MAXVAL(X1)
-      min_lat1 = MINVAL(Y1) ;  max_lat1 = MAXVAL(Y1)
-      
-      min_lon2 = MINVAL(X2) ;  max_lon2 = MAXVAL(X2)
-      min_lat2 = MINVAL(Y2) ;  max_lat2 = MAXVAL(Y2)
-      
+      min_lon1 = minval(lon_src) ;  max_lon1 = maxval(lon_src)
+      min_lat1 = minval(lat_src) ;  max_lat1 = maxval(lat_src)
+      xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
+
+      min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
+      min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
+
+      !! Doing the mapping once for all and saving into ixy_pos:
+      IF ( l_first_call_interp_routine(ithrd) ) THEN
+         PRINT *, '  ==> "find_nearest_akima" to fill "imapping": thread #', INT1(ithrd)
+         imapping(:,:,:) = 0
+         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, imapping )
+      END IF
+
 
       !! Loop on target domain:
       DO jj2 = 1, ny2
@@ -119,24 +201,36 @@ CONTAINS
             !! Checking if this belongs to source domain :
             IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
-               !! We know the location on source grid from ixy_map:
-               ji1 = ixy_map(ji2,jj2,1)
-               jj1 = ixy_map(ji2,jj2,2)
+               !! We know the right location from time = 1 :
+               ji1 = imapping(ji2,jj2,1)
+               jj1 = imapping(ji2,jj2,2)
 
-               !! Interpolation:
-               px2 = px2 - X1(ji1,jj1)
-               py2 = py2 - Y1(ji1,jj1)
+               !! It's time to interpolate:
+               px2 = px2 - lon_src(ji1,jj1)
+               py2 = py2 - lat_src(ji1,jj1)
                vpl = poly(ji1,jj1,:)
+
                Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
-               
+
             ELSE
                Z2(ji2,jj2) = 0.  ! point is not on source domain!
             END IF
-            
+
          END DO
       END DO
 
-      DEALLOCATE ( poly )
+      !! Deallocation :
+      DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
+
+      l_first_call_interp_routine(ithrd) = .FALSE.
+
+      IF ( l_always_first_call(ithrd) ) THEN
+         !PRINT *, 'LOLO: DEallocating ixy_pos !!!'; PRINT *, ''
+         !DEALLOCATE ( ixy_pos )
+         STOP'FIX ME imapping with l_always_first_call !!! (mod_akima_2d.f90) !!!'
+         imapping(:,:,:) = 0
+         l_first_call_interp_routine(ithrd) = .TRUE.
+      END IF
 
    END SUBROUTINE AKIMA_2D
 
@@ -382,16 +476,24 @@ CONTAINS
    END FUNCTION pol_val
 
 
-   SUBROUTINE slopes_akima( PX, PY, PF, dFdX, dFdY, d2FdXdY)
+   SUBROUTINE slopes_akima(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
 
       !! Slopes ~ partial derivatives of a field ZF according to Akima method
       !! given on a regular gird !!
 
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: PX, PY, PF
+      !!  k_ew : east-west periodicity on the source file/grid
+      !!         k_ew = -1  --> no east-west periodicity (along x)
+      !!         k_ew >= 0  --> east-west periodicity with overlap of k_ew points (along x)
+      !! lulu
+
+      INTEGER, INTENT(in) :: k_ew
+
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, XY, XF
       REAL(8), DIMENSION(:,:), INTENT(out) :: dFdX, dFdY, d2FdXdY
-      
+
       !! Local variables :
-      INTEGER :: nx, ny, ji, jj, im1, ic, ip1, ip2, jm1, jc, jp1, jp2
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: ZX, ZY, ZF
+      INTEGER :: nx, ny, ji, jj, ip1, ip2, jp1, jp2
       REAL(8) :: m1, m2, m3, m4, rx
       REAL(8) :: Wx2, Wx3, Wy2, Wy3
       REAL(8) :: d22, e22, d23, e23, d42, e32, d43, e33
@@ -399,57 +501,48 @@ CONTAINS
       dFdX    = 0.
       dFdY    = 0.
       d2FdXdY = 0.
-      
-      nx = SIZE(PF,1)
-      ny = SIZE(PF,2)
+
+      nx = SIZE(XF,1)
+      ny = SIZE(XF,2)
+
+      !! Extended arrays with a frame of 2 points...
+      ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
+
+      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF,  is_orca_grid=i_orca_src)
+
 
       !! Treating middle of array ( at least 2 points away from the bordures ) :
       !!------------------------------------------------------------------------
 
-      DO jj=2, ny-2
-         DO ji=2, nx-2
+      DO jj=1, ny
+         DO ji=1, nx
 
             ! Initialisation MB Problem when they are close to zero but not zero
             m1=0. ; m2=0. ; m3=0. ; m4=0. ; Wx2=0. ; Wx3=0. ; Wy2=0. ; Wy3=0.
 
-            !im1 = ji+1
-            !ic = ji+2
-            !ip1 = ji+3
-            !ip2 = ji+4
-            
-            !jm1 = jj+1
-            !jc = jj+2
-            !jp1 = jj+3
-            
-            im1 = ji-1
-            ic = ji
             ip1 = ji+1
             ip2 = ji+2
-            
-            jm1 = jj-1
-            jc = jj
             jp1 = jj+1
             jp2 = jj+2
 
-            
             !!   SLOPE / X :
             !!   ***********
 
-            rx = PX(im1,jc) - PX(ji,  jc)
+            rx = ZX(ip1,jp2) - ZX(ji,  jp2)
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (PF(im1,jc) - PF(ji,  jc)) / m1
+            m1 = (ZF(ip1,jp2) - ZF(ji,  jp2)) / m1
 
-            rx = PX(ic,jc) - PX(im1,jc)
+            rx = ZX(ip2,jp2) - ZX(ip1,jp2)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (PF(ic,jc) - PF(im1,jc)) / m2
+            m2 = (ZF(ip2,jp2) - ZF(ip1,jp2)) / m2
 
-            rx = PX(ip1,jc) - PX(ic,jc)
+            rx = ZX(ji+3,jp2) - ZX(ip2,jp2)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (PF(ip1,jc) - PF(ic,jc)) / m3
+            m3 = (ZF(ji+3,jp2) - ZF(ip2,jp2)) / m3
 
-            rx = PX(ip2,jc) - PX(ip1,jc)
+            rx = ZX(ji+4,jp2) - ZX(ji+3,jp2)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (PF(ip2,jc) - PF(ip1,jc)) / m4
+            m4 = (ZF(ji+4,jp2) - ZF(ji+3,jp2)) / m4
 
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
                dFdX(ji,jj) = 0.5*(m2 + m3)
@@ -461,22 +554,23 @@ CONTAINS
 
             !!   SLOPE / Y :
             !!   ***********
-            rx = PY(ic,jm1) - PY(ic,jj  )
+            rx = ZY(ip2,jp1) - ZY(ip2,jj  )
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (PF(ic,jm1) - PF(ic,jj  )) / m1
+            m1 = (ZF(ip2,jp1) - ZF(ip2,jj  )) / m1
 
-            rx = PY(ic,jc) - PY(ic,jm1)
+            rx = ZY(ip2,jp2) - ZY(ip2,jp1)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (PF(ic,jc) - PF(ic,jm1)) / m2
+            m2 = (ZF(ip2,jp2) - ZF(ip2,jp1)) / m2
 
-            rx = PY(ic,jp1) - PY(ic,jc)
+            rx = ZY(ip2,jj+3) - ZY(ip2,jp2)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (PF(ic,jp1) - PF(ic,jc)) / m3
-            
-            rx = PY(ic,jp2) - PY(ic,jp1)
+            m3 = (ZF(ip2,jj+3) - ZF(ip2,jp2)) / m3
+
+            rx = ZY(ip2,jj+4) - ZY(ip2,jj+3)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (PF(ic,jp2) - PF(ic,jp1)) / m4
-            
+            m4 = (ZF(ip2,jj+4) - ZF(ip2,jj+3)) / m4
+
+
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
                dFdY(ji,jj) = 0.5*(m2 + m3)
             ELSE
@@ -489,43 +583,43 @@ CONTAINS
             !!   CROSS DERIVATIVE /XY :
             !!   **********************
             !! d22 = d(i-1,j-1) = [ z(i-1,j)-z(i-1,j-1) ] / [ y(j) - y(j-1) ]
-            rx  = PY(im1,jc) - PY(im1,jm1)
+            rx  = ZY(ip1,jp2) - ZY(ip1,jp1)
             d22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d22 = (PF(im1,jc) - PF(im1,jm1)) / d22
+            d22 = (ZF(ip1,jp2) - ZF(ip1,jp1)) / d22
 
             !! d23 = d(i-1 , j) = [ z(i-1,j+1)-z(i-1,j) ] / [ y(j+1) - y(j) ]
-            rx  = PY(im1,jp1) - PY(im1,jc)
+            rx  = ZY(ip1,jj+3) - ZY(ip1,jp2)
             d23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d23 = (PF(im1,jp1) - PF(im1,jc)) / d23
+            d23 = (ZF(ip1,jj+3) - ZF(ip1,jp2)) / d23
 
             !! d42 = d(i+1 , j-1) = [ z(i+1 , j) - z(i+1 , j-1) ] / [ y(j) - y(j-1) ]
-            rx  = PY(ip1,jc) - PY(ip1,jm1)
+            rx  = ZY(ji+3,jp2) - ZY(ji+3,jp1)
             d42 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d42 = (PF(ip1,jc) - PF(ip1,jm1)) / d42
+            d42 = (ZF(ji+3,jp2) - ZF(ji+3,jp1)) / d42
 
             !! d43 = d(i+1 , j) = [ z(i+1 , j+1)-z(i+1 , j) ] / [ y(j+1) - y(j) ]
-            rx = PY(ip1,jp1) - PY(ip1,jc)
+            rx = ZY(ji+3,jj+3) - ZY(ji+3,jp2)
             d43 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d43 = (PF(ip1,jp1) - PF(ip1,jc)) / d43
+            d43 = (ZF(ji+3,jj+3) - ZF(ji+3,jp2)) / d43
 
 
             !! e22  = [ m2 - d22 ] / [ x(i) - x(i-1) ]
-            rx  = PX(ic,jm1) - PX(im1,jm1)
+            rx  = ZX(ip2,jp1) - ZX(ip1,jp1)
             e22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e22 = ( m2 - d22 ) / e22
 
             !! e23  = [ m3 - d23 ] / [ x(i) - x(i-1) ]
-            rx  = PX(ic,jc) - PX(im1,jc)
+            rx  = ZX(ip2,jp2) - ZX(ip1,jp2)
             e23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e23 = ( m3 - d23 ) / e23
 
             !! e32  = [ d42 - m2 ] / [ x(i+1) - x(i) ]
-            rx  = PX(ip1,jc) - PX(ic,jc)
+            rx  = ZX(ji+3,jp2) - ZX(ip2,jp2)
             e32 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e32 = ( d42 - m2 ) / e32
 
             !! e33  = [ d43 - m3 ] / [ x(i+1) - x(i) ]
-            rx  = PX(ip1,jc) - PX(ic,jc)
+            rx  = ZX(ji+3,jp2) - ZX(ip2,jp2)
             e33 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e33 = ( d43 - m3 ) / e33
 
@@ -547,7 +641,89 @@ CONTAINS
          END DO
       END DO
 
+      DEALLOCATE ( ZX, ZY, ZF )
+
    END SUBROUTINE slopes_akima
 
-   
+
+
+
+
+   SUBROUTINE find_nearest_akima( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
+      !!---------------------------------------------------------------------------------------
+      !! Laboriuously scanning the entire source grid to find location of treated point
+      !!---------------------------------------------------------------------------------------
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
+      REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
+      INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_trg
+
+      INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt
+      REAL(8) :: pxt, pyt
+      LOGICAL :: l_x_found, l_y_found
+
+      nxs = SIZE(plon_src,1)
+      nys = SIZE(plon_src,2)
+      nxt = SIZE(ixyp_trg,1)
+      nyt = SIZE(ixyp_trg,2)
+
+      !! Loop on target domain:
+      DO jjt = 1, nyt
+         DO jit = 1, nxt
+
+            jis = 1
+            jjs = 1
+
+            l_x_found = .FALSE.
+            l_y_found = .FALSE.
+
+            pxt = plon_trg(jit,jjt)
+            pyt = plat_trg(jit,jjt)
+
+            !! Only searching if inside source domain:
+            IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) ) THEN
+
+               DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
+
+                  l_x_found = .FALSE.
+                  DO WHILE ( .NOT. l_x_found )
+                     IF (jis < nxs) THEN
+                        IF ((plon_src(jis,jjs) <= pxt).and.(plon_src(jis+1,jjs) > pxt)) THEN
+                           l_x_found = .TRUE.
+                        ELSE
+                           jis = jis+1
+                        END IF
+                     ELSE   ! jis = nxs
+                        jis = jis-1  ! we are at the top need to use former pol.
+                        l_x_found = .TRUE.
+                     END IF
+                  END DO
+
+                  l_y_found = .FALSE.
+                  DO WHILE ( .NOT. l_y_found )
+                     IF ( jjs < nys ) THEN
+                        IF ((plat_src(jis,jjs) <= pyt).and.(plat_src(jis,jjs+1) > pyt)) THEN
+                           l_y_found = .TRUE.
+                        ELSE
+                           jjs = jjs + 1
+                           l_x_found = .FALSE.
+                           l_y_found = .TRUE. ! just so that we exit the loop on l_y_found
+                        END IF
+                     ELSE   ! jjs == nys
+                        jjs = nys-1        ! we are using polynome at (ji,nys-1)
+                        l_y_found = .TRUE. ! for extreme right boundary
+                     END IF
+                  END DO
+
+               END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
+
+               ixyp_trg(jit,jjt,:) = (/ jis, jjs /)
+
+            END IF !IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) )
+
+         END DO !DO jit = 1, nxt
+      END DO !DO jjt = 1, nyt
+
+   END SUBROUTINE find_nearest_akima
+
 END MODULE MOD_AKIMA_2D

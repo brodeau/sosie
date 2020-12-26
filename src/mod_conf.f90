@@ -13,9 +13,12 @@ MODULE MOD_CONF
    INTEGER, DIMENSION(:), ALLOCATABLE :: io1, io2, i_seg_s
 
    LOGICAL, DIMENSION(:), ALLOCATABLE, SAVE :: l_first_call_interp_routine
+   LOGICAL, DIMENSION(:), ALLOCATABLE, SAVE :: l_always_first_call
 
+   INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: ixy_pos !: table storing source/target grids mapping for akima method
+   
    !   INTEGER, DIMENSION(:,:,:,:), ALLOCATABLE, SAVE :: ixy_mapping !: table storing source/target grids mapping
-   INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: ixy_mapping !: table storing source/target grids mapping
+   !INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: ixy_mapping !: table storing source/target grids mapping
    !                                              !: shape: ni_trg_chunk, nj_trg, 2, Nthrd ("2" => 1->i_src,2->j_src)
    
    LOGICAL, SAVE :: &
@@ -136,6 +139,8 @@ MODULE MOD_CONF
    TYPE(idrown_info) ::  idrown    ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
    !                               ! and how many times to smooth the drowned area
 
+   INTEGER :: ixtrpl_bot = 0
+   
 
    !! S-coordinates specific
    !! -----------------------
@@ -215,8 +220,8 @@ MODULE MOD_CONF
       &   bathy_trg
 
    REAL(wpl),  DIMENSION(:,:),  ALLOCATABLE ::  &
-      &   data_src             !: data array on source grid
-
+      &   data_src,    &   !: data array on source grid
+      &   data_src_b
 
    REAL(8),  DIMENSION(:,:),  ALLOCATABLE ::  &
       &   lon_src,   &
@@ -225,8 +230,8 @@ MODULE MOD_CONF
    REAL(wpl),  DIMENSION(:,:,:),  ALLOCATABLE ::  &
       &      data3d_src, &
       &      data3d_trg, &
-      &      data3d_tmp   !, &  ! horizontal target resol. + vertical source resol.
-!      &    data_src_drowned
+      &      data3d_tmp, &  ! horizontal target resol. + vertical source resol.
+      &    data_src_drowned
 
    INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0)
    INTEGER(1),   DIMENSION(:,:,:),  ALLOCATABLE ::   &

@@ -15,12 +15,13 @@ MODULE MOD_DROWN
 
 CONTAINS
 
-   SUBROUTINE DROWN(k_ew, X, mask,   nb_inc, nb_smooth)
+   SUBROUTINE DROWN(k_ew, X, mask,   nb_inc)
 
       !!#############################################################################
       !!
       !!  PURPOSE : fill continental areas of field X (defined by mask=0)
-      !!  -------   using nearest surrounding sea points (defined by mask=1)
+      !!  -------   using weighted box average (gaussian weight) of surronded
+      !!            sea point (defined by mask=1)
       !!            field X is absoluletly unchanged on mask=1 points
       !!
       !!  k_ew :  east-west periodicity on the input file/grid
@@ -35,11 +36,9 @@ CONTAINS
       !!                => default: nb_inc = 400
       !!                     (will normally stop before 400 iterations, when all land points have been treated!!!)
       !!
-      !!  * nb_smooth : number of times the smoother is applied on masked region (mask=0)
-      !!                => default: nb_smooth = 10
-      !!
       !!
       !!                       Author : Laurent BRODEAU, 2014
+      !!                                Pierre Mathiot,  2020 : update the drowning algo and add openMP instruction
       !!
       !!#############################################################################
 
@@ -48,32 +47,30 @@ CONTAINS
       REAL(4),    DIMENSION(:,:),    INTENT(inout) :: X
       INTEGER(1), DIMENSION(:,:),    INTENT(in)    :: mask
 
-      INTEGER,    OPTIONAL,          INTENT(in)    :: nb_inc, nb_smooth
+      INTEGER,    OPTIONAL,          INTENT(in)    :: nb_inc
 
       !! Local :
-      INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
-      REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: dold, xtmp
+      INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast
+      REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: xtmp
 
       INTEGER :: &
          &      ninc_max,      &
-         &      nsmooth_max,          &
-         &      ni, nj,        &
+         &      ni, nj, ns,    &
          &      jinc,          &
-         &      ji, jj, jci,   &
-         &      jim, jip
+         &      ji, jj, jim,   &
+         &      jjm, jic, jjc, ji0, jip1, jim1, jjp1, jjm1
 
-      INTEGER, DIMENSION(2) :: ivi, vim_per, vip_per
+      REAL(4) :: datmsk, summsk, zweight
 
       INTEGER, PARAMETER :: jinc_debg = 2
 
+      !REAL(8) :: tSTART, tEND, omp_get_wtime 
+      !tSTART = omp_get_wtime() 
 
       X = X * mask  ! we rather have 0s on continents than some fucked up high values...
 
       ninc_max = 200   ! will stop before when all land points have been treated!!!
       IF ( present(nb_inc) ) ninc_max = nb_inc
-
-      nsmooth_max = 10
-      IF ( present(nb_smooth) ) nsmooth_max = nb_smooth
 
 
       IF ( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
@@ -83,27 +80,11 @@ CONTAINS
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
-
-
-
-
       !! Backing up original mask into mask2(:,:)
-      ALLOCATE ( maskv(ni,nj), dold(ni,nj), xtmp(ni,nj), mask_coast(ni,nj), mtmp(ni,nj) )
-
-
-
-      ivi = (/ 1 , ni /)
-
-
-      IF (k_ew >= 0) THEN
-         vim_per = (/ ni-k_ew ,  ni-1  /)
-         vip_per = (/    2    , 1+k_ew /)
-      END IF
+      ALLOCATE ( maskv(ni,nj), xtmp(ni,nj), mask_coast(ni,nj) )
 
       jinc = 0
       maskv(:,:) = mask(:,:)
-
-
 
       DO jinc = 1, ninc_max
 
@@ -113,308 +94,106 @@ CONTAINS
             EXIT
          END IF
 
-         dold(:,:) = X(:,:)
-
-
-
-
          !! Building mask of the coast-line (belonging to land points)
-
          mask_coast(:,:) = 0
+         !$OMP PARALLEL DEFAULT(NONE) SHARED(k_ew,maskv,mask_coast,ni,nj) PRIVATE(ji,jj,jjp1,jjm1,ji0,jip1,jim1)
+         !$OMP DO SCHEDULE(STATIC)
+         DO jj = 1, nj
+            DO ji = 1, ni
+               !
+               jjp1 = jj+1 ; jjm1 = jj-1 ;
+               IF ( jjp1 > nj ) jjp1 = nj
+               IF ( jjm1 <  1 ) jjm1 = 1
 
-         mask_coast(2:ni-1,2:nj-1) = (maskv(3:ni,2:nj-1) + maskv(2:ni-1,3:nj) + maskv(1:ni-2,2:nj-1) + maskv(2:ni-1,1:nj-2)) &
-            &                     *(-(maskv(2:ni-1,2:nj-1)-1))
-
-
-         !! West and East boundaries with periodicity
-         !! ------------------------------------------
-
-         IF (k_ew >= 0) THEN
-
-            DO jci = 1, 2
-               jim = vim_per(jci)  ! ji-1
-               ji  = ivi(jci)      ! first ji = 1, then ji = ni
-               jip = vip_per(jci)  ! ji+1
-               mask_coast(ji,2:nj-1) = (maskv(jip,2:nj-1) + maskv(ji,3:nj) + maskv(jim,2:nj-1) + maskv(ji,1:nj-2)) &
-                  &                     *(-(maskv(ji,2:nj-1)-1))
+               ji0 = ji ; jip1 = ji+1 ; jim1 = ji-1 ;
+               IF  ( k_ew >= 0 ) THEN
+                  IF ( ji0  > ni - k_ew ) ji0  = ji0  - ni + 2 * k_ew
+                  IF ( ji0  <  1 + k_ew ) ji0  = ji0  + ni - 2 * k_ew
+                  IF ( jip1 > ni - k_ew ) jip1 = jip1 - ni + 2 * k_ew ! W boundary
+                  IF ( jip1 <  1 + k_ew ) jip1 = jip1 + ni - 2 * k_ew ! W boundary
+                  IF ( jim1 > ni - k_ew ) jim1 = jim1 - ni + 2 * k_ew ! W boundary
+                  IF ( jim1 <  1 + k_ew ) jim1 = jim1 + ni - 2 * k_ew ! E boundary
+               ELSE
+                  IF ( jip1 > ni ) jip1 = ni
+                  IF ( jim1 <  1 ) jim1 = 1
+               END IF
+               !
+               ! mask_coast
+               mask_coast(ji,jj) = MIN( maskv(jim1,jj) + maskv(jip1,jj) + maskv(ji0,jjm1) + maskv(ji0,jjp1) , 1 ) * ( 1 - maskv(ji0,jj) )
+               !
             END DO
-
-         ELSE
-
-            !! West LBC:
-            mask_coast(1,2:nj-1)  = (maskv(2,2:nj-1) + maskv(1,3:nj)     + maskv( 1,1:nj-2))*(-(maskv( 1,2:nj-1) -1))
-            !! East LBC:
-            mask_coast(ni,2:nj-1) = (maskv(ni,3:nj) + maskv(ni-1,2:nj-1) + maskv(ni,1:nj-2))*(-(maskv(ni,2:nj-1) -1))
-
-         END IF
-
-
-
-         ! -------
-         ! jj=1
-         ! -------
-         mask_coast(2:ni-1,1) = (maskv(3:ni,1) + maskv(2:ni-1,2) + maskv(1:ni-2,1)) &
-            &                     *(-(maskv(2:ni-1,1)-1))
-         !!
-         !! ji=1, jj=1
-         IF (k_ew >= 0) THEN
-            mask_coast(1,1) = (maskv(2,1) + maskv(1,2) + maskv(ni-k_ew,1))*(-(maskv(1,1)-1))
-         ELSE
-            mask_coast(1,1) = (maskv(2,1) + maskv(1,2)                   )*(-(maskv(1,1)-1))
-         END IF
-         ! ji=ni, jj=1
-         IF (k_ew >= 0) THEN
-            mask_coast(ni,1) = (maskv(1+k_ew,1) + maskv(ni,2) + maskv(ni,1))*(-(maskv(ni,1)-1))
-         ELSE
-            mask_coast(ni,1) = (                  maskv(ni,2) + maskv(ni,1))*(-(maskv(ni,1)-1))
-         END IF
-
-         ! jj=nj
-         ! -------
-         mask_coast(2:ni-1,nj) = (maskv(3:ni,nj) + maskv(1:ni-2,nj) + maskv(2:ni-1,nj-1)) &
-            &                     *(-(maskv(2:ni-1,nj)-1))
-         !! ji=1, jj=nj
-         IF (k_ew >= 0) THEN
-            mask_coast(1,nj)  = (maskv(2,nj)            + maskv(ni-k_ew,nj)  + maskv(1,nj-1)   )*(-(maskv(1,nj) -1))
-         ELSE
-            mask_coast(1,nj)  = (maskv(2,nj)                                 + maskv(1,nj-1)   )*(-(maskv(1,nj) -1))
-         END IF
-         !! ji=ni, jj=nj
-         IF (k_ew >= 0) THEN
-            mask_coast(ni,nj) = (maskv(k_ew+1,nj) + maskv(ni-1,nj)     + maskv(ni-1,nj-1))    *(-(maskv(ni,nj) -1))
-         ELSE
-            mask_coast(ni,nj) = (          maskv(ni-1,nj)     + maskv(ni-1,nj-1))             *(-(maskv(ni,nj) -1))
-         END IF
-
-
-         !! mask_coast is fine now
-         mtmp(:,:) = mask_coast(:,:)
-         mask_coast(:,:) = 0
-
-         WHERE ( mtmp(:,:) > 0 )
-            mask_coast = 1
-         END WHERE
-
-
+         END DO
+         !$OMP END DO
+         !$OMP END PARALLEL
+         !
          !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
          !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
          !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(X, 'data_X_before.nc', 'lsm')
          !STOP
 
 
-
          !! mask_coast done, time to fill the coastline points with values from the nearest se points
          !! -----------------------------------------------------------------------------------------
-
-         !! Center of the domain:
-         DO jj = 2, nj-1
-            DO ji = 2, ni-1
+         ns=MIN(jinc,50)
+         xtmp = X
+         
+         !$OMP PARALLEL DEFAULT(NONE) SHARED(ni,nj,mask_coast,ns,k_ew,maskv,xtmp,X,jinc ) PRIVATE(zweight,summsk,datmsk,ji,jj,jjm,jim,jic,jjc)
+         !$OMP DO SCHEDULE(DYNAMIC)
+         DO jj = 1, nj
+            DO ji = 1, ni
+               !
+               ! update only coastal point
                IF ( mask_coast(ji,jj) == 1 ) THEN
-                  X(ji,jj) = 1./(maskv(ji+1,jj)+maskv(ji,jj+1)+maskv(ji-1,jj)+maskv(ji,jj-1) + &
-                     & ris2*(maskv(ji+1,jj+1)+maskv(ji-1,jj+1)+maskv(ji-1,jj-1)+maskv(ji+1,jj-1)))*( &
-                     & maskv(ji+1,jj)*dold(ji+1,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
-                     & maskv(ji-1,jj)*dold(ji-1,jj) + maskv(ji,jj-1)*dold(ji,jj-1) + &
-                     & ris2*maskv(ji+1,jj+1)*dold(ji+1,jj+1) + ris2*maskv(ji-1,jj+1)*dold(ji-1,jj+1) + &
-                     & ris2*maskv(ji-1,jj-1)*dold(ji-1,jj-1) + ris2*maskv(ji+1,jj-1)*dold(ji+1,jj-1)  )
+                  !
+                  summsk = 0.0
+                  datmsk = 0.0
+                  !
+                  ! compute weighted average in a box center on ji,jj 
+                  DO jjm=-ns,ns
+                     DO jim=-ns,ns
+                        !
+                        ! box index definition
+                        jic = ji + jim ; jjc = jj + jjm ;
+                        IF  ( k_ew >= 0 ) THEN
+                           IF ( jic > ni - k_ew ) jic = jic - ni + 2 * k_ew ! W boundary
+                           IF ( jic <  1 + k_ew ) jic = jic + ni - 2 * k_ew ! E boundary
+                        END IF
+                        !
+                        IF (jic >= 1 .AND. jic <= ni .AND. jjc >= 1 .AND. jjc <= nj) THEN
+                           !
+                           ! compute gaussian weight
+                           zweight = EXP(-1.*(jjm**2+jim**2)/jinc**2)*maskv(jic,jjc)
+                           summsk=summsk + zweight
+                           datmsk=datmsk + zweight*X(jic,jjc)
+                        END IF
+                     END DO
+                  END DO
+                  !
+                  ! compute mean over the defined box with gaussian weight (only where data valid)
+                  xtmp(ji,jj) = datmsk / summsk
                END IF
             END DO
          END DO
-
-
-
-         DO jci = 1, 2
-
-
-            ji  = ivi(jci)      ! first ji = 1, then ji = ni
-
-
-            IF (k_ew >= 0) THEN
-
-               !! West and East boundaries with periodicity
-
-
-               jim = vim_per(jci)  ! ji-1
-               jip = vip_per(jci)  ! ji+1
-
-               DO jj = 2, nj-1
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
-                     X(ji,jj) = 1./(maskv(jip,jj)+maskv(ji,jj+1)+maskv(jim,jj)+maskv(ji,jj-1) + &
-                        & ris2*(maskv(jip,jj+1)+maskv(jim,jj+1)+maskv(jim,jj-1)+maskv(jip,jj-1)))*( &
-                        & maskv(jip,jj)*dold(jip,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
-                        & maskv(jim,jj)*dold(jim,jj) + maskv(ji,jj-1)*dold(ji,jj-1) + &
-                        & ris2*maskv(jip,jj+1)*dold(jip,jj+1) + ris2*maskv(jim,jj+1)*dold(jim,jj+1) + &
-                        & ris2*maskv(jim,jj-1)*dold(jim,jj-1) + ris2*maskv(jip,jj-1)*dold(jip,jj-1)  )
-                  END IF
-               END DO
-
-            ELSE
-
-               !! West & East LBCs when not east-west periodicity, extrapolating lineraly
-               IF ( ji == 1 ) THEN
-                  DO jj = 2, nj-1
-                     IF ( mask_coast(ji,jj) == 1 ) THEN
-                        X(ji,jj) = 1./(maskv(2,jj)+maskv(ji,jj+1)+maskv(ji,jj-1) + &
-                           & ris2*maskv(2,jj+1)+ris2*maskv(2,jj-1))*( &
-                           & maskv(2,jj)*dold(2,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
-                           & maskv(ji,jj-1)*dold(ji,jj-1) + &
-                           & ris2*maskv(2,jj+1)*dold(2,jj+1) + &
-                           & ris2*maskv(2,jj-1)*dold(2,jj-1)  )
-                     END IF
-                  END DO
-               END IF
-               IF ( ji == ni ) THEN
-                  DO jj = 2, nj-1
-                     IF ( mask_coast(ji,jj) == 1 ) THEN
-                        X(ji,jj) = 1./( maskv(ji,jj+1)+maskv(ni-1,jj)+maskv(ji,jj-1) + &
-                           & ris2*maskv(ni-1,jj+1)+ris2*maskv(ni-1,jj-1))*( &
-                           & maskv(ji,jj+1)*dold(ji,jj+1) + &
-                           & maskv(ni-1,jj)*dold(ni-1,jj) + maskv(ji,jj-1)*dold(ji,jj-1) + &
-                           & ris2*maskv(ni-1,jj+1)*dold(ni-1,jj+1) + &
-                           & ris2*maskv(ni-1,jj-1)*dold(ni-1,jj-1) )
-                     END IF
-                  END DO
-               END IF
-            END IF
-         END DO
-
-
-
-
-
-         !! Center of Top row:
-         jj = nj
-         DO ji = 2, ni-1
-            IF ( mask_coast(ji,jj) == 1 ) THEN
-               X(ji,jj) = 1./( maskv(ji+1,jj)+maskv(ji-1,jj)+maskv(ji,jj-1) + &
-                  & ris2*maskv(ji-1,jj-1)+ris2*maskv(ji+1,jj-1) )*( &
-                  & maskv(ji+1,jj)*dold(ji+1,jj) + &
-                  & maskv(ji-1,jj)*dold(ji-1,jj) + maskv(ji,jj-1)*dold(ji,jj-1) + &
-                  & ris2*maskv(ji-1,jj-1)*dold(ji-1,jj-1) + ris2*maskv(ji+1,jj-1)*dold(ji+1,jj-1)  )
-            END IF
-         END DO
-
-         !! West and East corner of top row:
-         DO jci = 1, 2
-
-            ji  = ivi(jci)      ! first ji = 1, then ji = ni
-
-            IF (k_ew >= 0) THEN
-               jim = vim_per(jci)  ! ji-1
-               jip = vip_per(jci)  ! ji+1
-               IF ( mask_coast(ji,jj) == 1 ) THEN
-                  X(ji,jj) = 1./(maskv(jip,jj)+maskv(jim,jj)+maskv(ji,jj-1) + &
-                     & ris2*maskv(jim,jj-1)+ris2*maskv(jip,jj-1))*( &
-                     & maskv(jip,jj)*dold(jip,jj) + &
-                     & maskv(jim,jj)*dold(jim,jj) + maskv(ji,jj-1)*dold(ji,jj-1) + &
-                     & ris2*maskv(jim,jj-1)*dold(jim,jj-1) + ris2*maskv(jip,jj-1)*dold(jip,jj-1)  )
-               END IF
-
-               ! No E-W periodicity:
-            ELSE
-               IF ( ji == 1 ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
-                     X(ji,jj) = 1./(maskv(2,jj)+maskv(ji,jj-1) + &
-                        & ris2*maskv(2,jj-1))*( &
-                        & maskv(2,jj)*dold(2,jj) + &
-                        & maskv(ji,jj-1)*dold(ji,jj-1) + &
-                        & ris2*maskv(2,jj-1)*dold(2,jj-1)  )
-                  END IF
-               END IF
-               IF ( ji == ni ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
-                     X(ji,jj) = 1./(maskv(ni-1,jj)+maskv(ji,jj-1) + &
-                        & ris2*maskv(ni-1,jj-1))*( &
-                        & maskv(ni-1,jj)*dold(ni-1,jj) + maskv(ji,jj-1)*dold(ji,jj-1) + &
-                        & ris2*maskv(ni-1,jj-1)*dold(ni-1,jj-1)  )
-                  END IF
-               END IF
-
-            END IF
-         END DO
-
-
-
-
-         !! Center of Bottom row:
-         jj = 1
-         DO ji = 2, ni-1
-            IF ( mask_coast(ji,jj) == 1 ) THEN
-               X(ji,jj) = 1./(maskv(ji+1,jj)+maskv(ji,jj+1)+maskv(ji-1,jj) + &
-                  & ris2*maskv(ji+1,jj+1)+ris2*maskv(ji-1,jj+1) )*( &
-                  & maskv(ji+1,jj)*dold(ji+1,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
-                  & maskv(ji-1,jj)*dold(ji-1,jj) + &
-                  & ris2*maskv(ji+1,jj+1)*dold(ji+1,jj+1) + ris2*maskv(ji-1,jj+1)*dold(ji-1,jj+1) )
-            END IF
-         END DO
-
-         !! West and East corner of bottom row:
-         DO jci = 1, 2
-
-            ji  = ivi(jci)      ! first ji = 1, then ji = ni
-
-            IF (k_ew >= 0) THEN
-               jim = vim_per(jci)  ! ji-1
-               jip = vip_per(jci)  ! ji+1
-               IF ( mask_coast(ji,jj) == 1 ) THEN
-                  X(ji,jj) = 1./(maskv(jip,jj)+maskv(ji,jj+1)+maskv(jim,jj) + &
-                     & ris2*maskv(jip,jj+1)+ris2*maskv(jim,jj+1) )*( &
-                     & maskv(jip,jj)*dold(jip,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
-                     & maskv(jim,jj)*dold(jim,jj) + &
-                     & ris2*maskv(jip,jj+1)*dold(jip,jj+1) + ris2*maskv(jim,jj+1)*dold(jim,jj+1) )
-               END IF
-
-               !! No E-W periodicity:
-            ELSE
-               IF ( ji == 1 ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
-                     X(ji,jj) = 1./(maskv(2,jj)+maskv(ji,jj+1) + &
-                        & ris2*maskv(2,jj+1) )*( &
-                        & maskv(2,jj)*dold(2,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
-                        & ris2*maskv(2,jj+1)*dold(2,jj+1) )
-                  END IF
-               END IF
-               IF ( ji == ni ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
-                     X(ji,jj) = 1./(maskv(ji,jj+1)+maskv(ni-1,jj) + &
-                        & ris2*maskv(ni-1,jj+1) )*( &
-                        & maskv(ji,jj+1)*dold(ji,jj+1) + &
-                        & maskv(ni-1,jj)*dold(ni-1,jj) + &
-                        & ris2*maskv(ni-1,jj+1)*dold(ni-1,jj+1) )
-                  END IF
-               END IF
-            END IF
-         END DO
-
-
-
-
-
-         !! Loosing land for the next iteration:
-         !! -----------------------------------
+         !$OMP END DO
+         !$OMP END PARALLEL
+         !
+         ! update X
+         X = xtmp
+         !
+         ! Loosing land for the next iteration:
          maskv = maskv + mask_coast
-         !! -----------------------------------
-
-
-         !IF ( jinc == jinc_debg) THEN
-         !   CALL DUMP_2D_FIELD(X, 'data_X_after.nc', 'lsm')
-         !   STOP 'after lolo'
-         !END IF
-
-
+         !
+         IF ( ldebug ) PRINT *, 'DROWN: jinc =', jinc
+         !
       END DO
 
-      !! Time to smooth over land! (what's been drowned):
-      mtmp = 1 - mask ! 1 over continents, 0 over seas!
-      CALL SMOOTHER(k_ew, X,  nb_smooth=nsmooth_max, msk=mtmp)
-      !! *** l_exclude_mask_points=.true. would be stupid here,
-      !!       it's actually good if sea values are used and are
-      !!       propagating inland in the present CASE
+      !CALL PRTMASK(X, 'drowned_final.nc', 'lsm') ;          STOP 'lolo'
 
-      !CALL DUMP_2D_FIELD(X, 'drowned_final.nc', 'lsm') ;     !     STOP 'lolo'
 
-      DEALLOCATE ( maskv, mtmp, xtmp, dold, mask_coast )
+      DEALLOCATE ( maskv, xtmp, mask_coast )
 
-      IF ( ldebug ) PRINT *, 'DROWN: jinc =', jinc
+      !tEND = omp_get_wtime() 
+      !PRINT *, '~Drowning algo took~', tEND - tSTART, '~seconds~'
 
    END SUBROUTINE DROWN
 
@@ -422,7 +201,6 @@ CONTAINS
 
 
    SUBROUTINE SMOOTHER(k_ew, X,  nb_smooth, msk, l_exclude_mask_points)
-
       !!#############################################################################
       !!
       !!  PURPOSE : Smooth a fied with a nearest-points box-car typ of smoothing

@@ -20,7 +20,7 @@ MODULE MOD_INIT
       &                cv_lsm_trg, ewper_trg,cf_z_trg, cv_z_trg, ctype_z_trg, &
       &                cf_bathy_trg, cv_bathy_trg, ssig_trg
 
-   NAMELIST /ninterp/  cmethod, idrown, l_save_drwn, ismooth, jt1, jt2, jplev, vmax, vmin, ismooth_out, ibx_xtra_sm
+   NAMELIST /ninterp/  cmethod, idrown, ixtrpl_bot, l_save_drwn, ismooth, jt1, jt2, jplev, vmax, vmin, ismooth_out, ibx_xtra_sm
 
    NAMELIST /noutput/  cv_out, cu_out, cln_out, cv_t_out, cd_out, cextra, &
       &                lmout, rmiss_val, lct, t0, t_stp, cv_z_out
@@ -35,7 +35,7 @@ CONTAINS
 
       INTEGER            :: iargc, jarg
       CHARACTER(len=400) :: cr
-      CHARACTER(LEN=2), DIMENSION(3), PARAMETER :: clist_opt = (/ '-h','-f','-N' /)
+      CHARACTER(LEN=2), DIMENSION(4), PARAMETER :: clist_opt = (/ '-h','-p','-f','-N' /)
 
       PRINT *, ''
 
@@ -53,14 +53,14 @@ CONTAINS
 
          CASE('-f')
 
-            IF ( jarg + 1 > iargc() ) THEN
+            IF( jarg + 1 > iargc() ) THEN
                PRINT *, 'ERROR: Missing namelist name!' ; call usage()
             ELSE
 
                jarg = jarg + 1
                CALL getarg(jarg,cr)
 
-               IF ( ANY(clist_opt == trim(cr)) ) THEN
+               IF( ANY(clist_opt == trim(cr)) ) THEN
                   PRINT *, 'ERROR: "', trim(cr), '" is definitively not the name of the namelist!'
                   call usage()
                ELSE
@@ -71,13 +71,13 @@ CONTAINS
 
          CASE('-N')
 
-            IF ( jarg + 1 > iargc() ) THEN
+            IF( jarg + 1 > iargc() ) THEN
                PRINT *, 'ERROR: provide the number of OMP threads!' ; call usage()
             ELSE
 
                jarg = jarg + 1
                CALL getarg(jarg,cr)
-               IF ( ANY(clist_opt == TRIM(cr)) ) THEN
+               IF( ANY(clist_opt == TRIM(cr)) ) THEN
                   PRINT *, 'ERROR: "', trim(cr), '" is definitively not a number of OMP threads!'
                   CALL usage()
                ELSE
@@ -108,7 +108,7 @@ CONTAINS
       LOGICAL :: lexist
 
       INQUIRE(FILE=trim(cf_nml_sosie), EXIST=lexist )
-      IF ( .NOT. lexist ) THEN
+      IF( .NOT. lexist ) THEN
          WRITE(*,'("ERROR: Namelist ",a," cannot be found!")') '"'//TRIM(cf_nml_sosie)//'"'
          CALL usage()
       END IF
@@ -130,13 +130,15 @@ CONTAINS
       idrown%nt_smooth = 5
       idrown%l_msk_chg = .false.
 
+      ixtrpl_bot = 0
+      
       !! Reading interpolation section:
       REWIND( numnam )
       READ( numnam, ninterp )
 
       !! If 3D interpolation:
-      IF (jplev == 0) THEN
-         IF ( TRIM(cv_z_out) == '' ) THEN
+      IF(jplev == 0) THEN
+         IF( TRIM(cv_z_out) == '' ) THEN
             cv_z_out = TRIM(cv_z_trg) ; ! keep same name
          ELSE
             PRINT *, '*** Target depth vector in target file will be renamed to: ', TRIM(cv_z_out)
@@ -151,24 +153,24 @@ CONTAINS
 
 
       l_drown_src = .FALSE.
-      IF ( idrown%np_penetr > 0 ) l_drown_src = .TRUE.
+      IF( idrown%np_penetr > 0 ) l_drown_src = .TRUE.
 
-      IF ( (.NOT. l_drown_src).AND.(l_save_drwn) ) THEN
+      IF( (.NOT. l_drown_src).AND.(l_save_drwn) ) THEN
          PRINT *, 'WARNING: forcing "l_save_drwn=.FALSE." because DROWN not called (idrown[1]==0)...'
          PRINT *, '         if you want to "drown" input field, set idrown[1]>0 !'
          PRINT *, ''
          l_save_drwn = .FALSE.
       END IF
 
-      IF ( iex == 1 ) THEN
+      IF( iex == 1 ) THEN
 
          !! If this is a vector component, then interpolated files won't be correct
          !! until grid distorsion correction, so changing name of output variable :
-         IF ( ivect /= 0 ) THEN
+         IF( ivect /= 0 ) THEN
             lmout = .FALSE.         ! never mask for 1st stage of interpolation of the vector
             IF  ( ivect == 1 )  THEN
                cv_out = 'uraw'
-            ELSEIF ( ivect == 2 )  THEN
+            ELSEIF( ivect == 2 )  THEN
                cv_out = 'vraw'
             ELSE
                PRINT *, 'Error: while interpolating a component of a vector field: specify&
@@ -189,7 +191,7 @@ CONTAINS
          !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
          !!
          WRITE(6,*)''
-         IF ( ivect /= 0 ) THEN
+         IF( ivect /= 0 ) THEN
             WRITE(6,*)'The current field is a component of a vector!'
          ELSE
             WRITE(6,*)'The current field is NOT a component of a vector!'
@@ -197,7 +199,7 @@ CONTAINS
          WRITE(6,*)''
          !!
          WRITE(6,*)''
-         IF ( l_reg_src ) THEN
+         IF( l_reg_src ) THEN
             WRITE(6,*)'Source grid is declared as regular'
          ELSE
             WRITE(6,*)'Source grid is declared as irregular'
@@ -206,7 +208,7 @@ CONTAINS
          !!
          !!
          WRITE(6,*)''
-         IF ( l_reg_trg ) THEN
+         IF( l_reg_trg ) THEN
             WRITE(6,*)'Target grid is declared as regular'
          ELSE
             WRITE(6,*)'Target grid is declared as irregular'
@@ -214,14 +216,14 @@ CONTAINS
          WRITE(6,*)''
          !!
 
-         IF (TRIM(cv_t_src)=='missing_rec') lct = .TRUE.
+         IF(TRIM(cv_t_src)=='missing_rec') lct = .TRUE.
 
          WRITE(6,*)''
          WRITE(6,*)'Source file: ', TRIM(cf_src)
          WRITE(6,*)''
          WRITE(6,*)'Method for 2D interoplation: ', cmethod
          WRITE(6,*)''
-         IF ( .NOT. lct ) WRITE(6,*)'Time record name in source file: ', TRIM(cv_t_src)
+         IF( .NOT. lct ) WRITE(6,*)'Time record name in source file: ', TRIM(cv_t_src)
          WRITE(6,*)''
          WRITE(6,*)'File containing the source grid: ', trim(cf_x_src)
          WRITE(6,*)''
@@ -245,7 +247,7 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'Target grid: ', trim(cf_x_trg)
          !!
-         IF ( (.NOT. l_reg_trg).and.(trim(cf_x_trg) == 'spheric') ) THEN
+         IF( (.NOT. l_reg_trg).and.(trim(cf_x_trg) == 'spheric') ) THEN
             PRINT *, 'Problem! If you set "cf_x_trg" to "spheric", then set "l_reg_trg" to ".TRUE."'
             PRINT *, ''
             STOP
@@ -268,13 +270,14 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'Shall we use DROWN on source fields: ', l_drown_src
          WRITE(6,*)''
-         IF ( l_drown_src ) THEN
+         IF( l_drown_src ) THEN
             WRITE(6,*)' => about DROWN action:'
             WRITE(6,*)'    -> continental penetration in # of pixels:', idrown%np_penetr
             WRITE(6,*)'    -> # of time to apply a smoothing on continents after DROWN:', idrown%nt_smooth
             WRITE(6,*)'    -> is the mask on the source field is changing with time :', idrown%l_msk_chg
             WRITE(6,*)''
          END IF
+
          WRITE(6,*)'East west periodicity of source grid: ', ewper_src
          WRITE(6,*)''
          WRITE(6,*)'Masking output file: ', lmout
@@ -283,13 +286,13 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'East west periodicity of target grid: ', ewper_trg
          WRITE(6,*)''
-         IF ( ismooth > 0 ) THEN
+         IF( ismooth > 0 ) THEN
             WRITE(6,*)'We are going to smooth field '//TRIM(cv_src)//' prior to interpolation!'
             WRITE(6,*)'     => # smoothing itterations:', ismooth
             WRITE(6,*)''
          END IF
 
-         IF (jplev == 0) THEN
+         IF(jplev == 0) THEN
             WRITE(6,*)''
             WRITE(6,*)' Going to perform 3D interpolation (jplev = 0): '
             WRITE(6,*)''
@@ -297,12 +300,24 @@ CONTAINS
             WRITE(6,*)' => name of source depth vector: ',         trim(cv_z_src)
             WRITE(6,*)' => file containing target depth vector: ', trim(cf_z_trg)
             WRITE(6,*)' => name of target depth vector: ',         trim(cv_z_trg)
-            PRINT *,   ' => Target depth vector in output file will be renamed to: ', trim(cv_z_out)
+            WRITE(6,*)' => Target depth vector in output file will be renamed to: ', TRIM(cv_z_out)
+            WRITE(6,*)''
+            !!
+            SELECT CASE (ixtrpl_bot)
+            CASE(0)
+               WRITE(6,*)' *** WARNING: NO downward extrapolation into the bed-rock ! (ixtrpl_bot==0) '
+            CASE(1)
+               WRITE(6,*)' *** USING downward extrapolation into the bed-rock ! => vertical persistence '
+            CASE(2)
+               WRITE(6,*)' *** USING downward extrapolation into the bed-rock ! => using DROWN algo'
+            CASE DEFAULT
+               WRITE(6,*)' ERROR: "ixtrpl_bot" can only be 0, 1, or 2 !'
+               STOP
+            END SELECT
             WRITE(6,*)''
          END IF
 
-
-         IF (lct) THEN
+         IF(lct) THEN
             WRITE(6,*)'Time is controled ! '
             WRITE(6,*)'Start at: ', t0
             WRITE(6,*)'Time step is: ', t_stp
@@ -320,7 +335,7 @@ CONTAINS
 
 
          !! Checking for some "non-sense"
-         IF ( (cmethod == 'akima').and.(.NOT. l_reg_src) ) THEN
+         IF( (cmethod == 'akima').and.(.NOT. l_reg_src) ) THEN
             PRINT *, 'The Akima method only supports regular source grids!'
             PRINT *, '--> If the grid of the source domain is irregular, '
             PRINT *, '    please change "cmethod" from akima to "bilin" into the namelist!'
@@ -339,7 +354,7 @@ CONTAINS
 
    SUBROUTINE REMINDER()
 
-      IF ( (TRIM(cmethod) == 'no_xy') .AND. .NOT.(l_itrp_3d) ) THEN
+      IF( (TRIM(cmethod) == 'no_xy') .AND. .NOT.(l_itrp_3d) ) THEN
          WRITE(6,*) ''
          WRITE(6,*) ' ERROR: it makes no sense to use "no_xy" as the interpolation method'
          WRITE(6,*) '        if it is not to perform a vertical interpolation (3D)!'
@@ -350,7 +365,7 @@ CONTAINS
          STOP
       END IF
 
-      IF ( (jplev == 0).AND.(nk_trg == 1) ) THEN
+      IF( (jplev == 0).AND.(nk_trg == 1) ) THEN
          WRITE(6,*) ''
          WRITE(6,*) ' ERROR: you want a 3D interpolation (jplev=0) but your target domain'
          WRITE(6,*) '        has less than 2 levels!!! /  nk_trg =', nk_trg
@@ -367,10 +382,10 @@ CONTAINS
       WRITE(6,'(" Output domain dimension         : ",i5,"  x",i5,"  x",i4)') &
          &        ni_trg, nj_trg, nk_trg
       WRITE(6,'(" Number of time steps to proceed : ",i5)') Ntr
-      IF (l_itrp_3d) THEN
+      IF(l_itrp_3d) THEN
          WRITE(6,*) 'Type of interpolation           :    3D'
       ELSE
-         IF (l3d) THEN
+         IF(l3d) THEN
             WRITE(6,'(" Type of interpolation           : 2D on level ",i3," of ",i4)') &
                jplev, nk_src
          ELSE

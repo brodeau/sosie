@@ -415,7 +415,7 @@ CONTAINS
 
       IF ( PRESENT(pmsk_trg) ) mask_ignore_trg(:,:) = pmsk_trg(:,:)
 
-      CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,   pmsk_ignr=mask_ignore_trg )
+      !lolo:CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,   pmsk_ignr=mask_ignore_trg )
 
 
       idb = 0 ! i-index of point to debug on target domain
