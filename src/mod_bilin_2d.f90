@@ -180,25 +180,21 @@ CONTAINS
          INQUIRE(FILE=cf_wght, EXIST=lefw )
          IF ( lefw ) THEN
             PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
-            PRINT *, 'Still! Insure that this is really the one you need!!!'
+            PRINT *, '   ... still! Make sure that this is really the one you need!!!'
             PRINT *, 'No need to build it, skipping routine MAPPING_BL !'
+            CALL RD_MAPPING_AB(cf_wght, bilin_map(i1:i2,:))
+            PRINT *, ' ==> mapping and weights read into ', TRIM(cf_wght); PRINT *, ''
          ELSE
             PRINT *, 'No mapping file found in the current directory!'
             PRINT *, 'We are going to build it: ', TRIM(cf_wght)
-            PRINT *, 'This is very time consuming, but only needs to be done once...'
-            PRINT *, 'Therefore, you should keep this file for any future interpolation'
+            PRINT *, 'This might be time consuming if your grids are big, but it only needs to be done once...'
+            PRINT *, 'Therefore, consider keeping this file for future interpolations...'
             PRINT *, 'using the same "source-target" setup'
             CALL MAPPING_BL(k_ew_per, X1w, Y1w, X2, Y2, cf_wght,  ithread=ithrd, mask_domain_trg=mask_ignore_trg)
          END IF
          PRINT *, ''; PRINT *, 'MAPPING_BL OK';
          PRINT*,'********************************************************';PRINT*,'';PRINT*,''
 
-         !! We read the mapping metrics in the netcdf file (regardless of
-         !! whether the mapping file was just created or not) => maybe not that
-         !! smart but ensure that we saved the right stuff in the netcdf mapping
-         !! file...
-         CALL RD_MAPPING_AB(cf_wght, bilin_map(i1:i2,:))
-         PRINT *, ''; PRINT *, 'Mapping and weights read into ', TRIM(cf_wght); PRINT *, ''
       END IF
 
       Z2(:,:) = rflg ! Flagging non-interpolated output points
@@ -419,7 +415,7 @@ CONTAINS
 
       ithrd = 0 ! no OpenMP !
       IF( PRESENT(ithread) ) ithrd = ithread
-      
+
       nxi = size(X1,1)
       nyi = size(X1,2)
 
