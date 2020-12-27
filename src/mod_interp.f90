@@ -86,15 +86,17 @@ CONTAINS
 
 
       CASE('bilin')
-
-
+         
+         IF( jt == 1 ) ALLOCATE ( bilin_map(ni_trg,nj_trg) )
+         
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
             !$          PRINT *, ' Running "bilin_2d" on OMP thread #', INT(jo,1)
-            !CALL bilin_2d( ewper_src, X1_x,        Y1_x,   REAL(data_src_x,4),     &
-            !   &                      X2(io1(jo):io2(jo),:), Y2(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-            !   &           (.NOT. lefw), jo,  mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
-            !lolo         CALL bilin_2d(ewper_src, lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg, cpat,  mask_domain_trg=IGNORE)
+
+            CALL bilin_2d( ewper_src, lon_src, lat_src, data_src, &
+               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
+               &           cpat,  jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
+            
          END DO
          !$OMP END PARALLEL DO
 

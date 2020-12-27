@@ -56,7 +56,8 @@ MODULE io_ezcdf
 
    !! List of public routines
    !! =======================
-   PUBLIC :: dims,      &
+   PUBLIC :: sherr,          &
+      &    dims,             &
       &    get_sf_ao,        &
       &    getvar_1d,        &
       &    getvar_2d,        &
@@ -71,8 +72,6 @@ MODULE io_ezcdf
       &    check_4_miss,     &
       &    get_var_info,     &
       &    dump_field,       &
-      &    p2d_mapping_ab,   &
-      &    rd_mapping_ab,    &
       &    phovmoller,       &
       &    get_time_unit_t0, &
       &    l_is_leap_year,   &
@@ -1640,125 +1639,6 @@ CONTAINS
    END SUBROUTINE DUMP_3D_FIELD
 
 
-
-
-
-
-
-
-
-
-
-   SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, id_pb,  d2np)
-      INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
-      CHARACTER(len=*),             INTENT(in) :: cf_out
-      REAL(8),    DIMENSION(:,:),   INTENT(in) :: xlon, xlat
-      INTEGER(4), DIMENSION(:,:,:), INTENT(in) :: imtrcs
-      REAL(8),    DIMENSION(:,:,:), INTENT(in) :: ralfbet
-      REAL(8),                      INTENT(in) :: vflag
-      INTEGER(2), DIMENSION(:,:),   INTENT(in) :: id_pb
-      REAL(4), DIMENSION(:,:), OPTIONAL, INTENT(in) :: d2np ! distance to nearest point (km)
-
-      INTEGER          :: lx, ly, il0, id_n2, id_n3, id_v1, id_v2, id_v3, id_dnp
-      LOGICAL          :: l_save_distance_to_np=.FALSE.
-      CHARACTER(len=80), PARAMETER :: crtn = 'P2D_MAPPING_AB'
-
-      IF ( PRESENT(d2np) ) l_save_distance_to_np=.TRUE.
-
-      lx = size(ralfbet,1) ; ly = size(ralfbet,2)
-
-      il0 = size(ralfbet,3)
-      IF ( il0 /= 2 ) THEN
-         PRINT *, 'ralfbet in P2D_MAPPING_AB of io_ezcdf.f90 has wrong shape:', lx, ly, il0
-         STOP
-      END IF
-
-      il0 = size(imtrcs,3)
-      IF ( il0 /= 3 ) THEN
-         PRINT *, 'imtrcs in P2D_MAPPING_AB of io_ezcdf.f90 has wrong shape:', lx, ly, il0
-         STOP
-      END IF
-
-
-      !!           CREATE NETCDF OUTPUT FILE :
-      !!           ---------------------------
-      CALL sherr( NF90_CREATE(cf_out, NF90_NETCDF4, id_f),  crtn,cf_out,cdum)
-
-      CALL sherr( NF90_DEF_DIM(id_f, 'x',  lx, id_x), crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_DIM(id_f, 'y',  ly, id_y), crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_DIM(id_f, 'n2',  2, id_n2), crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_DIM(id_f, 'n3',  3, id_n3), crtn,cf_out,cdum)
-
-      CALL sherr( NF90_DEF_VAR(id_f, 'lon',       NF90_DOUBLE, (/id_x,id_y/),       id_lo, deflate_level=ideflate), &
-         &        crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_VAR(id_f, 'lat',       NF90_DOUBLE, (/id_x,id_y/),       id_la, deflate_level=ideflate), &
-         &        crtn,cf_out,cdum)
-      !CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT64,    (/id_x,id_y,id_n3/), id_v1, deflate_level=ideflate), &
-      CALL sherr( NF90_DEF_VAR(id_f, 'metrics',   NF90_INT,    (/id_x,id_y,id_n3/), id_v1, deflate_level=ideflate), &
-         &        crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_VAR(id_f, 'alphabeta', NF90_DOUBLE, (/id_x,id_y,id_n2/), id_v2, deflate_level=ideflate), &
-         &        crtn,cf_out,cdum)
-      CALL sherr( NF90_DEF_VAR(id_f, 'iproblem',  NF90_INT,    (/id_x,id_y/),       id_v3, deflate_level=ideflate), &
-         &        crtn,cf_out,cdum)
-      IF ( l_save_distance_to_np ) THEN
-         CALL sherr( NF90_DEF_VAR(id_f, 'dist_np', NF90_REAL, (/id_x,id_y/), id_dnp, deflate_level=ideflate),  crtn,cf_out,cdum)
-         CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'long_name', 'Distance to nearest point'),  crtn,cf_out,cdum)
-         CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'units'    , 'km'                       ),  crtn,cf_out,cdum)
-      END IF
-
-      IF ( vflag /= 0. ) THEN
-         CALL sherr( NF90_PUT_ATT(id_f, id_v1,trim(cmv0),INT8(vflag)), crtn,cf_out,'metrics (masking)')
-         CALL sherr( NF90_PUT_ATT(id_f, id_v2,trim(cmv0),vflag),       crtn,cf_out,'alphabeta (masking)')
-      END IF
-
-      CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear interpolation with SOSIE.'), &
-         &      crtn,cf_out,cdum)
-      CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'About', trim(cabout)),  crtn,cf_out,cdum)
-
-      CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_out,cdum) ! END OF DEFINITION
-
-      CALL sherr( NF90_PUT_VAR(id_f, id_lo, xlon),     crtn,cf_out,'lon')
-      CALL sherr( NF90_PUT_VAR(id_f, id_la, xlat),     crtn,cf_out,'lat')
-
-      CALL sherr( NF90_PUT_VAR(id_f, id_v1,  imtrcs),  crtn,cf_out,'metrics')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v2, ralfbet),  crtn,cf_out,'alphabeta')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v3,   id_pb),  crtn,cf_out,'iproblem')
-
-      IF ( l_save_distance_to_np ) CALL sherr( NF90_PUT_VAR(id_f, id_dnp, d2np), crtn,cf_out,'lon' )
-
-      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_out,cdum)
-
-   END SUBROUTINE P2D_MAPPING_AB
-
-
-
-
-
-   SUBROUTINE  RD_MAPPING_AB(cf_in, imtrcs, ralfbet, id_pb)
-      CHARACTER(len=*),          INTENT(in)  :: cf_in
-      !INTEGER(8), DIMENSION(:,:,:), INTENT(out) :: imtrcs
-      INTEGER(4), DIMENSION(:,:,:), INTENT(out) :: imtrcs
-      REAL(8),    DIMENSION(:,:,:), INTENT(out) :: ralfbet
-      INTEGER(2), DIMENSION(:,:),   INTENT(out) :: id_pb
-
-      INTEGER :: id_f
-      INTEGER :: id_v1, id_v2, id_v3
-
-      CHARACTER(len=80), PARAMETER :: crtn = 'RD_MAPPING_AB'
-
-      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cdum)
-
-      CALL sherr( NF90_INQ_VARID(id_f, 'metrics',   id_v1),  crtn,cf_in,cdum)
-      CALL sherr( NF90_INQ_VARID(id_f, 'alphabeta', id_v2),  crtn,cf_in,cdum)
-      CALL sherr( NF90_INQ_VARID(id_f, 'iproblem',  id_v3),  crtn,cf_in,cdum)
-
-      CALL sherr( NF90_GET_VAR(id_f, id_v1, imtrcs),   crtn,cf_in,cdum)
-      CALL sherr( NF90_GET_VAR(id_f, id_v2, ralfbet),  crtn,cf_in,cdum)
-      CALL sherr( NF90_GET_VAR(id_f, id_v3, id_pb), crtn,cf_in,cdum)
-
-      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cdum)
-
-   END SUBROUTINE RD_MAPPING_AB
 
 
 

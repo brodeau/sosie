@@ -20,13 +20,6 @@ MODULE MOD_BILIN_2D
 
    PRIVATE
 
-   !! To be read into the netcdf file only at "l_first_call_interp_routine = .TRUE."
-   REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, PUBLIC, SAVE :: RAB       !: alpha, beta
-   INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, PUBLIC, SAVE :: IMETRICS  !: iP, jP, iqdrn at each point
-   INTEGER(2), DIMENSION(:,:),   ALLOCATABLE, PUBLIC, SAVE :: IPB       !: problem ID
-   REAL(4),    DIMENSION(:,:),   ALLOCATABLE, PUBLIC, SAVE :: DIST_NP   !: distance to nearest point
-
-   
    LOGICAL, PARAMETER :: ldebug  = .FALSE.
 
    REAL(8), PARAMETER :: repsilon = 1.E-9
@@ -42,7 +35,7 @@ MODULE MOD_BILIN_2D
 CONTAINS
 
 
-   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, l_comp_map, ithrd,  mask_domain_trg)
+   SUBROUTINE BILIN_2D(k_ew_per, X10, Y10, Z1, X20, Y20, Z2, cnpat, ithrd,  mask_domain_trg)
 
       !!================================================================
       !!
@@ -55,6 +48,9 @@ CONTAINS
       !!
       !!             X20   : 2D target longitude array (ni,nj) or (ni,1)
       !!             Y20   : 2D target latitude  array (ni,nj) or (nj,1)
+      !!
+      !!             cnpat : name of current configuration pattern
+      !!                      -> to recognise the mapping/weight file
       !!
       !! OUTPUT :
       !!             Z2    : field extrapolated from source to target grid
@@ -73,15 +69,15 @@ CONTAINS
       REAL(4), DIMENSION(:,:), INTENT(in)  :: Z1
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
-      LOGICAL,                 INTENT(in)  :: l_comp_map
-      INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
+      CHARACTER(len=*),        INTENT(in)  :: cnpat
+      INTEGER(1),              INTENT(in)  :: ithrd ! # OMP thread
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
       !! Local variables
       INTEGER :: nx1, ny1, ny1w, nx2, ny2
 
       REAL(8) :: alpha, beta, rmeanv, ymx
-      LOGICAL :: l_add_extra_j
+      LOGICAL :: l_add_extra_j, lefw
       INTEGER :: ji, jj, i1, i2
 
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
@@ -89,6 +85,7 @@ CONTAINS
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_trg !, msk_res
 
       CHARACTER(len=2)   :: ctype
+      CHARACTER(len=400) :: cf_wght
 
       ctype = TEST_XYZ(X10,Y10,Z1)
       nx1 = SIZE(Z1,1)
@@ -166,38 +163,63 @@ CONTAINS
          X2 = X20
          Y2 = Y20
       END IF
-      
+
       !! OMP i-decomposition:
       i1 = io1(ithrd)
       i2 = io2(ithrd)
-      
+
+      WRITE(cf_wght,'("sosie_mapping_",a,"_",i2.2,".nc")') TRIM(cnpat), ithrd
+
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-         
+
          l_last_y_row_missing = .FALSE.
-         
-         IF ( l_comp_map ) &
-            CALL MAPPING_BL( k_ew_per, X1w, Y1w, X2, Y2,               &
-            &                IMETRICS(i1:i2,:,:), RAB(i1:i2,:,:), IPB(i1:i2,:),  &
-            &                pmsk_trg=mask_ignore_trg, pdist_np=DIST_NP(i1:i2,:) )            
-         
+
+         !! Testing if the file containing weights exists or if we need to create it
+         !! (2nd option might be pretty time-consuming!!!
+         PRINT*,'';PRINT*,'********************************************************'
+         INQUIRE(FILE=cf_wght, EXIST=lefw )
+         IF ( lefw ) THEN
+            PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
+            PRINT *, 'Still! Insure that this is really the one you need!!!'
+            PRINT *, 'No need to build it, skipping routine MAPPING_BL !'
+         ELSE
+            PRINT *, 'No mapping file found in the current directory!'
+            PRINT *, 'We are going to build it: ', TRIM(cf_wght)
+            PRINT *, 'This is very time consuming, but only needs to be done once...'
+            PRINT *, 'Therefore, you should keep this file for any future interpolation'
+            PRINT *, 'using the same "source-target" setup'
+            CALL MAPPING_BL(k_ew_per, X1w, Y1w, X2, Y2, cf_wght,  ithread=ithrd, mask_domain_trg=mask_ignore_trg)
+         END IF
+         PRINT *, ''; PRINT *, 'MAPPING_BL OK';
+         PRINT*,'********************************************************';PRINT*,'';PRINT*,''
+
+         !! We read the mapping metrics in the netcdf file (regardless of
+         !! whether the mapping file was just created or not) => maybe not that
+         !! smart but ensure that we saved the right stuff in the netcdf mapping
+         !! file...
+         CALL RD_MAPPING_AB(cf_wght, bilin_map(i1:i2,:))
+         PRINT *, ''; PRINT *, 'Mapping and weights read into ', TRIM(cf_wght); PRINT *, ''
       END IF
-      
+
       Z2(:,:) = rflg ! Flagging non-interpolated output points
 
       mask_ignore_trg(:,:) = 1
-      WHERE ( (IMETRICS(i1:i2,:,1) < 1) ) mask_ignore_trg = 0
-      WHERE ( (IMETRICS(i1:i2,:,2) < 1) ) mask_ignore_trg = 0
+      WHERE ( bilin_map(i1:i2,:)%jip < 1 ) mask_ignore_trg = 0
+      WHERE ( bilin_map(i1:i2,:)%jjp < 1 ) mask_ignore_trg = 0
 
-      
-      IMETRICS(i1:i2,:,1:2) = MAX( IMETRICS(i1:i2,:,1:2) , 1 )  ! so no i or j <= 0
+      !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_trg = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
+
+
+      bilin_map(i1:i2,:)%jip = MAX( bilin_map(i1:i2,:)%jip , 1 )  ! so no i or j <= 0
+      bilin_map(i1:i2,:)%jjp = MAX( bilin_map(i1:i2,:)%jjp , 1 )  ! so no i or j <= 0
 
       DO jj=1, ny2
          DO ji=1, nx2
-            iP    = IMETRICS(ji+i1-1,jj,1)
-            jP    = IMETRICS(ji+i1-1,jj,2)
-            iqdrn = IMETRICS(ji+i1-1,jj,3)
-            alpha = RAB(ji+i1-1,jj,1)
-            beta  = RAB(ji+i1-1,jj,2)
+            iP    = bilin_map(ji+i1-1,jj)%jip
+            jP    = bilin_map(ji+i1-1,jj)%jjp
+            iqdrn = bilin_map(ji+i1-1,jj)%iqdrn
+            alpha = bilin_map(ji+i1-1,jj)%ralfa
+            beta  = bilin_map(ji+i1-1,jj)%rbeta
             !!
             IF ( (ABS(degE_to_degWE(X1w(iP,jP))-degE_to_degWE(X2(ji,jj)))<1.E-5) .AND. (ABS(Y1w(iP,jP)-Y2(ji,jj))<1.E-5) ) THEN
                !! COPY:
@@ -210,7 +232,7 @@ CONTAINS
          END DO
       END DO
 
-      Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*(-9995.) ! masking problem points as in mask_ignore_trg
+      Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*-9995. ! masking problem points as in mask_ignore_trg
 
 
       IF ( l_first_call_interp_routine(ithrd) ) THEN
@@ -242,9 +264,6 @@ CONTAINS
       l_first_call_interp_routine(ithrd) = .FALSE.
 
    END SUBROUTINE BILIN_2D
-
-
-
 
 
    FUNCTION INTERP_BL(k_ew_per, jiP, jjP, iqd, xa, xb, Z_in)
@@ -332,15 +351,14 @@ CONTAINS
       ELSE
          INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
-      
+
    END FUNCTION INTERP_BL
 
 
 
 
-   SUBROUTINE MAPPING_BL( k_ew_per, X1, Y1, lon_trg, lat_trg,  &
-      &                   pmtrcs, palbet, pidprb,              &
-      &                   pmsk_trg, pdist_np   )
+   SUBROUTINE MAPPING_BL(k_ew_per, X1, Y1, lon_trg, lat_trg, cf_w,  ithread, mask_domain_trg)
+
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
       !!
@@ -348,25 +366,21 @@ CONTAINS
       !!   *  Extract of CDFTOOLS cdfweight.f90 writen by Jean Marc Molines
       !!
       !! OPTIONAL:
-      !!      * pmsk_trg: ignore (dont't treat) regions of the target domain where pmsk_trg==0 !
+      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!----------------------------------------------------------------------------
-
+      !!
+      USE io_ezcdf
       USE mod_poly, ONLY : L_InPoly
-      
+      !!
       INTEGER,                 INTENT(in) :: k_ew_per
       REAL(8), DIMENSION(:,:), INTENT(in) :: X1, Y1
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_trg, lat_trg
+      CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
       !!
-      INTEGER(4), DIMENSION(:,:,:), INTENT(out) :: pmtrcs  !: iP, jP, iqdrn at each point
-      REAL(8),    DIMENSION(:,:,:), INTENT(out) :: palbet  !: alpha, beta
-      INTEGER(2), DIMENSION(:,:),   INTENT(out) :: pidprb  !: ID of issue encoutered if any
-      !!
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in)  :: pmsk_trg
-      REAL(4),    OPTIONAL, DIMENSION(:,:), INTENT(out) :: pdist_np
+      INTEGER(1), OPTIONAL,                 INTENT(in) :: ithread
+      INTEGER(1), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
-      
-
-      LOGICAL :: l_save_distance_to_np    !: for each point of target grid, shows the distance to the nearest point found...
+      LOGICAL, PARAMETER :: l_save_distance_to_np=.TRUE. !: for each point of target grid, shows the distance to the nearest point found...
       INTEGER :: &
          &     nxi, nyi, nxo, nyo, &
          &     ji, jj,   &
@@ -390,32 +404,46 @@ CONTAINS
          &    loni, lati    !: the 4 grid points around target (1-4) + the target (0)
 
       !! To save in the netcdf file:
-
+      TYPE(bln_map), DIMENSION(:,:),   ALLOCATABLE :: pbln_map  ! local array on thread !
+      !!
+      !REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
+      !INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iqdrn at each point
+      !INTEGER(2), DIMENSION(:,:),   ALLOCATABLE :: ID_problem
       INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_trg
-
+      REAL(4),    DIMENSION(:,:),   ALLOCATABLE :: distance_to_np
 
       REAL(8) :: alpha, beta
       LOGICAL :: l_ok, lagain
-      INTEGER :: icpt, idb, jdb
+      INTEGER :: icpt, idb, jdb, i1, i2
+      INTEGER(1) :: ithrd
 
-      l_save_distance_to_np = PRESENT(pdist_np)
+      ithrd = 0 ! no OpenMP !
+      IF( PRESENT(ithread) ) ithrd = ithread
       
       nxi = size(X1,1)
       nyi = size(X1,2)
 
       nxo = size(lon_trg,1)
-      nyo = size(lon_trg,2)
+      nyo = SIZE(lon_trg,2)
 
-      ALLOCATE ( mask_ignore_trg(nxo,nyo), i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
-      
-      palbet(:,:,:) = 0.0
-      pmtrcs(:,:,:) = 0
-      pidprb(:,:)   = 0
+      ALLOCATE ( pbln_map(nxo,nyo), mask_ignore_trg(nxo,nyo), i_nrst_in(nxo, nyo), j_nrst_in(nxo, nyo) )
+      pbln_map(:,:)%jip   = 0
+      pbln_map(:,:)%jjp   = 0
+      pbln_map(:,:)%iqdrn = 0
+      pbln_map(:,:)%ralfa  = 0.
+      pbln_map(:,:)%rbeta  = 0.
+      pbln_map(:,:)%ipb   = 0
+
+      !ZAB(:,:,:)      = 0.0
+      !MTRCS(:,:,:)    = 0
+      !ID_problem(:,:) = 0
       mask_ignore_trg(:,:) = 1
 
-      IF ( PRESENT(pmsk_trg) ) mask_ignore_trg(:,:) = pmsk_trg(:,:)
+      IF (l_save_distance_to_np) ALLOCATE ( distance_to_np(nxo, nyo) )
 
-      !lolo:CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,   pmsk_ignr=mask_ignore_trg )
+      IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
+
+      CALL FIND_NEAREST_POINT( lon_trg, lat_trg, X1, Y1, i_nrst_in, j_nrst_in,  ithread=ithrd, mask_domain_trg=mask_ignore_trg )
 
 
       idb = 0 ! i-index of point to debug on target domain
@@ -522,7 +550,7 @@ CONTAINS
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
-                     IF (l_save_distance_to_np) pdist_np(ji,jj) = DISTANCE(xP, lonP, yP, latP)
+                     IF (l_save_distance_to_np) distance_to_np(ji,jj) = DISTANCE(xP, lonP, yP, latP)
 
                      !! Problem is that sometimes, in the case of really twisted
                      !! meshes this method screws up, iqdrn is not what it
@@ -579,10 +607,10 @@ CONTAINS
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
-                     pidprb(ji,jj) = iproblem
+                     pbln_map(ji,jj)%ipb = iproblem
 
-                     !LOLO: mark this in pidprb => case when iqdrn = iqdrn0 ( IF ( icpt == 5 ) ) above!!!
-                     !lolo IF ( icpt == 5 ) pidprb(ji,jj) = 2 ! IDing the screw-up from above...
+                     !LOLO: mark this in ID_problem => case when iqdrn = iqdrn0 ( IF ( icpt == 5 ) ) above!!!
+                     !lolo IF ( icpt == 5 ) pbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
 
                      !IF (ldebug) THEN
                      IF ((ji==idb).AND.(jj==jdb)) THEN
@@ -603,9 +631,14 @@ CONTAINS
                      END IF
 
                      !! Saving into arrays to be written at the end:
-                     !pmtrcs(ji,jj,:) = (/ iP, jP, iqdrn /)
-                     pmtrcs(ji,jj,3) = iqdrn
-                     palbet(ji,jj,:)   = (/ alpha, beta /)
+                     pbln_map(ji,jj)%iqdrn = iqdrn
+                     pbln_map(ji,jj)%ralfa  = alpha
+                     pbln_map(ji,jj)%rbeta  = beta
+                     pbln_map(ji,jj)%ipb   = 0
+
+                     !MTRCS(ji,jj,:) = (/ iP, jP, iqdrn /)
+                     !MTRCS(ji,jj,3) = iqdrn
+                     !ZAB(ji,jj,:)   = (/ alpha, beta /)
 
                   END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi).OR.(jPp1 > nyi))
 
@@ -616,49 +649,68 @@ CONTAINS
       ENDDO
 
       !lolo: UGLY!
-      pmtrcs(:,:,1) = i_nrst_in(:,:)
-      pmtrcs(:,:,2) = j_nrst_in(:,:)
+      !MTRCS(:,:,1) = i_nrst_in(:,:)
+      !MTRCS(:,:,2) = j_nrst_in(:,:)
+      pbln_map(:,:)%jip = i_nrst_in(:,:)
+      pbln_map(:,:)%jjp = j_nrst_in(:,:)
+
 
       WHERE ( (i_nrst_in == INT(rflg)).OR.(j_nrst_in == INT(rflg)) )
-         palbet(:,:,1) = rflg
-         palbet(:,:,2) = rflg
+         pbln_map(:,:)%ralfa  = rflg
+         pbln_map(:,:)%rbeta  = rflg
+         !ZAB(:,:,1) = rflg
+         !ZAB(:,:,2) = rflg
       END WHERE
 
-      !! Awkwardly fixing problematic points but remembering them in pidprb
+      !! Awkwardly fixing problematic points but remembering them in ID_problem
 
       !! Negative values that are actually 0
-      WHERE ( ((palbet(:,:,1) < 0.).AND.(palbet(:,:,1) > -repsilon)) ) palbet(:,:,1) = 0.0
-      WHERE ( ((palbet(:,:,2) < 0.).AND.(palbet(:,:,2) > -repsilon)) ) palbet(:,:,2) = 0.0
+      WHERE ( ((pbln_map(:,:)%ralfa < 0.).AND.(pbln_map(:,:)%ralfa > -repsilon)) ) pbln_map(:,:)%ralfa = 0.0
+      WHERE ( ((pbln_map(:,:)%rbeta < 0.).AND.(pbln_map(:,:)%rbeta > -repsilon)) ) pbln_map(:,:)%rbeta = 0.0
 
-      WHERE ( (palbet(:,:,1) > rflg).AND.(palbet(:,:,1) < 0.) )
-         palbet(:,:,1) = 0.5
-         pidprb(:,:) = 4
+      WHERE ( (pbln_map(:,:)%ralfa > rflg).AND.(pbln_map(:,:)%ralfa < 0.) )
+         pbln_map(:,:)%ralfa = 0.5
+         pbln_map(:,:)%ipb = 4
       END WHERE
-      WHERE ( palbet(:,:,1) > 1. )
-         palbet(:,:,1) = 0.5
-         pidprb(:,:) =  5
+      WHERE ( pbln_map(:,:)%ralfa > 1. )
+         pbln_map(:,:)%ralfa = 0.5
+         pbln_map(:,:)%ipb =  5
       END WHERE
 
-      WHERE ( (palbet(:,:,2) > rflg).AND.(palbet(:,:,2) < 0.) )
-         palbet(:,:,2) = 0.5
-         pidprb(:,:) = 6
+      WHERE ( (pbln_map(:,:)%rbeta > rflg).AND.(pbln_map(:,:)%rbeta < 0.) )
+         pbln_map(:,:)%rbeta = 0.5
+         pbln_map(:,:)%ipb = 6
       END WHERE
-      WHERE ( palbet(:,:,2) > 1. )
-         palbet(:,:,2) = 0.5
-         pidprb(:,:) = 7
+      WHERE ( pbln_map(:,:)%rbeta > 1. )
+         pbln_map(:,:)%rbeta = 0.5
+         pbln_map(:,:)%ipb = 7
       END WHERE
 
       !! iquadran was not found:
-      WHERE ( pmtrcs(:,:,3) < 1 )
-         pmtrcs(:,:,3) = 1 ! maybe bad... but at least reported in pidprb ...
-         pidprb(:,:) = 1
+      WHERE ( pbln_map(:,:)%iqdrn < 1 )
+         pbln_map(:,:)%iqdrn = 1 ! maybe bad... but at least reported in ID_problem ...
+         pbln_map(:,:)%ipb = 1
       END WHERE
 
-      WHERE (mask_ignore_trg <= -1) pidprb = -1 ! Nearest point was not found by "FIND_NEAREST"
-      WHERE (mask_ignore_trg ==  0) pidprb = -2 ! No idea if possible... #lolo
-      WHERE (mask_ignore_trg <  -2) pidprb = -3 ! No idea if possible... #lolo
+      WHERE (mask_ignore_trg <= -1) pbln_map(:,:)%ipb = -1 ! Nearest point was not found by "FIND_NEAREST"
+      WHERE (mask_ignore_trg ==  0) pbln_map(:,:)%ipb = -2 ! No idea if possible... #lolo
+      WHERE (mask_ignore_trg <  -2) pbln_map(:,:)%ipb = -3 ! No idea if possible... #lolo
 
-      DEALLOCATE ( i_nrst_in, j_nrst_in,  mask_ignore_trg )
+
+      IF( ithrd > 0 ) THEN
+         !! OMP i-decomposition:
+         i1 = io1(ithrd)
+         i2 = io2(ithrd)
+         bilin_map(i1:i2,:) = pbln_map(:,:)
+      ELSE
+         bilin_map(:,:) = pbln_map(:,:)
+      END IF
+
+      !! Print metrics and weight into a netcdf file 'cf_w':
+      CALL P2D_MAPPING_AB(cf_w, lon_trg, lat_trg, pbln_map, rflg,  d2np=distance_to_np)
+
+      DEALLOCATE ( i_nrst_in, j_nrst_in, mask_ignore_trg, pbln_map )
+      IF ( l_save_distance_to_np ) DEALLOCATE ( distance_to_np )
 
    END SUBROUTINE MAPPING_BL
 
@@ -840,5 +892,138 @@ CONTAINS
       IF (heading < 0) heading = heading + 360._8
 
    END FUNCTION heading
+
+
+
+   !SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, id_pb,  d2np)
+
+   SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, pbln_map, vflag,  d2np)
+
+      USE netcdf
+      USE io_ezcdf, ONLY : sherr
+
+      INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
+      CHARACTER(len=*),             INTENT(in) :: cf_out
+      REAL(8),    DIMENSION(:,:),   INTENT(in) :: xlon, xlat
+      TYPE(bln_map), DIMENSION(:,:), INTENT(in) :: pbln_map
+      !INTEGER(4), DIMENSION(:,:,:), INTENT(in) :: imtrcs
+      !REAL(8),    DIMENSION(:,:,:), INTENT(in) :: ralfbet
+      REAL(8),                      INTENT(in) :: vflag
+      !INTEGER(2), DIMENSION(:,:),   INTENT(in) :: id_pb
+      REAL(4), DIMENSION(:,:), OPTIONAL, INTENT(in) :: d2np ! distance to nearest point (km)
+
+      CHARACTER(LEN=400), PARAMETER   ::     &
+         &    cabout = 'Created with SOSIE interpolation environement => https://github.com/brodeau/sosie/'
+
+      INTEGER          :: lx, ly, id_v1, id_v2, id_v3, id_v4, id_v5, id_v6, id_dnp
+      LOGICAL          :: l_save_distance_to_np=.FALSE.
+      CHARACTER(len=80), PARAMETER :: crtn = 'P2D_MAPPING_AB'
+
+      IF ( PRESENT(d2np) ) l_save_distance_to_np=.TRUE.
+
+      !lx = size(ralfbet,1) ; ly = size(ralfbet,2)
+
+      lx = size(pbln_map,1) ; ly = size(pbln_map,2)
+
+      !il0 = SIZE(ralfbet,3)
+      !IF ( il0 /= 2 ) THEN
+      !   PRINT *, 'ralfbet in P2D_MAPPING_AB of io_ezcdf.f90 has wrong shape:', lx, ly, il0
+      !   STOP
+      !END IF
+
+      !il0 = size(imtrcs,3)
+      !IF ( il0 /= 3 ) THEN
+      !   PRINT *, 'imtrcs in P2D_MAPPING_AB of io_ezcdf.f90 has wrong shape:', lx, ly, il0
+      !   STOP
+      !END IF
+
+
+      !!           CREATE NETCDF OUTPUT FILE :
+      !!           ---------------------------
+      CALL sherr( NF90_CREATE(cf_out, NF90_NETCDF4, id_f),  crtn,cf_out,'dummy')
+
+      CALL sherr( NF90_DEF_DIM(id_f, 'x',  lx, id_x), crtn,cf_out,'dummy')
+      CALL sherr( NF90_DEF_DIM(id_f, 'y',  ly, id_y), crtn,cf_out,'dummy')
+
+      CALL sherr( NF90_DEF_VAR(id_f, 'lon',  NF90_DOUBLE, (/id_x,id_y/), id_lo, deflate_level=5),  crtn,cf_out,'dummy')
+      CALL sherr( NF90_DEF_VAR(id_f, 'lat',  NF90_DOUBLE, (/id_x,id_y/), id_la, deflate_level=5),  crtn,cf_out,'dummy')
+      !!
+      CALL sherr( NF90_DEF_VAR(id_f, 'iP',   NF90_INT,    (/id_x,id_y/), id_v1, deflate_level=5),  crtn,cf_out,'dummy')
+      CALL sherr( NF90_DEF_VAR(id_f, 'jP',   NF90_INT,    (/id_x,id_y/), id_v2, deflate_level=5),  crtn,cf_out,'dummy')
+      CALL sherr( NF90_DEF_VAR(id_f, 'iqd',  NF90_INT,    (/id_x,id_y/), id_v3, deflate_level=5),  crtn,cf_out,'dummy')
+      CALL sherr( NF90_DEF_VAR(id_f, 'alfa', NF90_DOUBLE, (/id_x,id_y/), id_v4, deflate_level=5),  crtn,cf_out,'dummy')
+      CALL sherr( NF90_DEF_VAR(id_f, 'beta', NF90_DOUBLE, (/id_x,id_y/), id_v5, deflate_level=5),  crtn,cf_out,'dummy')
+      CALL sherr( NF90_DEF_VAR(id_f, 'ipb',  NF90_INT,    (/id_x,id_y/), id_v6, deflate_level=5),  crtn,cf_out,'dummy')
+
+      !LOLO
+
+      IF ( l_save_distance_to_np ) THEN
+         CALL sherr( NF90_DEF_VAR(id_f, 'dist_np', NF90_REAL, (/id_x,id_y/), id_dnp, deflate_level=5),  crtn,cf_out,'dummy')
+         CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'long_name', 'Distance to nearest point'),  crtn,cf_out,'dummy')
+         CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'units'    , 'km'                       ),  crtn,cf_out,'dummy')
+      END IF
+
+      !IF ( vflag /= 0. ) THEN
+      !   CALL sherr( NF90_PUT_ATT(id_f, id_v1,'_FillValue',INT8(vflag)), crtn,cf_out,'metrics (masking)')
+      !   CALL sherr( NF90_PUT_ATT(id_f, id_v2,'_FillValue',vflag),       crtn,cf_out,'alphabeta (masking)')
+      !END IF
+
+      CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear interpolation with SOSIE.'), &
+         &      crtn,cf_out,'dummy')
+      CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'About', trim(cabout)),  crtn,cf_out,'dummy')
+
+      CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_out,'dummy') ! END OF DEFINITION
+
+      CALL sherr( NF90_PUT_VAR(id_f, id_lo, xlon),     crtn,cf_out,'lon')
+      CALL sherr( NF90_PUT_VAR(id_f, id_la, xlat),     crtn,cf_out,'lat')
+
+      CALL sherr( NF90_PUT_VAR(id_f, id_v1, pbln_map(:,:)%jip   ),  crtn,cf_out,'iP')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v2, pbln_map(:,:)%jjp   ),  crtn,cf_out,'jP')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v3, pbln_map(:,:)%iqdrn ),  crtn,cf_out,'iqd')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v4, pbln_map(:,:)%ralfa ),  crtn,cf_out,'alfa')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v5, pbln_map(:,:)%rbeta ),  crtn,cf_out,'beta')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v6, pbln_map(:,:)%ipb   ),  crtn,cf_out,'ipb')
+
+      IF ( l_save_distance_to_np ) CALL sherr( NF90_PUT_VAR(id_f, id_dnp, d2np), crtn,cf_out,'lon' )
+
+      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_out,'dummy')
+
+   END SUBROUTINE P2D_MAPPING_AB
+
+
+   SUBROUTINE  RD_MAPPING_AB(cf_in, pbln_map)
+      !!
+      USE netcdf
+      USE io_ezcdf, ONLY : sherr
+      !!
+      CHARACTER(len=*),              INTENT(in)  :: cf_in
+      TYPE(bln_map), DIMENSION(:,:), INTENT(out) :: pbln_map
+      !!
+      INTEGER :: id_f
+      INTEGER :: id_v1, id_v2, id_v3, id_v4, id_v5, id_v6
+      !!
+      CHARACTER(len=80), PARAMETER :: crtn = 'RD_MAPPING_AB'
+      !!
+      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,'dummy' )
+      !!
+      CALL sherr( NF90_INQ_VARID(id_f, 'iP',   id_v1),  crtn,cf_in,'iP'   )
+      CALL sherr( NF90_INQ_VARID(id_f, 'jP',   id_v2),  crtn,cf_in,'jP'   )
+      CALL sherr( NF90_INQ_VARID(id_f, 'iqd',  id_v3),  crtn,cf_in,'iqd'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'alfa', id_v4),  crtn,cf_in,'alfa' )
+      CALL sherr( NF90_INQ_VARID(id_f, 'beta', id_v5),  crtn,cf_in,'beta' )
+      CALL sherr( NF90_INQ_VARID(id_f, 'ipb',  id_v6),  crtn,cf_in,'ipb'  )
+      !!
+      CALL sherr( NF90_GET_VAR(id_f, id_v1, pbln_map(:,:)%jip   ), crtn,cf_in,'iP'   )
+      CALL sherr( NF90_GET_VAR(id_f, id_v2, pbln_map(:,:)%jjp   ), crtn,cf_in,'jP'   )
+      CALL sherr( NF90_GET_VAR(id_f, id_v3, pbln_map(:,:)%iqdrn ), crtn,cf_in,'iqd'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v4, pbln_map(:,:)%ralfa ), crtn,cf_in,'alfa' )
+      CALL sherr( NF90_GET_VAR(id_f, id_v5, pbln_map(:,:)%rbeta ), crtn,cf_in,'beta' )
+      CALL sherr( NF90_GET_VAR(id_f, id_v6, pbln_map(:,:)%ipb   ), crtn,cf_in,'ipb'  )
+      !!
+      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,'dummy' )
+      !!
+   END SUBROUTINE RD_MAPPING_AB
+
+
 
 END MODULE MOD_BILIN_2D

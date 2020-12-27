@@ -7,18 +7,18 @@ MODULE MOD_MANIP
    USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
 
    IMPLICIT NONE
-   
+
    PRIVATE
 
 
    INTERFACE flip_ud
       MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i1
    END INTERFACE flip_ud
-   
+
    INTERFACE to_degE
       MODULE PROCEDURE to_degE_scal, to_degE_1d, to_degE_2d
    END INTERFACE to_degE
-   
+
    INTERFACE degE_to_degWE
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
    END INTERFACE degE_to_degWE
@@ -35,7 +35,7 @@ MODULE MOD_MANIP
       MODULE PROCEDURE long_reorg_3d_i1
    END INTERFACE long_reorg_3d
 
-   
+
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
@@ -158,17 +158,17 @@ CONTAINS
       END IF !IF (k_ew > -1)
 
 
-      
+
       !! ******************
       !! Southern Extension
       !! ******************
       XP4(:, 2) = XP4(:,4) - (XP4(:,5) - XP4(:,3))
       XP4(:, 1) = XP4(:,3) - (XP4(:,5) - XP4(:,3))
 
-      !! ******************      
+      !! ******************
       !! Northern Extension
       !! ******************
-      
+
       SELECT CASE( iorca )
          !
       CASE (4)
@@ -767,7 +767,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  mask_domain_trg)
+   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  ithread, mask_domain_trg)
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -785,15 +785,20 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIp, JJp  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
+      INTEGER(1), OPTIONAL,                 INTENT(in)    :: ithread
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: mask_domain_trg
 
       INTEGER :: jj, nx_s, ny_s, nx_t, ny_t, j_strt_t, j_stop_t, jlat_icr
+      INTEGER(1) :: ithrd
       REAL(8) :: y_max_s, y_min_s, rmin_dlat_dj, rtmp
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_t
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_t
       LOGICAL :: l_is_reg_s, l_is_reg_t
-
+      
+      ithrd = 0 ! no OpenMP !
+      IF( PRESENT(ithread) ) ithrd = ithread
+      
       nx_s  = SIZE(Xsrc,1)
       ny_s  = SIZE(Xsrc,2)
       nx_t = SIZE(Xtrg,1)
@@ -886,11 +891,11 @@ CONTAINS
       IF ( l_is_reg_s .AND. (.NOT. l_force_use_of_twisted) ) THEN
          PRINT *, '                 => going for simple FIND_NEAREST algorithm !'; PRINT *, ''
          CALL FIND_NEAREST_EASY(    Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_t, &
-            &                       j_strt_t, j_stop_t, jlat_icr )
+            &                       j_strt_t, j_stop_t, jlat_icr, ithrd )
       ELSE
          PRINT *, '                  => going for advanced FIND_NEAREST algorithm !'; PRINT *, ''
          CALL FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_t, &
-            &                       j_strt_t, j_stop_t, jlat_icr )
+            &                       j_strt_t, j_stop_t, jlat_icr, ithrd )
       END IF
       PRINT *, ''
 
@@ -901,8 +906,12 @@ CONTAINS
 
 
 
+
+
+
+   
    SUBROUTINE FIND_NEAREST_EASY( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_t, &
-      &                          j_strt_t, j_stop_t, jlat_icr )
+      &                          j_strt_t, j_stop_t, jlat_icr, ithrd )
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_EASY  ***
       !!
@@ -921,6 +930,7 @@ CONTAINS
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
       INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_t
       INTEGER,                    INTENT(in)  :: j_strt_t, j_stop_t, jlat_icr
+      INTEGER(1),                 INTENT(in)  :: ithrd
 
       !! Important parameters:
       INTEGER, PARAMETER :: nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
@@ -956,7 +966,8 @@ CONTAINS
 
             IF ( mask_t(ji_t,jj_t) == 1 ) THEN
 
-               IF ( (ji_t==1) .AND. MOD(jj_t,10)==0 ) PRINT *, ' *** Treated j-point of target domain =', jj_t !REAL(rlat,4)
+               IF ( (ji_t==1) .AND. MOD(jj_t,10)==0 ) &
+                  &  WRITE(6,'(" *** Treated j-point of target domain = ",i4.4," (thread # ",i2.2,")")') jj_t, ithrd
 
                rlon = Xtrg(ji_t,jj_t)
                rlat = Ytrg(ji_t,jj_t)
@@ -1008,7 +1019,7 @@ CONTAINS
 
 
    SUBROUTINE FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_t, &
-      &                             j_strt_t, j_stop_t, jlat_icr )
+      &                             j_strt_t, j_stop_t, jlat_icr, ithrd )
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -1027,6 +1038,7 @@ CONTAINS
       INTEGER(4), DIMENSION(:,:), INTENT(out)   :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
       INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask_t
       INTEGER, INTENT(in)                       :: j_strt_t, j_stop_t, jlat_icr
+      INTEGER(1)                , INTENT(in)    :: ithrd
       !!
       !! Important parameters:
       INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
@@ -1110,11 +1122,11 @@ CONTAINS
       !PRINT *, 'LOLO y_max_bnd #1 => ', y_max_bnd ; PRINT *, ' y_min_bnd #1 => ', y_min_bnd
       y_max_bnd = MIN( REAL(INT(y_max_bnd+2.),8) ,  90.)
       y_min_bnd = MAX( REAL(INT(y_min_bnd-2.),8) , -90.)
-      !PRINT *, 'LOLO y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd      
+      !PRINT *, 'LOLO y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd
       !! Multiple of 0.5:
       y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
       y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
-      !PRINT *, 'LOLO y_max_bnd #3 => ', y_max_bnd ; PRINT *, ' y_min_bnd #3 => ', y_min_bnd      
+      !PRINT *, 'LOLO y_max_bnd #3 => ', y_max_bnd ; PRINT *, ' y_min_bnd #3 => ', y_min_bnd
 
       !lolo: WHY????
       y_max_bnd = MAX( y_max_bnd , y_max_bnd0)
@@ -1579,21 +1591,21 @@ CONTAINS
       !! From any longitude to something between 0 and 360 !
       REAL(8), INTENT(in) :: rlong
       REAL(8)             :: to_degE_scal
-      to_degE_scal = MOD( rlong + 360._8 , 360._8 )     
+      to_degE_scal = MOD( rlong + 360._8 , 360._8 )
    END FUNCTION to_degE_scal
    !!
    FUNCTION to_degE_1d( vlong )
       !! From any longitude to something between 0 and 360 !
       REAL(8), DIMENSION(:), INTENT(in) :: vlong
       REAL(8), DIMENSION(SIZE(vlong,1)) :: to_degE_1d
-      to_degE_1d(:) = MOD( vlong(:) + 360._8 , 360._8 )     
+      to_degE_1d(:) = MOD( vlong(:) + 360._8 , 360._8 )
    END FUNCTION to_degE_1d
    !!
    FUNCTION to_degE_2d( xlong )
       !! From any longitude to something between 0 and 360 !
       REAL(8), DIMENSION(:,:), INTENT(in) :: xlong
       REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: to_degE_2d
-      to_degE_2d(:,:) = MOD( xlong(:,:) + 360._8 , 360._8 )     
+      to_degE_2d(:,:) = MOD( xlong(:,:) + 360._8 , 360._8 )
    END FUNCTION to_degE_2d
 
 

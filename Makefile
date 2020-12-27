@@ -173,7 +173,7 @@ obj/mod_akima_2d.o: src/mod_akima_2d.f90
 	$(FC) $(FF) -c src/mod_akima_2d.f90 -o obj/mod_akima_2d.o
 
 obj/mod_bilin_2d.o: src/mod_bilin_2d.f90 obj/io_ezcdf.o obj/mod_conf.o obj/mod_manip.o obj/mod_poly.o
-	$(FC) $(FF) -c src/mod_bilin_2d.f90 -o obj/mod_bilin_2d.o
+	$(FC) $(FF) -I$(NCDF_INC) -c src/mod_bilin_2d.f90 -o obj/mod_bilin_2d.o
 
 obj/mod_akima_1d.o: src/mod_akima_1d.f90
 	$(FC) $(FF) -c src/mod_akima_1d.f90 -o obj/mod_akima_1d.o
