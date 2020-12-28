@@ -5,7 +5,9 @@ MODULE MOD_MANIP
    !! Author: L. Brodeau
 
    USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
+   USE mod_conf, ONLY: rd2rad, rradE
 
+   
    IMPLICIT NONE
 
    PRIVATE
@@ -50,13 +52,8 @@ MODULE MOD_MANIP
    !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .TRUE.
    LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .FALSE.
 
-   LOGICAL  :: lfirst_dist = .TRUE.
-
-
 
 CONTAINS
-
-
 
 
    SUBROUTINE FILL_EXTRA_BANDS(k_ew, XX, YY, XF, XP4, YP4, FP4,  is_orca_grid)
@@ -767,7 +764,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  ithread, mask_domain_trg)
+   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  ithread, pmsk_dom_trg)
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -780,16 +777,15 @@ CONTAINS
       !!
       !!
       !! OPTIONAL:
-      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
+      !!      * pmsk_dom_trg: ignore (dont't treat) regions of the target domain where pmsk_dom_trg==0 !
       !!---------------------------------------------------------------
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIp, JJp  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), OPTIONAL,                 INTENT(in)    :: ithread
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: mask_domain_trg
+      INTEGER,    OPTIONAL,       INTENT(in)  :: ithread
+      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: pmsk_dom_trg
 
-      INTEGER :: jj, nx_s, ny_s, nx_t, ny_t, j_strt_t, j_stop_t, jlat_icr
-      INTEGER(1) :: ithrd
+      INTEGER :: ithrd, jj, nx_s, ny_s, nx_t, ny_t, j_strt_t, j_stop_t, jlat_icr
       REAL(8) :: y_max_s, y_min_s, rmin_dlat_dj, rtmp
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_t
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
@@ -840,7 +836,7 @@ CONTAINS
 
       ALLOCATE ( mask_ignore_t(nx_t,ny_t) , i1dum(nx_t) )
       mask_ignore_t(:,:) = 1
-      IF ( PRESENT( mask_domain_trg ) ) mask_ignore_t(:,:) = mask_domain_trg(:,:)
+      IF ( PRESENT( pmsk_dom_trg ) ) mask_ignore_t(:,:) = pmsk_dom_trg(:,:)
 
       y_min_s  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
       y_max_s  = MAXVAL(Ysrc)
@@ -899,7 +895,7 @@ CONTAINS
       END IF
       PRINT *, ''
 
-      IF ( PRESENT( mask_domain_trg ) ) mask_domain_trg(:,:) = mask_ignore_t(:,:)
+      IF ( PRESENT( pmsk_dom_trg ) ) pmsk_dom_trg(:,:) = mask_ignore_t(:,:)
       DEALLOCATE ( mask_ignore_t )
 
    END SUBROUTINE FIND_NEAREST_POINT
@@ -929,8 +925,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
       INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_t
-      INTEGER,                    INTENT(in)  :: j_strt_t, j_stop_t, jlat_icr
-      INTEGER(1),                 INTENT(in)  :: ithrd
+      INTEGER,                    INTENT(in)  :: ithrd, j_strt_t, j_stop_t, jlat_icr
 
       !! Important parameters:
       INTEGER, PARAMETER :: nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
@@ -1037,8 +1032,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out)   :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
       INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask_t
-      INTEGER, INTENT(in)                       :: j_strt_t, j_stop_t, jlat_icr
-      INTEGER(1)                , INTENT(in)    :: ithrd
+      INTEGER, INTENT(in)                       :: j_strt_t, j_stop_t, jlat_icr, ithrd
       !!
       !! Important parameters:
       INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
@@ -1086,7 +1080,7 @@ CONTAINS
          STOP
       END IF
       !! ---------------------------------------------------------------------------------------
-      PRINT *, '                        => going for advanced algorithm !'
+      PRINT *, '       => going for advanced algorithm ! (thread #', ithrd, ')'
 
       JIpos(:,:) = -1
       JJpos(:,:) = -1
@@ -1348,23 +1342,12 @@ CONTAINS
       REAL(8),SAVE :: zux, zuy, zuz
       REAL(8) :: zvx, zvy, zvz
 
-      REAL(8), SAVE :: prevlat=-1000., prevlon=-1000, zr, zpi, zconv
-
-
-      !! Initialise some values at first call
-      IF ( lfirst_dist ) THEN
-         lfirst_dist = .FALSE.
-         ! constants
-         zpi = ACOS(-1._8)
-         zconv = zpi/180.  ! for degree to radian conversion
-         ! Earth radius
-         zr = (6378.137 + 6356.7523)/2.0 ! km
-      ENDIF
+      REAL(8), SAVE :: prevlat=-1000., prevlon=-1000
 
       !! Compute these term only if they differ from previous call
       IF ( plata /= prevlat .OR. plona /= prevlon) THEN
-         zlatar=plata*zconv
-         zlonar=plona*zconv
+         zlatar=plata*rd2rad
+         zlonar=plona*rd2rad
          zux=COS(zlonar)*COS(zlatar)
          zuy=SIN(zlonar)*COS(zlatar)
          zuz=SIN(zlatar)
@@ -1372,8 +1355,8 @@ CONTAINS
          prevlon=plona
       ENDIF
 
-      zlatbr=platb*zconv
-      zlonbr=plonb*zconv
+      zlatbr=platb*rd2rad
+      zlonbr=plonb*rd2rad
       zvx=COS(zlonbr)*COS(zlatbr)
       zvy=SIN(zlonbr)*COS(zlatbr)
       zvz=SIN(zlatbr)
@@ -1381,9 +1364,10 @@ CONTAINS
       zpds=zux*zvx+zuy*zvy+zuz*zvz
 
       IF (zpds >= 1.) THEN
-         distance=0.
+         distance = 0.
       ELSE
-         distance=zr*ACOS(zpds)
+         PRINT *, 'rradE, zpds =', rradE, zpds
+         distance = rradE*ACOS(zpds)
       ENDIF
 
    END FUNCTION DISTANCE
@@ -1417,20 +1401,14 @@ CONTAINS
       REAL(8) :: zlatar, zlatbr, zlonar, zlonbr
       REAL(8) :: zpds
       REAL(8) :: zux, zuy, zuz
-      REAL(8) :: zr, zconv, zvx, zvy, zvz
+      REAL(8) :: zvx, zvy, zvz
 
       nx = SIZE(Xlonb,1)
       ny = SIZE(Xlonb,2)
 
-      !! Initialise some values at first call
-      ! constants
-      zconv = ACOS(-1._8)/180._8  ! for degree to radian conversion
-      ! Earth radius
-      zr = (6378.137 + 6356.7523)/2.0 ! km
-
       !! Compute these term only if they differ from previous call
-      zlatar=plata*zconv
-      zlonar=plona*zconv
+      zlatar=plata*rd2rad
+      zlonar=plona*rd2rad
       zux=COS(zlonar)*COS(zlatar)
       zuy=SIN(zlonar)*COS(zlatar)
       zuz=SIN(zlatar)
@@ -1440,17 +1418,17 @@ CONTAINS
       DO jj=1,ny
          DO ji=1,nx
 
-            zlatbr=Xlatb(ji,jj)*zconv
-            zlonbr=Xlonb(ji,jj)*zconv
+            zlatbr=Xlatb(ji,jj)*rd2rad
+            zlonbr=Xlonb(ji,jj)*rd2rad
             zvx=COS(zlonbr)*COS(zlatbr)
             zvy=SIN(zlonbr)*COS(zlatbr)
             zvz=SIN(zlatbr)
 
             zpds = zux*zvx + zuy*zvy + zuz*zvz
 
-            !IF ( zpds < 1.) distance_2d(ji,jj) = zr*ACOS(zpds)
+            !IF ( zpds < 1.) distance_2d(ji,jj) = rradE*ACOS(zpds)
 
-            distance_2d(ji,jj) = zr*ACOS(MIN(zpds,1.))
+            distance_2d(ji,jj) = rradE*ACOS(MIN(zpds,1.))
 
          END DO
       END DO

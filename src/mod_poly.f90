@@ -31,12 +31,6 @@ MODULE MOD_POLY
 
    INTEGER(4), PUBLIC , PARAMETER :: jpvert = 4  !: Number of vertex per polygon
 
-   REAL(4), DIMENSION(jpvert+1) :: vertx, verty  ! 2dim. array of polygons and their X,Y  coordinates
-   REAL(4)                      :: rmaxx, rmaxy  ! max x,y of polygon coordinates
-   REAL(4)                      :: rminx, rminy  ! min x,y of polygon coordinates
-   REAL(8), DIMENSION(jpvert)   :: slope         ! slope of the sides of polygone
-   REAL(8), DIMENSION(jpvert)   :: ra, rb, rc    ! equation of side of polygon
-
    !PUBLIC  :: ReadPoly
    PUBLIC  :: L_InPoly
    PRIVATE :: PointSlope
@@ -51,7 +45,7 @@ MODULE MOD_POLY
 
 CONTAINS
 
-   FUNCTION L_InPoly ( vplon, vplat, pxpoint, pypoint )
+   FUNCTION L_InPoly ( plon, plat, pxpoint, pypoint )
       !!---------------------------------------------------------------------
       !!                  ***  ROUTINE InPoly  ***
       !!
@@ -63,35 +57,45 @@ CONTAINS
       !!
       !! References : Trigrid
       !!----------------------------------------------------------------------
-      REAL(8), DIMENSION(4), INTENT(in) :: vplon, vplat
+      REAL(8), DIMENSION(4), INTENT(in) :: plon, plat
       REAL(8),               INTENT(in) :: pxpoint, pypoint  ! Position to check
-      LOGICAL      :: L_InPoly
       !!
+      REAL(4), DIMENSION(jpvert+1) :: vertx, verty  ! 2dim. array of polygons and their X,Y  coordinates
+      REAL(4)                      :: rmaxx, rmaxy  ! max x,y of polygon coordinates
+      REAL(4)                      :: rminx, rminy  ! min x,y of polygon coordinates
+      REAL(8), DIMENSION(jpvert)   :: slope         ! slope of the sides of polygone
+      REAL(8), DIMENSION(jpvert)   :: ra, rb, rc    ! equation of side of polygon
+      !!      
+      LOGICAL      :: L_InPoly
       INTEGER(4) :: ji, jj
       INTEGER(4) :: icross, inumvert
       REAL(8)    :: zxpt, zx, zy, zevenodd
       !!----------------------------------------------------------------------
-      rmaxx = MAXVAL(vplon)
-      rmaxy = MAXVAL(vplat)
-      rminx = MINVAL(vplon)
-      rminy = MINVAL(vplat)
+      rmaxx = MAXVAL(plon)
+      rmaxy = MAXVAL(plat)
+      rminx = MINVAL(plon)
+      rminy = MINVAL(plat)
 
-      IF ( (rminx < 0.).OR.(pxpoint < 0.) ) STOP 'ERROR (L_InPoly of mod_poly.f90): we only expect positive longitudes!'
+      IF ( (rminx < 0.).OR.(pxpoint < 0.) ) THEN
+         PRINT *, 'ERROR (L_InPoly of mod_poly.f90): we only expect positive longitudes!'
+         PRINT *, '  => min(lon), pxpoint =', rminx, pxpoint
+         STOP
+      END IF
 
       IF ( (rminx < 10.).AND.(rmaxx > 350.) ) THEN
          !! Need to reorganize in frame -180. -- +180.:
          zx  =           SIGN(1.d0,180.-pxpoint )*MIN(pxpoint ,ABS(pxpoint -360.))
-         vertx(1:4) = REAL( SIGN(1.d0,180.-vplon   )*MIN(vplon ,  ABS(  vplon -360.)) , 4 )
+         vertx(1:4) = REAL( SIGN(1.d0,180.-plon   )*MIN(plon ,  ABS(  plon -360.)) , 4 )
          rmaxx = MAXVAL(vertx(1:4))
          rminx = MINVAL(vertx(1:4))
       ELSE
          zx         = pxpoint
-         vertx(1:4) = REAL( vplon , 4)
+         vertx(1:4) = REAL( plon , 4)
       END IF
 
 
       zy         = pypoint
-      verty(1:4) = REAL( vplat(:) , 4 )
+      verty(1:4) = REAL( plat(:) , 4 )
 
 
 

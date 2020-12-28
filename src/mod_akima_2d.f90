@@ -73,8 +73,7 @@ CONTAINS
 
 
       !! Input/Output arguments
-      INTEGER,                   INTENT(in)    :: k_ew_per
-      INTEGER,                   INTENT(in)    :: ithrd
+      INTEGER,                   INTENT(in)    :: k_ew_per, ithrd
       REAL(8), DIMENSION(:,:),   INTENT(in)    :: X10, Y10
       REAL(4), DIMENSION(:,:),   INTENT(in)    :: Z1
       REAL(8), DIMENSION(:,:),   INTENT(in)    :: X20, Y20
@@ -184,7 +183,7 @@ CONTAINS
 
       !! Doing the mapping once for all and saving into ixy_pos:
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-         PRINT *, '  ==> "find_nearest_akima" to fill "imapping": thread #', INT1(ithrd)
+         PRINT *, '  ==> "find_nearest_akima" to fill "imapping": thread #', ithrd
          imapping(:,:,:) = 0
          CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, imapping )
       END IF
@@ -227,7 +226,7 @@ CONTAINS
       IF ( l_always_first_call(ithrd) ) THEN
          !PRINT *, 'LOLO: DEallocating ixy_pos !!!'; PRINT *, ''
          !DEALLOCATE ( ixy_pos )
-         STOP'FIX ME imapping with l_always_first_call !!! (mod_akima_2d.f90) !!!'
+         PRINT *, 'FIX ME imapping with l_always_first_call !!! (mod_akima_2d.f90) !!!'; STOP
          imapping(:,:,:) = 0
          l_first_call_interp_routine(ithrd) = .TRUE.
       END IF

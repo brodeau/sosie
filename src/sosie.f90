@@ -54,7 +54,7 @@ PROGRAM SOSIE
       &   idf_o, idf_i, idv_o, idv_i, &  !: netcdf ID for source/target file
       &   idf_id, idv_id  !: drowned source field...
 
-   INTEGER :: jo, noinc, ileft, ipl
+   INTEGER :: noinc, ileft, ipl, jo
 
    REAL(4) :: rfct_miss=1.
 

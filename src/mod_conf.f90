@@ -8,13 +8,18 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
-   INTEGER, SAVE      :: Nthrd_fix, Nthrd         !: number of OpenMP threads
+   INTEGER, SAVE   :: Nthrd_fix, Nthrd         !: number of OpenMP threads
 
    INTEGER, DIMENSION(:), ALLOCATABLE :: io1, io2, i_seg_s
 
    LOGICAL, DIMENSION(:), ALLOCATABLE, SAVE :: l_first_call_interp_routine
    LOGICAL, DIMENSION(:), ALLOCATABLE, SAVE :: l_always_first_call
 
+   !! Some constants:
+   REAL(8), PARAMETER :: rpi0   = ACOS(-1._8), &
+      &                  rd2rad = rpi0/180._8, & ! for degree to radian conversion
+      &                  rradE  = (6378.137_8 + 6356.7523_8)/2._8 ! Earth radius km
+   
    !! Mapping for Akima:
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: ixy_pos !: table storing source/target grids mapping for akima method
 
@@ -27,9 +32,9 @@ MODULE MOD_CONF
       INTEGER(1)       :: iqdrn
       INTEGER(2)       :: ipb ! ID of problem if any...
    END TYPE bln_map
-   
+
    TYPE(bln_map), DIMENSION(:,:),   ALLOCATABLE, SAVE :: bilin_map
-      
+
    !REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
    !INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iqdrn at each point
    !INTEGER(2), DIMENSION(:,:),   ALLOCATABLE, SAVE :: IPB       !: problem ID

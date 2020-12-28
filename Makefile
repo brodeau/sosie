@@ -88,7 +88,7 @@ test: bin/test_stuffs.x
 
 bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
-	$(FC) $(FF) src/sosie.f90 -o bin/sosie3.x $(LIB)
+	$(FC) $(FF_SAFE) src/sosie.f90 -o bin/sosie3.x $(LIB)
 
 bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/corr_vect.f90 -o bin/corr_vect.x $(LIB)
@@ -142,7 +142,7 @@ $(LIB_SOSIE): $(OBJ)
 obj/io_ezcdf.o: src/io_ezcdf.f90
 	@mkdir -p obj
 	@mkdir -p mod
-	$(FC) $(FF) -I$(NCDF_INC) -c src/io_ezcdf.f90 -o obj/io_ezcdf.o
+	$(FC) $(FF_SAFE) -I$(NCDF_INC) -c src/io_ezcdf.f90 -o obj/io_ezcdf.o
 
 obj/mod_conf.o: src/mod_conf.f90 obj/io_ezcdf.o
 	@mkdir -p obj

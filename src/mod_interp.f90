@@ -28,8 +28,10 @@ CONTAINS
 
       INTEGER, INTENT(in) :: jt ! current time step
 
-      INTEGER :: i1,j1, i2,j2, jo
-      CHARACTER(len=128) ctmp !debug
+      INTEGER    :: i1,j1, i2,j2, jo
+      CHARACTER(len=400) :: cf_wght
+      LOGICAL :: lefw, l_skip_blm
+      !CHARACTER(len=128) ctmp !debug
 
       !! lon-aranging or lat-flipping field
       IF( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -59,26 +61,26 @@ CONTAINS
          ELSE
             CALL SMOOTHER(ewper_src, data_src,  nb_smooth=ismooth, msk=mask_src(:,:,1), l_exclude_mask_points=.TRUE.)
          END IF
-      END IF      
+      END IF
 
       !! Call interpolation procedure :
       !! ------------------------------
 
       SELECT CASE(cmethod)
-         
+
       CASE('akima')
 
          IF( jt == 1 ) ALLOCATE ( ixy_pos(ni_trg, nj_trg, 2) )
-         
+
          !$       PRINT *, ''
-         
+
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
             !$          PRINT *, ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
             CALL akima_2d( ewper_src, jo, lon_src, lat_src, data_src, &
                &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
                &           ixy_pos(io1(jo):io2(jo),:,:) )
-            
+
          END DO
          !$OMP END PARALLEL DO
 
@@ -86,19 +88,51 @@ CONTAINS
 
 
       CASE('bilin')
-         
-         IF( jt == 1 ) ALLOCATE ( bilin_map(ni_trg,nj_trg) )
-         
+
+         IF( jt == 1 ) THEN
+            !! LOLO: should ultimately go into a 'bilin_init()' function inside mod_bilin_2d.f90 ...
+            ALLOCATE ( bilin_map(ni_trg,nj_trg) )
+            !!
+            PRINT*,''
+            PRINT*,'********************************************************'
+            WRITE(cf_wght,'("sosie_mapping_",a,".nc")') TRIM(cpat)
+            INQUIRE(FILE=cf_wght, EXIST=lefw )
+            IF ( lefw ) THEN
+               PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
+               PRINT *, '   ... still! Make sure that this is really the one you need!!!'
+               CALL RD_MAPPING_AB(cf_wght, bilin_map(:,:))
+               PRINT *, ' ==> mapping and weights read into ', TRIM(cf_wght)
+               PRINT *, '  ==> will skip routine MAPPING_BL !'
+               PRINT *, ''
+               l_skip_blm = .TRUE.
+            ELSE
+               PRINT *, 'No mapping file found in the current directory!'
+               PRINT *, 'We are going to build it: ', TRIM(cf_wght)
+               PRINT *, 'This might be time consuming if your grids are big, but it only needs to be done once...'
+               PRINT *, 'Therefore, consider keeping this file for future interpolations...'
+               PRINT *, 'using the same "source-target" setup'
+               l_skip_blm = .FALSE.
+            END IF
+            PRINT*,'********************************************************'
+            PRINT *, ''
+         END IF !IF( jt == 1 )
+
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
             !$          PRINT *, ' Running "bilin_2d" on OMP thread #', INT(jo,1)
 
             CALL bilin_2d( ewper_src, lon_src, lat_src, data_src, &
                &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-               &           cpat,  jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
-            
+               &           jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:), lskip_mapping=l_skip_blm )
+
          END DO
          !$OMP END PARALLEL DO
+
+         !! Saving mapping if relevant:
+         IF( (jt == 1).AND.(.NOT. l_skip_blm) ) THEN
+            CALL P2D_MAPPING_AB(cf_wght, lon_trg, lat_trg, bilin_map, rflg) !,  d2np=distance_to_np)
+         END IF
+         
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
