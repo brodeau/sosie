@@ -34,6 +34,7 @@ MODULE MOD_CONF
    END TYPE bln_map
 
    TYPE(bln_map), DIMENSION(:,:),   ALLOCATABLE, SAVE :: bilin_map
+   REAL(4),       DIMENSION(:,:),   ALLOCATABLE, SAVE :: distance_to_np
 
    !REAL(8),    DIMENSION(:,:,:), ALLOCATABLE, SAVE :: RAB       !: alpha, beta
    !INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE, SAVE :: IMETRICS  !: iP, jP, iqdrn at each point

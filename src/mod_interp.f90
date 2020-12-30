@@ -28,10 +28,8 @@ CONTAINS
 
       INTEGER, INTENT(in) :: jt ! current time step
 
-      INTEGER    :: i1,j1, i2,j2, jo
-      CHARACTER(len=400) :: cf_wght
-      LOGICAL :: lefw, l_skip_blm
-      !CHARACTER(len=128) ctmp !debug
+      INTEGER :: i1,j1, i2,j2
+      INTEGER :: jo, is, ie ! OMP
 
       !! lon-aranging or lat-flipping field
       IF( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -47,15 +45,15 @@ CONTAINS
          !lolo? IF( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
 
       ELSE
-         PRINT *, '-------------------'
-         PRINT *, 'DROWN NOT CALLED!!!'
-         PRINT *, '-------------------'
+         WRITE(6,*) '-------------------'
+         WRITE(6,*) 'DROWN NOT CALLED!!!'
+         WRITE(6,*) '-------------------'
       END IF !IF( l_drown_src )
 
       IF( ismooth > 0 ) THEN
          !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
          WRITE(6,'("     --- ",a,": smoothing ",i4," times!")') TRIM(cv_src), ismooth
-         PRINT *, ' Smoothing '//TRIM(cv_src)//'!', ismooth, ' times'
+         WRITE(6,*) ' Smoothing '//TRIM(cv_src)//'!', ismooth, ' times'
          IF( l_drown_src ) THEN
             CALL SMOOTHER(ewper_src, data_src,  nb_smooth=ismooth)
          ELSE
@@ -72,14 +70,17 @@ CONTAINS
 
          IF( jt == 1 ) ALLOCATE ( ixy_pos(ni_trg, nj_trg, 2) )
 
-         !$       PRINT *, ''
+         !$       WRITE(6,*) ''
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
-            !$          PRINT *, ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
+            is = io1(jo)
+            ie = io2(jo)
+
+            !$          WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
             CALL akima_2d( ewper_src, jo, lon_src, lat_src, data_src, &
-               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-               &           ixy_pos(io1(jo):io2(jo),:,:) )
+               &           lon_trg(is:ie,:), lat_trg(is:ie,:), data_trg(is:ie,:), &
+               &           ixy_pos(is:ie,:,:) )
 
          END DO
          !$OMP END PARALLEL DO
@@ -89,57 +90,30 @@ CONTAINS
 
       CASE('bilin')
 
-         IF( jt == 1 ) THEN
-            !! LOLO: should ultimately go into a 'bilin_init()' function inside mod_bilin_2d.f90 ...
-            ALLOCATE ( bilin_map(ni_trg,nj_trg) )
-            !!
-            PRINT*,''
-            PRINT*,'********************************************************'
-            WRITE(cf_wght,'("sosie_mapping_",a,".nc")') TRIM(cpat)
-            INQUIRE(FILE=cf_wght, EXIST=lefw )
-            IF ( lefw ) THEN
-               PRINT *, 'Mapping file ', TRIM(cf_wght), ' was found!'
-               PRINT *, '   ... still! Make sure that this is really the one you need!!!'
-               CALL RD_MAPPING_AB(cf_wght, bilin_map(:,:))
-               PRINT *, ' ==> mapping and weights read into ', TRIM(cf_wght)
-               PRINT *, '  ==> will skip routine MAPPING_BL !'
-               PRINT *, ''
-               l_skip_blm = .TRUE.
-            ELSE
-               PRINT *, 'No mapping file found in the current directory!'
-               PRINT *, 'We are going to build it: ', TRIM(cf_wght)
-               PRINT *, 'This might be time consuming if your grids are big, but it only needs to be done once...'
-               PRINT *, 'Therefore, consider keeping this file for future interpolations...'
-               PRINT *, 'using the same "source-target" setup'
-               l_skip_blm = .FALSE.
-            END IF
-            PRINT*,'********************************************************'
-            PRINT *, ''
-         END IF !IF( jt == 1 )
+         IF( jt == 1 ) CALL BILIN_2D_INIT()
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
-            !$          PRINT *, ' Running "bilin_2d" on OMP thread #', INT(jo,1)
-
+            is = io1(jo)
+            ie = io2(jo)
+            !$          WRITE(6,*) ' Running "bilin_2d" on OMP thread #', INT(jo,1)
             CALL bilin_2d( ewper_src, lon_src, lat_src, data_src, &
-               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-               &           jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:), lskip_mapping=l_skip_blm )
-
+               &           lon_trg(is:ie,:), lat_trg(is:ie,:), data_trg(is:ie,:), &
+               &           jo, mask_domain_trg=IGNORE(is:ie,:) )
          END DO
          !$OMP END PARALLEL DO
 
-         !! Saving mapping if relevant:
-         IF( (jt == 1).AND.(.NOT. l_skip_blm) ) THEN
-            CALL P2D_MAPPING_AB(cf_wght, lon_trg, lat_trg, bilin_map, rflg) !,  d2np=distance_to_np)
-         END IF
-         
+         IF( jt == 1 ) CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
+
+
+
 
       CASE('no_xy')
          WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
          STOP
 
       CASE DEFAULT
-         PRINT *, 'Interpolation method ', cmethod, ' is unknown!!!' ; STOP
+         WRITE(6,*) 'Interpolation method ', cmethod, ' is unknown!!!' ; STOP
       END SELECT
 
 
@@ -168,16 +142,16 @@ CONTAINS
          j1=ibx_xtra_sm(2)
          i2=ibx_xtra_sm(3)
          j2=ibx_xtra_sm(4)
-         PRINT *, '          => on box:', i1,j1, i2,j2
+         WRITE(6,*) '          => on box:', i1,j1, i2,j2
          !CALL SMOOTHER(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0), msk=mask_trg(i1:i2,j1:j2,1), l_exclude_mask_points=.TRUE.)
          CALL SMOOTHER(ewper_trg, data_trg(i1:i2,j1:j2),  nb_smooth=ibx_xtra_sm(0))
-         PRINT *, ''
+         WRITE(6,*) ''
       END IF
 
       IF( ismooth_out > 0 ) THEN
          WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times!")') TRIM(cv_out), ismooth_out
          CALL SMOOTHER(ewper_trg, data_trg,  nb_smooth=ismooth_out, msk=mask_trg(:,:,1), l_exclude_mask_points=.true.)
-         PRINT *, ''
+         WRITE(6,*) ''
       END IF
 
 
@@ -213,7 +187,7 @@ CONTAINS
 
 
       DO jk = 1, nk_src
-         PRINT *, '### Preparing source field at level : ', jk
+         WRITE(6,*) '### Preparing source field at level : ', jk
 
          IF( cmethod /= 'no_xy' ) THEN !LOLO: WHY????
             IF( nlat_icr_src == -1 ) CALL FLIP_UD(data3d_src(:,:,jk))
@@ -223,7 +197,7 @@ CONTAINS
          IF( l_drown_src ) THEN
             !! Extrapolate sea values over land :
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
-            PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+            WRITE(6,*) 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
             !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
             CALL BDROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth) !lolo
             IF( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
@@ -231,14 +205,14 @@ CONTAINS
             !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's')
 
          ELSE
-            PRINT *, '-------------------'
-            PRINT *, 'DROWN NOT CALLED!!!'
-            PRINT *, '-------------------'
+            WRITE(6,*) '-------------------'
+            WRITE(6,*) 'DROWN NOT CALLED!!!'
+            WRITE(6,*) '-------------------'
          END IF
 
          IF( ismooth > 0 ) THEN
             IF( TRIM(cmethod) == 'no_xy' ) THEN
-               PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
+               WRITE(6,*) 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
                STOP
             END IF
             !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
@@ -253,15 +227,15 @@ CONTAINS
       !! Need to do some sort of vertical drown downward to propagate the bottom
       !! value (last water pomit mask==1) down into the sea-bed...
       !! => calling drown vertical slice by vertical slices (zonal vertical slices)
-      PRINT *, ''
-      PRINT *, '### Extrapolating bottom value of source field downward into sea-bed!'
+      WRITE(6,*) ''
+      WRITE(6,*) '### Extrapolating bottom value of source field downward into sea-bed!'
       DO jj = 1, nj_src
          !CALL DUMP_2D_FIELD(data3d_src(:,jj,:), 'slice_before', 's')
          CALL BDROWN( -1, data3d_src(:,jj,:), mask_src(:,jj,:), nb_inc=100, nb_smooth=5 )
          !CALL DUMP_2D_FIELD(data3d_src(:,jj,:), 'slice_after', 's')
       END DO
-      PRINT *, '   => Done!'
-      PRINT *, ''
+      WRITE(6,*) '   => Done!'
+      WRITE(6,*) ''
 
       !CALL DUMP_2D_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
 
@@ -273,15 +247,15 @@ CONTAINS
 
       !LOLOdebug:
       !DO jk = nk_src/2, nk_src
-      !   WRITE(cfdbg,'("data_to_be_srcterpolated_lev",i2.2,".nc")') jk ; PRINT *, ' *** saving ', TRIM(cfdbg)
+      !   WRITE(cfdbg,'("data_to_be_srcterpolated_lev",i2.2,".nc")') jk ; WRITE(6,*) ' *** saving ', TRIM(cfdbg)
       !   CALL DUMP_2D_FIELD(data3d_src(:,:,jk), TRIM(cfdbg), cv_src)
       !END DO
       !LOLOdebug.
 
 
-      PRINT *, ''
-      PRINT *, ' 3D field prepared at all levels, ready to be interpolated...'
-      PRINT *, ''
+      WRITE(6,*) ''
+      WRITE(6,*) ' 3D field prepared at all levels, ready to be interpolated...'
+      WRITE(6,*) ''
 
 
 
@@ -290,12 +264,12 @@ CONTAINS
       !! Now! 3D input field ready to be interpolated...
       DO jk = 1, nk_src
 
-         IF(TRIM(cmethod) /= 'no_xy' ) PRINT *, '  *** interpolating at level ', jk
+         IF(TRIM(cmethod) /= 'no_xy' ) WRITE(6,*) '  *** interpolating at level ', jk
 
          SELECT CASE(TRIM(cmethod))
 
          CASE('akima')
-            PRINT *, 'mod_interp.f90 not yet!'
+            WRITE(6,*) 'mod_interp.f90 not yet!'
             STOP
             !CALL akima_2d(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
             !   &              lon_trg, lat_trg, data3d_tmp(:,:,jk), 1)
@@ -323,7 +297,7 @@ CONTAINS
             ENDIF
 
          CASE('no_xy')
-            PRINT *, '  *** copying at level ', jk
+            WRITE(6,*) '  *** copying at level ', jk
             data3d_tmp(:,:,jk) = data3d_src(:,:,jk)
             IF( TRIM(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
@@ -334,14 +308,14 @@ CONTAINS
             ENDIF
 
          CASE DEFAULT
-            PRINT *, 'Interpolation method "', trim(cmethod), '" is unknown!!!'; STOP
+            WRITE(6,*) 'Interpolation method "', trim(cmethod), '" is unknown!!!'; STOP
          END SELECT
 
          IF(l_reg_trg) CALL extrp_hl(data3d_tmp(:,:,jk))
 
       END DO !DO jk = 1, nk_src
 
-      PRINT *, ''
+      WRITE(6,*) ''
 
       data3d_trg(:,:,:) = rmiss_val ! Masking everything
 
@@ -360,19 +334,19 @@ CONTAINS
          !! Need to perform a vertical interpolation from data3d_tmp to data3d_trg :
 
 
-         PRINT *, ''
+         WRITE(6,*) ''
          IF( (TRIM(ctype_z_src) == 'z').AND.(TRIM(ctype_z_trg) == 'z') ) THEN
 
             !! Go for the vectorial routine...
-            PRINT *, ' *** CALLING AKIMA_1D_3D for vertical interpolation !!!'
+            WRITE(6,*) ' *** CALLING AKIMA_1D_3D for vertical interpolation !!!'
             WRITE(6,'("      => ",i4.4," x ",i4.4," x ",i3.3," to ",i4.4," x ",i4.4," x ",i3.3)') &
                &       SIZE(data3d_tmp,1), SIZE(data3d_tmp,2), SIZE(depth_src_trgt2d(1,1,:),1), &
                &       ni_trg, nj_trg, SIZE(depth_trg(1,1,:),1)
 
             CALL AKIMA_1D( depth_src_trgt2d(1,1,:), data3d_tmp, depth_trg(1,1,:), data3d_trg(:,:,:), rmiss_val )
 
-            PRINT *, '  --- AKIMA_1D_3D done!'
-            PRINT *, ''
+            WRITE(6,*) '  --- AKIMA_1D_3D done!'
+            WRITE(6,*) ''
 
          ELSE
 
@@ -419,7 +393,7 @@ CONTAINS
                         nlev = jklast
                      END IF
                      !!
-                     IF( (MOD(ji,100)==0).AND.(MOD(jj,100)==0) ) PRINT *, '  ... calling AKIMA_1D for ji_trg,jj_trg =', ji,jj
+                     IF( (MOD(ji,100)==0).AND.(MOD(jj,100)==0) ) WRITE(6,*) '  ... calling AKIMA_1D for ji_trg,jj_trg =', ji,jj
                      !!
                      CALL AKIMA_1D( depth_src_trgt2d(ji,jj,:),data3d_tmp(ji,jj,:),  &
                         &           depth_trg(ji,jj,1:nlev), data3d_trg(ji,jj,1:nlev))
@@ -470,15 +444,15 @@ CONTAINS
             j1=ibx_xtra_sm(2)
             i2=ibx_xtra_sm(3)
             j2=ibx_xtra_sm(4)
-            PRINT *, '          => on box:', i1,j1, i2,j2
+            WRITE(6,*) '          => on box:', i1,j1, i2,j2
             CALL SMOOTHER(ewper_trg, data3d_trg(i1:i2,j1:j2,jk),  nb_smooth=ibx_xtra_sm(0))
-            PRINT *, ''
+            WRITE(6,*) ''
          END IF
 
          IF( ismooth_out > 0 ) THEN
             WRITE(6,'("     --- ",a,": post-interp smoothing ",i4," times at level ",i3.3,"!")') TRIM(cv_out), ismooth_out, jk
             CALL SMOOTHER(ewper_trg, data3d_trg(:,:,jk),  nb_smooth=ismooth_out, msk=mask_trg(:,:,jk), l_exclude_mask_points=.TRUE.)
-            PRINT *, ''
+            WRITE(6,*) ''
          END IF
 
          !! If target grid is an ORCA grid, calling "lbc_lnk":
@@ -490,9 +464,9 @@ CONTAINS
 
 
 
-      PRINT *, ''
-      PRINT *, ' 3D interpolation done!'
-      PRINT *, ''
+      WRITE(6,*) ''
+      WRITE(6,*) ' 3D interpolation done!'
+      WRITE(6,*) ''
 
    END SUBROUTINE INTERP_3D
 
@@ -517,7 +491,7 @@ CONTAINS
       IF(jj_ex_btm > 0) THEN
          DO jj=(nlat_icr_trg + 1)/2+(1 - nlat_icr_trg)/2*nj_trg,jj_ex_btm,nlat_icr_trg
             X2d(:,jj) = X2d(:,jj_ex_btm+nlat_icr_trg)
-            !PRINT *, ' LOLO: jj_trg=', jj, 'values of jj_trg=',jj_ex_btm+nlat_icr_trg
+            !WRITE(6,*) ' LOLO: jj_trg=', jj, 'values of jj_trg=',jj_ex_btm+nlat_icr_trg
          END DO
       END IF
 

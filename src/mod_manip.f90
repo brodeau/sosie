@@ -37,7 +37,6 @@ MODULE MOD_MANIP
       MODULE PROCEDURE long_reorg_3d_i1
    END INTERFACE long_reorg_3d
 
-
    PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
@@ -47,9 +46,6 @@ MODULE MOD_MANIP
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
-
-   !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_twisted = .FALSE.
-   !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .TRUE.
    LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .FALSE.
 
 
@@ -1366,7 +1362,6 @@ CONTAINS
       IF (zpds >= 1.) THEN
          distance = 0.
       ELSE
-         PRINT *, 'rradE, zpds =', rradE, zpds
          distance = rradE*ACOS(zpds)
       ENDIF
 

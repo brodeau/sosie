@@ -117,6 +117,8 @@ PROGRAM SOSIE
    CALL REMINDER()         ! MODULE mod_init
 
 
+
+   !! ----------------------------------------------------------------------------------------
    !! OMP decomposition
    !
    !$ PRINT *, ''
@@ -128,10 +130,15 @@ PROGRAM SOSIE
 
    !! ALONG I:
    ALLOCATE ( io1(Nthrd), io2(Nthrd), i_seg_s(Nthrd) )
+
+   !! Defaults one 1 thread:
+   io1(1) = 1
+   io2(1) = ni_trg
+   i_seg_s(1) = ni_trg
+   !!
    IF ( Nthrd > 1) THEN
       noinc = ni_trg/Nthrd
       ipl = 0
-      io1(1) = 1
       io2(1) = io1(1) + noinc -1
       DO jo = 2, Nthrd
          ileft = Nthrd - jo + 1
@@ -139,24 +146,25 @@ PROGRAM SOSIE
          IF ( ileft == MOD(ni_trg,Nthrd) ) ipl=1
          io2(jo) = io1(jo)   + noinc -1 + ipl
       END DO
-   ELSE
-      !! No OMP (Nthrd==1):
-      io1(1) = 1
-      io2(1) = ni_trg
-      i_seg_s(1) = ni_trg
    END IF
-
-   PRINT *, '  io1 =', io1
-   PRINT *, '  io2 =', io2
+   
+   PRINT *, ''; PRINT *, ''
+   PRINT *, ' *** OMP decomposition along x *** '
    DO jo = 1, Nthrd
+      PRINT *, ''
+      PRINT *, '  OMP thread #',INT(jo,1),':'
+      PRINT *, '   => will treat ji from ', io1(jo), ' to ', io2(jo), '!'
       i_seg_s(jo) = SIZE(lon_trg(io1(jo):io2(jo),0)) ! lazy!!! but trustworthy I guess...
-      PRINT *, '  SIZE segment #',INT(jo,1),' => ', i_seg_s(jo)
+      PRINT *, '   => i-SIZE of segment => ', i_seg_s(jo)
    END DO
-   PRINT *, ''
+   PRINT *, ''; PRINT *, ''
+
+   !! ----------------------------------------------------------------------------------------
 
 
 
 
+   
    IF ( Ntr == 0 ) THEN
       PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
    END IF
