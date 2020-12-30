@@ -29,7 +29,7 @@ CONTAINS
       INTEGER, INTENT(in) :: jt ! current time step
 
       INTEGER :: i1,j1, i2,j2
-      INTEGER :: jo, is, ie ! OMP
+      INTEGER :: jo ! OMP
 
       !! lon-aranging or lat-flipping field
       IF( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -74,13 +74,11 @@ CONTAINS
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
-            is = io1(jo)
-            ie = io2(jo)
 
             !$          WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
             CALL akima_2d( ewper_src, jo, lon_src, lat_src, data_src, &
-               &           lon_trg(is:ie,:), lat_trg(is:ie,:), data_trg(is:ie,:), &
-               &           ixy_pos(is:ie,:,:) )
+               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
+               &           ixy_pos(io1(jo):io2(jo),:,:) )
 
          END DO
          !$OMP END PARALLEL DO
@@ -94,12 +92,10 @@ CONTAINS
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
-            is = io1(jo)
-            ie = io2(jo)
             !$          WRITE(6,*) ' Running "bilin_2d" on OMP thread #', INT(jo,1)
             CALL bilin_2d( ewper_src, lon_src, lat_src, data_src, &
-               &           lon_trg(is:ie,:), lat_trg(is:ie,:), data_trg(is:ie,:), &
-               &           jo, mask_domain_trg=IGNORE(is:ie,:) )
+               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
+               &           jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
          END DO
          !$OMP END PARALLEL DO
 

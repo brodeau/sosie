@@ -503,11 +503,11 @@ PROGRAM CORR_VECT
                V_r8 = 0.
             ELSE
                !! Getting uncorrected U on grid T:
-               CALL  GETVAR_2D(idf_u, idv_u, cf_raw_U, cv_out_U, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+               CALL  GETVAR_2D(idf_u, idv_u, cf_raw_U, cv_out_U, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
                U_r8 = ztmp4
 
                !! Getting uncorrected V on grid T:
-               CALL  GETVAR_2D(idf_v, idv_v, cf_raw_V, cv_out_V, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+               CALL  GETVAR_2D(idf_v, idv_v, cf_raw_V, cv_out_V, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
                V_r8 = ztmp4
             END IF
 
@@ -819,12 +819,12 @@ PROGRAM CORR_VECT
 
             !! Getting U :
             !! -----------
-            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_rot_U, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_rot_U, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
             U_r8 = ztmp4
 
             !! Getting V :
             !! -----------
-            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_rot_V, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_rot_V, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
             V_r8 = ztmp4
 
 

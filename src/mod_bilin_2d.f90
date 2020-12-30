@@ -139,7 +139,7 @@ CONTAINS
 
       REAL(8) :: alpha, beta, rmeanv, ymx
       LOGICAL :: l_add_extra_j
-      INTEGER :: ji, jj, i1, i2
+      INTEGER :: ji, jj
 
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
       REAL(4),    DIMENSION(:,:), ALLOCATABLE :: Z1w
@@ -224,10 +224,6 @@ CONTAINS
          Y2 = Y20
       END IF
 
-      !! OMP i-decomposition:
-      i1 = io1(ithrd)
-      i2 = io2(ithrd)
-
       IF ( l_first_call_interp_routine(ithrd) ) THEN
 
          l_last_y_row_missing = .FALSE.
@@ -239,22 +235,22 @@ CONTAINS
       Z2(:,:) = rflg ! Flagging non-interpolated output points
 
       mask_ignore_trg(:,:) = 1
-      WHERE ( bilin_map(i1:i2,:)%jip < 1 ) mask_ignore_trg = 0
-      WHERE ( bilin_map(i1:i2,:)%jjp < 1 ) mask_ignore_trg = 0
+      WHERE ( bilin_map(io1(ithrd):io2(ithrd),:)%jip < 1 ) mask_ignore_trg = 0
+      WHERE ( bilin_map(io1(ithrd):io2(ithrd),:)%jjp < 1 ) mask_ignore_trg = 0
 
-      !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_trg = 0 ; ! iqd => problem in interp ORCA2->ORCA1 linked to iqd < 1 !!! LOLO
+      !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_trg = 0 ; ! iqd => problem in interp ORCA2->ORCA1 linked to iqd < 1
 
 
-      bilin_map(i1:i2,:)%jip = MAX( bilin_map(i1:i2,:)%jip , 1 )  ! so no i or j <= 0
-      bilin_map(i1:i2,:)%jjp = MAX( bilin_map(i1:i2,:)%jjp , 1 )  ! so no i or j <= 0
+      bilin_map(io1(ithrd):io2(ithrd),:)%jip = MAX( bilin_map(io1(ithrd):io2(ithrd),:)%jip , 1 )  ! so no i or j <= 0
+      bilin_map(io1(ithrd):io2(ithrd),:)%jjp = MAX( bilin_map(io1(ithrd):io2(ithrd),:)%jjp , 1 )  ! so no i or j <= 0
 
       DO jj=1, ny2
          DO ji=1, nx2
-            iP    = bilin_map(ji+i1-1,jj)%jip
-            jP    = bilin_map(ji+i1-1,jj)%jjp
-            iqd = bilin_map(ji+i1-1,jj)%iqdrn
-            alpha = bilin_map(ji+i1-1,jj)%ralfa
-            beta  = bilin_map(ji+i1-1,jj)%rbeta
+            iP    = bilin_map(ji+io1(ithrd)-1,jj)%jip
+            jP    = bilin_map(ji+io1(ithrd)-1,jj)%jjp
+            iqd = bilin_map(ji+io1(ithrd)-1,jj)%iqdrn
+            alpha = bilin_map(ji+io1(ithrd)-1,jj)%ralfa
+            beta  = bilin_map(ji+io1(ithrd)-1,jj)%rbeta
             !!
             IF ( (ABS(degE_to_degWE(X1w(iP,jP))-degE_to_degWE(X2(ji,jj)))<1.E-5) .AND. (ABS(Y1w(iP,jP)-Y2(ji,jj))<1.E-5) ) THEN
                !! COPY:
@@ -445,18 +441,11 @@ CONTAINS
 
       REAL(8) :: alpha, beta
       LOGICAL :: l_ok, lagain, lpdebug
-      INTEGER :: icpt, i1, i2, ithrd, iomp1
-
-      ithrd = 0 ! no OpenMP !
-      iomp1 = 1
-      !iomp2 = nyo
-      IF( PRESENT(ithread) ) THEN
-         ithrd = ithread
-         iomp1 = io1(ithrd)
-         !iomp2 = io2(ithrd)
-      END IF
-
-
+      INTEGER :: icpt, ithrd
+      
+      ithrd = 1 ! no OpenMP !
+      IF( PRESENT(ithread) ) ithrd = ithread
+      
       nxi = size(pX,1)
       nyi = size(pX,2)
 
@@ -581,7 +570,7 @@ CONTAINS
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
-                     IF (l_save_distance_to_np) distance_to_np(ji+iomp1-1,jj) = DISTANCE(xP, lonP, yP, latP)
+                     IF (l_save_distance_to_np) distance_to_np(ji+io1(ithrd)-1,jj) = DISTANCE(xP, lonP, yP, latP)
 
                      !! Problem is that sometimes, in the case of really twisted
                      !! meshes this method screws up, iqd is not what it
@@ -718,9 +707,7 @@ CONTAINS
 
       IF( ithrd > 0 ) THEN
          !! OMP i-decomposition:
-         i1 = io1(ithrd)
-         i2 = io2(ithrd)
-         bilin_map(i1:i2,:) = pbln_map(:,:)
+         bilin_map(io1(ithrd):io2(ithrd),:) = pbln_map(:,:)
       ELSE
          bilin_map(:,:) = pbln_map(:,:)
       END IF
