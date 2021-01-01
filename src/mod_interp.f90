@@ -68,7 +68,7 @@ CONTAINS
 
       CASE('akima')
 
-         IF( jt == 1 ) ALLOCATE ( ixy_pos(ni_trg, nj_trg, 2) )
+         IF( jt == 1 ) CALL AKIMA_INIT()
 
          !$       WRITE(6,*) ''
 
@@ -77,8 +77,7 @@ CONTAINS
 
             !$          WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
             CALL akima_2d( ewper_src, jo, lon_src, lat_src, data_src, &
-               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-               &           ixy_pos(io1(jo):io2(jo),:,:) )
+               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:) )
 
          END DO
          !$OMP END PARALLEL DO

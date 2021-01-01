@@ -20,6 +20,22 @@ MODULE MOD_BILIN_2D
 
    PRIVATE
 
+   !! Mapping for bilin:
+   TYPE, PUBLIC :: bln_map
+      REAL(8)          :: ralfa
+      REAL(8)          :: rbeta
+      INTEGER          :: jip
+      INTEGER          :: jjp
+      INTEGER(1)       :: iqdrn
+      INTEGER(2)       :: ipb ! ID of problem if any...
+   END TYPE bln_map
+
+   TYPE(bln_map), DIMENSION(:,:),   ALLOCATABLE, SAVE :: bilin_map
+   REAL(4),       DIMENSION(:,:),   ALLOCATABLE, SAVE :: distance_to_np
+
+   !--------
+
+
    CHARACTER(len=400), SAVE :: cf_wght_bilin
    LOGICAL,            SAVE :: l_skip_bilin_mapping
    LOGICAL,    PARAMETER    :: l_save_distance_to_np=.TRUE. !: for each point of target grid, shows the distance to the nearest point
@@ -442,10 +458,10 @@ CONTAINS
       REAL(8) :: alpha, beta
       LOGICAL :: l_ok, lagain, lpdebug
       INTEGER :: icpt, ithrd
-      
+
       ithrd = 1 ! no OpenMP !
       IF( PRESENT(ithread) ) ithrd = ithread
-      
+
       nxi = size(pX,1)
       nyi = size(pX,2)
 

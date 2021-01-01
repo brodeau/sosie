@@ -36,7 +36,14 @@ MODULE MOD_AKIMA_2D
 
    PRIVATE
 
-   PUBLIC :: AKIMA_2D
+   PUBLIC :: AKIMA_INIT, AKIMA_2D
+
+   !! Mapping for Akima:
+   INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: map_akm !: table storing source/target grids mapping for akima method
+
+   LOGICAL, DIMENSION(:),     ALLOCATABLE, SAVE :: l_always_first_call
+
+
    
    REAL(8), PARAMETER :: repsilon = 1.E-9
    
@@ -46,11 +53,18 @@ CONTAINS
 
 
 
+   SUBROUTINE AKIMA_INIT()
+
+      ALLOCATE ( map_akm(ni_trg, nj_trg, 2) )
+
+      ALLOCATE( l_always_first_call(Nthrd) )
+      l_always_first_call(:) = .false.
+      
+   END SUBROUTINE AKIMA_INIT
 
 
 
-
-   SUBROUTINE AKIMA_2D(k_ew_per, ithrd, X10, Y10, Z1, X20, Y20, Z2, imapping,   icall)
+   SUBROUTINE AKIMA_2D(k_ew_per, ithrd, X10, Y10, Z1, X20, Y20, Z2,  icall)
 
       !!================================================================
       !!
@@ -78,7 +92,6 @@ CONTAINS
       REAL(4), DIMENSION(:,:),   INTENT(in)    :: Z1
       REAL(8), DIMENSION(:,:),   INTENT(in)    :: X20, Y20
       REAL(4), DIMENSION(:,:),   INTENT(out)   :: Z2
-      INTEGER, DIMENSION(:,:,:), INTENT(inout) :: imapping
       INTEGER,       OPTIONAL,   INTENT(in)    :: icall
       
       !! Local variables
@@ -181,11 +194,11 @@ CONTAINS
       min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
 
-      !! Doing the mapping once for all and saving into ixy_pos:
+      !! Doing the mapping once for all and saving into map_akm:
       IF ( l_first_call_interp_routine(ithrd) ) THEN
-         PRINT *, '  ==> "find_nearest_akima" to fill "imapping": thread #', ithrd
-         imapping(:,:,:) = 0
-         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, imapping )
+         PRINT *, '  ==> "find_nearest_akima" to fill "map_akm": thread #', ithrd
+         map_akm(:,:,:) = 0
+         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, map_akm )
       END IF
 
 
@@ -201,8 +214,8 @@ CONTAINS
             IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
                !! We know the right location from time = 1 :
-               ji1 = imapping(ji2,jj2,1)
-               jj1 = imapping(ji2,jj2,2)
+               ji1 = map_akm(ji2,jj2,1)
+               jj1 = map_akm(ji2,jj2,2)
 
                !! It's time to interpolate:
                px2 = px2 - lon_src(ji1,jj1)
@@ -224,10 +237,8 @@ CONTAINS
       l_first_call_interp_routine(ithrd) = .FALSE.
 
       IF ( l_always_first_call(ithrd) ) THEN
-         !PRINT *, 'LOLO: DEallocating ixy_pos !!!'; PRINT *, ''
-         !DEALLOCATE ( ixy_pos )
-         PRINT *, 'FIX ME imapping with l_always_first_call !!! (mod_akima_2d.f90) !!!'; STOP
-         imapping(:,:,:) = 0
+         PRINT *, 'FIX ME map_akm with l_always_first_call !!! (mod_akima_2d.f90) !!!'; STOP
+         map_akm(:,:,:) = 0
          l_first_call_interp_routine(ithrd) = .TRUE.
       END IF
 

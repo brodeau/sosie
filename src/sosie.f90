@@ -196,8 +196,6 @@ PROGRAM SOSIE
    ALLOCATE ( l_first_call_interp_routine(Nthrd) )
    l_first_call_interp_routine(:) = .true.
 
-   ALLOCATE( l_always_first_call(Nthrd) )
-   
    jct = 0 ;  jcz = 0
    IF ( ltime ) jct = 1
    IF (  l3d  ) jcz = 1
