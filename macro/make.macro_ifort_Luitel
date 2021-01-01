@@ -19,20 +19,15 @@ L_OMP  = -liomp5
 
 
 # Fortran compilation flags:
-# -- Production
-#FF = -qopenmp -O2 -i4 -xHOST -traceback -module mod/
-FF_SAFE = -qopenmp -O2 -i4 -xHOST -traceback -module mod/
 
-# -- Debugging    -fpe0
+# -- Production:
+#FF = -qopenmp -O3 -i4 -xHOST -traceback -module mod/
+
+# -- Debugging:
 FF =  -qopenmp -fpe0 -O0 -g -check all -warn all -traceback -debug extended -C -module mod/
-##FF = -O2 -g -check all -traceback -debug extended -C -module mod/
 
-
-#FF = -O0 -qopenmp -g -check all -warn all -traceback -debug extended -CB -module mod/
-
-
-#FF = -O0 -qopenmp -g -traceback -CB -module mod/
-
+## For io_ezcdf.f90:
+FF_SAFE = -qopenmp -O2 -i4 -xHOST -traceback -module mod/
 
 
 # Directory to install binaries:

@@ -21,7 +21,7 @@ MODULE MOD_BILIN_2D
    PRIVATE
 
    !! Mapping for bilin:
-   TYPE, PUBLIC :: bln_map
+   TYPE :: bln_map
       REAL(8)          :: ralfa
       REAL(8)          :: rbeta
       INTEGER          :: jip
@@ -29,9 +29,10 @@ MODULE MOD_BILIN_2D
       INTEGER(1)       :: iqdrn
       INTEGER(2)       :: ipb ! ID of problem if any...
    END TYPE bln_map
-
-   TYPE(bln_map), DIMENSION(:,:),   ALLOCATABLE, SAVE :: bilin_map
-   REAL(4),       DIMENSION(:,:),   ALLOCATABLE, SAVE :: distance_to_np
+   
+   TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE, SAVE :: bilin_map
+   REAL(4),       DIMENSION(:,:), ALLOCATABLE, SAVE :: distance_to_np
+   LOGICAL,       DIMENSION(:),   ALLOCATABLE, SAVE :: l_1st_call_bilin
 
    !--------
 
@@ -68,8 +69,13 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,'("   * Allocating array bilin_map: ",i5," x ",i5)') ni_trg, nj_trg
       ALLOCATE ( bilin_map(ni_trg,nj_trg) )
+
       IF (l_save_distance_to_np) ALLOCATE ( distance_to_np(ni_trg,nj_trg) )
-      WRITE(6,*) '  * Allocation done...'
+      
+      ALLOCATE ( l_1st_call_bilin(Nthrd) )
+      l_1st_call_bilin(:) = .TRUE.
+      
+      WRITE(6,*) '  * Allocations done...'
       WRITE(6,*) ''
       WRITE(cf_wght_bilin,'("sosie_mapping_",a,".nc")') TRIM(cpat)
 
@@ -191,7 +197,7 @@ CONTAINS
             ny1w = ny1 + 2
             l_add_extra_j = .TRUE.
             !!
-            IF ( l_first_call_interp_routine(ithrd) ) THEN
+            IF ( l_1st_call_bilin(ithrd) ) THEN
                WRITE(6,*) ''
                WRITE(6,*) '  ------ W A R N I N G ! ! ! ------'
                WRITE(6,*) ' *** your source grid is regular and seems to include the north pole.'
@@ -240,7 +246,7 @@ CONTAINS
          Y2 = Y20
       END IF
 
-      IF ( l_first_call_interp_routine(ithrd) ) THEN
+      IF ( l_1st_call_bilin(ithrd) ) THEN
 
          l_last_y_row_missing = .FALSE.
 
@@ -282,7 +288,7 @@ CONTAINS
       Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*(-9995.) ! masking problem points as in mask_ignore_trg
 
 
-      IF ( l_first_call_interp_routine(ithrd) ) THEN
+      IF ( l_1st_call_bilin(ithrd) ) THEN
          !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
          IF ( i_orca_trg >= 4 ) THEN
             rmeanv = SUM(Z2(:,ny2))/nx2
@@ -308,7 +314,7 @@ CONTAINS
 
       DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_trg )
 
-      l_first_call_interp_routine(ithrd) = .FALSE.
+      l_1st_call_bilin(ithrd) = .FALSE.
 
    END SUBROUTINE BILIN_2D
 

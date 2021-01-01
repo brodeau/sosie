@@ -40,7 +40,7 @@ MODULE MOD_AKIMA_2D
 
    !! Mapping for Akima:
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: map_akm !: table storing source/target grids mapping for akima method
-
+   LOGICAL, DIMENSION(:),     ALLOCATABLE, SAVE :: l_1st_call_akima
    LOGICAL, DIMENSION(:),     ALLOCATABLE, SAVE :: l_always_first_call
 
 
@@ -57,8 +57,11 @@ CONTAINS
 
       ALLOCATE ( map_akm(ni_trg, nj_trg, 2) )
 
+      ALLOCATE ( l_1st_call_akima(Nthrd) )
+      l_1st_call_akima(:) = .TRUE.
+      
       ALLOCATE( l_always_first_call(Nthrd) )
-      l_always_first_call(:) = .false.
+      l_always_first_call(:) = .FALSE.
       
    END SUBROUTINE AKIMA_INIT
 
@@ -81,7 +84,7 @@ CONTAINS
       !! OUTPUT :
       !!             Z2    : input field on target grid
       !!
-      !! input (optional)  : icall : if icall=1, will always force 'l_first_call_interp_routine' to .TRUE.
+      !! input (optional)  : icall : if icall=1, will always force 'l_1st_call_akima' to .TRUE.
       !!
       !!================================================================
 
@@ -124,7 +127,7 @@ CONTAINS
 
       IF ( present(icall) ) THEN
          IF ( icall == 1 ) THEN
-            l_first_call_interp_routine(ithrd) = .TRUE.
+            l_1st_call_akima(ithrd) = .TRUE.
             l_always_first_call(ithrd)  = .TRUE.
          END IF
       END IF
@@ -195,7 +198,7 @@ CONTAINS
       min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
 
       !! Doing the mapping once for all and saving into map_akm:
-      IF ( l_first_call_interp_routine(ithrd) ) THEN
+      IF ( l_1st_call_akima(ithrd) ) THEN
          PRINT *, '  ==> "find_nearest_akima" to fill "map_akm": thread #', ithrd
          map_akm(:,:,:) = 0
          CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, map_akm )
@@ -234,12 +237,12 @@ CONTAINS
       !! Deallocation :
       DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
 
-      l_first_call_interp_routine(ithrd) = .FALSE.
+      l_1st_call_akima(ithrd) = .FALSE.
 
       IF ( l_always_first_call(ithrd) ) THEN
          PRINT *, 'FIX ME map_akm with l_always_first_call !!! (mod_akima_2d.f90) !!!'; STOP
          map_akm(:,:,:) = 0
-         l_first_call_interp_routine(ithrd) = .TRUE.
+         l_1st_call_akima(ithrd) = .TRUE.
       END IF
 
    END SUBROUTINE AKIMA_2D

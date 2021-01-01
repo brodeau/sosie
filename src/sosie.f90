@@ -193,9 +193,6 @@ PROGRAM SOSIE
    !!                  M A I N   T I M E   L O O P
    !!                -------------------------------
 
-   ALLOCATE ( l_first_call_interp_routine(Nthrd) )
-   l_first_call_interp_routine(:) = .true.
-
    jct = 0 ;  jcz = 0
    IF ( ltime ) jct = 1
    IF (  l3d  ) jcz = 1
