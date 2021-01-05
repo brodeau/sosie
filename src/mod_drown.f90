@@ -1,15 +1,12 @@
 MODULE MOD_DROWN
 
-   !USE io_ezcdf !LOLO
-   !USE mod_manip
+   USE mod_conf, ONLY: iverbose
 
-   IMPLICIT none
+   IMPLICIT NONE
 
    PRIVATE
 
-   PUBLIC :: drown, smoother
-
-   LOGICAL, PARAMETER :: ldebug = .FALSE.
+   PUBLIC :: DROWN, SMOOTHER
 
    REAL, PARAMETER :: ris2 = 1.0/SQRT(2.0)
 
@@ -64,16 +61,16 @@ CONTAINS
 
       INTEGER, PARAMETER :: jinc_debg = 2
 
-      !REAL(8) :: tSTART, tEND, omp_get_wtime 
-      !tSTART = omp_get_wtime() 
+      !REAL(8) :: tSTART, tEND, omp_get_wtime
+      !tSTART = omp_get_wtime()
 
       X = X * mask  ! we rather have 0s on continents than some fucked up high values...
 
       ninc_max = 200   ! will stop before when all land points have been treated!!!
-      IF ( present(nb_inc) ) ninc_max = nb_inc
+      IF( present(nb_inc) ) ninc_max = nb_inc
 
 
-      IF ( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
+      IF( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
          PRINT *, 'ERROR, mod_drown.F90 => DROWN : size of data and mask do not match!!!'; STOP
       END IF
 
@@ -89,8 +86,8 @@ CONTAINS
       DO jinc = 1, ninc_max
 
          !! Quiting if no land point left:
-         IF ( .NOT. (ANY(maskv == 0))  ) THEN
-            IF ( ldebug ) PRINT *, 'DROWN: No land points left! Leaving incursion loop at jinc =', jinc
+         IF( .NOT. (ANY(maskv == 0))  ) THEN
+            IF(iverbose==2) PRINT *, 'DROWN: No land points left! Leaving incursion loop at jinc =', jinc
             EXIT
          END IF
 
@@ -102,20 +99,20 @@ CONTAINS
             DO ji = 1, ni
                !
                jjp1 = jj+1 ; jjm1 = jj-1 ;
-               IF ( jjp1 > nj ) jjp1 = nj
-               IF ( jjm1 <  1 ) jjm1 = 1
+               IF( jjp1 > nj ) jjp1 = nj
+               IF( jjm1 <  1 ) jjm1 = 1
 
                ji0 = ji ; jip1 = ji+1 ; jim1 = ji-1 ;
                IF  ( k_ew >= 0 ) THEN
-                  IF ( ji0  > ni - k_ew ) ji0  = ji0  - ni + 2 * k_ew
-                  IF ( ji0  <  1 + k_ew ) ji0  = ji0  + ni - 2 * k_ew
-                  IF ( jip1 > ni - k_ew ) jip1 = jip1 - ni + 2 * k_ew ! W boundary
-                  IF ( jip1 <  1 + k_ew ) jip1 = jip1 + ni - 2 * k_ew ! W boundary
-                  IF ( jim1 > ni - k_ew ) jim1 = jim1 - ni + 2 * k_ew ! W boundary
-                  IF ( jim1 <  1 + k_ew ) jim1 = jim1 + ni - 2 * k_ew ! E boundary
+                  IF( ji0  > ni - k_ew ) ji0  = ji0  - ni + 2 * k_ew
+                  IF( ji0  <  1 + k_ew ) ji0  = ji0  + ni - 2 * k_ew
+                  IF( jip1 > ni - k_ew ) jip1 = jip1 - ni + 2 * k_ew ! W boundary
+                  IF( jip1 <  1 + k_ew ) jip1 = jip1 + ni - 2 * k_ew ! W boundary
+                  IF( jim1 > ni - k_ew ) jim1 = jim1 - ni + 2 * k_ew ! W boundary
+                  IF( jim1 <  1 + k_ew ) jim1 = jim1 + ni - 2 * k_ew ! E boundary
                ELSE
-                  IF ( jip1 > ni ) jip1 = ni
-                  IF ( jim1 <  1 ) jim1 = 1
+                  IF( jip1 > ni ) jip1 = ni
+                  IF( jim1 <  1 ) jim1 = 1
                END IF
                !
                ! mask_coast
@@ -126,9 +123,9 @@ CONTAINS
          !$OMP END DO
          !$OMP END PARALLEL
          !
-         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
-         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
-         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(X, 'data_X_before.nc', 'lsm')
+         !IF( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
+         !IF( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
+         !IF( jinc == jinc_debg) CALL DUMP_2D_FIELD(X, 'data_X_before.nc', 'lsm')
          !STOP
 
 
@@ -136,30 +133,30 @@ CONTAINS
          !! -----------------------------------------------------------------------------------------
          ns=MIN(jinc,50)
          xtmp = X
-         
+
          !$OMP PARALLEL DEFAULT(NONE) SHARED(ni,nj,mask_coast,ns,k_ew,maskv,xtmp,X,jinc ) PRIVATE(zweight,summsk,datmsk,ji,jj,jjm,jim,jic,jjc)
          !$OMP DO SCHEDULE(DYNAMIC)
          DO jj = 1, nj
             DO ji = 1, ni
                !
                ! update only coastal point
-               IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( mask_coast(ji,jj) == 1 ) THEN
                   !
                   summsk = 0.0
                   datmsk = 0.0
                   !
-                  ! compute weighted average in a box center on ji,jj 
+                  ! compute weighted average in a box center on ji,jj
                   DO jjm=-ns,ns
                      DO jim=-ns,ns
                         !
                         ! box index definition
                         jic = ji + jim ; jjc = jj + jjm ;
                         IF  ( k_ew >= 0 ) THEN
-                           IF ( jic > ni - k_ew ) jic = jic - ni + 2 * k_ew ! W boundary
-                           IF ( jic <  1 + k_ew ) jic = jic + ni - 2 * k_ew ! E boundary
+                           IF( jic > ni - k_ew ) jic = jic - ni + 2 * k_ew ! W boundary
+                           IF( jic <  1 + k_ew ) jic = jic + ni - 2 * k_ew ! E boundary
                         END IF
                         !
-                        IF (jic >= 1 .AND. jic <= ni .AND. jjc >= 1 .AND. jjc <= nj) THEN
+                        IF(jic >= 1 .AND. jic <= ni .AND. jjc >= 1 .AND. jjc <= nj) THEN
                            !
                            ! compute gaussian weight
                            zweight = EXP(-1.*(jjm**2+jim**2)/jinc**2)*maskv(jic,jjc)
@@ -183,7 +180,7 @@ CONTAINS
          ! Loosing land for the next iteration:
          maskv = maskv + mask_coast
          !
-         IF ( ldebug ) PRINT *, 'DROWN: jinc =', jinc
+         IF(iverbose==2) PRINT *, 'DROWN: jinc =', jinc
          !
       END DO
 
@@ -192,7 +189,7 @@ CONTAINS
 
       DEALLOCATE ( maskv, xtmp, mask_coast )
 
-      !tEND = omp_get_wtime() 
+      !tEND = omp_get_wtime()
       !PRINT *, '~Drowning algo took~', tEND - tSTART, '~seconds~'
 
    END SUBROUTINE DROWN
@@ -247,18 +244,18 @@ CONTAINS
 
 
       nsmooth_max = 10
-      IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
+      IF( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
       l_mask = .FALSE.
-      IF ( PRESENT(msk) ) l_mask = .TRUE.
+      IF( PRESENT(msk) ) l_mask = .TRUE.
 
       l_emp = .FALSE.
-      IF ( PRESENT(l_exclude_mask_points) ) l_emp = l_exclude_mask_points
+      IF( PRESENT(l_exclude_mask_points) ) l_emp = l_exclude_mask_points
 
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
-      IF ( (l_emp).AND.(.NOT. l_mask) ) THEN
+      IF( (l_emp).AND.(.NOT. l_mask) ) THEN
          PRINT *, 'PROBLEM in SMOOTH (mod_drown.f90): you need to provide a "msk"'
          PRINT *, '                                    if you set l_exclude_mask_points=.true.!'
          STOP
@@ -267,19 +264,19 @@ CONTAINS
 
       ALLOCATE ( xtmp(ni,nj) )
 
-      IF (l_emp) THEN
+      IF(l_emp) THEN
          ALLOCATE ( rdnm(ni,nj) )
          rdnm(ni,nj) = 0.25
       END IF
 
-      IF ( l_mask ) THEN
+      IF( l_mask ) THEN
          ALLOCATE ( xorig(ni,nj) )
          xorig(:,:) = X(:,:)
       END IF
 
       ivi = (/ 1 , ni /)
 
-      IF (k_ew >= 0) THEN
+      IF(k_ew >= 0) THEN
          vim_per = (/ ni-k_ew ,  ni-1  /)
          vip_per = (/    2    , 1+k_ew /)
       END IF
@@ -289,11 +286,11 @@ CONTAINS
 
          xtmp(:,:) = X(:,:)
 
-         IF ( l_emp ) xtmp(:,:) = xtmp(:,:)*REAL(msk(:,:),4)
+         IF( l_emp ) xtmp(:,:) = xtmp(:,:)*REAL(msk(:,:),4)
 
          !! Center of the domain:
          !! ---------------------
-         IF ( l_emp ) THEN
+         IF( l_emp ) THEN
             !PRINT *, ' -- SMOOTH is excluding masked points...'
             rdnm(2:ni-1,2:nj-1) = 1. / MAX( REAL( &
                &          msk(3:ni,2:nj-1) + msk(2:ni-1,3:nj) + msk(1:ni-2,2:nj-1) + msk(2:ni-1,1:nj-2)   &
@@ -304,7 +301,7 @@ CONTAINS
                &            + ris2*( xtmp(3:ni,3:nj)   + xtmp(3:ni,1:nj-2) + xtmp(1:ni-2,1:nj-2) + xtmp(1:ni-2,3:nj) )  ) &
                &                                  * rdnm(2:ni-1,2:nj-1)
          ELSE
-            !IF ( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "msk")'
+            !IF( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "msk")'
             X(2:ni-1,2:nj-1) = w0   *xtmp(2:ni-1,2:nj-1) &
                & + (1.-w0)*(         xtmp(3:ni,2:nj-1) + xtmp(2:ni-1,3:nj) + xtmp(1:ni-2,2:nj-1) + xtmp(2:ni-1,1:nj-2)   &
                &            + ris2*( xtmp(3:ni,3:nj)   + xtmp(3:ni,1:nj-2) + xtmp(1:ni-2,1:nj-2) + xtmp(1:ni-2,3:nj) )  ) &
@@ -315,14 +312,14 @@ CONTAINS
 
          !! we can use east-west periodicity:
          !! ---------------------------------
-         IF (k_ew >= 0) THEN
+         IF(k_ew >= 0) THEN
             DO jci = 1, 2
                jim = vim_per(jci)  ! ji-1
                ji  = ivi(jci)      ! first ji = 1, then ji = ni
                jip = vip_per(jci)  ! ji+1
 
 
-               IF ( l_emp ) THEN
+               IF( l_emp ) THEN
                   rdnm(ji,2:nj-1) = 1./MAX( REAL(msk(jip,2:nj-1) + msk(ji,3:nj)    + msk(jim,2:nj-1) + msk(ji,1:nj-2)   &
                      &                  + ris2*( msk(jip,3:nj)   + msk(jip,1:nj-2) + msk(jim,1:nj-2) + msk(jim,3:nj) ),4),0.01)
 
@@ -344,13 +341,13 @@ CONTAINS
          END IF
 
          !! Smoothing is applied only where msk==1, values of X remain unchanged elsewhere:
-         IF ( l_mask ) X(:,2:nj-1) = msk(:,2:nj-1)*X(:,2:nj-1) - (msk(:,2:nj-1) - 1)*xorig(:,2:nj-1)
+         IF( l_mask ) X(:,2:nj-1) = msk(:,2:nj-1)*X(:,2:nj-1) - (msk(:,2:nj-1) - 1)*xorig(:,2:nj-1)
 
       END DO
 
       DEALLOCATE ( xtmp )
-      IF (l_mask) DEALLOCATE (  xorig )
-      IF (l_emp)  DEALLOCATE ( rdnm )
+      IF(l_mask) DEALLOCATE (  xorig )
+      IF(l_emp)  DEALLOCATE ( rdnm )
 
    END SUBROUTINE SMOOTHER
 

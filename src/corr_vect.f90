@@ -881,51 +881,56 @@ PROGRAM CORR_VECT
 
    PRINT *, 'Done!'
 
+
+CONTAINS
+
+   SUBROUTINE usage_corr_vect()
+      !!
+      PRINT *,''
+      PRINT *,'   List of command line options:'
+      PRINT *,''
+      PRINT *,' -I   => will perform inverse correction, ie un-rotate a ORCA grid'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  *** MANDATORY for both normal and inverse mode:'
+      PRINT *,''
+      !PRINT *,' -x  <name U>         => Specify name for x comp. in output file'
+      !PRINT *,'                         (or input file if inverse mode)'
+      !PRINT *,''
+      !PRINT *,' -y  <name V>         => Specify name for y comp. in output file'
+      !PRINT *,'                         (or input file if inverse mode)'
+      !PRINT *,''
+      PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
+      PRINT *,''
+      PRINT *,' -f  <namelist_file>  => Specify which namelist file to use'
+      PRINT *, '                        No namelist needed when inverse correction'
+      PRINT *,''
+      PRINT *,' -G  <T/U>            => Specify if you want to save rotated vector'
+      PRINT *, '                        on T-grid (T) or U- and V-grid (U)'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  *** MANDATORY for INVERSE MODE (-I switch) :'
+      PRINT *,''
+      PRINT *,' -i <x.nc> <y.nc>     =>  unrotate vector fields given in these 2 files'
+      PRINT *,'                          to the same grid'
+      PRINT *,''
+      PRINT *,' -t <time_name>       =>  name of time variable in <x.nc> and <y.nc>'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  *** MISC options :'
+      PRINT *,''
+      PRINT *,' -h                   => Show this message'
+      PRINT *,''
+      STOP
+      !!
+   END SUBROUTINE usage_corr_vect
+
+
 END PROGRAM CORR_VECT
 
 
 
-SUBROUTINE usage_corr_vect()
-   !!
-   PRINT *,''
-   PRINT *,'   List of command line options:'
-   PRINT *,''
-   PRINT *,' -I   => will perform inverse correction, ie un-rotate a ORCA grid'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  *** MANDATORY for both normal and inverse mode:'
-   PRINT *,''
-   !PRINT *,' -x  <name U>         => Specify name for x comp. in output file'
-   !PRINT *,'                         (or input file if inverse mode)'
-   !PRINT *,''
-   !PRINT *,' -y  <name V>         => Specify name for y comp. in output file'
-   !PRINT *,'                         (or input file if inverse mode)'
-   !PRINT *,''
-   PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
-   PRINT *,''
-   PRINT *,' -f  <namelist_file>  => Specify which namelist file to use'
-   PRINT *, '                        No namelist needed when inverse correction'
-   PRINT *,''
-   PRINT *,' -G  <T/U>            => Specify if you want to save rotated vector'
-   PRINT *, '                        on T-grid (T) or U- and V-grid (U)'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  *** MANDATORY for INVERSE MODE (-I switch) :'
-   PRINT *,''
-   PRINT *,' -i <x.nc> <y.nc>     =>  unrotate vector fields given in these 2 files'
-   PRINT *,'                          to the same grid'
-   PRINT *,''
-   PRINT *,' -t <time_name>       =>  name of time variable in <x.nc> and <y.nc>'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  *** MISC options :'
-   PRINT *,''
-   PRINT *,' -h                   => Show this message'
-   PRINT *,''
-   STOP
-   !!
-END SUBROUTINE usage_corr_vect
 !!

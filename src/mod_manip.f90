@@ -5,9 +5,9 @@ MODULE MOD_MANIP
    !! Author: L. Brodeau
 
    USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
-   USE mod_conf, ONLY: rd2rad, rradE
+   USE mod_conf, ONLY: iverbose, rd2rad, rradE
 
-   
+
    IMPLICIT NONE
 
    PRIVATE
@@ -46,7 +46,7 @@ MODULE MOD_MANIP
 
    REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
 
-   LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .FALSE.
+   LOGICAL, PARAMETER :: l_force_use_of_twisted = .FALSE.
 
 
 CONTAINS
@@ -79,10 +79,10 @@ CONTAINS
       INTEGER :: ji, jj, iorca
 
       iorca = 0
-      IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
+      IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
 
-      IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
+      IF( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of input coor. and data do not match!!!'
          PRINT *, 'SIZE(XX,1), SIZE(YY,1), SIZE(XF,1) =>', SIZE(XX,1), SIZE(YY,1), SIZE(XF,1)
@@ -90,7 +90,7 @@ CONTAINS
          STOP
       END IF
 
-      IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
+      IF( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
          & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : size of output coor. and data do not match!!!'
          PRINT *, 'SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1) =>', SIZE(XP4,1), SIZE(YP4,1), SIZE(FP4,1)
@@ -104,10 +104,10 @@ CONTAINS
       nxp4 = SIZE(XP4,1)
       nyp4 = SIZE(XP4,2)
 
-      IF ( nxp4 /= nx + 4 ) THEN
+      IF( nxp4 /= nx + 4 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target x dim is not ni+4!!!'; STOP
       END IF
-      IF ( nyp4 /= ny + 4 ) THEN
+      IF( nyp4 /= ny + 4 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_BANDS : target y dim is not nj+4!!!'; STOP
       END IF
 
@@ -131,7 +131,7 @@ CONTAINS
       !! X array :
       !! ---------
 
-      IF (k_ew > -1) THEN   ! we can use east-west periodicity of input file to
+      IF(k_ew > -1) THEN   ! we can use east-west periodicity of input file to
          !!                   ! fill extra bands :
          XP4( 1     , 3:nyp4-2) = XX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
          XP4( 2     , 3:nyp4-2) = XX(nx - k_ew     , :) - 360.
@@ -148,7 +148,7 @@ CONTAINS
          XP4(nxp4-1, 3:nyp4-2) = XX(nx-1,:) + XX(nx,:) - XX(nx-2,:)
          XP4(nxp4  , 3:nyp4-2) = XX(nx,:)   + XX(nx,:) - XX(nx-2,:)
 
-      END IF !IF (k_ew > -1)
+      END IF !IF(k_ew > -1)
 
 
 
@@ -207,7 +207,7 @@ CONTAINS
       YP4(3:nxp4-2, 2) = YY(:,2) - (YY(:,3) - YY(:,1))
       YP4(3:nxp4-2, 1) = YY(:,1) - (YY(:,3) - YY(:,1))
 
-      IF (k_ew > -1) THEN
+      IF(k_ew > -1) THEN
 
          YP4( 1     , :) = YP4(nx - 1 - k_ew + 2, :)
          YP4( 2     , :) = YP4(nx - k_ew     + 2, :)
@@ -228,7 +228,7 @@ CONTAINS
       !! Data array :
       !! ------------
 
-      IF (k_ew > -1) THEN
+      IF(k_ew > -1) THEN
 
          FP4( 1     , 3:nyp4-2) = XF(nx - 1 - k_ew , :)
          FP4( 2     , 3:nyp4-2) = XF(nx - k_ew     , :)
@@ -313,14 +313,14 @@ CONTAINS
       INTEGER :: ji, iorca
 
       iorca = 0
-      IF ( PRESENT(is_orca_grid) ) iorca = is_orca_grid
+      IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
-      IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
+      IF( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : size of input coor. and data do not match!!!'; STOP
       END IF
 
-      IF ( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
+      IF( (SIZE(XP4,1) /= SIZE(YP4,1)).OR.(SIZE(XP4,2) /= SIZE(YP4,2)).OR. &
          & (SIZE(XP4,1) /= SIZE(FP4,1)).OR.(SIZE(XP4,2) /= SIZE(FP4,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : size of output coor. and data do not match!!!'; STOP
       END IF
@@ -331,10 +331,10 @@ CONTAINS
       nxp4 = SIZE(XP4,1)
       nyp4 = SIZE(XP4,2)
 
-      IF ( nxp4 /= nx ) THEN
+      IF( nxp4 /= nx ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : target x dim is not ni!!!'; STOP
       END IF
-      IF ( nyp4 /= ny + 4 ) THEN
+      IF( nyp4 /= ny + 4 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => FILL_EXTRA_NORTH_SOUTH : target y dim is not nj+4!!!'; STOP
       END IF
 
@@ -492,7 +492,7 @@ CONTAINS
       ALF  = y2 - y1
       BET  = y3 - y2
       !!
-      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+      IF( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
          y4 = y3
          y5 = y3
       ELSE
@@ -511,7 +511,7 @@ CONTAINS
       D    = x5 - x4
       ALF  = y2 - y1
       BET  = y3 - y2
-      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+      IF( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
          y4 = y3
          y5 = y3
       ELSE
@@ -553,7 +553,7 @@ CONTAINS
       ALF  = y4 - y5
       BET  = y3 - y4
       !!
-      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+      IF( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
          y2 = y3
          y1 = y3
       ELSE
@@ -572,7 +572,7 @@ CONTAINS
       D    = x1 - x2
       ALF  = y4 - y5
       BET  = y3 - y4
-      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+      IF( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
          y2 = y3
          y1 = y3
       ELSE
@@ -787,10 +787,10 @@ CONTAINS
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_t
       LOGICAL :: l_is_reg_s, l_is_reg_t
-      
+
       ithrd = 0 ! no OpenMP !
       IF( PRESENT(ithread) ) ithrd = ithread
-      
+
       nx_s  = SIZE(Xsrc,1)
       ny_s  = SIZE(Xsrc,2)
       nx_t = SIZE(Xtrg,1)
@@ -799,20 +799,20 @@ CONTAINS
       PRINT *, ' Source domain size: ', nx_s, ny_s
       PRINT *, ' Target domain size: ', nx_t, ny_t
 
-      IF ( (SIZE(Ysrc,1) /= nx_s) .OR. (SIZE(Ysrc,2) /= ny_s) ) THEN
+      IF( (SIZE(Ysrc,1) /= nx_s) .OR. (SIZE(Ysrc,2) /= ny_s) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Ysrc dont agree in shape with Xsrc'
          STOP
       END IF
-      IF ( (SIZE(Ytrg,1) /= nx_t) .OR. (SIZE(Ytrg,2) /= ny_t) ) THEN
+      IF( (SIZE(Ytrg,1) /= nx_t) .OR. (SIZE(Ytrg,2) /= ny_t) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Ytrg dont agree in shape with Xtrg'
          STOP
       END IF
-      IF ( (SIZE(JIp,1) /= nx_t) .OR. (SIZE(JIp,2) /= ny_t) ) THEN
+      IF( (SIZE(JIp,1) /= nx_t) .OR. (SIZE(JIp,2) /= ny_t) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JIp dont agree in shape with Xtrg'
          PRINT *, SIZE(JIp,1), SIZE(JIp,2), 'vs', nx_t, ny_t
          STOP
       END IF
-      IF ( (SIZE(JJp,1) /= nx_t) .OR. (SIZE(JJp,2) /= ny_t) ) THEN
+      IF( (SIZE(JJp,1) /= nx_t) .OR. (SIZE(JJp,2) /= ny_t) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JJp dont agree in shape with Xtrg'
          STOP
       END IF
@@ -832,7 +832,7 @@ CONTAINS
 
       ALLOCATE ( mask_ignore_t(nx_t,ny_t) , i1dum(nx_t) )
       mask_ignore_t(:,:) = 1
-      IF ( PRESENT( pmsk_dom_trg ) ) mask_ignore_t(:,:) = pmsk_dom_trg(:,:)
+      IF( PRESENT( pmsk_dom_trg ) ) mask_ignore_t(:,:) = pmsk_dom_trg(:,:)
 
       y_min_s  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
       y_max_s  = MAXVAL(Ysrc)
@@ -845,22 +845,22 @@ CONTAINS
       !! We need to know if the target latitude ONLY keeps on systematically
       !! increasing (or decreasing) as j increases:
       rmin_dlat_dj = -100.
-      !IF ( REAL(nx_t)/REAL(ny_t) > 0.15  ) THEN
-      IF ( nx_t > 2 ) THEN !! We can reasonably say it's a map and not a vector or almost a vectot...
+      !IF( REAL(nx_t)/REAL(ny_t) > 0.15  ) THEN
+      IF( nx_t > 2 ) THEN !! We can reasonably say it's a map and not a vector or almost a vectot...
          ALLOCATE ( ztmp_t(nx_t, ny_t) )
          DO jj = 2, ny_t
             ztmp_t(:,jj) = Ytrg(:,jj) - Ytrg(:,jj-1)
          END DO
          rtmp = SUM(ztmp_t(:,ny_t/2)) ! know if increasing (>0) or decreasing (<0)
          ztmp_t = SIGN(1.0_8 , rtmp)*ztmp_t
-         !IF (ldebug) CALL DUMP_FIELD(REAL(ztmp_t,4), 'dlat_dj_t.nc', 'dist')
+         !IF(iverbose==2) CALL DUMP_FIELD(REAL(ztmp_t,4), 'dlat_dj_t.nc', 'dist')
          rmin_dlat_dj = MINVAL(ztmp_t(:,2:))
-         IF (ldebug) PRINT *, ' Minimum dlat_dj_t =>', rmin_dlat_dj
+         IF(iverbose==2) PRINT *, ' Minimum dlat_dj_t =>', rmin_dlat_dj
          DEALLOCATE ( ztmp_t )
       END IF
 
       !!  Simplif when [d lat / d j] always has the same sign:
-      IF ( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_t ) THEN    !!!.OR. (i_orca_t > 0) ) THEN
+      IF( (rmin_dlat_dj > -1.E-12) .OR. l_is_reg_t ) THEN    !!!.OR. (i_orca_t > 0) ) THEN
          !! -> because we need to avoid all the following if target grid is for
          !!    example a polar sterographic projection... (example 5)
          !!
@@ -873,14 +873,14 @@ CONTAINS
          j_strt_t = MINVAL(i1dum, mask=(i1dum>0))
          DEALLOCATE ( i1dum )
          j_stop_t = MAXVAL(MAXLOC(Ytrg, mask=(Ytrg<=y_max_s), dim=2))  ! largest j on target source that covers largest source latitude
-         IF ( j_strt_t > j_stop_t ) jlat_icr = -1 ! latitude decreases as j increases (like ECMWF grids...)
-         IF (ldebug) THEN
+         IF( j_strt_t > j_stop_t ) jlat_icr = -1 ! latitude decreases as j increases (like ECMWF grids...)
+         IF(iverbose==2) THEN
             PRINT *, ' j_strt_t, j_stop_t / nj_t =>', j_strt_t, j_stop_t, '/', ny_t
             PRINT *, ''
          END IF
-      END IF ! IF ( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_t .OR. (i_orca_t > 0) )
+      END IF ! IF( (rmin_dlat_dj >= 0.0_8) .OR. l_is_reg_t .OR. (i_orca_t > 0) )
 
-      IF ( l_is_reg_s .AND. (.NOT. l_force_use_of_twisted) ) THEN
+      IF( l_is_reg_s .AND. (.NOT. l_force_use_of_twisted) ) THEN
          PRINT *, '                 => going for simple FIND_NEAREST algorithm !'; PRINT *, ''
          CALL FIND_NEAREST_EASY(    Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_t, &
             &                       j_strt_t, j_stop_t, jlat_icr, ithrd )
@@ -891,7 +891,7 @@ CONTAINS
       END IF
       PRINT *, ''
 
-      IF ( PRESENT( pmsk_dom_trg ) ) pmsk_dom_trg(:,:) = mask_ignore_t(:,:)
+      IF( PRESENT( pmsk_dom_trg ) ) pmsk_dom_trg(:,:) = mask_ignore_t(:,:)
       DEALLOCATE ( mask_ignore_t )
 
    END SUBROUTINE FIND_NEAREST_POINT
@@ -901,7 +901,7 @@ CONTAINS
 
 
 
-   
+
    SUBROUTINE FIND_NEAREST_EASY( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_t, &
       &                          j_strt_t, j_stop_t, jlat_icr, ithrd )
       !!---------------------------------------------------------------
@@ -955,9 +955,9 @@ CONTAINS
       DO jj_t = j_strt_t, j_stop_t, jlat_icr
          DO ji_t = 1, nx_t
 
-            IF ( mask_t(ji_t,jj_t) == 1 ) THEN
+            IF( mask_t(ji_t,jj_t) == 1 ) THEN
 
-               IF ( (ji_t==1) .AND. MOD(jj_t,10)==0 ) &
+               IF( (ji_t==1) .AND. MOD(jj_t,10)==0 ) &
                   &  WRITE(6,'(" *** Treated j-point of target domain = ",i4.4," (thread # ",i2.2,")")') jj_t, ithrd
 
                rlon = Xtrg(ji_t,jj_t)
@@ -981,7 +981,7 @@ CONTAINS
                jj_s = ij_min_loc(2) + j1s - 1
                JIpos(ji_t,jj_t) = ji_s
                JJpos(ji_t,jj_t) = jj_s
-               IF ((ji_s==0).OR.(jj_s==0)) THEN
+               IF((ji_s==0).OR.(jj_s==0)) THEN
                   PRINT *, ''
                   PRINT *, 'The nearest point was not found!'
                   PRINT *, ' !!! ji_s or jj_s = 0 !!!'
@@ -992,7 +992,7 @@ CONTAINS
                   STOP
                END IF
 
-               IF ( ( JIpos(ji_t,jj_t) == -1 ).OR.( JJpos(ji_t,jj_t) == -1 ) ) THEN
+               IF( ( JIpos(ji_t,jj_t) == -1 ).OR.( JJpos(ji_t,jj_t) == -1 ) ) THEN
                   PRINT *, 'ERROR in FIND_NEAREST_EASY of mod_bilin_2d.f90 !'
                   PRINT *, 'Point rlon, rlat', rlon, rlat
                   PRINT *, 'not found on the source grid!'
@@ -1071,7 +1071,7 @@ CONTAINS
       PRINT *, ' Min. latitude on source & target domains =>', REAL(y_min_s,4), REAL(y_min_t,4)
       PRINT *, ' Max. latitude on source & target domains =>', REAL(y_max_s,4), REAL(y_max_t,4)
 
-      IF ( (y_min_t>=y_max_s).OR.(y_max_t<=y_min_s) ) THEN
+      IF( (y_min_t>=y_max_s).OR.(y_max_t<=y_min_s) ) THEN
          WRITE(6,*)' ERROR (FIND_NEAREST_TWISTED of mod_manip.f90): Target and source latitudes do not overlap!'
          STOP
       END IF
@@ -1095,9 +1095,9 @@ CONTAINS
             e2_s(ji_s,jj_s) = distance(Xsrc(ji_s,jj_s),Xsrc(ji_s,jj_s+1),Ysrc(ji_s,jj_s),Ysrc(ji_s,jj_s+1))*1000. !(m)
          END DO
       END DO
-      IF (nx_s>1) e1_s(nx_s,:) = e1_s(nx_s-1,:)
-      IF (ny_s>1) e2_s(:,ny_s) = e2_s(:,ny_s-1)
-      !IF (ldebug) THEN
+      IF(nx_s>1) e1_s(nx_s,:) = e1_s(nx_s-1,:)
+      IF(ny_s>1) e2_s(:,ny_s) = e2_s(:,ny_s-1)
+      !IF(iverbose==2) THEN
       !   CALL DUMP_FIELD(REAL(e1_s,4), 'e1_s.nc', 'e1')
       !   CALL DUMP_FIELD(REAL(e2_s,4), 'e2_s.nc', 'e2')
       !END IF
@@ -1134,7 +1134,7 @@ CONTAINS
       END DO
       !!
 
-      IF ( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
+      IF( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
          PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Bounds for latitude for VLAT_SPLIT_BOUNDS are bad!'
          PRINT *, ' y_min_bnd, y_max_bnd =', y_min_bnd, y_max_bnd !
          PRINT *, ' y_min_bnd0, y_max_bnd0 =', y_min_bnd0, y_max_bnd0
@@ -1161,7 +1161,7 @@ CONTAINS
          J_VLAT_S(jlat,1) = MAX(jmin_band - 1,   1  )
          J_VLAT_S(jlat,2) = MIN(jmax_band + 1, ny_s)
          !!
-         IF ( ldebug ) THEN
+         IF(iverbose==2) THEN
             PRINT *, ' Latitude bin #', jlat
             PRINT *, '     => lat_low, lat_high:', REAL(rlat_low,4), REAL(rlat_hgh,4)
             PRINT *, '     => JJ min and max on input domain =>', J_VLAT_S(jlat,1), J_VLAT_S(jlat,2)
@@ -1179,7 +1179,7 @@ CONTAINS
       PRINT *, ''
 
       DO jlat = 1, nsplit
-         IF ( J_VLAT_S(jlat,2) <= J_VLAT_S(jlat,1) ) THEN
+         IF( J_VLAT_S(jlat,2) <= J_VLAT_S(jlat,1) ) THEN
             PRINT *, ' ERROR: jj_stop > jj_start ! ', J_VLAT_S(jlat,2), J_VLAT_S(jlat,1)
             PRINT *, '   => for latitude bin #', jlat
             STOP
@@ -1191,35 +1191,35 @@ CONTAINS
 
       DO jj_t = j_strt_t, j_stop_t, jlat_icr
          DO ji_t = 1, nx_t
-            IF ( mask_t(ji_t,jj_t) == 1 ) THEN
+            IF( mask_t(ji_t,jj_t) == 1 ) THEN
 
                rlon = Xtrg(ji_t,jj_t)
                rlat = Ytrg(ji_t,jj_t)
 
                !! Display progression in stdout:
-               IF ( (ji_t == nx_t/2).AND.(jj_t /= jj_t_old) ) THEN
+               IF( (ji_t == nx_t/2).AND.(jj_t /= jj_t_old) ) THEN
                   WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_t = ",i5.5,")")') REAL(rlat,4), jj_t
                   jj_t_old = jj_t
                END IF
-               IF ( (nx_t == 1).AND.(MOD(jj_t,10)==0) ) &
+               IF( (nx_t == 1).AND.(MOD(jj_t,10)==0) ) &
                   & WRITE(*,'("*** Treated point of target domain = ",i7," (ouf of ",i7,")")') jj_t, ABS(j_stop_t-j_strt_t+1) ! in case of trajectory/ephem stuff
 
                !! Need to find which jlat of our latitude bins rlat is located in!
-               IF ( rlat /= rlat_old ) THEN
+               IF( rlat /= rlat_old ) THEN
                   DO jlat=1,nsplit
-                     IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
-                     IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
+                     IF(  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
+                     IF( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
                   END DO
                   !!
                END IF
 
                lagain    = .TRUE.
                niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...
-               IF ( rlat > 60. ) niter = 0 ! we skip the bluff part because the grid might be too close to NP boundary cut!
+               IF( rlat > 60. ) niter = 0 ! we skip the bluff part because the grid might be too close to NP boundary cut!
 
                DO WHILE ( lagain )
 
-                  IF ( niter == -1 ) THEN
+                  IF( niter == -1 ) THEN
                      !! Bluff !
                      !! It's not stupid to assume that the next point to locate is
                      !! pretty near the previously found point (ji_s,jj_s):
@@ -1232,7 +1232,7 @@ CONTAINS
                      i2s = nx_s
                      j1s = J_VLAT_S(MAX(jlat-niter,1)     , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
                      j2s = J_VLAT_S(MIN(jlat+niter,nsplit), 2)  !! MB Comment: Force to ny_s if necessary when nearest point not found whereas it exist really
-                     IF ( ldebug ) THEN
+                     IF(iverbose==2) THEN
                         PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter, jlat
                         PRINT *, '     => bin #', jlat
                         PRINT *, '       => jmin & jmax on source domain =', j1s, j2s
@@ -1249,7 +1249,7 @@ CONTAINS
                   ji_s = ij_min_loc(1) + i1s - 1
                   jj_s = ij_min_loc(2) + j1s - 1
 
-                  IF ((ji_s==0).OR.(jj_s==0)) THEN
+                  IF((ji_s==0).OR.(jj_s==0)) THEN
                      PRINT *, ''
                      PRINT *, ' W E I R D  !!!'
                      PRINT *, 'The nearest point was not found!'
@@ -1260,13 +1260,13 @@ CONTAINS
 
                   emax = MAX(e1_s(ji_s,jj_s),e2_s(ji_s,jj_s))/1000.*SQRT(2.)
 
-                  IF ( Xdist(ji_s,jj_s) <= frac_emax*emax) THEN
+                  IF( Xdist(ji_s,jj_s) <= frac_emax*emax) THEN
                      !! Found !
                      lagain = .FALSE.
                      JIpos(ji_t,jj_t) = ji_s
                      JJpos(ji_t,jj_t) = jj_s
-                     IF ( ldebug ) THEN
-                        IF ( niter == -1 ) THEN
+                     IF(iverbose==2) THEN
+                        IF( niter == -1 ) THEN
                            PRINT *, '    --- F O U N D  with bluff !!! ---'
                         ELSE
                            PRINT *, '    --- F O U N D --- niter =', niter
@@ -1275,34 +1275,36 @@ CONTAINS
                      !! Found .
                   ELSE
                      !! Not found yet...
-                     IF (niter == 0) THEN
+                     IF(niter == 0) THEN
                         !! After all the lon,lat couple we are looking for is maybe not part of source domain
                         !! => could do a test and break the iteration if so...
                         mspot_lon = 0 ; mspot_lat = 0
                         WHERE( (Xsrc > MAX(rlon-0.5,  0.)).AND.(Xsrc < MIN(rlon+0.5,360.)) ) mspot_lon = 1
                         WHERE( (Ysrc > MAX(rlat-0.5,-90.)).AND.(Ysrc < MIN(rlat+0.5, 90.)) ) mspot_lat = 1
-                        IF ( SUM(mspot_lon*mspot_lat) == 0 ) THEN
+                        IF( SUM(mspot_lon*mspot_lat) == 0 ) THEN
                            lagain = .FALSE.
-                           IF ( ldebug ) PRINT *, ' *** FIND_NEAREST_POINT: SHORT leave test worked! Aborting search!'
+                           IF(iverbose==2) PRINT *, ' *** FIND_NEAREST_POINT: SHORT leave test worked! Aborting search!'
                         END IF
                      END IF
 
-                     IF (niter > nsplit/3) THEN
+                     IF(niter > nsplit/3) THEN
                         !! We are too far in latitude, giving up...
-                        PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
-                        PRINT *, '     => did not find nearest point for target coordinates:', & !
-                           &              REAL(rlon,4), REAL(rlat,4)
+                        IF(iverbose>0) THEN
+                           PRINT *, ' *** WARNING: mod_manip.f90/FIND_NEAREST_POINT: Giving up!!!'
+                           PRINT *, '     => did not find nearest point for target coordinates:', & !
+                              &              REAL(rlon,4), REAL(rlat,4)
+                        END IF
                         lagain = .FALSE.
                      END IF
 
-                  END IF    ! IF (Xdist(ji_s,jj_s) <= frac_emax*emax)
+                  END IF    ! IF(Xdist(ji_s,jj_s) <= frac_emax*emax)
 
                   niter  = niter + 1
 
                END DO !DO WHILE ( lagain )
                rlat_old = rlat
 
-            END IF ! IF ( mask_t(ji_t,jj_t) == 1 )
+            END IF ! IF( mask_t(ji_t,jj_t) == 1 )
          END DO    ! DO ji_t = 1, nx_t
       END DO       ! DO jj_t = j_strt_t, j_stop_t, jlat_icr
 
@@ -1341,7 +1343,7 @@ CONTAINS
       REAL(8), SAVE :: prevlat=-1000., prevlon=-1000
 
       !! Compute these term only if they differ from previous call
-      IF ( plata /= prevlat .OR. plona /= prevlon) THEN
+      IF( plata /= prevlat .OR. plona /= prevlon) THEN
          zlatar=plata*rd2rad
          zlonar=plona*rd2rad
          zux=COS(zlonar)*COS(zlatar)
@@ -1359,7 +1361,7 @@ CONTAINS
 
       zpds=zux*zvx+zuy*zvy+zuz*zvz
 
-      IF (zpds >= 1.) THEN
+      IF(zpds >= 1.) THEN
          distance = 0.
       ELSE
          distance = rradE*ACOS(zpds)
@@ -1421,7 +1423,7 @@ CONTAINS
 
             zpds = zux*zvx + zuy*zvy + zuz*zvz
 
-            !IF ( zpds < 1.) distance_2d(ji,jj) = rradE*ACOS(zpds)
+            !IF( zpds < 1.) distance_2d(ji,jj) = rradE*ACOS(zpds)
 
             distance_2d(ji,jj) = rradE*ACOS(MIN(zpds,1.))
 
@@ -1475,8 +1477,8 @@ CONTAINS
             min_x = MINVAL(v4x)  ;  max_x = MAXVAL(v4x)
             min_y = MINVAL(v4y)  ;  max_y = MAXVAL(v4y)
 
-            IF ( ((rlon_P >= min_x).and.(rlon_P <= max_x)) .AND. ( (max_x-min_x) < dr)  ) THEN
-               IF ( (rlat_P >= min_y).and.(rlat_P <= max_y) ) THEN
+            IF( ((rlon_P >= min_x).and.(rlon_P <= max_x)) .AND. ( (max_x-min_x) < dr)  ) THEN
+               IF( (rlat_P >= min_y).and.(rlat_P <= max_y) ) THEN
                   jxfnd = ji  ; jyfnd = jj
                END IF
             END IF
@@ -1497,22 +1499,22 @@ CONTAINS
       !!-------------------------------------------------------------------------
       nx = SIZE(Xlon,1)
       ny = SIZE(Xlon,2)
-      IF ( (SIZE(Xlat,1) /= nx) .OR. (SIZE(Xlat,2) /= ny) ) THEN
+      IF( (SIZE(Xlat,1) /= nx) .OR. (SIZE(Xlat,2) /= ny) ) THEN
          PRINT *, ' ERROR (L_IS_GRID_REGULAR of mod_grids.f90): Xlat does not agree in shape with Xlon!'
          STOP
       END IF
       l_is_grid_regular = .TRUE.
       !!  a/ checking on longitude array: (LOLO: use epsilon(Xlon) instead 1.E-12?)
       DO jj = 2, ny
-         IF ( SUM( ABS(Xlon(:,jj) - Xlon(:,1)) ) > 1.E-12 ) THEN
+         IF( SUM( ABS(Xlon(:,jj) - Xlon(:,1)) ) > 1.E-12 ) THEN
             l_is_grid_regular = .FALSE.
             EXIT
          END IF
       END DO
       !!  b/ now on latitude array:
-      IF ( l_is_grid_regular ) THEN
+      IF( l_is_grid_regular ) THEN
          DO ji = 1, nx
-            IF ( SUM( ABS(Xlat(ji,:) - Xlat(1,:)) ) > 1.E-12 ) THEN
+            IF( SUM( ABS(Xlat(ji,:) - Xlat(1,:)) ) > 1.E-12 ) THEN
                l_is_grid_regular = .FALSE.
                EXIT
             END IF
@@ -1541,17 +1543,17 @@ CONTAINS
       !!
       INTEGER :: jo, jn, nold
       nold = SIZE(vect,1)
-      IF ( nold /= SIZE(vmask_ignore,1) ) THEN
+      IF( nold /= SIZE(vmask_ignore,1) ) THEN
          PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): data vector and mask vector do not agree in length!'
          STOP
       END IF
-      IF ( (new_size > nold).OR.(new_size<=0) ) THEN
+      IF( (new_size > nold).OR.(new_size<=0) ) THEN
          PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): your new_size does not make sense!'
          STOP
       END IF
       jn = 0
       DO jo = 1, nold
-         IF ( vmask_ignore(jo) == 1 ) THEN
+         IF( vmask_ignore(jo) == 1 ) THEN
             jn = jn + 1
             SHRINK_VECTOR(jn) = vect(jo)
          END IF
@@ -1630,18 +1632,18 @@ CONTAINS
       INTEGER :: nx, ny, nyp1, nyp2
       INTEGER :: ji, ji_m
 
-      IF ( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
+      IF( (SIZE(XX,1) /= SIZE(YY,1)).OR.(SIZE(XX,2) /= SIZE(YY,2)).OR. &
          & (SIZE(XX,1) /= SIZE(XF,1)).OR.(SIZE(XX,2) /= SIZE(XF,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : size of input coor. and data do not match!!!'; STOP
       END IF
-      IF ( (SIZE(XP,1) /= SIZE(YP,1)).OR.(SIZE(XP,2) /= SIZE(YP,2)).OR. &
+      IF( (SIZE(XP,1) /= SIZE(YP,1)).OR.(SIZE(XP,2) /= SIZE(YP,2)).OR. &
          & (SIZE(XP,1) /= SIZE(FP,1)).OR.(SIZE(XP,2) /= SIZE(FP,2))) THEN
          PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : size of output coor. and data do not match!!!'; STOP
       END IF
       nx = SIZE(XX,1)
       ny = SIZE(XX,2)
       nyp2 = SIZE(XP,2)
-      IF ( nyp2 /= ny + 2 ) THEN
+      IF( nyp2 /= ny + 2 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : target y dim is not nj+2!!!'; STOP
       END IF
 
@@ -1658,12 +1660,12 @@ CONTAINS
 
       !! Testing if the grid is of the type of what we expect:
       rr = YY(nx/2,ny) ! highest latitude
-      IF ( rr == 90.0 ) THEN
+      IF( rr == 90.0 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : mhh well you shouldnt be here I guess, 90 exists!...'
          PRINT *, YY(:,ny)
          STOP
       END IF
-      IF ( SUM( (YY(:,ny) - rr)**2 ) > 1.E-12 ) THEN
+      IF( SUM( (YY(:,ny) - rr)**2 ) > 1.E-12 ) THEN
          PRINT *, 'ERROR, mod_manip.f90 => EXT_NORTH_TO_90_REGG : mhh well you shouldnt be here I guess, grid doesnt seem to be regular!...'
          STOP
       END IF

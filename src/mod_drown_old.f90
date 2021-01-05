@@ -1,15 +1,12 @@
 MODULE MOD_DROWN
 
-   !USE io_ezcdf !LOLO
-   !USE mod_manip
-
+   USE mod_conf, ONLY: iverbose
+   
    IMPLICIT none
 
    PRIVATE
 
    PUBLIC :: drown, smoother
-
-   LOGICAL, PARAMETER :: ldebug = .FALSE.
 
    REAL, PARAMETER :: ris2 = 1.0/SQRT(2.0)
 
@@ -70,13 +67,13 @@ CONTAINS
       X = X * mask  ! we rather have 0s on continents than some fucked up high values...
 
       ninc_max = 200   ! will stop before when all land points have been treated!!!
-      IF ( present(nb_inc) ) ninc_max = nb_inc
+      IF( present(nb_inc) ) ninc_max = nb_inc
 
       nsmooth_max = 10
-      IF ( present(nb_smooth) ) nsmooth_max = nb_smooth
+      IF( present(nb_smooth) ) nsmooth_max = nb_smooth
 
 
-      IF ( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
+      IF( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
          PRINT *, 'ERROR, mod_drown.F90 => DROWN : size of data and mask do not match!!!'; STOP
       END IF
 
@@ -95,7 +92,7 @@ CONTAINS
       ivi = (/ 1 , ni /)
 
 
-      IF (k_ew >= 0) THEN
+      IF(k_ew >= 0) THEN
          vim_per = (/ ni-k_ew ,  ni-1  /)
          vip_per = (/    2    , 1+k_ew /)
       END IF
@@ -108,8 +105,8 @@ CONTAINS
       DO jinc = 1, ninc_max
 
          !! Quiting if no land point left:
-         IF ( .NOT. (ANY(maskv == 0))  ) THEN
-            IF ( ldebug ) PRINT *, 'DROWN: No land points left! Leaving incursion loop at jinc =', jinc
+         IF( .NOT. (ANY(maskv == 0))  ) THEN
+            IF(iverbose==2) PRINT *, 'DROWN: No land points left! Leaving incursion loop at jinc =', jinc
             EXIT
          END IF
 
@@ -129,7 +126,7 @@ CONTAINS
          !! West and East boundaries with periodicity
          !! ------------------------------------------
 
-         IF (k_ew >= 0) THEN
+         IF(k_ew >= 0) THEN
 
             DO jci = 1, 2
                jim = vim_per(jci)  ! ji-1
@@ -157,13 +154,13 @@ CONTAINS
             &                     *(-(maskv(2:ni-1,1)-1))
          !!
          !! ji=1, jj=1
-         IF (k_ew >= 0) THEN
+         IF(k_ew >= 0) THEN
             mask_coast(1,1) = (maskv(2,1) + maskv(1,2) + maskv(ni-k_ew,1))*(-(maskv(1,1)-1))
          ELSE
             mask_coast(1,1) = (maskv(2,1) + maskv(1,2)                   )*(-(maskv(1,1)-1))
          END IF
          ! ji=ni, jj=1
-         IF (k_ew >= 0) THEN
+         IF(k_ew >= 0) THEN
             mask_coast(ni,1) = (maskv(1+k_ew,1) + maskv(ni,2) + maskv(ni,1))*(-(maskv(ni,1)-1))
          ELSE
             mask_coast(ni,1) = (                  maskv(ni,2) + maskv(ni,1))*(-(maskv(ni,1)-1))
@@ -174,13 +171,13 @@ CONTAINS
          mask_coast(2:ni-1,nj) = (maskv(3:ni,nj) + maskv(1:ni-2,nj) + maskv(2:ni-1,nj-1)) &
             &                     *(-(maskv(2:ni-1,nj)-1))
          !! ji=1, jj=nj
-         IF (k_ew >= 0) THEN
+         IF(k_ew >= 0) THEN
             mask_coast(1,nj)  = (maskv(2,nj)            + maskv(ni-k_ew,nj)  + maskv(1,nj-1)   )*(-(maskv(1,nj) -1))
          ELSE
             mask_coast(1,nj)  = (maskv(2,nj)                                 + maskv(1,nj-1)   )*(-(maskv(1,nj) -1))
          END IF
          !! ji=ni, jj=nj
-         IF (k_ew >= 0) THEN
+         IF(k_ew >= 0) THEN
             mask_coast(ni,nj) = (maskv(k_ew+1,nj) + maskv(ni-1,nj)     + maskv(ni-1,nj-1))    *(-(maskv(ni,nj) -1))
          ELSE
             mask_coast(ni,nj) = (          maskv(ni-1,nj)     + maskv(ni-1,nj-1))             *(-(maskv(ni,nj) -1))
@@ -196,9 +193,9 @@ CONTAINS
          END WHERE
 
 
-         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
-         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
-         !IF ( jinc == jinc_debg) CALL DUMP_2D_FIELD(X, 'data_X_before.nc', 'lsm')
+         !IF( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(maskv,4), 'maskv.nc', 'lsm')
+         !IF( jinc == jinc_debg) CALL DUMP_2D_FIELD(REAL(mask_coast,4), 'mask_coast.nc', 'lsm') !; STOP 'mod_drown.F90 => boo!'
+         !IF( jinc == jinc_debg) CALL DUMP_2D_FIELD(X, 'data_X_before.nc', 'lsm')
          !STOP
 
 
@@ -209,7 +206,7 @@ CONTAINS
          !! Center of the domain:
          DO jj = 2, nj-1
             DO ji = 2, ni-1
-               IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( mask_coast(ji,jj) == 1 ) THEN
                   X(ji,jj) = 1./(maskv(ji+1,jj)+maskv(ji,jj+1)+maskv(ji-1,jj)+maskv(ji,jj-1) + &
                      & ris2*(maskv(ji+1,jj+1)+maskv(ji-1,jj+1)+maskv(ji-1,jj-1)+maskv(ji+1,jj-1)))*( &
                      & maskv(ji+1,jj)*dold(ji+1,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -228,7 +225,7 @@ CONTAINS
             ji  = ivi(jci)      ! first ji = 1, then ji = ni
 
 
-            IF (k_ew >= 0) THEN
+            IF(k_ew >= 0) THEN
 
                !! West and East boundaries with periodicity
 
@@ -237,7 +234,7 @@ CONTAINS
                jip = vip_per(jci)  ! ji+1
 
                DO jj = 2, nj-1
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
+                  IF( mask_coast(ji,jj) == 1 ) THEN
                      X(ji,jj) = 1./(maskv(jip,jj)+maskv(ji,jj+1)+maskv(jim,jj)+maskv(ji,jj-1) + &
                         & ris2*(maskv(jip,jj+1)+maskv(jim,jj+1)+maskv(jim,jj-1)+maskv(jip,jj-1)))*( &
                         & maskv(jip,jj)*dold(jip,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -250,9 +247,9 @@ CONTAINS
             ELSE
 
                !! West & East LBCs when not east-west periodicity, extrapolating lineraly
-               IF ( ji == 1 ) THEN
+               IF( ji == 1 ) THEN
                   DO jj = 2, nj-1
-                     IF ( mask_coast(ji,jj) == 1 ) THEN
+                     IF( mask_coast(ji,jj) == 1 ) THEN
                         X(ji,jj) = 1./(maskv(2,jj)+maskv(ji,jj+1)+maskv(ji,jj-1) + &
                            & ris2*maskv(2,jj+1)+ris2*maskv(2,jj-1))*( &
                            & maskv(2,jj)*dold(2,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -262,9 +259,9 @@ CONTAINS
                      END IF
                   END DO
                END IF
-               IF ( ji == ni ) THEN
+               IF( ji == ni ) THEN
                   DO jj = 2, nj-1
-                     IF ( mask_coast(ji,jj) == 1 ) THEN
+                     IF( mask_coast(ji,jj) == 1 ) THEN
                         X(ji,jj) = 1./( maskv(ji,jj+1)+maskv(ni-1,jj)+maskv(ji,jj-1) + &
                            & ris2*maskv(ni-1,jj+1)+ris2*maskv(ni-1,jj-1))*( &
                            & maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -284,7 +281,7 @@ CONTAINS
          !! Center of Top row:
          jj = nj
          DO ji = 2, ni-1
-            IF ( mask_coast(ji,jj) == 1 ) THEN
+            IF( mask_coast(ji,jj) == 1 ) THEN
                X(ji,jj) = 1./( maskv(ji+1,jj)+maskv(ji-1,jj)+maskv(ji,jj-1) + &
                   & ris2*maskv(ji-1,jj-1)+ris2*maskv(ji+1,jj-1) )*( &
                   & maskv(ji+1,jj)*dold(ji+1,jj) + &
@@ -298,10 +295,10 @@ CONTAINS
 
             ji  = ivi(jci)      ! first ji = 1, then ji = ni
 
-            IF (k_ew >= 0) THEN
+            IF(k_ew >= 0) THEN
                jim = vim_per(jci)  ! ji-1
                jip = vip_per(jci)  ! ji+1
-               IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( mask_coast(ji,jj) == 1 ) THEN
                   X(ji,jj) = 1./(maskv(jip,jj)+maskv(jim,jj)+maskv(ji,jj-1) + &
                      & ris2*maskv(jim,jj-1)+ris2*maskv(jip,jj-1))*( &
                      & maskv(jip,jj)*dold(jip,jj) + &
@@ -311,8 +308,8 @@ CONTAINS
 
                ! No E-W periodicity:
             ELSE
-               IF ( ji == 1 ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( ji == 1 ) THEN
+                  IF( mask_coast(ji,jj) == 1 ) THEN
                      X(ji,jj) = 1./(maskv(2,jj)+maskv(ji,jj-1) + &
                         & ris2*maskv(2,jj-1))*( &
                         & maskv(2,jj)*dold(2,jj) + &
@@ -320,8 +317,8 @@ CONTAINS
                         & ris2*maskv(2,jj-1)*dold(2,jj-1)  )
                   END IF
                END IF
-               IF ( ji == ni ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( ji == ni ) THEN
+                  IF( mask_coast(ji,jj) == 1 ) THEN
                      X(ji,jj) = 1./(maskv(ni-1,jj)+maskv(ji,jj-1) + &
                         & ris2*maskv(ni-1,jj-1))*( &
                         & maskv(ni-1,jj)*dold(ni-1,jj) + maskv(ji,jj-1)*dold(ji,jj-1) + &
@@ -338,7 +335,7 @@ CONTAINS
          !! Center of Bottom row:
          jj = 1
          DO ji = 2, ni-1
-            IF ( mask_coast(ji,jj) == 1 ) THEN
+            IF( mask_coast(ji,jj) == 1 ) THEN
                X(ji,jj) = 1./(maskv(ji+1,jj)+maskv(ji,jj+1)+maskv(ji-1,jj) + &
                   & ris2*maskv(ji+1,jj+1)+ris2*maskv(ji-1,jj+1) )*( &
                   & maskv(ji+1,jj)*dold(ji+1,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -352,10 +349,10 @@ CONTAINS
 
             ji  = ivi(jci)      ! first ji = 1, then ji = ni
 
-            IF (k_ew >= 0) THEN
+            IF(k_ew >= 0) THEN
                jim = vim_per(jci)  ! ji-1
                jip = vip_per(jci)  ! ji+1
-               IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( mask_coast(ji,jj) == 1 ) THEN
                   X(ji,jj) = 1./(maskv(jip,jj)+maskv(ji,jj+1)+maskv(jim,jj) + &
                      & ris2*maskv(jip,jj+1)+ris2*maskv(jim,jj+1) )*( &
                      & maskv(jip,jj)*dold(jip,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -365,16 +362,16 @@ CONTAINS
 
                !! No E-W periodicity:
             ELSE
-               IF ( ji == 1 ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( ji == 1 ) THEN
+                  IF( mask_coast(ji,jj) == 1 ) THEN
                      X(ji,jj) = 1./(maskv(2,jj)+maskv(ji,jj+1) + &
                         & ris2*maskv(2,jj+1) )*( &
                         & maskv(2,jj)*dold(2,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
                         & ris2*maskv(2,jj+1)*dold(2,jj+1) )
                   END IF
                END IF
-               IF ( ji == ni ) THEN
-                  IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF( ji == ni ) THEN
+                  IF( mask_coast(ji,jj) == 1 ) THEN
                      X(ji,jj) = 1./(maskv(ji,jj+1)+maskv(ni-1,jj) + &
                         & ris2*maskv(ni-1,jj+1) )*( &
                         & maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -395,7 +392,7 @@ CONTAINS
          !! -----------------------------------
 
 
-         !IF ( jinc == jinc_debg) THEN
+         !IF( jinc == jinc_debg) THEN
          !   CALL DUMP_2D_FIELD(X, 'data_X_after.nc', 'lsm')
          !   STOP 'after lolo'
          !END IF
@@ -414,7 +411,7 @@ CONTAINS
 
       DEALLOCATE ( maskv, mtmp, xtmp, dold, mask_coast )
 
-      IF ( ldebug ) PRINT *, 'DROWN: jinc =', jinc
+      IF(iverbose==2) PRINT *, 'DROWN: jinc =', jinc
 
    END SUBROUTINE DROWN
 
@@ -469,18 +466,18 @@ CONTAINS
 
 
       nsmooth_max = 10
-      IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
+      IF( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
       l_mask = .FALSE.
-      IF ( PRESENT(msk) ) l_mask = .TRUE.
+      IF( PRESENT(msk) ) l_mask = .TRUE.
 
       l_emp = .FALSE.
-      IF ( PRESENT(l_exclude_mask_points) ) l_emp = l_exclude_mask_points
+      IF( PRESENT(l_exclude_mask_points) ) l_emp = l_exclude_mask_points
 
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
-      IF ( (l_emp).AND.(.NOT. l_mask) ) THEN
+      IF( (l_emp).AND.(.NOT. l_mask) ) THEN
          PRINT *, 'PROBLEM in SMOOTH (mod_drown.f90): you need to provide a "msk"'
          PRINT *, '                                    if you set l_exclude_mask_points=.true.!'
          STOP
@@ -489,19 +486,19 @@ CONTAINS
 
       ALLOCATE ( xtmp(ni,nj) )
 
-      IF (l_emp) THEN
+      IF(l_emp) THEN
          ALLOCATE ( rdnm(ni,nj) )
          rdnm(ni,nj) = 0.25
       END IF
 
-      IF ( l_mask ) THEN
+      IF( l_mask ) THEN
          ALLOCATE ( xorig(ni,nj) )
          xorig(:,:) = X(:,:)
       END IF
 
       ivi = (/ 1 , ni /)
 
-      IF (k_ew >= 0) THEN
+      IF(k_ew >= 0) THEN
          vim_per = (/ ni-k_ew ,  ni-1  /)
          vip_per = (/    2    , 1+k_ew /)
       END IF
@@ -511,11 +508,11 @@ CONTAINS
 
          xtmp(:,:) = X(:,:)
 
-         IF ( l_emp ) xtmp(:,:) = xtmp(:,:)*REAL(msk(:,:),4)
+         IF( l_emp ) xtmp(:,:) = xtmp(:,:)*REAL(msk(:,:),4)
 
          !! Center of the domain:
          !! ---------------------
-         IF ( l_emp ) THEN
+         IF( l_emp ) THEN
             !PRINT *, ' -- SMOOTH is excluding masked points...'
             rdnm(2:ni-1,2:nj-1) = 1. / MAX( REAL( &
                &          msk(3:ni,2:nj-1) + msk(2:ni-1,3:nj) + msk(1:ni-2,2:nj-1) + msk(2:ni-1,1:nj-2)   &
@@ -526,7 +523,7 @@ CONTAINS
                &            + ris2*( xtmp(3:ni,3:nj)   + xtmp(3:ni,1:nj-2) + xtmp(1:ni-2,1:nj-2) + xtmp(1:ni-2,3:nj) )  ) &
                &                                  * rdnm(2:ni-1,2:nj-1)
          ELSE
-            !IF ( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "msk")'
+            !IF( l_mask ) PRINT *, ' -- SMOOTH is NOT excluding masked points! (despite presence of "msk")'
             X(2:ni-1,2:nj-1) = w0   *xtmp(2:ni-1,2:nj-1) &
                & + (1.-w0)*(         xtmp(3:ni,2:nj-1) + xtmp(2:ni-1,3:nj) + xtmp(1:ni-2,2:nj-1) + xtmp(2:ni-1,1:nj-2)   &
                &            + ris2*( xtmp(3:ni,3:nj)   + xtmp(3:ni,1:nj-2) + xtmp(1:ni-2,1:nj-2) + xtmp(1:ni-2,3:nj) )  ) &
@@ -537,14 +534,14 @@ CONTAINS
 
          !! we can use east-west periodicity:
          !! ---------------------------------
-         IF (k_ew >= 0) THEN
+         IF(k_ew >= 0) THEN
             DO jci = 1, 2
                jim = vim_per(jci)  ! ji-1
                ji  = ivi(jci)      ! first ji = 1, then ji = ni
                jip = vip_per(jci)  ! ji+1
 
 
-               IF ( l_emp ) THEN
+               IF( l_emp ) THEN
                   rdnm(ji,2:nj-1) = 1./MAX( REAL(msk(jip,2:nj-1) + msk(ji,3:nj)    + msk(jim,2:nj-1) + msk(ji,1:nj-2)   &
                      &                  + ris2*( msk(jip,3:nj)   + msk(jip,1:nj-2) + msk(jim,1:nj-2) + msk(jim,3:nj) ),4),0.01)
 
@@ -566,13 +563,13 @@ CONTAINS
          END IF
 
          !! Smoothing is applied only where msk==1, values of X remain unchanged elsewhere:
-         IF ( l_mask ) X(:,2:nj-1) = msk(:,2:nj-1)*X(:,2:nj-1) - (msk(:,2:nj-1) - 1)*xorig(:,2:nj-1)
+         IF( l_mask ) X(:,2:nj-1) = msk(:,2:nj-1)*X(:,2:nj-1) - (msk(:,2:nj-1) - 1)*xorig(:,2:nj-1)
 
       END DO
 
       DEALLOCATE ( xtmp )
-      IF (l_mask) DEALLOCATE (  xorig )
-      IF (l_emp)  DEALLOCATE ( rdnm )
+      IF(l_mask) DEALLOCATE (  xorig )
+      IF(l_emp)  DEALLOCATE ( rdnm )
 
    END SUBROUTINE SMOOTHER
 

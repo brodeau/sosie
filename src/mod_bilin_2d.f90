@@ -20,6 +20,11 @@ MODULE MOD_BILIN_2D
 
    PRIVATE
 
+   INTEGER, PARAMETER :: &
+      !! Only active if iverbose==2:
+      &   idb = 0, & ! i-index of point to debug on target domain
+      &   jdb = 0    ! j-index of point to debug on target domain
+
    !! Mapping for bilin:
    TYPE :: bln_map
       REAL(8)          :: ralfa
@@ -29,7 +34,7 @@ MODULE MOD_BILIN_2D
       INTEGER(1)       :: iqdrn
       INTEGER(2)       :: ipb ! ID of problem if any...
    END TYPE bln_map
-   
+
    TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE, SAVE :: bilin_map
    REAL(4),       DIMENSION(:,:), ALLOCATABLE, SAVE :: distance_to_np
    LOGICAL,       DIMENSION(:),   ALLOCATABLE, SAVE :: l_1st_call_bilin
@@ -44,12 +49,6 @@ MODULE MOD_BILIN_2D
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
    LOGICAL, SAVE :: l_last_y_row_missing
-
-   INTEGER, PARAMETER :: &
-      &                     iverbose = 0  , &  ! 0 to 2...
-      &                     idb      = 0  , &  ! i-index of point to debug on target domain (iverbose = 2 !)
-      &                     jdb      = 0       ! j-index     "         "         "          "
-
 
    PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
 
@@ -71,10 +70,10 @@ CONTAINS
       ALLOCATE ( bilin_map(ni_trg,nj_trg) )
 
       IF (l_save_distance_to_np) ALLOCATE ( distance_to_np(ni_trg,nj_trg) )
-      
+
       ALLOCATE ( l_1st_call_bilin(Nthrd) )
       l_1st_call_bilin(:) = .TRUE.
-      
+
       WRITE(6,*) '  * Allocations done...'
       WRITE(6,*) ''
       WRITE(cf_wght_bilin,'("sosie_mapping_",a,".nc")') TRIM(cpat)

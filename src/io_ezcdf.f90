@@ -1837,8 +1837,8 @@ CONTAINS
             !!  => may occur when 2D zonal sections
          ELSE
             PRINT *, 'ERROR, mod_manip.f90 = >TEST_XYZ 1: longitude and latitude array do not match data!'
-            PRINT *, '  => ix1,ix2 / iy1,iy2 / iz1,iz2 ='
-            PRINT *,      ix1,ix2 ,' /', iy1,iy2 ,' /', iz1,iz2
+            PRINT *, '=> ix1  , ix2  /    iy1  , iy2  /    iz1  , iz2 ='
+            PRINT *,      INT(ix1,2),INT(ix2,2) ,' /', INT(iy1,2),INT(iy2,2) ,' /', INT(iz1,2),INT(iz2,2)
             PRINT *, ''; STOP
          END IF
          !!

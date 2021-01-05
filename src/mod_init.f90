@@ -35,7 +35,7 @@ CONTAINS
 
       INTEGER            :: iargc, jarg
       CHARACTER(len=400) :: cr
-      CHARACTER(LEN=2), DIMENSION(4), PARAMETER :: clist_opt = (/ '-h','-p','-f','-N' /)
+      CHARACTER(LEN=2), DIMENSION(5), PARAMETER :: clist_opt = (/ '-h','-p','-f','-N','-l' /)
 
       PRINT *, ''
 
@@ -70,11 +70,9 @@ CONTAINS
             END IF
 
          CASE('-N')
-
             IF( jarg + 1 > iargc() ) THEN
                PRINT *, 'ERROR: provide the number of OMP threads!' ; call usage()
             ELSE
-
                jarg = jarg + 1
                CALL getarg(jarg,cr)
                IF( ANY(clist_opt == TRIM(cr)) ) THEN
@@ -83,19 +81,42 @@ CONTAINS
                ELSE
                   READ(cr,'(i2)') Nthrd_fix
                END IF
+            END IF
 
+         CASE('-l')
+            IF( jarg + 1 > iargc() ) THEN
+               PRINT *, 'ERROR: provide the level of verbosity (0 to 2)!' ; CALL usage()
+            ELSE
+               jarg = jarg + 1
+               CALL getarg(jarg,cr)
+               IF( ANY(clist_opt == TRIM(cr)) ) THEN
+                  PRINT *, 'ERROR: "', trim(cr), '" is definitively not a level of verbosity!'
+                  CALL usage()
+               ELSE
+                  READ(cr,'(i1)') iverbose
+               END IF
             END IF
 
          CASE DEFAULT
-            PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
+            PRINT *, 'Unknown option: ', TRIM(cr) ; PRINT *, ''
             CALL usage()
 
          END SELECT
 
-      END DO
+      END DO !DO WHILE ( jarg < iargc() )
+
+      IF( (iverbose<0).OR.(iverbose>2) ) THEN
+         PRINT *,'Level of verbosity between 0 and 2 please!!!'
+         CALL usage()
+      END IF
+      IF( Nthrd_fix<1 ) THEN
+         PRINT *,'Number of OMP threads >= 1 please!!!'
+         CALL usage()
+      END IF
+
 
       PRINT *, ''
-      PRINT *, ' * namelist = ', trim(cf_nml_sosie)
+      PRINT *, ' * namelist = ', TRIM(cf_nml_sosie)
       PRINT *
 
    END SUBROUTINE GET_ARGUMENTS
@@ -131,7 +152,7 @@ CONTAINS
       idrown%l_msk_chg = .false.
 
       ixtrpl_bot = 0
-      
+
       !! Reading interpolation section:
       REWIND( numnam )
       READ( numnam, ninterp )
@@ -409,6 +430,8 @@ CONTAINS
       PRINT *,' -f  <namelist_file>  => Specify which namelist file to use'
       PRINT *, ''
       PRINT *,' -N  <integer>        => Specify the nunber of OMP threads to use'
+      PRINT *, ''
+      PRINT *,' -l  <integer>        => Specify the level of verbosity (0 to 2)'
       PRINT *, ''
       PRINT *,' -h                   => Show this message'
       PRINT *, ''

@@ -383,59 +383,55 @@ CONTAINS
    END SUBROUTINE GET_MY_ARG
 
 
+   SUBROUTINE usage()
+      !!
+      !! OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  !! MB: Pb with gfortran
+      !!
+      WRITE(6,*) ''
+      WRITE(6,*) '   List of command line options:'
+      WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -M                   => MASK the field'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -D                   => DROWN the field'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
+      WRITE(6,*) ''
+      WRITE(6,*) '    Optional:'
+      WRITE(6,*)  ''
+      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file (default: lat)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -m  <mask_file>      => Specify mask file to be used (default: mask.nc)'
+      WRITE(6,*) '                         or "0" to use missing-value attribute value of input variable'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -q  <name>           => Specify mask name in mask file (default: lsm)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -p  <integer>        => DROWN: east-west periodicity in points (default: 0)'
+      WRITE(6,*) '                         * no periodicity       => -1'
+      WRITE(6,*) '                         * no overlaping point  =>  0'
+      WRITE(6,*) '                         * N  overlaping points =>  N'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -l  <real>           => to set a lower bound for the field (ex: "-10." not "-10")'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -u  <real>           => to set an upper bound for the field (ex: "100." not "100")'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -o  <output_file.nc> => Output file (default: fout.nc)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -h                   => Show this message'
+      WRITE(6,*) ''
+      !!
+      CLOSE(6)
+      STOP
+      !!
+   END SUBROUTINE usage
+
+
 END PROGRAM mask_drown_field
-
-
-
-
-
-SUBROUTINE usage()
-   !!
-   !! OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  !! MB: Pb with gfortran
-   !!
-   WRITE(6,*) ''
-   WRITE(6,*) '   List of command line options:'
-   WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -M                   => MASK the field'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -D                   => DROWN the field'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
-   WRITE(6,*) ''
-   WRITE(6,*) '    Optional:'
-   WRITE(6,*)  ''
-   WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file (default: lat)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -m  <mask_file>      => Specify mask file to be used (default: mask.nc)'
-   WRITE(6,*) '                         or "0" to use missing-value attribute value of input variable'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -q  <name>           => Specify mask name in mask file (default: lsm)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -p  <integer>        => DROWN: east-west periodicity in points (default: 0)'
-   WRITE(6,*) '                         * no periodicity       => -1'
-   WRITE(6,*) '                         * no overlaping point  =>  0'
-   WRITE(6,*) '                         * N  overlaping points =>  N'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -l  <real>           => to set a lower bound for the field (ex: "-10." not "-10")'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -u  <real>           => to set an upper bound for the field (ex: "100." not "100")'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -o  <output_file.nc> => Output file (default: fout.nc)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -h                   => Show this message'
-   WRITE(6,*) ''
-   !!
-   CLOSE(6)
-   STOP
-   !!
-END SUBROUTINE usage
-!!

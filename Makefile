@@ -101,9 +101,9 @@ bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 $(OBJ_I2GT)
 	@mkdir -p bin
 	$(FC) $(FF) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB_CDF)
 
-bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_manip.o
+bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 obj/io_ezcdf.o obj/mod_conf.o obj/mod_manip.o
 	@mkdir -p bin
-	$(FC) $(FF) obj/io_ezcdf.o obj/mod_manip.o src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
+	$(FC) $(FF) obj/io_ezcdf.o obj/mod_conf.o obj/mod_manip.o src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
 
 
 ### CRS:

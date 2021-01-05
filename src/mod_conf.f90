@@ -10,10 +10,12 @@ MODULE MOD_CONF
 
    !! -------------------------------------------------------------------------
    !! OpenMP related stuff:
-   INTEGER, SAVE   :: Nthrd_fix, Nthrd         !: number of OpenMP threads
+   INTEGER, SAVE   :: Nthrd_fix=1, Nthrd=1    !: number of OpenMP threads
    INTEGER, DIMENSION(:), ALLOCATABLE :: io1, io2, i_seg_s
    !! -------------------------------------------------------------------------
-   
+
+   INTEGER, SAVE :: iverbose=0 ! level of verbose: 0 to 2...                                                              
+
    !! Some constants:
    REAL(8), PARAMETER :: rpi0   = ACOS(-1._8), &
       &                  rd2rad = rpi0/180._8, & ! for degree to radian conversion
