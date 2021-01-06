@@ -1,0 +1,41 @@
+# Makefile for SOSIE with Intel Ifort on Linux
+# ============================================
+
+# Fortran compiler:
+FC = ifort
+
+# Root directory for Netcdf:
+# netcf libraries are in: <NETCDF_DIR>/lib/
+# netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+NETCDF_DIR = /opt/hdf5_netcdf4_intel
+
+# Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
+L_NCDF = -lnetcdff
+
+# Compiler's libraries location:
+#LIB_COMP_DIR = /opt/intel/compilers_and_libraries_2019.1.144/linux/compiler/lib/intel64_lin
+# Linking argument for OpenMP library:
+#L_OMP  = -liomp5
+
+
+# Fortran compilation flags:
+
+# -- Production:
+#FF = -O3 -i4 -xHOST -traceback -module mod/
+
+# -- Debugging:
+FF =  -fpe0 -O0 -g -check all -warn all -traceback -debug extended -C -module mod/
+
+## For io_ezcdf.f90:
+FF_SAFE = -O2 -i4 -xHOST -traceback -module mod/
+
+
+# Directory to install binaries:
+INSTALL_DIR = /usr/local
+
+
+# interp_to_ephem.x requires the "datetime fortran" library modules to be compiled on your system!
+# => https://github.com/wavebitscientific/datetime-fortran
+#
+DATETIME_FORTRAN_DIR=$(HOME)/src/datetime-fortran/build
+#
