@@ -10,8 +10,9 @@ MODULE MOD_CONF
 
    !! -------------------------------------------------------------------------
    !! OpenMP related stuff:
-   INTEGER, SAVE   :: Nthrd_fix=1, Nthrd=1    !: number of OpenMP threads
-   INTEGER, DIMENSION(:), ALLOCATABLE :: io1, io2, i_seg_s
+   LOGICAL,                            SAVE :: l_omp = .false.
+   INTEGER,                            SAVE :: Nthrd_fix=1, Nthrd=1    !: number of OpenMP threads
+   INTEGER, DIMENSION(:), ALLOCATABLE, SAVE :: io1, io2, i_seg_s
    !! -------------------------------------------------------------------------
 
    INTEGER, SAVE :: iverbose=0 ! level of verbose: 0 to 2...                                                              

@@ -75,7 +75,7 @@ PROGRAM SOSIE
    WRITE(6,*)'=========================================================='
    WRITE(6,*)''
 
-   Nthrd = 1
+
 
 
    CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue1)
@@ -90,15 +90,16 @@ PROGRAM SOSIE
    CALL GET_ARGUMENTS()    ! MODULE mod_init
 
 
+   Nthrd = 1
+   l_omp = .FALSE.
    !! ========== OpenMP only ==========================================
    !$ CALL OMP_SET_NUM_THREADS(Nthrd_fix)
    !$OMP PARALLEL PRIVATE(NTHREADS, TID)
    !$ TID = OMP_GET_THREAD_NUM()
    !$ IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
    !$OMP END PARALLEL
-   !$ WRITE(6,'(" ### Going to use ",i2," OpenMP threads!")') Nthrd
    !!===================================================================
-
+   IF( Nthrd > 1 ) l_omp = .TRUE.
 
    !! Reading namelist:
    CALL READ_NMLST(1)      ! MODULE mod_init
@@ -120,13 +121,23 @@ PROGRAM SOSIE
 
    !! ----------------------------------------------------------------------------------------
    !! OMP decomposition
-   !
-   !$ PRINT *, ''
-   !$ PRINT *, ' OMP thread decomposition along target grid X-axis:'
-   !$ PRINT *, '  Nthrd =', Nthrd
-   !$ PRINT *, '  ni_trg=', ni_trg
-   !PRINT *, '  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
-   !PRINT *, '   noinc =', noinc
+   !! ----------------------------------------------------------------------------------------
+   IF(l_omp) THEN
+      WRITE(6,*) ''
+      WRITE(6,*) '#########################################################'
+      WRITE(6,*) '#              O p e n M P   s e t u p '
+      WRITE(6,*) '#########################################################'
+      WRITE(6,*) ''
+      WRITE(6,'("   => Going to use ",i2," OpenMP threads!")') Nthrd
+      IF(iverbose>0) THEN
+         WRITE(6,*) ' OMP thread decomposition along target grid X-axis:'
+         WRITE(6,*) '  *  Nthrd =', INT(Nthrd,1)
+         WRITE(6,*) '  *  ni_trg=', ni_trg
+         WRITE(6,*) '  *  ni_trg/Nthrd , ni_trg%Nthrd =>', ni_trg/Nthrd , MOD(ni_trg,Nthrd)
+         WRITE(6,*) '  *  noinc =', noinc
+      END IF
+      WRITE(6,*) ''
+   END IF
 
    !! ALONG I:
    ALLOCATE ( io1(Nthrd), io2(Nthrd), i_seg_s(Nthrd) )
@@ -147,26 +158,28 @@ PROGRAM SOSIE
          io2(jo) = io1(jo)   + noinc -1 + ipl
       END DO
    END IF
-   
-   PRINT *, ''; PRINT *, ''
-   PRINT *, ' *** OMP decomposition along x *** '
-   DO jo = 1, Nthrd
-      PRINT *, ''
-      PRINT *, '  OMP thread #',INT(jo,1),':'
-      PRINT *, '   => will treat ji from ', io1(jo), ' to ', io2(jo), '!'
-      i_seg_s(jo) = SIZE(lon_trg(io1(jo):io2(jo),0)) ! lazy!!! but trustworthy I guess...
-      PRINT *, '   => i-SIZE of segment => ', i_seg_s(jo)
-   END DO
-   PRINT *, ''; PRINT *, ''
 
+   IF(l_omp) THEN
+      WRITE(6,*) ' *** OMP decomposition along x *** '
+      DO jo = 1, Nthrd
+         WRITE(6,*) ''
+         WRITE(6,*) '  OMP thread #',INT(jo,1),':'
+         WRITE(6,*) '   => will treat ji from ', io1(jo), ' to ', io2(jo), '!'
+         i_seg_s(jo) = SIZE(lon_trg(io1(jo):io2(jo),0)) ! lazy!!! but trustworthy I guess...
+         WRITE(6,*) '   => i-SIZE of segment => ', i_seg_s(jo)
+      END DO
+      WRITE(6,*) ''
+      WRITE(6,*) '#########################################################'
+      WRITE(6,*) ''
+      WRITE(6,*) ''
+   END IF
+   !! ----------------------------------------------------------------------------------------
    !! ----------------------------------------------------------------------------------------
 
 
 
-
-   
    IF ( Ntr == 0 ) THEN
-      PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
+      WRITE(6,*) 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
    END IF
 
    IF ( .NOT. lmout) rfct_miss = 0.
@@ -184,8 +197,8 @@ PROGRAM SOSIE
    IF ( TRIM(cln_out) /= '' ) CALL FORCE_ATTR('long_name', cln_out, vatt_info_F)
 
 
-
-
+   WRITE(6,*) ''
+   WRITE(6,*) ''
 
 
 
@@ -193,7 +206,8 @@ PROGRAM SOSIE
    !!                  M A I N   T I M E   L O O P
    !!                -------------------------------
 
-   jct = 0 ;  jcz = 0
+   jct = 0
+   jcz = 0
    IF ( ltime ) jct = 1
    IF (  l3d  ) jcz = 1
 
@@ -233,7 +247,7 @@ PROGRAM SOSIE
             &      cextrainfo=cextinf)
 
          IF ( l_save_drwn ) THEN
-            PRINT *, 'Not! sosie.f90 l_save_drwn'
+            WRITE(6,*) 'Not! sosie.f90 l_save_drwn'
             !CALL P2D_T(idf_id, idv_id, Ntr, jt,    &
             !   !&       lon_src, lat_src, vt, data_src_drowned(:,:,1),    &
             !   &       lon_src, lat_src, vt, data_src(:,:,1),    &
@@ -276,7 +290,7 @@ PROGRAM SOSIE
                &       cextrainfo=cextinf)
 
             IF ( l_save_drwn ) THEN
-               PRINT *, 'Not! sosie.f90 l_save_drwn'
+               WRITE(6,*) 'Not! sosie.f90 l_save_drwn'
                !CALL P3D_T(idf_id, idv_id, Ntr, jt,    &
                !   &       lon_src, lat_src, REAL(depth_src(1,1,:),8), vt, data_src_drowned(:,:,:), &
                !   &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_z_src, cv_t_src,    &
@@ -297,7 +311,7 @@ PROGRAM SOSIE
                &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
          ELSE
-            PRINT *, 'Unknown vertical coordinate' ; STOP
+            WRITE(6,*) 'Unknown vertical coordinate' ; STOP
          ENDIF
 
       END IF ! .not. l_itrp_3d
@@ -306,16 +320,16 @@ PROGRAM SOSIE
 
    CALL TERMINATE() ! deleting and de-allocating arrays...
 
-   PRINT *, ''; PRINT *, TRIM(cf_out), ' is created'; PRINT *, ''
+   WRITE(6,*) ''; WRITE(6,*) TRIM(cf_out), ' is created'; WRITE(6,*) ''
 
-   IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
+   IF ( l_save_drwn ) WRITE(6,*) 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
 
 
    CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue2)
    WRITE(6,'(" ###  started at: ",8i4)') ivalue1(:)
    WRITE(6,'(" ### stopping at: ",8i4)') ivalue2(:)
 
-   PRINT *, ''
+   WRITE(6,*) ''
    rfct_miss = ivalue1(8)/1000. + ivalue1(7) + ivalue1(6)*60. + ivalue1(5)*3600.
    rfct_miss = ivalue2(8)/1000. + ivalue2(7) + ivalue2(6)*60. + ivalue2(5)*3600. - rfct_miss
    WRITE(6,'(" ### Total time in seconds: ",f11.4)') rfct_miss
