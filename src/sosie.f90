@@ -98,9 +98,9 @@ PROGRAM SOSIE
    !$ TID = OMP_GET_THREAD_NUM()
    !$ IF (TID == 0) Nthrd = OMP_GET_NUM_THREADS()
    !$OMP END PARALLEL
+   !$ IF( Nthrd > 1 ) l_omp = .TRUE.
    !!===================================================================
-   IF( Nthrd > 1 ) l_omp = .TRUE.
-
+   
    !! Reading namelist:
    CALL READ_NMLST(1)      ! MODULE mod_init
 

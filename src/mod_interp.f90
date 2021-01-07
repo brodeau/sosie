@@ -87,19 +87,41 @@ CONTAINS
 
       CASE('bilin')
 
-         IF( jt == 1 ) CALL BILIN_2D_INIT()
+         IF( jt == 1 ) THEN
+
+            CALL BILIN_2D_INIT( lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg,  mask_domain_trg=IGNORE )
+            !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !
+
+            
+            l_skip_bilin_mapping = .FALSE.
+
+            IF( .NOT. l_skip_bilin_mapping ) THEN
+               !$OMP PARALLEL DO
+               DO jo = 1, Nthrd
+                  !$ IF(l_omp) WRITE(6,*) ' Running "MAPPING_BL" on OMP thread #', INT(jo,1)
+                  CALL MAPPING_BL( ewper_src, x_src_2d                   , y_src_2d                   , &
+                     &                        x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), &
+                     &             ithread=jo, pmsk_dom_trg=mask_ignore_trg(io1(jo):io2(jo),:) )
+               END DO
+               !$OMP END PARALLEL DO
+               CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
+            END IF
+
+         END IF
+
+         STOP'LOLO fddsffsd'
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
-            !$IF(l_omp) WRITE(6,*) ' Running "bilin_2d" on OMP thread #', INT(jo,1)
+            !$ IF(l_omp) WRITE(6,*) ' Running "bilin_2d" on OMP thread #', INT(jo,1)
             CALL bilin_2d( ewper_src, lon_src, lat_src, data_src, &
                &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
                &           jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
          END DO
          !$OMP END PARALLEL DO
 
-         IF( jt == 1 ) CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
-
+         !IF( jt == 1 ) CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
+         !STOP'LOLO after BILIN_2D_WRITE_MAPPING in mod_interp.f90 !!!'
 
 
 

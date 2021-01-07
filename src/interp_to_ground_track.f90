@@ -418,7 +418,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       i0=0 ; j0=0
    END IF
 
-   !CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+   !CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
 
 
 
@@ -496,8 +496,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
             xmean = xmean + xdum_r4/REAL(Ntm,4)
          END DO
          id_f1=0 ;  id_v1=0
-         !WHERE ( imask == 0 ) xmean = -9999.
-         CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+         !WHERE ( imask == 0 ) xmean = rmissval
+         CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
          !STOP 'lolo'
       END IF
 
@@ -647,12 +647,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
       !! Finding and storing the nearest points of NEMO grid to track points:
       !CALL FIND_NEAREST_POINT(xlon_gt_0, xlat_gt_0, xlont, xlatt,  JIidx, JJidx)
       ALLOCATE ( show_obs(nib,njb) )
-      show_obs(:,:) = -9999.
+      show_obs(:,:) = rmissval
       DO jtf = 1, Ntf
          IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
       WHERE (imask == 0) show_obs = -100.
-      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
+      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'mask_+_nearest_points__'//TRIM(cconf)//'.nc', 'mask', xlont, xlatt, cv_lon, cv_lat, rfill=rmissval)
       !lolo:
       !CALL DUMP_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
       !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
@@ -673,11 +673,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   Ftrack_mod_np(:) = -9999.
-   Ftrack_obs(:)    = -9999.
-   Ftrack_mod(:)    = -9999.
+   Ftrack_mod_np(:) = rmissval
+   Ftrack_obs(:)    = rmissval
+   Ftrack_mod(:)    = rmissval
    Fmask(:)         = 0
-   rcycle_obs(:)    = -9999.
+   rcycle_obs(:)    = rmissval
 
    jtm_1_o = -100
    jtm_2_o = -100
@@ -732,7 +732,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
          alpha    = RAB(1,jtf,1)
          beta     = RAB(1,jtf,2)
 
-         !LOLO: IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)) ) THEN
+         !LOLO: IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)) ) THEN
          IF ( (iP>0).AND.(jP>0) ) THEN
             IF ( imask(iP,jP)==1 ) THEN
                r_obs    = F_gt_f(jtf)
@@ -783,14 +783,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
    END DO
 
    WHERE ( Fmask == 0 )
-      Ftrack_mod    = -9999.
-      Ftrack_mod_np = -9999.
-      Ftrack_obs    = -9999.
-      rcycle_obs    = -9999.
-      vdistance     = -9999.
+      Ftrack_mod    = rmissval
+      Ftrack_mod_np = rmissval
+      Ftrack_obs    = rmissval
+      rcycle_obs    = rmissval
+      vdistance     = rmissval
    END WHERE
 
-   WHERE ( Ftrack_mod < -9990. ) Ftrack_mod = -9999.
+   WHERE ( Ftrack_mod < -9990. ) Ftrack_mod = rmissval
 
 
    PRINT *, ''
@@ -799,7 +799,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' * Output file = ', trim(cf_out)
    PRINT *, ''
 
-   CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
+   CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', rmissval, &
       &           ct_unit=TRIM(cunit_time_trg), &
       &           vdt2=REAL(Ftrack_mod_np,4),cv_dt2=TRIM(cv_mod)//'_np',cln2='Model data, nearest-point interpolation', &
       &           vdt3=REAL(Ftrack_obs,4),   cv_dt3=cv_obs,             cln3='Original data as in track file...',   &
@@ -811,11 +811,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    IF ( l_debug ) THEN
       WHERE ( imask == 0 )
-         RES_2D_MOD = -9999.
-         RES_2D_OBS = -9999.
+         RES_2D_MOD = rmissval
+         RES_2D_OBS = rmissval
       END WHERE
-      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
+      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
    END IF
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )

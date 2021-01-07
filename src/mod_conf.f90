@@ -21,6 +21,9 @@ MODULE MOD_CONF
    REAL(8), PARAMETER :: rpi0   = ACOS(-1._8), &
       &                  rd2rad = rpi0/180._8, & ! for degree to radian conversion
       &                  rradE  = (6378.137_8 + 6356.7523_8)/2._8 ! Earth radius km
+
+   REAL(4), PARAMETER :: rmissval = -9999.
+
    
    LOGICAL, SAVE :: &
       &             l_drown_src, & ! DROWN source field

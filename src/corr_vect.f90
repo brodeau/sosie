@@ -95,8 +95,6 @@ PROGRAM CORR_VECT
       &    lmout_x, lmout_y, &
       &    lexist !,  &
 
-   REAL(4), PARAMETER :: zrmv = -9999.
-
    CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
       &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-t','-1' /)
    !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
@@ -844,28 +842,28 @@ PROGRAM CORR_VECT
 
 
          !lulu
-         WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = zrmv
-         WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = zrmv
+         WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = rmissval
+         WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = rmissval
 
          IF ( l_3d_inv ) THEN
 
             CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
                &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U,       &
-               &    zrmv, attr_time=vatt_info_t)
+               &    rmissval, attr_time=vatt_info_t)
 
             CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
                &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V,       &
-               &    zrmv, attr_time=vatt_info_t)
+               &    rmissval, attr_time=vatt_info_t)
 
          ELSE
 
             CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, U_c(:,:,1),     &
                &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U,       &
-               &    zrmv, attr_time=vatt_info_t)
+               &    rmissval, attr_time=vatt_info_t)
 
             CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, V_c(:,:,1), &
                &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V,   &
-               &    zrmv, attr_time=vatt_info_t)
+               &    rmissval, attr_time=vatt_info_t)
 
          END IF
 

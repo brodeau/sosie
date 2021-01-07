@@ -29,7 +29,7 @@ MODULE MOD_POLY
 
    PRIVATE
 
-   INTEGER(4), PUBLIC , PARAMETER :: jpvert = 4  !: Number of vertex per polygon
+   INTEGER(4), PUBLIC , PARAMETER :: nvrtx = 4  !: Number of vertex per polygon
 
    !PUBLIC  :: ReadPoly
    PUBLIC  :: L_InPoly
@@ -60,13 +60,13 @@ CONTAINS
       REAL(8), DIMENSION(4), INTENT(in) :: plon, plat
       REAL(8),               INTENT(in) :: pxpoint, pypoint  ! Position to check
       !!
-      REAL(4), DIMENSION(jpvert+1) :: vertx, verty  ! 2dim. array of polygons and their X,Y  coordinates
+      REAL(4), DIMENSION(nvrtx+1) :: vertx, verty  ! 2dim. array of polygons and their X,Y  coordinates
       REAL(4)                      :: rmaxx, rmaxy  ! max x,y of polygon coordinates
       REAL(4)                      :: rminx, rminy  ! min x,y of polygon coordinates
-      REAL(8), DIMENSION(jpvert)   :: slope         ! slope of the sides of polygone
-      REAL(8), DIMENSION(jpvert)   :: ra, rb, rc    ! equation of side of polygon
+      REAL(8), DIMENSION(nvrtx)   :: slope         ! slope of the sides of polygone
+      REAL(8), DIMENSION(nvrtx)   :: ra, rb, rc    ! equation of side of polygon
       !!      
-      LOGICAL      :: L_InPoly
+      LOGICAL    :: L_InPoly
       INTEGER(4) :: ji, jj
       INTEGER(4) :: icross, inumvert
       REAL(8)    :: zxpt, zx, zy, zevenodd
@@ -101,10 +101,10 @@ CONTAINS
 
 
       ! Automatically close the polygon
-      vertx(jpvert+1)=vertx(1)
-      verty(jpvert+1)=verty(1)
+      vertx(nvrtx+1)=vertx(1)
+      verty(nvrtx+1)=verty(1)
       ! add dummy 0.001 to integer vertex coordinates... to avoid singular problem
-      DO jj=1, jpvert+1
+      DO jj=1, nvrtx+1
          IF ( (vertx(jj) - INT( vertx(jj) ) ) == 0 ) vertx(jj) = vertx(jj)+0.001
          IF ( (verty(jj) - INT( verty(jj) ) ) == 0 ) verty(jj) = verty(jj)+0.001
       END DO

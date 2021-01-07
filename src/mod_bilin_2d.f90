@@ -13,9 +13,13 @@ MODULE MOD_BILIN_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip
+   USE mod_manip, ONLY: EXT_NORTH_TO_90_REGG, DEGE_TO_DEGWE, FIND_NEAREST_POINT, DISTANCE
    USE mod_poly
+   !USE io_ezcdf
+   !USE mod_poly, ONLY : L_InPoly
+   
 
+   
    IMPLICIT NONE
 
    PRIVATE
@@ -38,28 +42,56 @@ MODULE MOD_BILIN_2D
    TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE, SAVE :: bilin_map
    REAL(4),       DIMENSION(:,:), ALLOCATABLE, SAVE :: distance_to_np
    LOGICAL,       DIMENSION(:),   ALLOCATABLE, SAVE :: l_1st_call_bilin
-
    !--------
 
-
+   
    CHARACTER(len=400), SAVE :: cf_wght_bilin
-   LOGICAL,            SAVE :: l_skip_bilin_mapping
    LOGICAL,    PARAMETER    :: l_save_distance_to_np=.TRUE. !: for each point of target grid, shows the distance to the nearest point
 
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
    LOGICAL, SAVE :: l_last_y_row_missing
 
+   !! PUBLIC:
+   
+   LOGICAL,                                 PUBLIC, SAVE :: l_skip_bilin_mapping
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_src_2d, y_src_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_trg_2d, y_trg_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: mask_ignore_trg
+   
    PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
 
 
+   
+ 
 CONTAINS
 
-
-
-   SUBROUTINE BILIN_2D_INIT( )
+   
+   SUBROUTINE BILIN_2D_INIT( px_src, py_src, pz_src, px_trg, py_trg, pz_trg,  mask_domain_trg )
+      !!==============================================================================
+      !!  Input :
+      !!             px_src : 2D source longitude array of shape (ni,nj) or (ni,1)
+      !!             py_src : 2D source latitude  array of shape (ni,nj) or (nj,1)
+      !!             pz_src : 2D data field of shape (ni,nj), here only for shape....
+      !!             px_trg : 2D target longitude array of shape (ni,nj) or (ni,1)
+      !!             py_trg : 2D target latitude  array of shape (ni,nj) or (nj,1)
+      !!             pz_trg : 2D data field of shape (ni,nj), here only for shape....
+      !! OPTIONAL IN:
+      !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
+      !!             
       !!
+      USE io_ezcdf, ONLY : TEST_XYZ  ! , DUMP_2D_FIELD
+      !!
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
+      REAL(4),    DIMENSION(:,:),           INTENT(in) :: pz_src
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
+      REAL(4),    DIMENSION(:,:),           INTENT(in) :: pz_trg
+      INTEGER(1), DIMENSION(:,:), OPTIONAL, INTENT(in) :: mask_domain_trg
+      !!
+      INTEGER :: nx1, ny1, nx2, ny2, ji, jj
       LOGICAL :: lefw
+      CHARACTER(len=2) :: ctype
+      !!==============================================================================
       !!
       WRITE(6,*) ''; WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
@@ -98,6 +130,51 @@ CONTAINS
          WRITE(6,*) '         interpolations using the same "source-target" setup...'
          l_skip_bilin_mapping = .FALSE.
       END IF
+
+
+      !! Source coordinates made 2D:
+      ctype = TEST_XYZ(px_src, py_src, pz_src)
+      nx1 = SIZE(pz_src,1)
+      ny1 = SIZE(pz_src,2)
+      WRITE(6,*) ''
+      WRITE(6,'("   * Allocating and filling 2D source Long and Lat: ",i5," x ",i5)') nx1, ny1
+      ALLOCATE ( x_src_2d(nx1,ny1) , y_src_2d(nx1,ny1) )
+      IF ( ctype == '1d' ) THEN
+         DO jj=1, ny1
+            x_src_2d(:,jj) = px_src(:,1)
+         END DO
+         DO ji=1, nx1
+            y_src_2d(ji,:) = py_src(:,1)
+         END DO
+      ELSE
+         x_src_2d(:,:) = px_src(:,:)
+         y_src_2d(:,:) = py_src(:,:)
+      END IF
+
+      
+      !! Same for target coordinates:
+      ctype = '00'
+      ctype = TEST_XYZ(px_trg, py_trg, pz_trg)
+      nx2 = SIZE(pz_trg,1)
+      ny2 = SIZE(pz_trg,2)
+
+      ALLOCATE ( x_trg_2d(nx2,ny2) , y_trg_2d(nx2,ny2) , mask_ignore_trg(nx2,ny2) ) !, msk_res(nx2,ny2) )
+
+      mask_ignore_trg(:,:) = 1
+      IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
+
+      IF ( ctype == '1d' ) THEN
+         DO jj=1, ny2
+            x_trg_2d(:,jj) = px_trg(:,1)
+         END DO
+         DO ji=1, nx2
+            y_trg_2d(ji,:) = py_trg(:,1)
+         END DO
+      ELSE
+         x_trg_2d(:,:) = px_trg(:,:)
+         y_trg_2d(:,:) = py_trg(:,:)
+      END IF
+
       WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''; WRITE(6,*) ''
@@ -112,7 +189,7 @@ CONTAINS
          WRITE(6,*) '  ==> NOT writing bilin mapping file because it was found...'
       ELSE
          WRITE(6,*) '  ==> writing bilin mapping into "', TRIM(cf_wght_bilin),'" !'
-         CALL P2D_MAPPING_AB( cf_wght_bilin, lon_trg, lat_trg, bilin_map, rflg )
+         CALL P2D_MAPPING_AB( cf_wght_bilin, lon_trg, lat_trg, bilin_map, rmissval )
       END IF
       !!
       IF (l_save_distance_to_np) DEALLOCATE( distance_to_np )
@@ -120,22 +197,20 @@ CONTAINS
       !!
    END SUBROUTINE BILIN_2D_WRITE_MAPPING
 
-
-
-
-
-   SUBROUTINE BILIN_2D( k_ew_per, X10, Y10, Z1, X20, Y20, Z2, ithrd,  mask_domain_trg )
+   
+   
+   SUBROUTINE BILIN_2D( k_ew_per, X1, Y1, Z1, X2, Y2, Z2, ithrd,  mask_domain_trg )
       !!================================================================
       !!
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             X10   : 2D source longitude array (ni,nj) or (ni,1)
-      !!             Y10   : 2D source latitude  array (ni,nj) or (nj,1)
-      !!             Z1    : source field on source grid
+      !!             X1   : 2D source longitude array of shape (ni,nj)
+      !!             Y1   : 2D source latitude  array of shape (ni,nj)
+      !!             Z1   : source field on source grid  "    "
       !!
-      !!             X20   : 2D target longitude array (ni,nj) or (ni,1)
-      !!             Y20   : 2D target latitude  array (ni,nj) or (nj,1)
+      !!             X2  : 2D target longitude array (ni,nj) or (ni,1)
+      !!             Y2  : 2D target latitude  array (ni,nj) or (nj,1)
       !!
       !! OUTPUT :
       !!             Z2    : field extrapolated from source to target grid
@@ -145,115 +220,32 @@ CONTAINS
       !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!
       !!================================================================
-      USE io_ezcdf, ONLY : TEST_XYZ  ! , DUMP_2D_FIELD
       !!
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: X10, Y10
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: X1, Y1
       REAL(4), DIMENSION(:,:), INTENT(in)  :: Z1
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: X2, Y2
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
       INTEGER(1), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_domain_trg
       !! Local variables
-      INTEGER :: nx1, ny1, ny1w, nx2, ny2, iqd, iP, jP
-
-      REAL(8) :: alpha, beta, rmeanv, ymx
-      LOGICAL :: l_add_extra_j
+      INTEGER :: nx2, ny2, iqd, iP, jP
+      REAL(8) :: alpha, beta, rmeanv
       INTEGER :: ji, jj
 
-      REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
-      REAL(4),    DIMENSION(:,:), ALLOCATABLE :: Z1w
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_trg !, msk_res
-
-      CHARACTER(len=2)   :: ctype
-
-      ctype = TEST_XYZ(X10,Y10,Z1)
-      nx1 = SIZE(Z1,1)
-      ny1 = SIZE(Z1,2)
-      ALLOCATE ( X1(nx1,ny1) , Y1(nx1,ny1) )
-
-
-      IF ( ctype == '1d' ) THEN
-         DO jj=1, ny1
-            X1(:,jj) = X10(:,1)
-         END DO
-         DO ji=1, nx1
-            Y1(ji,:) = Y10(:,1)
-         END DO
-      ELSE
-         X1 = X10 ; Y1 = Y10
-      END IF
-
-
-      !! Working arrays for source domain:
-      l_add_extra_j = .FALSE.
-      ny1w = ny1
-
-      IF ( l_reg_src .AND. (ny1 > 20) .AND. (nx1 > 20) ) THEN !lolo, ensure it's a map, not a something fishy...
-         ymx = Y1(nx1/2,ny1)
-         IF ( (ymx < 90.) .AND. ( 2.*ymx - Y1(nx1/2,ny1-1) >= 90. ) ) THEN
-            ny1w = ny1 + 2
-            l_add_extra_j = .TRUE.
-            !!
-            IF ( l_1st_call_bilin(ithrd) ) THEN
-               WRITE(6,*) ''
-               WRITE(6,*) '  ------ W A R N I N G ! ! ! ------'
-               WRITE(6,*) ' *** your source grid is regular and seems to include the north pole.'
-               WRITE(6,*) '     => yet the highest latitude in the latitude array is ', ymx
-               WRITE(6,*) '     => will generate and use two extra upper J row where lat=90 and lat=90+dy on all 2D source arrays !!! '
-            END IF
-         END IF
-      END IF
-
-      ALLOCATE ( X1w(nx1,ny1w) , Y1w(nx1,ny1w) , Z1w(nx1,ny1w) )
-
-
-      !! Is source grid supposed to include North pole?
-      !! - if yes, and suppose that the highest latitude "lat_max" on the grid is
-      !!   something like 89. or 89.5 then we need to add an extra upper-row for the latitude lat=90 !
-      !!  => so for each lonwe interpolate X(lon,90) = X(lon+180,lat_max)
-      IF ( l_add_extra_j ) THEN
-         CALL EXT_NORTH_TO_90_REGG( X1, Y1, Z1,  X1w, Y1w, Z1w )
-      ELSE
-         X1w(:,:) = X1(:,:)
-         Y1w(:,:) = Y1(:,:)
-         Z1w(:,:) = Z1(:,:)
-      END IF
-
-      DEALLOCATE ( X1, Y1 )
-
-      ctype = '00'
-      ctype = TEST_XYZ(X20, Y20, Z2)
       nx2 = SIZE(Z2,1)
       ny2 = SIZE(Z2,2)
-
-      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) , mask_ignore_trg(nx2,ny2) ) !, msk_res(nx2,ny2) )
-
-      mask_ignore_trg(:,:) = 1
-      IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
-
-      IF ( ctype == '1d' ) THEN
-         DO jj=1, ny2
-            X2(:,jj) = X20(:,1)
-         END DO
-         DO ji=1, nx2
-            Y2(ji,:) = Y20(:,1)
-         END DO
-      ELSE
-         X2 = X20
-         Y2 = Y20
-      END IF
-
+      
       IF ( l_1st_call_bilin(ithrd) ) THEN
 
          l_last_y_row_missing = .FALSE.
-
-         IF( .NOT. l_skip_bilin_mapping ) CALL MAPPING_BL(k_ew_per, X1w, Y1w, X2, Y2,  ithread=ithrd, pmsk_dom_trg=mask_ignore_trg)
-
+         
+         !IF( .NOT. l_skip_bilin_mapping ) CALL MAPPING_BL(k_ew_per, X1, Y1, X2, Y2,  ithread=ithrd, pmsk_dom_trg=mask_ignore_trg)
+         
       END IF
 
-      Z2(:,:) = rflg ! Flagging non-interpolated output points
+      Z2(:,:) = rmissval ! Flagging non-interpolated output points
 
       mask_ignore_trg(:,:) = 1
       WHERE ( bilin_map(io1(ithrd):io2(ithrd),:)%jip < 1 ) mask_ignore_trg = 0
@@ -273,13 +265,13 @@ CONTAINS
             alpha = bilin_map(ji+io1(ithrd)-1,jj)%ralfa
             beta  = bilin_map(ji+io1(ithrd)-1,jj)%rbeta
             !!
-            IF ( (ABS(degE_to_degWE(X1w(iP,jP))-degE_to_degWE(X2(ji,jj)))<1.E-5) .AND. (ABS(Y1w(iP,jP)-Y2(ji,jj))<1.E-5) ) THEN
+            IF ( (ABS(degE_to_degWE(X1(iP,jP))-degE_to_degWE(X2(ji,jj)))<1.E-5) .AND. (ABS(Y1(iP,jP)-Y2(ji,jj))<1.E-5) ) THEN
                !! COPY:
                IF (iverbose>0) WRITE(6,*) ' *** BILIN_2D: "identical point" detected (crit: 1.E-5) => copying value, no interpolation!'
-               Z2(ji,jj) = Z1w(iP,jP)
+               Z2(ji,jj) = Z1(iP,jP)
             ELSE
                !! INTERPOLATION:
-               Z2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqd, alpha, beta, Z1w)
+               Z2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqd, alpha, beta, Z1)
             END IF
          END DO
       END DO
@@ -291,7 +283,7 @@ CONTAINS
          !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
          IF ( i_orca_trg >= 4 ) THEN
             rmeanv = SUM(Z2(:,ny2))/nx2
-            l_last_y_row_missing = ( (rmeanv < rflg + 0.1).AND.(rmeanv > rflg - 0.1) )
+            l_last_y_row_missing = ( (rmeanv < rmissval + 0.1).AND.(rmeanv > rmissval - 0.1) )
          END IF
       END IF
 
@@ -311,7 +303,8 @@ CONTAINS
          END IF
       END IF
 
-      DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_trg )
+      !DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_trg )
+      !DEALLOCATE ( X2, Y2, mask_ignore_trg )
 
       l_1st_call_bilin(ithrd) = .FALSE.
 
@@ -421,8 +414,6 @@ CONTAINS
       !!      * pmsk_dom_trg: ignore (dont't treat) regions of the target domain where pmsk_dom_trg==0 !
       !!----------------------------------------------------------------------------
       !!
-      USE io_ezcdf
-      USE mod_poly, ONLY : L_InPoly
       !!
       INTEGER,                 INTENT(in) :: k_ew_per
       REAL(8), DIMENSION(:,:), INTENT(in) :: pX, pY
@@ -510,7 +501,7 @@ CONTAINS
                IF(lpdebug) WRITE(6,*) ' *** LOLO debug: xP, yP =', xP, yP
                IF(lpdebug) WRITE(6,*) ' *** LOLO debug: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
 
-               IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)).AND.(jP<nyi) ) THEN   ! jP<ny1 < last upper row was an extrapolation!
+               IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) ) THEN   ! jP<ny1 < last upper row was an extrapolation!
 
                   iPm1 = iP-1
                   iPp1 = iP+1
@@ -677,7 +668,7 @@ CONTAINS
                      pbln_map(ji,jj)%ipb   = 0
 
                   END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi))
-               END IF ! IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)).AND.(jP<nyi) )
+               END IF ! IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) )
             END IF ! IF ( mask_ignore_trg(ji,jj)==1 )
          ENDDO
       ENDDO
@@ -686,9 +677,9 @@ CONTAINS
       pbln_map(:,:)%jip = i_nrst_src(:,:)
       pbln_map(:,:)%jjp = j_nrst_src(:,:)
 
-      WHERE ( (i_nrst_src == INT(rflg)).OR.(j_nrst_src == INT(rflg)) )
-         pbln_map(:,:)%ralfa  = rflg
-         pbln_map(:,:)%rbeta  = rflg
+      WHERE ( (i_nrst_src == INT(rmissval)).OR.(j_nrst_src == INT(rmissval)) )
+         pbln_map(:,:)%ralfa  = rmissval
+         pbln_map(:,:)%rbeta  = rmissval
       END WHERE
 
       !! Awkwardly fixing problematic points but remembering them in ID_problem
@@ -697,7 +688,7 @@ CONTAINS
       WHERE ( ((pbln_map(:,:)%ralfa < 0.).AND.(pbln_map(:,:)%ralfa > -repsilon)) ) pbln_map(:,:)%ralfa = 0.0
       WHERE ( ((pbln_map(:,:)%rbeta < 0.).AND.(pbln_map(:,:)%rbeta > -repsilon)) ) pbln_map(:,:)%rbeta = 0.0
 
-      WHERE ( (pbln_map(:,:)%ralfa > rflg).AND.(pbln_map(:,:)%ralfa < 0.) )
+      WHERE ( (pbln_map(:,:)%ralfa > rmissval).AND.(pbln_map(:,:)%ralfa < 0.) )
          pbln_map(:,:)%ralfa = 0.5
          pbln_map(:,:)%ipb = 4
       END WHERE
@@ -706,7 +697,7 @@ CONTAINS
          pbln_map(:,:)%ipb =  5
       END WHERE
 
-      WHERE ( (pbln_map(:,:)%rbeta > rflg).AND.(pbln_map(:,:)%rbeta < 0.) )
+      WHERE ( (pbln_map(:,:)%rbeta > rmissval).AND.(pbln_map(:,:)%rbeta < 0.) )
          pbln_map(:,:)%rbeta = 0.5
          pbln_map(:,:)%ipb = 6
       END WHERE
@@ -918,15 +909,15 @@ CONTAINS
 
 
 
-   SUBROUTINE P2D_MAPPING_AB(cf_out, plon, plat, pbln_map, vflag )
+   SUBROUTINE P2D_MAPPING_AB(cf_out, plon, plat, pbln_map, rflag )
 
       USE netcdf
       USE io_ezcdf, ONLY : sherr
-
+      
       CHARACTER(len=*),              INTENT(in) :: cf_out
       REAL(8),       DIMENSION(:,:), INTENT(in) :: plon, plat
       TYPE(bln_map), DIMENSION(:,:), INTENT(in) :: pbln_map
-      REAL(8),                       INTENT(in) :: vflag
+      REAL(4),                       INTENT(in) :: rflag
       !!
       INTEGER                                   :: id_f, id_x, id_y, id_lo, id_la
       CHARACTER(LEN=400), PARAMETER   ::     &
@@ -962,12 +953,12 @@ CONTAINS
          CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'units'    , 'km'                       ),             crtn,cf_out,'dist_np' )
       END IF
 
-      IF ( vflag /= 0. ) THEN
-         CALL sherr( NF90_PUT_ATT(id_f, id_v1, '_FillValue', INT(vflag)), crtn,cf_out,'iP   (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v2, '_FillValue', INT(vflag)), crtn,cf_out,'jP   (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v3, '_FillValue', INT(vflag)), crtn,cf_out,'iqd  (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v4, '_FillValue',     vflag ), crtn,cf_out,'alfa (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v5, '_FillValue',     vflag ), crtn,cf_out,'beta (masking)' )
+      IF ( rflag /= 0. ) THEN
+         CALL sherr( NF90_PUT_ATT(id_f, id_v1, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iP   (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v2, '_FillValue',  INT(rflag)  ), crtn,cf_out,'jP   (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v3, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iqd  (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v4, '_FillValue', REAL(rflag,8)), crtn,cf_out,'alfa (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v5, '_FillValue', REAL(rflag,8)), crtn,cf_out,'beta (masking)' )
       END IF
       !lolo
 
