@@ -76,13 +76,13 @@ CONTAINS
       rminx = MINVAL(plon)
       rminy = MINVAL(plat)
 
-      IF ( (rminx < 0.).OR.(pxpoint < 0.) ) THEN
+      IF( (rminx < 0.).OR.(pxpoint < 0.) ) THEN
          PRINT *, 'ERROR (L_InPoly of mod_poly.f90): we only expect positive longitudes!'
          PRINT *, '  => min(lon), pxpoint =', rminx, pxpoint
          STOP
       END IF
 
-      IF ( (rminx < 10.).AND.(rmaxx > 350.) ) THEN
+      IF( (rminx < 10.).AND.(rmaxx > 350.) ) THEN
          !! Need to reorganize in frame -180. -- +180.:
          zx  =           SIGN(1.d0,180.-pxpoint )*MIN(pxpoint ,ABS(pxpoint -360.))
          vertx(1:4) = REAL( SIGN(1.d0,180.-plon   )*MIN(plon ,  ABS(  plon -360.)) , 4 )
@@ -105,8 +105,8 @@ CONTAINS
       verty(nvrtx+1)=verty(1)
       ! add dummy 0.001 to integer vertex coordinates... to avoid singular problem
       DO jj=1, nvrtx+1
-         IF ( (vertx(jj) - INT( vertx(jj) ) ) == 0 ) vertx(jj) = vertx(jj)+0.001
-         IF ( (verty(jj) - INT( verty(jj) ) ) == 0 ) verty(jj) = verty(jj)+0.001
+         IF( (vertx(jj) - INT( vertx(jj) ) ) == 0 ) vertx(jj) = vertx(jj)+0.001
+         IF( (verty(jj) - INT( verty(jj) ) ) == 0 ) verty(jj) = verty(jj)+0.001
       END DO
 
       !PRINT *, '' ; PRINT *, ''
@@ -133,17 +133,17 @@ CONTAINS
       !     - get the number of cross with the polygon boundary
       icross = 0
       !     - see if point falls in the max and min range of polygon
-      IF ( zx <=  rmaxx ) THEN
-         IF ( zx >=  rminx ) THEN
-            IF ( zy <=  rmaxy ) THEN
-               IF ( zy >=  rminy ) THEN
+      IF( zx <=  rmaxx ) THEN
+         IF( zx >=  rminx ) THEN
+            IF( zy <=  rmaxy ) THEN
+               IF( zy >=  rminy ) THEN
                   !               - step through the polygon boundaries
                   DO ji = 1, inumvert
                      !                 - see if slope = 9999 and if point is on same y axis
-                     IF ( slope(ji) ==  9999 ) THEN
-                        IF ( zx >=  vertx(ji) ) THEN
-                           IF ( ji ==  inumvert ) THEN
-                              IF (        ( (zy <=  verty(inumvert) ) .AND.    &
+                     IF( slope(ji) ==  9999 ) THEN
+                        IF( zx >=  vertx(ji) ) THEN
+                           IF( ji ==  inumvert ) THEN
+                              IF(        ( (zy <=  verty(inumvert) ) .AND.    &
                                  &        (zy >   verty(1)        ) ) .OR.   &
                                  &      ( (zy >=  verty(inumvert) ) .AND.    &
                                  &        (zy <   verty(1)        ) ) ) THEN
@@ -151,7 +151,7 @@ CONTAINS
                                  icross = icross + 1
                                  !                              if (zy == 398) print *, zx, zy, icross ,'A', ji
                               ENDIF ! ( zy test )
-                           ELSEIF (       ( (zy <=  verty(ji)   ) .AND.        &
+                           ELSEIF(       ( (zy <=  verty(ji)   ) .AND.        &
                               &           (zy >   verty(ji+1) ) ) .OR.       &
                               &         ( (zy >=  verty(ji)   ) .AND.        &
                               &           (zy <   verty(ji+1) ) ) ) THEN
@@ -162,24 +162,24 @@ CONTAINS
                         ENDIF   !    ( zx >= vertx(ji) )
                         !                   - see if normal slope (+ or -), and if point is not
                         !                    - higher or lower than y endpoints of the vertices
-                     ELSEIF ( slope(ji) .NE. 0 ) THEN
+                     ELSEIF( slope(ji) .NE. 0 ) THEN
                         zxpt = ( rc(ji) + zy ) / ra(ji)
-                        IF ( ji ==  inumvert ) THEN
-                           IF (            ( (zxpt <=  vertx(inumvert) ) .AND.   &
+                        IF( ji ==  inumvert ) THEN
+                           IF(            ( (zxpt <=  vertx(inumvert) ) .AND.   &
                               &            (zxpt >   vertx(1)        ) ) .OR.  &
                               &          ( (zxpt >=  vertx(inumvert) ) .AND.   &
                               &            (zxpt <   vertx(1)        ) ) ) THEN
-                              IF ( zx >=  zxpt) THEN
+                              IF( zx >=  zxpt) THEN
                                  !                          - it has crossed the polygon boundary
                                  icross = icross + 1
                                  !                              if (zy == 398) print *, zx, zy, icross,'C', ji
                               ENDIF ! ( zx >= zxpt )
                            ENDIF !  ( zxpt test )
-                        ELSEIF (            ( (zxpt <=  vertx(ji)   ) .AND.     &
+                        ELSEIF(            ( (zxpt <=  vertx(ji)   ) .AND.     &
                            &                (zxpt >   vertx(ji+1) ) ) .OR.    &
                            &              ( (zxpt >=  vertx(ji)   ) .AND.     &
                            &                (zxpt <   vertx(ji+1) ) ) ) THEN
-                           IF ( zx >=   zxpt ) THEN
+                           IF( zx >=   zxpt ) THEN
                               !                       - it has crossed the polygon boundary
                               icross = icross + 1
                               !                              if (zy == 398) print *, zx, zy, icross,'D', ji, slope(ji), zxpt
@@ -189,7 +189,7 @@ CONTAINS
                   END DO !  ( ji = 1, inumvert )
                   !          - decide how many times scanline crossed poly bounds
                   zevenodd = AMOD ( ( icross * 1.0 ), 2.0 )
-                  IF ( zevenodd .NE. 0 ) THEN
+                  IF( zevenodd .NE. 0 ) THEN
                      !            - point is in polygon
                      L_InPoly = .TRUE.
                   ELSE
@@ -243,21 +243,21 @@ CONTAINS
       zrise = zvertyb - zvertya
       zrun  = zvertxb - zvertxa
 
-      IF ( zrun ==  0 ) THEN
+      IF( zrun ==  0 ) THEN
          pslup = 9999
       ELSE
          pslup = zrise / zrun
       ENDIF
 
-      IF ( ABS(pslup) <=  0.001 ) THEN
+      IF( ABS(pslup) <=  0.001 ) THEN
          pslup = 0.0
       ENDIF
 
-      IF ( pslup ==  0 ) THEN
+      IF( pslup ==  0 ) THEN
          pax = pslup
          pby = 1
          pcnstnt = zvertya
-      ELSEIF ( pslup ==  9999 ) THEN
+      ELSEIF( pslup ==  9999 ) THEN
          pax = 1
          pby = 0
          pcnstnt = zvertxa

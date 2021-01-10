@@ -30,6 +30,7 @@ CONTAINS
 
       INTEGER :: i1,j1, i2,j2
       INTEGER :: jo ! OMP
+      CHARACTER(len=80) :: cf_tmp !lolodbg
 
       !! lon-aranging or lat-flipping field
       IF( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
@@ -95,6 +96,32 @@ CONTAINS
             
             l_skip_bilin_mapping = .FALSE.
 
+            !!lolodbg:
+            cf_tmp='lon_src.nc'
+            CALL DUMP_FIELD(REAL(x_src_2d(:,:),4), cf_tmp, 'lon')
+            cf_tmp='lat_src.nc'
+            CALL DUMP_FIELD(REAL(y_src_2d(:,:),4), cf_tmp, 'lat')
+
+            !! Check what's inside each chunk:
+            DO jo = 1, Nthrd
+               WRITE(cf_tmp,'("lon_trg_",i2.2,".nc")') jo
+               CALL DUMP_FIELD(REAL(x_trg_2d(io1(jo):io2(jo),:),4), cf_tmp, 'lon')
+               !!
+               WRITE(cf_tmp,'("lat_trg_",i2.2,".nc")') jo
+               CALL DUMP_FIELD(REAL(y_trg_2d(io1(jo):io2(jo),:),4), cf_tmp, 'lat')
+               !!
+               WRITE(cf_tmp,'("ignr_trg_",i2.2,".nc")') jo
+               CALL DUMP_FIELD(REAL(mask_ignore_trg(io1(jo):io2(jo),:),4), cf_tmp, 'mask_ignore')
+            END DO
+
+            !jo=2
+            !CALL MAPPING_BL( ewper_src, x_src_2d                   , y_src_2d                   , &
+            !   &                        x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), &
+            !   &             ithread=jo, pmsk_dom_trg=mask_ignore_trg(io1(jo):io2(jo),:) )
+            !CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
+            !STOP'lolodbg!'
+            !!lolodbg.
+            
             IF( .NOT. l_skip_bilin_mapping ) THEN
                !$OMP PARALLEL DO
                DO jo = 1, Nthrd
@@ -104,12 +131,15 @@ CONTAINS
                      &             ithread=jo, pmsk_dom_trg=mask_ignore_trg(io1(jo):io2(jo),:) )
                END DO
                !$OMP END PARALLEL DO
+
+               !$OMP BARRIER
+               
                CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
             END IF
 
          END IF
 
-         STOP'LOLO fddsffsd'
+         PRINT *, 'LOLO fddsffsd'; STOP
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd

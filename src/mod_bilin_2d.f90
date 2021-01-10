@@ -15,11 +15,7 @@ MODULE MOD_BILIN_2D
    USE mod_conf
    USE mod_manip, ONLY: EXT_NORTH_TO_90_REGG, DEGE_TO_DEGWE, FIND_NEAREST_POINT, DISTANCE
    USE mod_poly
-   !USE io_ezcdf
-   !USE mod_poly, ONLY : L_InPoly
-   
-
-   
+      
    IMPLICIT NONE
 
    PRIVATE
@@ -60,9 +56,6 @@ MODULE MOD_BILIN_2D
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: mask_ignore_trg
    
    PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
-
-
-   
  
 CONTAINS
 
@@ -241,8 +234,6 @@ CONTAINS
 
          l_last_y_row_missing = .FALSE.
          
-         !IF( .NOT. l_skip_bilin_mapping ) CALL MAPPING_BL(k_ew_per, X1, Y1, X2, Y2,  ithread=ithrd, pmsk_dom_trg=mask_ignore_trg)
-         
       END IF
 
       Z2(:,:) = rmissval ! Flagging non-interpolated output points
@@ -312,8 +303,6 @@ CONTAINS
 
 
    FUNCTION INTERP_BL(k_ew_per, jiP, jjP, iqd, xa, xb, Z_in)
-
-      IMPLICIT none
 
       INTEGER,                 INTENT(in) :: k_ew_per
       INTEGER,                 INTENT(in) :: jiP, jjP, iqd
@@ -401,8 +390,8 @@ CONTAINS
 
 
 
-
-   SUBROUTINE MAPPING_BL(k_ew_per, pX, pY, plon_trg, plat_trg,  ithread, pmsk_dom_trg)
+   
+   SUBROUTINE MAPPING_BL(k_ew_per, plon_src, plat_src, plon_trg, plat_trg,  ithread, pmsk_dom_trg)
 
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
@@ -416,7 +405,7 @@ CONTAINS
       !!
       !!
       INTEGER,                 INTENT(in) :: k_ew_per
-      REAL(8), DIMENSION(:,:), INTENT(in) :: pX, pY
+      REAL(8), DIMENSION(:,:), INTENT(in) :: plon_src, plat_src
       REAL(8), DIMENSION(:,:), INTENT(in) :: plon_trg, plat_trg
       !!
       INTEGER,    OPTIONAL,                 INTENT(in) :: ithread
@@ -430,9 +419,7 @@ CONTAINS
          &     iPm1, iPp1,  &
          &     jPm1, jPp1,  &
          &     iproblem
-
-      INTEGER(4), DIMENSION(:,:), ALLOCATABLE :: i_nrst_src, j_nrst_src
-
+      
       REAL(8) ::  &
          &  xP, yP, &
          &  hPp, &            !: local maximum metrics
@@ -445,64 +432,71 @@ CONTAINS
 
       REAL(8), DIMENSION(0:4) :: &
          &    loni, lati    !: the 4 grid points around target (1-4) + the target (0)
-
+      
       !! To save in the netcdf file:
-      TYPE(bln_map), DIMENSION(:,:),   ALLOCATABLE :: pbln_map  ! local array on thread !
+      TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE :: zbln_map  ! local array on thread !
+      INTEGER(4),    DIMENSION(:,:), ALLOCATABLE :: ki_nrst, kj_nrst
+      INTEGER(1),    DIMENSION(:,:), ALLOCATABLE :: kmsk_ignr_trg
       !!
-      INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_trg
-
-      REAL(8) :: alpha, beta
+      REAL(8) :: zalfa, zbeta
       LOGICAL :: l_ok, lagain, lpdebug
-      INTEGER :: icpt, ithrd
+      INTEGER :: icpt, ithrd, ji1, ji2
 
       ithrd = 1 ! no OpenMP !
       IF( PRESENT(ithread) ) ithrd = ithread
-
-      nxi = size(pX,1)
-      nyi = size(pX,2)
-
-      nxo = size(plon_trg,1)
+      ji1 = io1(ithrd)
+      ji2 = io2(ithrd)
+      
+      nxi = SIZE(plon_src,1)
+      nyi = SIZE(plon_src,2)
+      
+      nxo = SIZE(plon_trg,1)
       nyo = SIZE(plon_trg,2)
+      
+      IF( (ithrd==1).AND.((ji1/=1).OR.(ji2/=nxo)) ) THEN
+         WRITE(6,*) 'ERROR in "MAPPING_BL", wrong OMP partitioning...'
+         STOP
+      END IF
+      
+      ALLOCATE ( zbln_map(nxo,nyo), kmsk_ignr_trg(nxo,nyo), ki_nrst(nxo,nyo), kj_nrst(nxo,nyo) )
+      
+      zbln_map(:,:)%jip    = 0
+      zbln_map(:,:)%jjp    = 0
+      zbln_map(:,:)%iqdrn  = 0
+      zbln_map(:,:)%ralfa  = 0.
+      zbln_map(:,:)%rbeta  = 0.
+      zbln_map(:,:)%ipb    = 0
+      kmsk_ignr_trg(:,:) = 1
+      ki_nrst(:,:)      = 0
+      kj_nrst(:,:)      = 0
+      
+      IF ( PRESENT(pmsk_dom_trg) ) kmsk_ignr_trg(:,:) = pmsk_dom_trg(:,:)
 
-      ALLOCATE ( pbln_map(nxo,nyo), mask_ignore_trg(nxo,nyo), i_nrst_src(nxo, nyo), j_nrst_src(nxo, nyo) )
-      pbln_map(:,:)%jip    = 0
-      pbln_map(:,:)%jjp    = 0
-      pbln_map(:,:)%iqdrn  = 0
-      pbln_map(:,:)%ralfa  = 0.
-      pbln_map(:,:)%rbeta  = 0.
-      pbln_map(:,:)%ipb    = 0
-      mask_ignore_trg(:,:) = 1
-      i_nrst_src(:,:)      = 0
-      j_nrst_src(:,:)      = 0
-
-      IF ( PRESENT(pmsk_dom_trg) ) mask_ignore_trg(:,:) = pmsk_dom_trg(:,:)
-
-      CALL FIND_NEAREST_POINT( plon_trg, plat_trg, pX, pY, i_nrst_src, j_nrst_src,  ithread=ithrd, pmsk_dom_trg=mask_ignore_trg )
+      CALL FIND_NEAREST_POINT( plon_trg, plat_trg, plon_src, plat_src, ki_nrst, kj_nrst,  &
+         &                     ithread=ithrd, pmsk_dom_trg=kmsk_ignr_trg )
 
       DO jj = 1, nyo
          DO ji = 1, nxo
-
+            
             lpdebug = ( (iverbose==2).AND.(ji==idb).AND.(jj==jdb) )
-
-            IF(lpdebug) WRITE(6,*) ' *** LOLO debug:', idb, jdb
-
-            IF ( mask_ignore_trg(ji,jj)==1 ) THEN
-               !! => exclude regions that do not exist on source domain (mask_ignore_trg==0) and
-               !! points for which the nearest point was not found (mask_ignore_trg==-1 or -2)
+            
+            IF ( kmsk_ignr_trg(ji,jj)==1 ) THEN
+               !! => exclude regions that do not exist on source domain (kmsk_ignr_trg==0) and
+               !! points for which the nearest point was not found (kmsk_ignr_trg==-1 or -2)
 
                !! Now deal with horizontal interpolation
                !! set longitude of input point in accordance with lon ( [lon0, 360+lon0 [ )
                xP = plon_trg(ji,jj)
                yP = plat_trg(ji,jj)
 
-               iP = i_nrst_src(ji,jj)
-               jP = j_nrst_src(ji,jj)
+               iP = ki_nrst(ji,jj)
+               jP = kj_nrst(ji,jj)
 
-               IF(lpdebug) WRITE(6,*) ' *** LOLO debug: xP, yP =', xP, yP
-               IF(lpdebug) WRITE(6,*) ' *** LOLO debug: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
+               IF(lpdebug) WRITE(6,*) ' *** #DEBUG: xP, yP =', xP, yP
+               IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
 
-               IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) ) THEN   ! jP<ny1 < last upper row was an extrapolation!
-
+               IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) ) THEN
+                  ! jP<ny1 < last upper row was an extrapolation!
                   iPm1 = iP-1
                   iPp1 = iP+1
                   jPm1 = jP-1
@@ -517,8 +511,8 @@ CONTAINS
                      IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
                   END IF
 
-                  IF(lpdebug) WRITE(6,*) ' *** LOLO debug: iPm1, iPp1 =', iPm1, iPp1
-                  IF(lpdebug) WRITE(6,*) ' *** LOLO debug: jPm1, jPp1 =', jPm1, jPp1
+                  IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iPm1, iPp1 =', iPm1, iPp1
+                  IF(lpdebug) WRITE(6,*) ' *** #DEBUG: jPm1, jPp1 =', jPm1, jPp1
 
                   IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi)) THEN
                      IF(iverbose>0) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
@@ -528,11 +522,11 @@ CONTAINS
                      IF(iverbose>0) WRITE(6,*) ''
                   ELSE
 
-                     lonP = MOD(pX(iP,jP)  , 360._8) ; latP = pY(iP,jP)   ! nearest point
-                     lonN = MOD(pX(iP,jPp1), 360._8) ; latN = pY(iP,jPp1) ! N (grid)
-                     lonE = MOD(pX(iPp1,jP), 360._8) ; latE = pY(iPp1,jP) ! E (grid)
-                     lonS = MOD(pX(iP,jPm1), 360._8) ; latS = pY(iP,jPm1) ! S (grid)
-                     lonW = MOD(pX(iPm1,jP), 360._8) ; latW = pY(iPm1,jP) ! W (grid)
+                     lonP = MOD(plon_src(iP,jP)  , 360._8) ; latP = plat_src(iP,jP)   ! nearest point
+                     lonN = MOD(plon_src(iP,jPp1), 360._8) ; latN = plat_src(iP,jPp1) ! N (grid)
+                     lonE = MOD(plon_src(iPp1,jP), 360._8) ; latE = plat_src(iPp1,jP) ! E (grid)
+                     lonS = MOD(plon_src(iP,jPm1), 360._8) ; latS = plat_src(iP,jPm1) ! S (grid)
+                     lonW = MOD(plon_src(iPm1,jP), 360._8) ; latW = plat_src(iPm1,jP) ! W (grid)
 
                      !! Restore target point longitude between 0 and 360
                      xP = MOD(xP,360._8)
@@ -577,16 +571,16 @@ CONTAINS
 
                      iqd0    = iqd
                      iqd_old = iqd
-                     !IF(lpdebug) WRITE(6,*) ' *** LOLO debug: first find of iqd =', iqd0
+                     !IF(lpdebug) WRITE(6,*) ' *** #DEBUG: first find of iqd =', iqd0
 
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
-                     IF (l_save_distance_to_np) distance_to_np(ji+io1(ithrd)-1,jj) = DISTANCE(xP, lonP, yP, latP)
+                     IF (l_save_distance_to_np) distance_to_np(ji+ji1-1,jj) = DISTANCE(xP, lonP, yP, latP)
 
                      !! Problem is that sometimes, in the case of really twisted
                      !! meshes this method screws up, iqd is not what it
-                     !! shoule be, so need the following loop on the value of iqd:
+                     !! should be, so need the following loop on the value of iqd:
                      icpt = 0
                      lagain = .TRUE.
                      DO WHILE ( lagain )
@@ -594,27 +588,27 @@ CONTAINS
                         SELECT CASE ( iqd ) ! point 2 3 4 are counter clockwise in the respective sector
                         CASE ( 1 )
                            loni(2) = lonE ; lati(2) = latE
-                           loni(3) = MOD(pX(iPp1,jPp1), 360._8) ; lati(3) = pY(iPp1,jPp1)
+                           loni(3) = MOD(plon_src(iPp1,jPp1), 360._8) ; lati(3) = plat_src(iPp1,jPp1)
                            loni(4) = lonN ; lati(4) = latN
                         CASE ( 2 )
                            loni(2) = lonS ; lati(2) = latS
-                           loni(3) = MOD(pX(iPp1,jPm1), 360._8) ; lati(3) = pY(iPp1,jPm1)
+                           loni(3) = MOD(plon_src(iPp1,jPm1), 360._8) ; lati(3) = plat_src(iPp1,jPm1)
                            loni(4) = lonE ; lati(4) = latE
                         CASE ( 3 )
                            loni(2) = lonW ; lati(2) = latW
-                           loni(3) = MOD(pX(iPm1,jPm1), 360._8) ; lati(3) = pY(iPm1,jPm1)
+                           loni(3) = MOD(plon_src(iPm1,jPm1), 360._8) ; lati(3) = plat_src(iPm1,jPm1)
                            loni(4) = lonS ; lati(4) = latS
                         CASE ( 4 )
                            loni(2) = lonN ; lati(2) = latN
-                           loni(3) = MOD(pX(iPm1,jPp1), 360._8) ; lati(3) = pY(iPm1,jPp1)
+                           loni(3) = MOD(plon_src(iPm1,jPp1), 360._8) ; lati(3) = plat_src(iPm1,jPp1)
                            loni(4) = lonW ; lati(4) = latW
                         END SELECT
 
                         WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
 
                         !! The tests!!!
-                        l_ok = L_InPoly ( loni(1:4), lati(1:4), xp, yp )    ! $$
-                        IF(lpdebug) WRITE(6,*) ' *** LOLO debug: l_ok =', l_ok
+                        l_ok = L_InPoly ( loni(1:4), lati(1:4), xP, yP )    ! $$
+                        IF(lpdebug) WRITE(6,*) ' *** #DEBUG: l_ok =', l_ok
 
                         IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
                            !! Mhhh... Seems like the "heading()" approach
@@ -638,14 +632,14 @@ CONTAINS
 
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
-                     CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
-                     pbln_map(ji,jj)%ipb = iproblem
+                     CALL LOCAL_COORD(loni, lati, zalfa, zbeta, iproblem)
+                     zbln_map(ji,jj)%ipb = iproblem
 
                      !LOLO: mark this in ID_problem => case when iqd = iqd0 ( IF ( icpt == 5 ) ) above!!!
-                     IF ( icpt == 5 ) pbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
+                     IF ( icpt == 5 ) zbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
 
                      IF (lpdebug) THEN
-                        WRITE(6,*) ' *** LOLO debug :'
+                        WRITE(6,*) ' *** #DEBUG :'
                         WRITE(6,*) 'Nearest point :',lonP,  latP,  hP, hPp
                         WRITE(6,*) 'North point :',  lonN , latN , hN
                         WRITE(6,*) 'East  point :',  lonE , latE , hE
@@ -662,69 +656,69 @@ CONTAINS
                      END IF
 
                      !! Saving into arrays to be written at the end:
-                     pbln_map(ji,jj)%iqdrn = iqd
-                     pbln_map(ji,jj)%ralfa = alpha
-                     pbln_map(ji,jj)%rbeta = beta
-                     pbln_map(ji,jj)%ipb   = 0
+                     zbln_map(ji,jj)%iqdrn = iqd
+                     zbln_map(ji,jj)%ralfa = zalfa
+                     zbln_map(ji,jj)%rbeta = zbeta
+                     zbln_map(ji,jj)%ipb   = 0
 
                   END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi))
                END IF ! IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) )
-            END IF ! IF ( mask_ignore_trg(ji,jj)==1 )
+            END IF ! IF ( kmsk_ignr_trg(ji,jj)==1 )
          ENDDO
       ENDDO
 
       !lolo: UGLY!
-      pbln_map(:,:)%jip = i_nrst_src(:,:)
-      pbln_map(:,:)%jjp = j_nrst_src(:,:)
+      zbln_map(:,:)%jip = ki_nrst(:,:)
+      zbln_map(:,:)%jjp = kj_nrst(:,:)
 
-      WHERE ( (i_nrst_src == INT(rmissval)).OR.(j_nrst_src == INT(rmissval)) )
-         pbln_map(:,:)%ralfa  = rmissval
-         pbln_map(:,:)%rbeta  = rmissval
+      WHERE ( (ki_nrst == INT(rmissval)).OR.(kj_nrst == INT(rmissval)) )
+         zbln_map(:,:)%ralfa  = rmissval
+         zbln_map(:,:)%rbeta  = rmissval
       END WHERE
 
       !! Awkwardly fixing problematic points but remembering them in ID_problem
 
       !! Negative values that are actually 0
-      WHERE ( ((pbln_map(:,:)%ralfa < 0.).AND.(pbln_map(:,:)%ralfa > -repsilon)) ) pbln_map(:,:)%ralfa = 0.0
-      WHERE ( ((pbln_map(:,:)%rbeta < 0.).AND.(pbln_map(:,:)%rbeta > -repsilon)) ) pbln_map(:,:)%rbeta = 0.0
+      WHERE ( ((zbln_map(:,:)%ralfa < 0.).AND.(zbln_map(:,:)%ralfa > -repsilon)) ) zbln_map(:,:)%ralfa = 0.0
+      WHERE ( ((zbln_map(:,:)%rbeta < 0.).AND.(zbln_map(:,:)%rbeta > -repsilon)) ) zbln_map(:,:)%rbeta = 0.0
 
-      WHERE ( (pbln_map(:,:)%ralfa > rmissval).AND.(pbln_map(:,:)%ralfa < 0.) )
-         pbln_map(:,:)%ralfa = 0.5
-         pbln_map(:,:)%ipb = 4
+      WHERE ( (zbln_map(:,:)%ralfa > rmissval).AND.(zbln_map(:,:)%ralfa < 0.) )
+         zbln_map(:,:)%ralfa = 0.5
+         zbln_map(:,:)%ipb = 4
       END WHERE
-      WHERE ( pbln_map(:,:)%ralfa > 1. )
-         pbln_map(:,:)%ralfa = 0.5
-         pbln_map(:,:)%ipb =  5
+      WHERE ( zbln_map(:,:)%ralfa > 1. )
+         zbln_map(:,:)%ralfa = 0.5
+         zbln_map(:,:)%ipb =  5
       END WHERE
 
-      WHERE ( (pbln_map(:,:)%rbeta > rmissval).AND.(pbln_map(:,:)%rbeta < 0.) )
-         pbln_map(:,:)%rbeta = 0.5
-         pbln_map(:,:)%ipb = 6
+      WHERE ( (zbln_map(:,:)%rbeta > rmissval).AND.(zbln_map(:,:)%rbeta < 0.) )
+         zbln_map(:,:)%rbeta = 0.5
+         zbln_map(:,:)%ipb = 6
       END WHERE
-      WHERE ( pbln_map(:,:)%rbeta > 1. )
-         pbln_map(:,:)%rbeta = 0.5
-         pbln_map(:,:)%ipb = 7
+      WHERE ( zbln_map(:,:)%rbeta > 1. )
+         zbln_map(:,:)%rbeta = 0.5
+         zbln_map(:,:)%ipb = 7
       END WHERE
 
       !! iquadran was not found:
-      WHERE ( pbln_map(:,:)%iqdrn < 1 )
-         pbln_map(:,:)%iqdrn = 1 ! maybe bad... but at least reported in ID_problem ...
-         pbln_map(:,:)%ipb = 44
+      WHERE ( zbln_map(:,:)%iqdrn < 1 )
+         zbln_map(:,:)%iqdrn = 1 ! maybe bad... but at least reported in ID_problem ...
+         zbln_map(:,:)%ipb = 44
       END WHERE
 
-      WHERE (mask_ignore_trg <= -1) pbln_map(:,:)%ipb = -1 ! Nearest point was not found by "FIND_NEAREST"
-      WHERE (mask_ignore_trg ==  0) pbln_map(:,:)%ipb = -2 ! No idea if possible... #lolo
-      WHERE (mask_ignore_trg <  -2) pbln_map(:,:)%ipb = -3 ! No idea if possible... #lolo
+      WHERE (kmsk_ignr_trg <= -1) zbln_map(:,:)%ipb = -1 ! Nearest point was not found by "FIND_NEAREST"
+      WHERE (kmsk_ignr_trg ==  0) zbln_map(:,:)%ipb = -2 ! No idea if possible... #lolo
+      WHERE (kmsk_ignr_trg <  -2) zbln_map(:,:)%ipb = -3 ! No idea if possible... #lolo
 
 
-      IF( ithrd > 0 ) THEN
-         !! OMP i-decomposition:
-         bilin_map(io1(ithrd):io2(ithrd),:) = pbln_map(:,:)
-      ELSE
-         bilin_map(:,:) = pbln_map(:,:)
-      END IF
+      !IF( ithrd > 0 ) THEN
+      !   !! OMP i-decomposition:
+      bilin_map(ji1:ji2,:) = zbln_map(:,:)
+      !ELSE
+      !   bilin_map(   :   ,:) = zbln_map(:,:)
+      !END IF
 
-      DEALLOCATE ( pbln_map, mask_ignore_trg, i_nrst_src, j_nrst_src )
+      DEALLOCATE ( zbln_map, kmsk_ignr_trg, ki_nrst, kj_nrst )
 
    END SUBROUTINE MAPPING_BL
 
@@ -745,8 +739,6 @@ CONTAINS
       !! * history:
       !!      Original : J.M. Molines ( May 2007)
       !!----------------------------------------------------------
-
-      IMPLICIT NONE
 
       !! * Arguments
       REAL(8), DIMENSION(0:4), INTENT(in)  :: xlam, xphi
@@ -846,7 +838,6 @@ CONTAINS
       !! * history:
       !!     J.M. Molines may 2007
       !!----------------------------------------------------------
-      IMPLICIT NONE
       REAL(8),INTENT(in) :: p1, p2, p3, p4
       REAL(8) :: det
       det = p1*p4 - p2*p3
@@ -871,7 +862,6 @@ CONTAINS
       !!  * history
       !!         J.M. Molines, may 2007
       !!--------------------------------------------------------------
-      IMPLICIT NONE
       !!  Arguments
       REAL(8), INTENT(in) :: plata, plona, platb, plonb
       REAL(8) :: heading
@@ -883,7 +873,7 @@ CONTAINS
       zconv=zpi/180.  ! for degree to radian conversion
 
       !! There is a problem if the Greenwich meridian pass between a and b
-      IF (iverbose>0) PRINT *,' Plonb  Plona ' , plonb, plona
+      IF (iverbose>1) WRITE(6,*) ' * HEADIN() => Plonb  Plona ' , plonb, plona
       xa=plona*zconv
       xb=plonb*zconv
 
@@ -893,24 +883,24 @@ CONTAINS
       rr = MAX(ABS(tan(zpi/4.-zconv*platb/2.)), repsilon)  !lolo just to avoid FPE sometimes
       yb = -LOG(rr)
 
-      IF (iverbose>0) WRITE(6,*) ' xa_xb , modulo 2pi', xb-xa, MOD((xb-xa),2*zpi)
+      IF (iverbose>1) WRITE(6,*) ' * HEADIN() =>  xa_xb , modulo 2pi', xb-xa, MOD((xb-xa),2*zpi)
       xb_xa=MOD((xb-xa),2*zpi)
 
       IF ( xb_xa >=  zpi ) xb_xa = xb_xa -2*zpi
       IF ( xb_xa <= -zpi ) xb_xa = xb_xa +2*zpi
-      IF (iverbose>0)  print *, 'yb -ya, xb_xa ',yb -ya , xb_xa
-
+      IF (iverbose>1)  WRITE(6,*) ' * HEADIN() => yb-ya, xb_xa ', yb-ya , xb_xa
+      
       angled = ATAN2(xb_xa, yb - ya)
 
       heading=angled*180./zpi
       IF (heading < 0) heading = heading + 360._8
-
+      
    END FUNCTION heading
 
 
 
    SUBROUTINE P2D_MAPPING_AB(cf_out, plon, plat, pbln_map, rflag )
-
+      
       USE netcdf
       USE io_ezcdf, ONLY : sherr
       
@@ -1017,7 +1007,5 @@ CONTAINS
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,'dummy' )
       !!
    END SUBROUTINE RD_MAPPING_AB
-
-
 
 END MODULE MOD_BILIN_2D
