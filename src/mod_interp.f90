@@ -10,7 +10,7 @@ MODULE MOD_INTERP
    USE mod_grids
 
    USE mod_nemotools, ONLY: lbc_lnk
-   USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdebug
+   USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdbg
 
    IMPLICIT NONE
 
@@ -68,29 +68,59 @@ CONTAINS
       SELECT CASE(cmethod)
 
       CASE('akima')
+         
+         IF( jt == 1 ) THEN
+            CALL AKIMA_INIT( lon_src, lat_src, lon_trg, lat_trg )
 
-         IF( jt == 1 ) CALL AKIMA_INIT()
+            !l_only_mapping
+            
+            !$OMP PARALLEL DO
+            DO jo = 1, Nthrd
+               !$IF(l_omp) WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)               
+               CALL akima_2d( ewper_src, jo,                                                       &
+                  &           x_src_2d                   , y_src_2d                   , data_src,  &
+                  &           x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
+                  &                          l_only_mapping=.TRUE. )               
+            END DO
+            !$OMP END PARALLEL DO
+            
+            !$OMP BARRIER
 
-         !$IF(l_omp) WRITE(6,*) ''
+            !lolodbg:
+            cf_tmp='akima_mapping_ji.nc'
+            CALL DUMP_FIELD( REAL(map_akm(:,:,1),4), cf_tmp, 'ji_src' )
+            cf_tmp='akima_mapping_jj.nc'
+            CALL DUMP_FIELD( REAL(map_akm(:,:,2),4), cf_tmp, 'jj_src' )
+            !lolodbg.
+
+            PRINT *, 'Stopping after saving map_akm in mod_interp.f90!!!'; STOP
+            
+         END IF !IF( jt == 1 )
+            
+         
+         !PRINT *, 'STOPPING RIGHT AFTER AKIMA_INIT !'; STOP
+
+         !$ IF(l_omp) WRITE(6,*) ''
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
-
             !$IF(l_omp) WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
-            CALL akima_2d( ewper_src, jo, lon_src, lat_src, data_src, &
-               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:) )
-
+            
+            CALL akima_2d( ewper_src, jo,                                                       &
+               &           x_src_2d                   , y_src_2d                   , data_src,  &
+               &           x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:) )
+            
          END DO
          !$OMP END PARALLEL DO
-
-
+         
+         !$OMP BARRIER
 
 
       CASE('bilin')
 
          IF( jt == 1 ) THEN
 
-            CALL BILIN_2D_INIT( lon_src, lat_src, data_src, lon_trg, lat_trg, data_trg,  mask_domain_trg=IGNORE )
+            CALL BILIN_2D_INIT( lon_src, lat_src, lon_trg, lat_trg,  mask_domain_trg=IGNORE )
             !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !
 
             

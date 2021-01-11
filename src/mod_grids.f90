@@ -5,30 +5,24 @@ MODULE  MOD_GRIDS
    USE io_ezcdf
    USE mod_manip, ONLY : degE_to_degWE
 
-   IMPLICIT none
+   IMPLICIT NONE
 
    PRIVATE
-
+   
    INTERFACE CREATE_LSM
       MODULE PROCEDURE CREATE_LSM_2D, CREATE_LSM_3D
    END INTERFACE CREATE_LSM
-
-
+   
    PUBLIC :: SRC_DOMAIN, &
       &      TRG_DOMAIN, &
+      &      MK_2D_LON_LAT, &
       &      IS_ORCA_NORTH_FOLD, &
       &      TERMINATE, &
       &      CREATE_LSM
-
-   INTEGER :: &
-      &     ji, jj, jk, jt0, jz0, &
-      &     n1, n2, n3, nrec,   &
-      &     if0, iv0
-
-   REAL(wpl) :: rmv, dx, dy
-   LOGICAL :: lmval
-
-
+   
+   REAL(8), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_src_2d, y_src_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
+   REAL(8), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_trg_2d, y_trg_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
+   
 CONTAINS
 
 
@@ -97,7 +91,7 @@ CONTAINS
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
       REAL(8) :: zz
-
+      INTEGER :: ji, jj
 
       IF ( (TRIM(cmethod) == 'no_xy').OR.(l_save_drwn ) ) THEN
          CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lon_src, nb_att_lon_src, vatt_info_lon_src)
@@ -328,6 +322,8 @@ CONTAINS
       !! Local :
       REAL    :: lon_min_2, lon_max_2
       LOGICAL :: l_loc1, l_loc2
+      INTEGER :: ji, jj, n1, n2, n3, nrec, jz0
+      INTEGER :: if0=0, iv0=0
 
       !! Getting grid on source domain:
       CALL rd_grid(-1, l_reg_src, cf_x_src, cv_lon_src, cv_lat_src, lon_src, lat_src)
@@ -401,13 +397,13 @@ CONTAINS
       mask_src(:,:,:) = 1 ! by default everything is considered sea (helps for smoothing when no LSM)
 
       IF ( l_drown_src ) THEN
-         
+
          IF ( TRIM(cf_lsm_src) == '' ) THEN
             WRITE(6,*) 'ERROR! if you want to "drown" input field (idrown[1]>0) then "cf_lsm_src"'
             WRITE(6,*) '       cannot be an empty string!'
             STOP
          END IF
-         
+
          IF ( (TRIM(cf_lsm_src) == 'missing_value' ).OR. &
             & (TRIM(cf_lsm_src) == 'val+')          .OR. &
             & (TRIM(cf_lsm_src) == 'val-')          .OR. &
@@ -485,6 +481,10 @@ CONTAINS
 
    SUBROUTINE get_trg_conf()
 
+      INTEGER :: ji, jj, jz0
+      INTEGER :: if0=0, iv0=0
+      REAL(wpl) :: dx, dy
+      
       IF ( TRIM(cmethod) /= 'no_xy' ) THEN
 
          IF ( (l_reg_trg).AND.(TRIM(cf_x_trg) == 'spheric') ) THEN
@@ -602,7 +602,7 @@ CONTAINS
 
          ELSE
 
-            
+
             IF ( TRIM(cf_lsm_trg) =='missing_value' ) THEN
                CALL CREATE_LSM( 'target', cf_lsm_trg, cv_lsm_trg, mask_trg,  cf_fld=cf_x_trg, cv_fld=cv_lsm_trg )
 
@@ -669,7 +669,7 @@ CONTAINS
       !! Local
       LOGICAL :: lreg2d, l2dyreg_x, l2dyreg_y
       CHARACTER(len=8) :: cdomain, clreg
-      INTEGER :: &
+      INTEGER :: nrec, &
          &     idx, Nx, Ny, &
          &     ii, ij, if1, iv1, &
          &     ilx1, ily1, ilz1,   &
@@ -992,6 +992,9 @@ CONTAINS
 
    SUBROUTINE know_dim_trg
       !!
+      INTEGER :: n1, n2, nrec
+      REAL(wpl) :: dx, dy
+      
       nk_trg = 1
       !!
       IF ( TRIM(cmethod) /= 'no_xy' ) THEN
@@ -1235,10 +1238,12 @@ CONTAINS
       !!       !! if xfield is present then don't read cv out of cf_fld
       !!         => so it's either cf_fld=xxx, cv_fld=xxx OR xfield=XXXX, not both !!!
       CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
-      REAL(wpl), OPTIONAL, DIMENSION(:,:,:), INTENT(in) :: xfield
+      REAL(wpl), OPTIONAL, DIMENSION(:,:,:), INTENT(in) :: xfield      
 
-      LOGICAL :: l_use_field_array
-      INTEGER :: ni, nj, nk
+      LOGICAL :: l_use_field_array, lmval
+      INTEGER :: ni, nj, nk, ji, jj, jk, jt0
+      INTEGER :: if0=0, iv0=0
+      REAL(wpl) :: rmv
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
       REAL    :: rval_thrshld
 
@@ -1283,7 +1288,7 @@ CONTAINS
          END DO
 
       END IF
-      
+
       mask(:,:,:) = 1
 
       IF ( TRIM(cmthd) == 'missing_value' ) THEN
@@ -1296,14 +1301,14 @@ CONTAINS
             PRINT *, '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
-         
+
          IF ( ISNAN(rmv) ) THEN
             WHERE ( z3d_tmp < -9990. ) mask = 0  ! NaN have been replaced with rmissval earlier !
          ELSE
             WHERE ( z3d_tmp == rmv   ) mask = 0
          END IF
          !!CALL DUMP_FIELD(REAL(mask,4), 'mask_trg.tmp', 'lsm')
-         
+
       ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
          READ(cnumv,*) rval_thrshld
          IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld
@@ -1342,8 +1347,10 @@ CONTAINS
       CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
       REAL(wpl), OPTIONAL, DIMENSION(:,:), INTENT(in) :: xfield
       !!
-      LOGICAL :: l_use_field_array
-      INTEGER :: ni, nj
+      LOGICAL :: l_use_field_array, lmval
+      INTEGER :: ni, nj, ji, jj, jz0, jt0
+      INTEGER :: if0=0, iv0=0
+      REAL(wpl) :: rmv
       REAL(wpl), DIMENSION(:,:), ALLOCATABLE :: z2d_tmp
       REAL    :: rval_thrshld
 
@@ -1398,13 +1405,13 @@ CONTAINS
             PRINT *, '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
-         
+
          IF ( ISNAN(rmv) ) THEN
             WHERE ( z2d_tmp < -9990. ) mask = 0  ! NaN have been replaced with rmissval earlier !
-         ELSE            
+         ELSE
             WHERE ( z2d_tmp == rmv )   mask = 0
          END IF
-         
+
       ELSEIF ( (TRIM(cmthd) == 'val+').OR.(TRIM(cmthd) == 'val-').OR.(TRIM(cmthd) == 'value') ) THEN
          READ(cnumv,*) rval_thrshld
          IF (TRIM(cmthd) == 'val+')  WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from values >=', rval_thrshld
@@ -1424,7 +1431,7 @@ CONTAINS
          WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from NaN values in '//TRIM(cv_src)//' at jt = ', jt0
          ! =>  NaN values have been flagged earlier and replaced by rmissval
          WHERE ( z2d_tmp < -9998. ) mask = 0
-         
+
       ELSE
          WRITE(6,*) 'ERROR! (CREATE_LSM_2D of mod_grids.f90): Unknown value for "cmthd": '//TRIM(cmthd)//' !' ; STOP
       END IF
@@ -1434,4 +1441,86 @@ CONTAINS
 
 
 
+   SUBROUTINE MK_2D_LON_LAT( px_src, py_src, px_trg, py_trg )
+      !!==============================================================================
+      !!  Input :
+      !!             px_src : 2D source longitude array of shape (ni,nj) or (ni,1)
+      !!             py_src : 2D source latitude  array of shape (ni,nj) or (nj,1)
+      !!             px_trg : 2D target longitude array of shape (ni,nj) or (ni,1)
+      !!             py_trg : 2D target latitude  array of shape (ni,nj) or (nj,1)
+      !!==============================================================================
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
+      !!
+      INTEGER :: ji, jj
+      CHARACTER(len=26) :: cm='[MK_2D_LON_LAT@mod_grids]: '
+      LOGICAL :: l_1d_src=.FALSE., l_1d_trg=.FALSE.
+      !!==============================================================================
+
+      !! Source:
+      IF( (SIZE(px_src,2)==1).AND.(SIZE(py_src,2)==1) ) THEN
+         !! They are fake 2D...
+         IF(  (SIZE(px_src,1)/=ni_src).AND.(SIZE(py_src,1)==nj_src) ) CALL STOP_THIS(cm//'px_src & py_src have a weird shape (1D) !')
+         l_1d_src = .TRUE.
+      ELSEIF( (SIZE(px_src,1)==SIZE(py_src,1)).AND.(SIZE(px_src,2)==SIZE(py_src,2)) ) THEN
+         !! They are already actual 2D arrays, and have the same shape!
+         IF( (SIZE(px_src,1)/=ni_src).AND.(SIZE(px_src,2)==nj_src) ) CALL STOP_THIS(cm//'px_src & py_src have a weird shape (2D) !')
+      ELSE
+         CALL STOP_THIS(cm//'px_src & py_src do not agree in shape !')
+      END IF
+      
+      !! Target:
+      IF( (SIZE(px_trg,2)==1).AND.(SIZE(py_trg,2)==1) ) THEN
+         !! They are fake 2D...
+         IF(  (SIZE(px_trg,1)/=ni_trg).AND.(SIZE(py_trg,1)==nj_trg) ) CALL STOP_THIS(cm//'px_trg & py_trg have a weird shape (1D) !')
+         l_1d_trg = .TRUE.
+      ELSEIF( (SIZE(px_trg,1)==SIZE(py_trg,1)).AND.(SIZE(px_trg,2)==SIZE(py_trg,2)) ) THEN
+         !! They are already actual 2D arrays, and have the same shape!
+         IF( (SIZE(px_trg,1)/=ni_trg).AND.(SIZE(px_trg,2)==nj_trg) ) CALL STOP_THIS(cm//'px_trg & py_trg have a weird shape (2D) !')
+      ELSE
+         CALL STOP_THIS(cm//'px_trg & py_trg do not agree in shape !')
+      END IF
+         
+      IF(iverbose>0) WRITE(6,*) cm//' => all coordinate arrays have expected shape :)'
+      
+      ! Source coordinates made 2D:
+      WRITE(6,*) ''
+      WRITE(6,'("   * Allocating and filling 2D source Long and Lat: ",i5," x ",i5)') ni_src, nj_src
+      ALLOCATE ( x_src_2d(ni_src,nj_src) , y_src_2d(ni_src,nj_src) )
+      IF ( l_1d_src ) THEN
+         DO jj=1, nj_src
+            x_src_2d(:,jj) = px_src(:,1)
+         END DO
+         DO ji=1, ni_src
+            y_src_2d(ji,:) = py_src(:,1)
+         END DO
+      ELSE
+         x_src_2d(:,:) = px_src(:,:)
+         y_src_2d(:,:) = py_src(:,:)
+      END IF
+
+      ! Target coordinates made 2D:
+      WRITE(6,*) ''
+      WRITE(6,'("   * Allocating and filling 2D target Long and Lat: ",i5," x ",i5)') ni_trg, nj_trg
+      ALLOCATE ( x_trg_2d(ni_trg,nj_trg) , y_trg_2d(ni_trg,nj_trg) )
+      IF ( l_1d_trg ) THEN
+         DO jj=1, nj_trg
+            x_trg_2d(:,jj) = px_trg(:,1)
+         END DO
+         DO ji=1, ni_trg
+            y_trg_2d(ji,:) = py_trg(:,1)
+         END DO
+      ELSE
+         x_trg_2d(:,:) = px_trg(:,:)
+         y_trg_2d(:,:) = py_trg(:,:)
+      END IF
+      !!
+      WRITE(6,*) '  * All done! (x_src_2d, y_src_2d, x_trg_2d, y_trg_2d)'
+      WRITE(6,*) ''
+      !ALLOCATE ( x_trg_2d(ni_trg,nj_trg) , y_trg_2d(ni_trg,nj_trg) , mask_ignore_trg(ni_trg,nj_trg) ) !, msk_res(ni_trg,nj_trg) )
+      !mask_ignore_trg(:,:) = 1
+      !IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
+      !!
+   END SUBROUTINE MK_2D_LON_LAT
+   
 END MODULE MOD_GRIDS

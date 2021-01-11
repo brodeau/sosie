@@ -30,7 +30,7 @@ MODULE MOD_AKIMA_2D
 
    USE mod_conf
    USE mod_manip, ONLY: FILL_EXTRA_BANDS
-   USE io_ezcdf,  ONLY: TEST_XYZ
+   USE mod_grids, ONLY: x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, MK_2D_LON_LAT
 
    IMPLICIT NONE
 
@@ -39,66 +39,95 @@ MODULE MOD_AKIMA_2D
    PUBLIC :: AKIMA_INIT, AKIMA_2D
 
    !! Mapping for Akima:
-   INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: map_akm !: table storing source/target grids mapping for akima method
+   INTEGER, DIMENSION(:,:,:), ALLOCATABLE, PUBLIC, SAVE :: map_akm !: table storing source/target grids mapping for akima method !lolodbg => remove PUBLIC !!!
+   !INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: map_akm !: table storing source/target grids mapping for akima method
    LOGICAL, DIMENSION(:),     ALLOCATABLE, SAVE :: l_1st_call_akima
    LOGICAL, DIMENSION(:),     ALLOCATABLE, SAVE :: l_always_first_call
 
-
-   
    REAL(8), PARAMETER :: repsilon = 1.E-9
-   
+
    INTEGER, PARAMETER  :: nsys = 16 !: Dimmension of the linear sytem to solve
 
 CONTAINS
 
 
 
-   SUBROUTINE AKIMA_INIT()
-
+   SUBROUTINE AKIMA_INIT( px_src, py_src, px_trg, py_trg )
+      !!==============================================================================
+      !!  Input :
+      !!             px_src : 2D source longitude array of shape (ni,nj) or (ni,1)
+      !!             py_src : 2D source latitude  array of shape (ni,nj) or (nj,1)
+      !!             px_trg : 2D target longitude array of shape (ni,nj) or (ni,1)
+      !!             py_trg : 2D target latitude  array of shape (ni,nj) or (nj,1)
+      !!==============================================================================
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
+      !!==============================================================================
+      !!
+      WRITE(6,*) ''; WRITE(6,*) ''
+      WRITE(6,*) '###################################################################'
+      WRITE(6,*) '#                     AKIMA 2D INITIALIZATION'
+      WRITE(6,*) '###################################################################'
+      WRITE(6,*) ''
+      WRITE(6,'("   * Allocating array bilin_map: ",i5," x ",i5)') ni_trg, nj_trg
       ALLOCATE ( map_akm(ni_trg, nj_trg, 2) )
 
       ALLOCATE ( l_1st_call_akima(Nthrd) )
       l_1st_call_akima(:) = .TRUE.
-      
+
       ALLOCATE( l_always_first_call(Nthrd) )
       l_always_first_call(:) = .FALSE.
-      
+
+      WRITE(6,*) ''
+      WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
+      CALL MK_2D_LON_LAT( px_src, py_src, px_trg, py_trg )
+      WRITE(6,*) ''
+
+      WRITE(6,*) '  Initializations for AKIMA_2D done !'
+      WRITE(6,*) ''
+      WRITE(6,*) '###################################################################'
+      WRITE(6,*) ''; WRITE(6,*) ''
+      !!
    END SUBROUTINE AKIMA_INIT
 
 
 
-   SUBROUTINE AKIMA_2D(k_ew_per, ithrd, X10, Y10, Z1, X20, Y20, Z2,  icall)
+   SUBROUTINE AKIMA_2D( k_ew_per, ithrd, X1, Y1, Z1, X2, Y2, Z2,  icall, l_only_mapping )
 
       !!================================================================
       !!
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             X10   : 2D source longitude array (ni*nj) or (ni*1) (must be regular!)
-      !!             Y10   : 2D source latitude  array (ni*nj) or (nj*1) (must be regular!)
+      !!             X1   : 2D source longitude array (ni*nj) (must be regular!)
+      !!             Y1   : 2D source latitude  array (ni*nj) (must be regular!)
       !!             Z1    : source field on source grid
       !!
-      !!             X20   : 2D target longitude array (ni*nj) or (ni*1) (can be irregular)
-      !!             Y20   : 2D target latitude  array (ni*nj) or (nj*1) (can be irregular)
+      !!             X2   : 2D target longitude array (ni*nj) (can be irregular)
+      !!             Y2   : 2D target latitude  array (ni*nj) (can be irregular)
       !!
       !! OUTPUT :
       !!             Z2    : input field on target grid
       !!
-      !! input (optional)  : icall : if icall=1, will always force 'l_1st_call_akima' to .TRUE.
+      !! input (optional)
+      !!             icall : IF icall=1, will always force 'l_1st_call_akima' to .TRUE.
+      !!        l_only_mapping : only do the mapping, so only fill array 'map_akm' !
       !!
       !!================================================================
 
+      !USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdbg
 
       !! Input/Output arguments
       INTEGER,                   INTENT(in)    :: k_ew_per, ithrd
-      REAL(8), DIMENSION(:,:),   INTENT(in)    :: X10, Y10
-      REAL(4), DIMENSION(:,:),   INTENT(in)    :: Z1
-      REAL(8), DIMENSION(:,:),   INTENT(in)    :: X20, Y20
-      REAL(4), DIMENSION(:,:),   INTENT(out)   :: Z2
-      INTEGER,       OPTIONAL,   INTENT(in)    :: icall
-      
+      REAL(8),   DIMENSION(:,:),   INTENT(in)  :: X1, Y1
+      REAL(wpl), DIMENSION(:,:),   INTENT(in)  :: Z1
+      REAL(8),   DIMENSION(:,:),   INTENT(in)  :: X2, Y2
+      REAL(wpl), DIMENSION(:,:),   INTENT(out) :: Z2
+      INTEGER,       OPTIONAL,     INTENT(in)  :: icall
+      LOGICAL,       OPTIONAL,     INTENT(in)  :: l_only_mapping
+
       !! Local variables
-      INTEGER :: nx1, ny1, nx2, ny2, ji, jj
+      INTEGER :: nx1, ny1, nx2, ny2
 
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
 
@@ -111,7 +140,6 @@ CONTAINS
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
-         &    X1, Y1, X2, Y2,   &
          &    Z_src , lon_src , lat_src
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
@@ -123,43 +151,21 @@ CONTAINS
 
       REAL(8), DIMENSION(4) :: xy_range_src
 
-      CHARACTER(len=2) :: ctype
+      LOGICAL :: l_map_only
 
-      IF ( present(icall) ) THEN
+      !CHARACTER(len=32) :: cf_tmp !lolodbg
+      !!================================================================
+
+      IF ( PRESENT(icall) ) THEN
          IF ( icall == 1 ) THEN
             l_1st_call_akima(ithrd) = .TRUE.
             l_always_first_call(ithrd)  = .TRUE.
          END IF
       END IF
 
+      l_map_only = .FALSE.
+      IF( PRESENT(l_only_mapping) ) l_map_only = l_only_mapping
 
-
-      !! Create 2D (ni*nj) arrays out of 1d (ni*1 and nj*1) arrays if needed:
-      !! => TEST_XYZ tests if a 2D array is a true 2D array (NxM) or a fake (Nx1)
-      !!    and returns '1d' if it is a fake 2D array
-
-      ctype = TEST_XYZ(X10, Y10, Z1)
-      nx1 = SIZE(Z1,1)
-      ny1 = SIZE(Z1,2)
-      ALLOCATE ( X1(nx1,ny1) , Y1(nx1,ny1) )
-      IF ( ctype == '1d' ) THEN
-         FORALL (jj = 1:ny1) X1(:,jj) = X10(:,1)
-         FORALL (ji = 1:nx1) Y1(ji,:) = Y10(:,1)
-      ELSE
-         X1 = X10 ; Y1 = Y10
-      END IF
-
-      ctype = '00'
-      ctype = TEST_XYZ(X20, Y20, Z2)
-      nx2 = SIZE(Z2,1)
-      ny2 = SIZE(Z2,2)
-      ALLOCATE ( X2(nx2,ny2) , Y2(nx2,ny2) )
-      IF ( ctype == '1d' ) THEN
-         FORALL (jj=1:ny2) X2(:,jj) = X20(:,1)
-         FORALL (ji=1:nx2) Y2(ji,:) = Y20(:,1)
-      ELSE
-         X2 = X20 ; Y2 = Y20
-      END IF
 
 
       !!                       S T A R T
@@ -169,17 +175,17 @@ CONTAINS
       !!    dimension This is really needed specially for preserving good east-west
       !!    perdiodicity...
 
-      ni1 = nx1 + n_extd  ;   nj1 = ny1 + n_extd
+      nx1 = SIZE(X1,1) ; ny1 = SIZE(X1,2)
+      nx2 = SIZE(X2,1) ; ny2 = SIZE(X2,2)
+
+      ni1 = nx1 + n_extd
+      nj1 = ny1 + n_extd
 
       ALLOCATE ( Z_src(ni1,nj1), lon_src(ni1,nj1), lat_src(ni1,nj1), &
          &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
          &       poly(ni1-1,nj1-1,nsys)    )
 
       CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_src, lat_src, Z_src,  is_orca_grid=i_orca_src)
-
-      DEALLOCATE (X1, Y1)
-
-
 
       !! Computation of partial derivatives:
       CALL slopes_akima(k_ew_per, lon_src, lat_src, Z_src, slpx, slpy, slpxy)
@@ -190,52 +196,66 @@ CONTAINS
       DEALLOCATE ( slpx, slpy, slpxy )
 
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = minval(lon_src) ;  max_lon1 = maxval(lon_src)
-      min_lat1 = minval(lat_src) ;  max_lat1 = maxval(lat_src)
+      min_lon1 = MINVAL(lon_src) ;  max_lon1 = MAXVAL(lon_src)
+      min_lat1 = MINVAL(lat_src) ;  max_lat1 = MAXVAL(lat_src)
       xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
 
       min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
-      min_lat2 = minval(Y2)     ;  max_lat2 = maxval(Y2)
+      min_lat2 = MINVAL(Y2)     ;  max_lat2 = MAXVAL(Y2)
 
       !! Doing the mapping once for all and saving into map_akm:
       IF ( l_1st_call_akima(ithrd) ) THEN
          PRINT *, '  ==> "find_nearest_akima" to fill "map_akm": thread #', ithrd
          map_akm(:,:,:) = 0
-         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, map_akm )
+         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, map_akm(io1(ithrd):io2(ithrd),:,:) )
       END IF
 
+      !lolodbg:
+      !WRITE(cf_tmp,'("akima_mapping_ji",i2.2,".nc")') ithrd
+      !CALL DUMP_FIELD(REAL(map_akm(io1(ithrd):io2(ithrd),:,1),4), cf_tmp, 'ji_src')
+      !WRITE(cf_tmp,'("akima_mapping_jj",i2.2,".nc")') ithrd
+      !CALL DUMP_FIELD(REAL(map_akm(io1(ithrd):io2(ithrd),:,2),4), cf_tmp, 'jj_src')
+      !lolodbg.
 
-      !! Loop on target domain:
-      DO jj2 = 1, ny2
-         DO ji2 = 1, nx2
+      IF( .NOT. l_map_only ) THEN
 
-            !! The coordinates of current target point are (px2,py2) :
-            px2 = X2(ji2,jj2)
-            py2 = Y2(ji2,jj2)
+         !$OMP BARRIER ! we wait for map_akm to be completely field
 
-            !! Checking if this belongs to source domain :
-            IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
-               !! We know the right location from time = 1 :
-               ji1 = map_akm(ji2,jj2,1)
-               jj1 = map_akm(ji2,jj2,2)
+         !! Loop on target domain:
+         DO jj2 = 1, ny2
+            DO ji2 = 1, nx2
 
-               !! It's time to interpolate:
-               px2 = px2 - lon_src(ji1,jj1)
-               py2 = py2 - lat_src(ji1,jj1)
-               vpl = poly(ji1,jj1,:)
+               !! The coordinates of current target point are (px2,py2) :
+               px2 = X2(ji2,jj2)
+               py2 = Y2(ji2,jj2)
 
-               Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
+               !! Checking if this belongs to source domain :
+               IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
-            ELSE
-               Z2(ji2,jj2) = 0.  ! point is not on source domain!
-            END IF
+                  !! We know the right location from time = 1 :
+                  ji1 = map_akm(ji2,jj2,1)
+                  jj1 = map_akm(ji2,jj2,2)
 
-         END DO
-      END DO
+                  !! It's time to interpolate:
+                  px2 = px2 - lon_src(ji1,jj1)
+                  py2 = py2 - lat_src(ji1,jj1)
+                  vpl = poly(ji1,jj1,:)
 
+                  Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
+
+               ELSE
+                  Z2(ji2,jj2) = 0.  ! point is not on source domain!
+                  
+               END IF !IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) )
+               
+            END DO !DO ji2 = 1, nx2
+         END DO !DO jj2 = 1, ny2
+         
+      END IF !IF( .NOT. l_map_only )
+      
       !! Deallocation :
-      DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
+      DEALLOCATE ( Z_src , lon_src , lat_src, poly )
 
       l_1st_call_akima(ithrd) = .FALSE.
 
@@ -247,8 +267,7 @@ CONTAINS
 
    END SUBROUTINE AKIMA_2D
 
-
-
+   
 
    !! ########################
    !! LOCAL PRIVATE ROUTINES :
@@ -675,10 +694,8 @@ CONTAINS
       REAL(8) :: pxt, pyt
       LOGICAL :: l_x_found, l_y_found
 
-      nxs = SIZE(plon_src,1)
-      nys = SIZE(plon_src,2)
-      nxt = SIZE(ixyp_trg,1)
-      nyt = SIZE(ixyp_trg,2)
+      nxs = SIZE(plon_src,1) ; nys = SIZE(plon_src,2)
+      nxt = SIZE(plon_trg,1) ; nyt = SIZE(plon_trg,2)
 
       !! Loop on target domain:
       DO jjt = 1, nyt
@@ -701,7 +718,7 @@ CONTAINS
                   l_x_found = .FALSE.
                   DO WHILE ( .NOT. l_x_found )
                      IF (jis < nxs) THEN
-                        IF ((plon_src(jis,jjs) <= pxt).and.(plon_src(jis+1,jjs) > pxt)) THEN
+                        IF ((plon_src(jis,jjs) <= pxt).AND.(plon_src(jis+1,jjs) > pxt)) THEN
                            l_x_found = .TRUE.
                         ELSE
                            jis = jis+1
@@ -738,5 +755,5 @@ CONTAINS
       END DO !DO jjt = 1, nyt
 
    END SUBROUTINE find_nearest_akima
-
+   
 END MODULE MOD_AKIMA_2D

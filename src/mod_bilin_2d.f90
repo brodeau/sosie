@@ -15,7 +15,8 @@ MODULE MOD_BILIN_2D
    USE mod_conf
    USE mod_manip, ONLY: EXT_NORTH_TO_90_REGG, DEGE_TO_DEGWE, FIND_NEAREST_POINT, DISTANCE
    USE mod_poly
-      
+   USE mod_grids, ONLY: x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, MK_2D_LON_LAT
+
    IMPLICIT NONE
 
    PRIVATE
@@ -51,8 +52,6 @@ MODULE MOD_BILIN_2D
    !! PUBLIC:
    
    LOGICAL,                                 PUBLIC, SAVE :: l_skip_bilin_mapping
-   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_src_2d, y_src_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
-   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_trg_2d, y_trg_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
    INTEGER(1), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: mask_ignore_trg
    
    PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
@@ -60,15 +59,13 @@ MODULE MOD_BILIN_2D
 CONTAINS
 
    
-   SUBROUTINE BILIN_2D_INIT( px_src, py_src, pz_src, px_trg, py_trg, pz_trg,  mask_domain_trg )
+   SUBROUTINE BILIN_2D_INIT( px_src, py_src, px_trg, py_trg,  mask_domain_trg )
       !!==============================================================================
       !!  Input :
       !!             px_src : 2D source longitude array of shape (ni,nj) or (ni,1)
       !!             py_src : 2D source latitude  array of shape (ni,nj) or (nj,1)
-      !!             pz_src : 2D data field of shape (ni,nj), here only for shape....
       !!             px_trg : 2D target longitude array of shape (ni,nj) or (ni,1)
       !!             py_trg : 2D target latitude  array of shape (ni,nj) or (nj,1)
-      !!             pz_trg : 2D data field of shape (ni,nj), here only for shape....
       !! OPTIONAL IN:
       !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!             
@@ -76,14 +73,10 @@ CONTAINS
       USE io_ezcdf, ONLY : TEST_XYZ  ! , DUMP_2D_FIELD
       !!
       REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
-      REAL(4),    DIMENSION(:,:),           INTENT(in) :: pz_src
       REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
-      REAL(4),    DIMENSION(:,:),           INTENT(in) :: pz_trg
       INTEGER(1), DIMENSION(:,:), OPTIONAL, INTENT(in) :: mask_domain_trg
       !!
-      INTEGER :: nx1, ny1, nx2, ny2, ji, jj
       LOGICAL :: lefw
-      CHARACTER(len=2) :: ctype
       !!==============================================================================
       !!
       WRITE(6,*) ''; WRITE(6,*) ''
@@ -124,50 +117,12 @@ CONTAINS
          l_skip_bilin_mapping = .FALSE.
       END IF
 
-
-      !! Source coordinates made 2D:
-      ctype = TEST_XYZ(px_src, py_src, pz_src)
-      nx1 = SIZE(pz_src,1)
-      ny1 = SIZE(pz_src,2)
       WRITE(6,*) ''
-      WRITE(6,'("   * Allocating and filling 2D source Long and Lat: ",i5," x ",i5)') nx1, ny1
-      ALLOCATE ( x_src_2d(nx1,ny1) , y_src_2d(nx1,ny1) )
-      IF ( ctype == '1d' ) THEN
-         DO jj=1, ny1
-            x_src_2d(:,jj) = px_src(:,1)
-         END DO
-         DO ji=1, nx1
-            y_src_2d(ji,:) = py_src(:,1)
-         END DO
-      ELSE
-         x_src_2d(:,:) = px_src(:,:)
-         y_src_2d(:,:) = py_src(:,:)
-      END IF
-
+      WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
+      CALL MK_2D_LON_LAT( px_src, py_src, px_trg, py_trg )
+      WRITE(6,*) ''
       
-      !! Same for target coordinates:
-      ctype = '00'
-      ctype = TEST_XYZ(px_trg, py_trg, pz_trg)
-      nx2 = SIZE(pz_trg,1)
-      ny2 = SIZE(pz_trg,2)
-
-      ALLOCATE ( x_trg_2d(nx2,ny2) , y_trg_2d(nx2,ny2) , mask_ignore_trg(nx2,ny2) ) !, msk_res(nx2,ny2) )
-
-      mask_ignore_trg(:,:) = 1
-      IF ( PRESENT(mask_domain_trg) ) mask_ignore_trg(:,:) = mask_domain_trg(:,:)
-
-      IF ( ctype == '1d' ) THEN
-         DO jj=1, ny2
-            x_trg_2d(:,jj) = px_trg(:,1)
-         END DO
-         DO ji=1, nx2
-            y_trg_2d(ji,:) = py_trg(:,1)
-         END DO
-      ELSE
-         x_trg_2d(:,:) = px_trg(:,:)
-         y_trg_2d(:,:) = py_trg(:,:)
-      END IF
-
+      WRITE(6,*) '  Initializations for BILIN_2D done !'
       WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''; WRITE(6,*) ''

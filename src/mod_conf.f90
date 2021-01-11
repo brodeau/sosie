@@ -251,4 +251,20 @@ MODULE MOD_CONF
       &   lon_trg_b, & !  //   backup
       &   lat_trg      ! latitude array on target grid
 
+
+
+CONTAINS
+   
+   SUBROUTINE STOP_THIS( cmsg1,  cmsg2, cmsg3 )
+      CHARACTER(len=*),           INTENT(in) :: cmsg1
+      CHARACTER(len=*), OPTIONAL, INTENT(in) :: cmsg2, cmsg3
+      !!
+      WRITE(6,*) ''
+      WRITE(6,*)                    'ERROR: '//TRIM(cmsg1)
+      IF(PRESENT(cmsg2)) WRITE(6,*) '      => '//TRIM(cmsg2)
+      IF(PRESENT(cmsg3)) WRITE(6,*) '      => '//TRIM(cmsg3)
+      WRITE(6,*) ''
+      STOP
+   END SUBROUTINE STOP_THIS
+   
 END MODULE MOD_CONF
