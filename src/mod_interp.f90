@@ -32,6 +32,14 @@ CONTAINS
       INTEGER :: jo ! OMP
       CHARACTER(len=80) :: cf_tmp !lolodbg
 
+      IF( jt == 1 ) THEN
+         WRITE(6,*) ''
+         WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
+         CALL MK_2D_LON_LAT( lon_src, lat_src, lon_trg, lat_trg )
+         !!  ==> allocates and fills: x_src_2d, y_src_2d, x_trg_2d & y_trg_2d
+         WRITE(6,*) ''
+      END IF
+      
       !! lon-aranging or lat-flipping field
       IF( nlat_icr_src == -1 ) CALL FLIP_UD(data_src)
       IF( nlon_icr_src == -1 ) CALL LONG_REORG_2D(i_chg_lon, data_src)
@@ -64,11 +72,6 @@ CONTAINS
 
 
       !!
-      WRITE(6,*) ''
-      WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
-      CALL MK_2D_LON_LAT( lon_src, lat_src, lon_trg, lat_trg )
-      !!  ==> allocates and fills: x_src_2d, y_src_2d, x_trg_2d & y_trg_2d
-      WRITE(6,*) ''
 
 
 
@@ -82,10 +85,9 @@ CONTAINS
       CASE('akima')
 
          IF( jt == 1 ) THEN
-            CALL AKIMA_INIT( lon_src, lat_src, lon_trg, lat_trg )
+            CALL AKIMA_INIT( ewper_src )
 
-            !l_only_mapping
-
+            !! Mapping once for all:
             !$OMP PARALLEL DO
             DO jo = 1, Nthrd
                !$IF(l_omp) WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
@@ -95,7 +97,6 @@ CONTAINS
                   &                          l_only_mapping=.TRUE. )
             END DO
             !$OMP END PARALLEL DO
-
             !$OMP BARRIER
 
             !lolodbg:
@@ -105,12 +106,7 @@ CONTAINS
             CALL DUMP_FIELD( REAL(map_akm(:,:,2),4), cf_tmp, 'jj_src' )
             !lolodbg.
 
-            PRINT *, 'Stopping after saving map_akm in mod_interp.f90!!!'; STOP
-
          END IF !IF( jt == 1 )
-
-
-         !PRINT *, 'STOPPING RIGHT AFTER AKIMA_INIT !'; STOP
 
          !$ IF(l_omp) WRITE(6,*) ''
 

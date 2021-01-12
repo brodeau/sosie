@@ -29,7 +29,8 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: EXTEND_2D_ARRAYS, EXTEND_ARRAY_4
+   USE mod_manip, ONLY: EXTEND_2D_ARRAYS, EXTEND_ARRAY_COOR_4, EXTEND_ARRAY_DATA_4
+   USE mod_grids, ONLY: x_src_2d, y_src_2d
 
    IMPLICIT NONE
 
@@ -43,6 +44,9 @@ MODULE MOD_AKIMA_2D
    LOGICAL, DIMENSION(:),     ALLOCATABLE, SAVE :: l_1st_call_akima
    LOGICAL, DIMENSION(:),     ALLOCATABLE, SAVE :: l_always_first_call
 
+   INTEGER, PARAMETER :: np_ext = 4    ! source grid extension
+   REAL(8), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_src_2d_ext , y_src_2d_ext ! extended coordinates
+
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
    INTEGER, PARAMETER  :: nsys = 16 !: Dimmension of the linear sytem to solve
@@ -51,16 +55,14 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_INIT( px_src, py_src, px_trg, py_trg )
+   SUBROUTINE AKIMA_INIT( kewper )
       !!==============================================================================
       !!  Input :
-      !!             px_src : 2D source longitude array of shape (ni,nj) or (ni,1)
-      !!             py_src : 2D source latitude  array of shape (ni,nj) or (nj,1)
-      !!             px_trg : 2D target longitude array of shape (ni,nj) or (ni,1)
-      !!             py_trg : 2D target latitude  array of shape (ni,nj) or (nj,1)
+      !!             kewper: east-west periodicity
       !!==============================================================================
-      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
-      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
+      INTEGER, INTENT(in) :: kewper
+      !REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
+      !REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
       !!==============================================================================
       !!
       WRITE(6,*) ''; WRITE(6,*) ''
@@ -70,13 +72,17 @@ CONTAINS
       WRITE(6,*) ''
       WRITE(6,'("   * Allocating array bilin_map: ",i5," x ",i5)') ni_trg, nj_trg
       ALLOCATE ( map_akm(ni_trg, nj_trg, 2) )
-
       ALLOCATE ( l_1st_call_akima(Nthrd) )
       l_1st_call_akima(:) = .TRUE.
-
       ALLOCATE( l_always_first_call(Nthrd) )
       l_always_first_call(:) = .FALSE.
-      
+      WRITE(6,*) ''
+      !!
+      WRITE(6,*) '  * Allocating and filling space-extended coordinates', ni_src+np_ext, 'x', nj_src+np_ext
+      ALLOCATE( x_src_2d_ext(ni_src+np_ext,nj_src+np_ext) , y_src_2d_ext(ni_src+np_ext,nj_src+np_ext) )
+      CALL EXTEND_ARRAY_COOR_4( kewper, x_src_2d, y_src_2d, x_src_2d_ext, y_src_2d_ext, is_orca_grid=i_orca_src )
+      WRITE(6,*) ''
+      !!
       WRITE(6,*) '  Initializations for AKIMA_2D done !'
       WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
@@ -108,9 +114,8 @@ CONTAINS
       !!        l_only_mapping : only do the mapping, so only fill array 'map_akm' !
       !!
       !!================================================================
-      
       USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdbg
-      
+
       !! Input/Output arguments
       INTEGER,                   INTENT(in)    :: k_ew_per, ithrd
       REAL(8),   DIMENSION(:,:),   INTENT(in)  :: X1, Y1
@@ -121,32 +126,15 @@ CONTAINS
       LOGICAL,       OPTIONAL,     INTENT(in)  :: l_only_mapping
 
       !! Local variables
-      INTEGER :: nx1, ny1, nx2, ny2
-
-      INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
-
-      INTEGER :: &
-         &     ji1, jj1, ji2, jj2,   &
-         &     ni1, nj1
-
+      INTEGER :: nx1, ny1, nx2, ny2, ni1, nj1, ji1, jj1, ji2, jj2
+      REAL(8), DIMENSION(4)    :: xy_range_src
       REAL(8), DIMENSION(nsys) ::  vpl
-
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
-
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
-         &    Z_src_ext , x_src_2d_ext , y_src_2d_ext
-
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
-
-      REAL(8) :: &
-         &  px2, py2,  &
-         &  min_lon1, max_lon1, min_lat1, max_lat1,   &
-         &  min_lon2, max_lon2, min_lat2, max_lat2
-
-      REAL(8), DIMENSION(4) :: xy_range_src
-
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: Z_src_ext, slpx, slpy, slpxy
+      !!
+      REAL(8) :: px2, py2, min_lon1, max_lon1, min_lat1, max_lat1
+      !!
       LOGICAL :: l_map_only
-
       !CHARACTER(len=32) :: cf_tmp !lolodbg
       !!================================================================
 
@@ -161,70 +149,19 @@ CONTAINS
       IF( PRESENT(l_only_mapping) ) l_map_only = l_only_mapping
 
 
-
-      !!                       S T A R T
-
-      !! Extending the source 2D domain with a frame of 2 points:
-      !!    We extend initial 2D array with a frame, adding n_extd points in each
-      !!    dimension This is really needed specially for preserving good east-west
-      !!    perdiodicity...
-
-      nx1 = SIZE(X1,1) ; ny1 = SIZE(X1,2)
-      nx2 = SIZE(X2,1) ; ny2 = SIZE(X2,2)
-
-      ni1 = nx1 + n_extd
-      nj1 = ny1 + n_extd
-
-      ALLOCATE ( Z_src_ext(ni1,nj1), x_src_2d_ext(ni1,nj1), y_src_2d_ext(ni1,nj1), &
-         &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
-         &       poly(ni1-1,nj1-1,nsys)    )
-
-      CALL EXTEND_2D_ARRAYS(k_ew_per, X1, Y1, x_src_2d_ext, y_src_2d_ext,   pF=REAL(Z1,8), pFx=Z_src_ext, is_orca_grid=i_orca_src)
-
-      CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_classic.nc', 'lon')
-      CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_classic.nc', 'lat')
-      CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_classic.nc', 'Z')
-
-
-
-      x_src_2d_ext = 0.
-      y_src_2d_ext = 0.
-      Z_src_ext    = 0.
-
-      CALL EXTEND_ARRAY_4( k_ew_per, X1, Y1,      X1   , x_src_2d_ext, 'x',  is_orca_grid=i_orca_src )
-      CALL EXTEND_ARRAY_4( k_ew_per, X1, Y1,      Y1   , y_src_2d_ext, 'y',  is_orca_grid=i_orca_src )
-      CALL EXTEND_ARRAY_4( k_ew_per, X1, Y1, REAL(Z1,8), Z_src_ext,    'd',  is_orca_grid=i_orca_src )
-
-      CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_new.nc', 'lon')
-      CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_new.nc', 'lat')
-      CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_new.nc', 'Z')
-
-
-
-      
-      CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
-      
-      !! Computation of partial derivatives:
-      CALL slopes_akima(k_ew_per, x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy)
-
-      !! Polynome:
-      CALL build_pol(x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy, poly)
-
-      DEALLOCATE ( slpx, slpy, slpxy )
-
       !! Checking if the target grid does not overlap source grid :
       min_lon1 = MINVAL(x_src_2d_ext) ;  max_lon1 = MAXVAL(x_src_2d_ext)
       min_lat1 = MINVAL(y_src_2d_ext) ;  max_lat1 = MAXVAL(y_src_2d_ext)
-      xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
-
-      min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
-      min_lat2 = MINVAL(Y2)     ;  max_lat2 = MAXVAL(Y2)
 
       !! Doing the mapping once for all and saving into map_akm:
       IF ( l_1st_call_akima(ithrd) ) THEN
-         PRINT *, '  ==> "find_nearest_akima" to fill "map_akm": thread #', ithrd
+         xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
+         WRITE(6,*) '  ==> "find_nearest_akima" to fill "map_akm": thread #', ithrd
          map_akm(:,:,:) = 0
          CALL find_nearest_akima( x_src_2d_ext, y_src_2d_ext, xy_range_src, X2, Y2, map_akm(io1(ithrd):io2(ithrd),:,:) )
+         WRITE(6,*) ''
+      ELSE
+         IF(iverbose>0) WRITE(6,*) ' AKIMA_2D ==> SKIPPING MAPPING, relying on "map_akm(:,:,:)" !!!'
       END IF
 
       !lolodbg:
@@ -234,10 +171,40 @@ CONTAINS
       !CALL DUMP_FIELD(REAL(map_akm(io1(ithrd):io2(ithrd),:,2),4), cf_tmp, 'jj_src')
       !lolodbg.
 
+
       IF( .NOT. l_map_only ) THEN
 
-         !$OMP BARRIER ! we wait for map_akm to be completely field
+         !!                       S T A R T
 
+         !! Extending the source 2D domain with a frame of 2 (np_ext/2) points:
+         !!    We extend initial 2D array with a frame, adding np_ext points in each
+         !!    dimension This is really needed specially for preserving good east-west
+         !!    perdiodicity...
+
+         nx1 = SIZE(X1,1) ; ny1 = SIZE(X1,2)
+         nx2 = SIZE(X2,1) ; ny2 = SIZE(X2,2)
+         ni1 = nx1+np_ext ; nj1 = ny1+np_ext
+
+         ALLOCATE ( Z_src_ext(ni1,nj1), poly(ni1-1,nj1-1,nsys), slpx(ni1,nj1), slpy(ni1,nj1), slpxy(ni1,nj1) )
+
+         !! Filling extended data array:
+         CALL EXTEND_ARRAY_DATA_4( k_ew_per, x_src_2d_ext, y_src_2d_ext,   REAL(Z1,8), Z_src_ext,     is_orca_grid=i_orca_src )
+         !lolodbg:
+         !CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_new.nc', 'lon')
+         !CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_new.nc', 'lat')
+         !CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_new.nc', 'Z')
+         !CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
+         !lolodbg.
+
+         PRINT *, 'AA'
+
+         !! Computation of partial derivatives:
+         CALL slopes_akima(k_ew_per, x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy)
+
+         !! Polynome:
+         CALL build_pol(x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy, poly)
+
+         DEALLOCATE ( slpx, slpy, slpxy )
 
          !! Loop on target domain:
          DO jj2 = 1, ny2
@@ -263,16 +230,16 @@ CONTAINS
 
                ELSE
                   Z2(ji2,jj2) = 0.  ! point is not on source domain!
-                  
+
                END IF !IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) )
-               
+
             END DO !DO ji2 = 1, nx2
          END DO !DO jj2 = 1, ny2
-         
+
+         !! Deallocation :
+         DEALLOCATE ( Z_src_ext, poly )
+
       END IF !IF( .NOT. l_map_only )
-      
-      !! Deallocation :
-      DEALLOCATE ( Z_src_ext , x_src_2d_ext , y_src_2d_ext, poly )
 
       l_1st_call_akima(ithrd) = .FALSE.
 
@@ -284,7 +251,7 @@ CONTAINS
 
    END SUBROUTINE AKIMA_2D
 
-   
+
 
    !! ########################
    !! LOCAL PRIVATE ROUTINES :
@@ -772,5 +739,5 @@ CONTAINS
       END DO !DO jjt = 1, nyt
 
    END SUBROUTINE find_nearest_akima
-   
+
 END MODULE MOD_AKIMA_2D
