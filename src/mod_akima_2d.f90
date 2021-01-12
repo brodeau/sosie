@@ -29,8 +29,7 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: FILL_EXTRA_BANDS
-   USE mod_grids, ONLY: x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, MK_2D_LON_LAT
+   USE mod_manip, ONLY: EXTEND_2D_ARRAYS
 
    IMPLICIT NONE
 
@@ -77,12 +76,7 @@ CONTAINS
 
       ALLOCATE( l_always_first_call(Nthrd) )
       l_always_first_call(:) = .FALSE.
-
-      WRITE(6,*) ''
-      WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
-      CALL MK_2D_LON_LAT( px_src, py_src, px_trg, py_trg )
-      WRITE(6,*) ''
-
+      
       WRITE(6,*) '  Initializations for AKIMA_2D done !'
       WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
@@ -140,7 +134,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
-         &    Z_src , lon_src , lat_src
+         &    Z_src_ext , x_src_2d_ext , y_src_2d_ext
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
 
@@ -181,23 +175,23 @@ CONTAINS
       ni1 = nx1 + n_extd
       nj1 = ny1 + n_extd
 
-      ALLOCATE ( Z_src(ni1,nj1), lon_src(ni1,nj1), lat_src(ni1,nj1), &
+      ALLOCATE ( Z_src_ext(ni1,nj1), x_src_2d_ext(ni1,nj1), y_src_2d_ext(ni1,nj1), &
          &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
          &       poly(ni1-1,nj1-1,nsys)    )
 
-      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_src, lat_src, Z_src,  is_orca_grid=i_orca_src)
+      CALL EXTEND_2D_ARRAYS(k_ew_per, X1, Y1, x_src_2d_ext, y_src_2d_ext,   pF=REAL(Z1,8), pFx=Z_src_ext, is_orca_grid=i_orca_src)
 
       !! Computation of partial derivatives:
-      CALL slopes_akima(k_ew_per, lon_src, lat_src, Z_src, slpx, slpy, slpxy)
+      CALL slopes_akima(k_ew_per, x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy)
 
       !! Polynome:
-      CALL build_pol(lon_src, lat_src, Z_src, slpx, slpy, slpxy, poly)
+      CALL build_pol(x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy, poly)
 
       DEALLOCATE ( slpx, slpy, slpxy )
 
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = MINVAL(lon_src) ;  max_lon1 = MAXVAL(lon_src)
-      min_lat1 = MINVAL(lat_src) ;  max_lat1 = MAXVAL(lat_src)
+      min_lon1 = MINVAL(x_src_2d_ext) ;  max_lon1 = MAXVAL(x_src_2d_ext)
+      min_lat1 = MINVAL(y_src_2d_ext) ;  max_lat1 = MAXVAL(y_src_2d_ext)
       xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
 
       min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
@@ -207,7 +201,7 @@ CONTAINS
       IF ( l_1st_call_akima(ithrd) ) THEN
          PRINT *, '  ==> "find_nearest_akima" to fill "map_akm": thread #', ithrd
          map_akm(:,:,:) = 0
-         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, map_akm(io1(ithrd):io2(ithrd),:,:) )
+         CALL find_nearest_akima( x_src_2d_ext, y_src_2d_ext, xy_range_src, X2, Y2, map_akm(io1(ithrd):io2(ithrd),:,:) )
       END IF
 
       !lolodbg:
@@ -238,8 +232,8 @@ CONTAINS
                   jj1 = map_akm(ji2,jj2,2)
 
                   !! It's time to interpolate:
-                  px2 = px2 - lon_src(ji1,jj1)
-                  py2 = py2 - lat_src(ji1,jj1)
+                  px2 = px2 - x_src_2d_ext(ji1,jj1)
+                  py2 = py2 - y_src_2d_ext(ji1,jj1)
                   vpl = poly(ji1,jj1,:)
 
                   Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
@@ -255,7 +249,7 @@ CONTAINS
       END IF !IF( .NOT. l_map_only )
       
       !! Deallocation :
-      DEALLOCATE ( Z_src , lon_src , lat_src, poly )
+      DEALLOCATE ( Z_src_ext , x_src_2d_ext , y_src_2d_ext, poly )
 
       l_1st_call_akima(ithrd) = .FALSE.
 
@@ -540,7 +534,7 @@ CONTAINS
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
 
-      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF,  is_orca_grid=i_orca_src)
+      CALL EXTEND_2D_ARRAYS(k_ew, XX, XY, ZX, ZY,  pF=XF, pFx=ZF, is_orca_grid=i_orca_src)
 
 
       !! Treating middle of array ( at least 2 points away from the bordures ) :

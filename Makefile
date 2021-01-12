@@ -157,10 +157,10 @@ obj/mod_init.o: src/mod_init.f90 obj/mod_conf.o obj/mod_scoord.o
 obj/mod_grids.o: src/mod_grids.f90 obj/mod_conf.o obj/io_ezcdf.o obj/mod_manip.o
 	$(FC) $(FF) -c src/mod_grids.f90 -o obj/mod_grids.o
 
-obj/mod_interp.o: src/mod_interp.f90 obj/mod_nemotools.o
+obj/mod_interp.o: src/mod_interp.f90 obj/mod_conf.o obj/mod_manip.o obj/mod_grids.o obj/mod_bdrown.o obj/mod_drown.o obj/mod_akima_2d.o obj/mod_bilin_2d.o obj/mod_akima_1d.o obj/io_ezcdf.o obj/mod_nemotools.o
 	$(FC) $(FF) -c src/mod_interp.f90 -o obj/mod_interp.o
 
-obj/mod_manip.o: src/mod_manip.f90
+obj/mod_manip.o: src/mod_manip.f90 obj/mod_conf.o obj/io_ezcdf.o
 	$(FC) $(FF) -c src/mod_manip.f90 -o obj/mod_manip.o
 
 obj/mod_drown.o: src/mod_drown.f90

@@ -15,7 +15,7 @@ MODULE MOD_BILIN_2D
    USE mod_conf
    USE mod_manip, ONLY: EXT_NORTH_TO_90_REGG, DEGE_TO_DEGWE, FIND_NEAREST_POINT, DISTANCE
    USE mod_poly
-   USE mod_grids, ONLY: x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, MK_2D_LON_LAT
+   USE mod_grids, ONLY: mask_ignore_trg
 
    IMPLICIT NONE
 
@@ -52,7 +52,6 @@ MODULE MOD_BILIN_2D
    !! PUBLIC:
    
    LOGICAL,                                 PUBLIC, SAVE :: l_skip_bilin_mapping
-   INTEGER(1), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: mask_ignore_trg
    
    PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
  
@@ -116,11 +115,6 @@ CONTAINS
          WRITE(6,*) '         interpolations using the same "source-target" setup...'
          l_skip_bilin_mapping = .FALSE.
       END IF
-
-      WRITE(6,*) ''
-      WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
-      CALL MK_2D_LON_LAT( px_src, py_src, px_trg, py_trg )
-      WRITE(6,*) ''
       
       WRITE(6,*) '  Initializations for BILIN_2D done !'
       WRITE(6,*) ''
@@ -193,7 +187,6 @@ CONTAINS
 
       Z2(:,:) = rmissval ! Flagging non-interpolated output points
 
-      mask_ignore_trg(:,:) = 1
       WHERE ( bilin_map(io1(ithrd):io2(ithrd),:)%jip < 1 ) mask_ignore_trg = 0
       WHERE ( bilin_map(io1(ithrd):io2(ithrd),:)%jjp < 1 ) mask_ignore_trg = 0
 
@@ -248,9 +241,6 @@ CONTAINS
             Z2(nx2-1:nx2-nx2/2+1:-1,ny2) = Z2(2:nx2/2             ,ny2-1)
          END IF
       END IF
-
-      !DEALLOCATE ( X1w, Y1w, Z1w, X2, Y2, mask_ignore_trg )
-      !DEALLOCATE ( X2, Y2, mask_ignore_trg )
 
       l_1st_call_bilin(ithrd) = .FALSE.
 

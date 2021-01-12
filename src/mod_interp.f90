@@ -62,28 +62,40 @@ CONTAINS
          END IF
       END IF
 
+
+      !!
+      WRITE(6,*) ''
+      WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
+      CALL MK_2D_LON_LAT( lon_src, lat_src, lon_trg, lat_trg )
+      !!  ==> allocates and fills: x_src_2d, y_src_2d, x_trg_2d & y_trg_2d
+      WRITE(6,*) ''
+
+
+
+
+
       !! Call interpolation procedure :
       !! ------------------------------
 
       SELECT CASE(cmethod)
 
       CASE('akima')
-         
+
          IF( jt == 1 ) THEN
             CALL AKIMA_INIT( lon_src, lat_src, lon_trg, lat_trg )
 
             !l_only_mapping
-            
+
             !$OMP PARALLEL DO
             DO jo = 1, Nthrd
-               !$IF(l_omp) WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)               
+               !$IF(l_omp) WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
                CALL akima_2d( ewper_src, jo,                                                       &
                   &           x_src_2d                   , y_src_2d                   , data_src,  &
                   &           x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
-                  &                          l_only_mapping=.TRUE. )               
+                  &                          l_only_mapping=.TRUE. )
             END DO
             !$OMP END PARALLEL DO
-            
+
             !$OMP BARRIER
 
             !lolodbg:
@@ -94,10 +106,10 @@ CONTAINS
             !lolodbg.
 
             PRINT *, 'Stopping after saving map_akm in mod_interp.f90!!!'; STOP
-            
+
          END IF !IF( jt == 1 )
-            
-         
+
+
          !PRINT *, 'STOPPING RIGHT AFTER AKIMA_INIT !'; STOP
 
          !$ IF(l_omp) WRITE(6,*) ''
@@ -105,14 +117,14 @@ CONTAINS
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
             !$IF(l_omp) WRITE(6,*) ' Running "AKIMA_2D" on OMP thread #', INT(jo,1)
-            
+
             CALL akima_2d( ewper_src, jo,                                                       &
                &           x_src_2d                   , y_src_2d                   , data_src,  &
                &           x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:) )
-            
+
          END DO
          !$OMP END PARALLEL DO
-         
+
          !$OMP BARRIER
 
 
@@ -123,7 +135,7 @@ CONTAINS
             CALL BILIN_2D_INIT( lon_src, lat_src, lon_trg, lat_trg,  mask_domain_trg=IGNORE )
             !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !
 
-            
+
             l_skip_bilin_mapping = .FALSE.
 
             !!lolodbg:
@@ -151,7 +163,7 @@ CONTAINS
             !CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
             !STOP'lolodbg!'
             !!lolodbg.
-            
+
             IF( .NOT. l_skip_bilin_mapping ) THEN
                !$OMP PARALLEL DO
                DO jo = 1, Nthrd
@@ -163,7 +175,7 @@ CONTAINS
                !$OMP END PARALLEL DO
 
                !$OMP BARRIER
-               
+
                CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
             END IF
 
@@ -184,13 +196,11 @@ CONTAINS
          !STOP'LOLO after BILIN_2D_WRITE_MAPPING in mod_interp.f90 !!!'
 
 
-
       CASE('no_xy')
-         WRITE(6,*) 'ERROR (mod_interp.f90): method "no_xy" makes no sense for 2D interp!'
-         STOP
+         CALL STOP_THIS( '[mod_interp.f90] => method "no_xy" makes no sense for 2D interp!' )
 
       CASE DEFAULT
-         WRITE(6,*) 'Interpolation method ', cmethod, ' is unknown!!!' ; STOP
+         CALL STOP_THIS( '[mod_interp.f90] => interpolation method ', cmethod, ' is unknown!!!' )
       END SELECT
 
 
@@ -288,10 +298,7 @@ CONTAINS
          END IF
 
          IF( ismooth > 0 ) THEN
-            IF( TRIM(cmethod) == 'no_xy' ) THEN
-               WRITE(6,*) 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
-               STOP
-            END IF
+            IF( TRIM(cmethod) == 'no_xy' ) CALL STOP_THIS(' makes no sense to perform "no_xy" vertical interpolation when ismooth>0 !')
             !! First, may apply a smoothing on "data_src" in case target grid is much coarser than the source grid!
             WRITE(6,'("     --- ",a,": Smoothing level #",i3.3," ",i2," times!")') TRIM(cv_src), jk, ismooth
             CALL SMOOTHER(ewper_src, data3d_src(:,:,jk),  nb_smooth=ismooth, msk=mask_src(:,:,jk), l_exclude_mask_points=.true.)
@@ -385,7 +392,7 @@ CONTAINS
             ENDIF
 
          CASE DEFAULT
-            WRITE(6,*) 'Interpolation method "', trim(cmethod), '" is unknown!!!'; STOP
+            CALL STOP_THIS( 'Interpolation method "', trim(cmethod), '" is unknown!!!' )
          END SELECT
 
          IF(l_reg_trg) CALL extrp_hl(data3d_tmp(:,:,jk))

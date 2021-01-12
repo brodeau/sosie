@@ -20,8 +20,9 @@ MODULE  MOD_GRIDS
       &      TERMINATE, &
       &      CREATE_LSM
    
-   REAL(8), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_src_2d, y_src_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
-   REAL(8), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_trg_2d, y_trg_2d ! 2D arrays of longitude and latitude of source domain of shape (ni,nj) !
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_src_2d, y_src_2d ! 2D coordinates of source domain of shape (ni_src,nj_src) !
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_trg_2d, y_trg_2d ! 2D coorddinate of target domain of shape (ni_trg,nj_trg) !
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: mask_ignore_trg
    
 CONTAINS
 
@@ -1502,7 +1503,7 @@ CONTAINS
       ! Target coordinates made 2D:
       WRITE(6,*) ''
       WRITE(6,'("   * Allocating and filling 2D target Long and Lat: ",i5," x ",i5)') ni_trg, nj_trg
-      ALLOCATE ( x_trg_2d(ni_trg,nj_trg) , y_trg_2d(ni_trg,nj_trg) )
+      ALLOCATE ( x_trg_2d(ni_trg,nj_trg) , y_trg_2d(ni_trg,nj_trg), mask_ignore_trg(ni_trg,nj_trg) )
       IF ( l_1d_trg ) THEN
          DO jj=1, nj_trg
             x_trg_2d(:,jj) = px_trg(:,1)
@@ -1514,6 +1515,8 @@ CONTAINS
          x_trg_2d(:,:) = px_trg(:,:)
          y_trg_2d(:,:) = py_trg(:,:)
       END IF
+      !!
+      mask_ignore_trg(:,:) = 1
       !!
       WRITE(6,*) '  * All done! (x_src_2d, y_src_2d, x_trg_2d, y_trg_2d)'
       WRITE(6,*) ''
