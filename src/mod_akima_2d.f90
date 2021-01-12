@@ -29,7 +29,7 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: EXTEND_2D_ARRAYS, EXTEND_ARRAY_COOR_4, EXTEND_ARRAY_DATA_4
+   USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA
    USE mod_grids, ONLY: x_src_2d, y_src_2d
 
    IMPLICIT NONE
@@ -71,7 +71,8 @@ CONTAINS
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''
       WRITE(6,'("   * Allocating array bilin_map: ",i5," x ",i5)') ni_trg, nj_trg
-      ALLOCATE ( map_akm(ni_trg, nj_trg, 2) )
+      ALLOCATE ( map_akm(ni_trg,nj_trg,2) )
+      map_akm(:,:,:) = 0
       ALLOCATE ( l_1st_call_akima(Nthrd) )
       l_1st_call_akima(:) = .TRUE.
       ALLOCATE( l_always_first_call(Nthrd) )
@@ -80,7 +81,7 @@ CONTAINS
       !!
       WRITE(6,*) '  * Allocating and filling space-extended coordinates', ni_src+np_ext, 'x', nj_src+np_ext
       ALLOCATE( x_src_2d_ext(ni_src+np_ext,nj_src+np_ext) , y_src_2d_ext(ni_src+np_ext,nj_src+np_ext) )
-      CALL EXTEND_ARRAY_COOR_4( kewper, x_src_2d, y_src_2d, x_src_2d_ext, y_src_2d_ext, is_orca_grid=i_orca_src )
+      CALL EXTEND_ARRAY_2D_COOR( kewper, x_src_2d, y_src_2d, x_src_2d_ext, y_src_2d_ext, is_orca_grid=i_orca_src )
       WRITE(6,*) ''
       !!
       WRITE(6,*) '  Initializations for AKIMA_2D done !'
@@ -114,7 +115,7 @@ CONTAINS
       !!        l_only_mapping : only do the mapping, so only fill array 'map_akm' !
       !!
       !!================================================================
-      USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdbg
+      !USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdbg
 
       !! Input/Output arguments
       INTEGER,                   INTENT(in)    :: k_ew_per, ithrd
@@ -157,11 +158,10 @@ CONTAINS
       IF ( l_1st_call_akima(ithrd) ) THEN
          xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
          WRITE(6,*) '  ==> "find_nearest_akima" to fill "map_akm": thread #', ithrd
-         map_akm(:,:,:) = 0
          CALL find_nearest_akima( x_src_2d_ext, y_src_2d_ext, xy_range_src, X2, Y2, map_akm(io1(ithrd):io2(ithrd),:,:) )
          WRITE(6,*) ''
       ELSE
-         IF(iverbose>0) WRITE(6,*) ' AKIMA_2D ==> SKIPPING MAPPING, relying on "map_akm(:,:,:)" !!!'
+         IF(iverbose>1) WRITE(6,*) ' AKIMA_2D ==> SKIPPING MAPPING, relying on "map_akm(:,:,:)" !!!'
       END IF
 
       !lolodbg:
@@ -188,15 +188,13 @@ CONTAINS
          ALLOCATE ( Z_src_ext(ni1,nj1), poly(ni1-1,nj1-1,nsys), slpx(ni1,nj1), slpy(ni1,nj1), slpxy(ni1,nj1) )
 
          !! Filling extended data array:
-         CALL EXTEND_ARRAY_DATA_4( k_ew_per, x_src_2d_ext, y_src_2d_ext,   REAL(Z1,8), Z_src_ext,     is_orca_grid=i_orca_src )
+         CALL EXTEND_ARRAY_2D_DATA( k_ew_per, x_src_2d_ext, y_src_2d_ext,   REAL(Z1,8), Z_src_ext,     is_orca_grid=i_orca_src )
          !lolodbg:
          !CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_new.nc', 'lon')
          !CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_new.nc', 'lat')
          !CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_new.nc', 'Z')
          !CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
          !lolodbg.
-
-         PRINT *, 'AA'
 
          !! Computation of partial derivatives:
          CALL slopes_akima(k_ew_per, x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy)
@@ -218,8 +216,8 @@ CONTAINS
                IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
 
                   !! We know the right location from time = 1 :
-                  ji1 = map_akm(ji2,jj2,1)
-                  jj1 = map_akm(ji2,jj2,2)
+                  ji1 = map_akm(ji2+io1(ithrd)-1,jj2,1)
+                  jj1 = map_akm(ji2+io1(ithrd)-1,jj2,2)
 
                   !! It's time to interpolate:
                   px2 = px2 - x_src_2d_ext(ji1,jj1)
@@ -523,9 +521,9 @@ CONTAINS
 
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
-
-      CALL EXTEND_2D_ARRAYS(k_ew, XX, XY, ZX, ZY,  pF=XF, pFx=ZF, is_orca_grid=i_orca_src)
-
+      
+      CALL EXTEND_ARRAY_2D_COOR( k_ew, XX, XY, ZX, ZY,  is_orca_grid=i_orca_src )
+      CALL EXTEND_ARRAY_2D_DATA( k_ew, ZX, ZY, XF, ZF,  is_orca_grid=i_orca_src )
 
       !! Treating middle of array ( at least 2 points away from the bordures ) :
       !!------------------------------------------------------------------------

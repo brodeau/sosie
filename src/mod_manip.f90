@@ -36,7 +36,7 @@ MODULE MOD_MANIP
       MODULE PROCEDURE long_reorg_3d_i1
    END INTERFACE long_reorg_3d
 
-   PUBLIC :: extend_2d_arrays, EXTEND_ARRAY_COOR_4, EXTEND_ARRAY_DATA_4, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
+   PUBLIC :: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
       &      find_nearest_point, &
@@ -47,476 +47,8 @@ MODULE MOD_MANIP
 
 
 CONTAINS
-
-
-
-   SUBROUTINE EXTEND_2D_ARRAYS(k_ew, pX, pY, pXx, pYx,   pF, pFx, is_orca_grid)
-
-      !!============================================================================
-      !! Extending input arrays with an extraband of two points at north,south,east
-      !! and west boundaries.
-      !!
-      !! The extension is done thanks to Akima's exptrapolation method.
-      !!
-      !! East-west periodicity of global map is taken into account through 'k_ew' :
-      !!
-      !!
-      !!  k_ew : east-west periodicity on the input file/grid
-      !!         k_ew = -1  --> no east-west periodicity (along x)
-      !!         k_ew >= 0  --> east-west periodicity with overlap of k_ew points (along x)
-      !!
-      !!
-      !!                       Author : Laurent BRODEAU, 2007
-      !!============================================================================
-      INTEGER ,                INTENT(in)  :: k_ew
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: pX, pY
-      REAL(8), DIMENSION(:,:), INTENT(out) :: pXx, pYx
-      !!
-      REAL(8), DIMENSION(:,:), OPTIONAL, INTENT(in)  :: pF
-      REAL(8), DIMENSION(:,:), OPTIONAL, INTENT(out) :: pFx
-      INTEGER ,                OPTIONAL, INTENT(in)  :: is_orca_grid
-      !!
-      LOGICAL :: l_extend_F=.FALSE.
-      INTEGER :: nx, ny, nxx, nyx
-      INTEGER :: ji, jj, iorca
-      !!============================================================================
-
-      l_extend_F=.FALSE.
-      IF( PRESENT(pF).AND.PRESENT(pFx) ) l_extend_F=.TRUE.
-      IF( (PRESENT(pF).AND.(.NOT. PRESENT(pFx))) .OR. (PRESENT(pFx).AND.(.NOT. PRESENT(pF))) ) &
-         &  CALL STOP_THIS('[EXTEND_2D_ARRAYS] => you must provide both "pF" and "pFx" as opt. arguments!')
-
-      iorca = 0
-      IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
-
-      nx = SIZE(pX,1)
-      ny = SIZE(pX,2)
-      nxx = SIZE(pXx,1)
-      nyx = SIZE(pXx,2)
-
-      IF( nxx /= nx + 4 ) CALL STOP_THIS('[EXTEND_2D_ARRAYS] => target x dim is not ni+4!!!')
-      IF( nyx /= ny + 4 ) CALL STOP_THIS('[EXTEND_2D_ARRAYS] => target y dim is not nj+4!!!')
-
-      IF( (nx /= SIZE(pY,1)).OR.(ny /= SIZE(pY,2)) )     CALL STOP_THIS('[EXTEND_2D_ARRAYS] => size of input coor. do not match!!!')
-      IF( (nxx /= SIZE(pYx,1)).OR.(nyx /= SIZE(pYx,2)) ) CALL STOP_THIS('[EXTEND_2D_ARRAYS] => size of output coor. do not match!!!')
-
-      IF( l_extend_F ) THEN
-         IF( (nx /= SIZE(pF,1)).OR.(ny /= SIZE(pF,2)) )     CALL STOP_THIS('[EXTEND_2D_ARRAYS] => size of input  coor. and data do not match!!!')
-         IF( (nxx /= SIZE(pFx,1)).OR.(nyx /= SIZE(pFx,2)) ) CALL STOP_THIS('[EXTEND_2D_ARRAYS] => size of output coor. and data do not match!!!')
-      END IF
-
-
-
-      !!   C r e a t i n g   e x t e n d e d   a r r a y s  :
-      !!   --------------------------------------------------
-
-      !! Initializing :
-      pXx = 0.
-      pYx = 0.
-      IF( l_extend_F ) pFx = 0.
-
-      !! Filling center of domain:
-      pXx(3:nxx-2, 3:nyx-2) = pX(:,:)
-      pYx(3:nxx-2, 3:nyx-2) = pY(:,:)
-      IF( l_extend_F ) pFx(3:nxx-2, 3:nyx-2) = pF(:,:)
-
-
-
-      !! X array :
-      !! ---------
-
-      IF(k_ew > -1) THEN   ! we can use east-west periodicity of input file to
-         !!                   ! fill extra bands :
-         pXx( 1     , 3:nyx-2) = pX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
-         pXx( 2     , 3:nyx-2) = pX(nx - k_ew     , :) - 360.
-         pXx(nxx   , 3:nyx-2) = pX( 2 + k_ew     , :) + 360.
-         pXx(nxx-1 , 3:nyx-2) = pX( 1 + k_ew     , :) + 360.
-
-      ELSE
-
-         !! WEST
-         pXx(2, 3:nyx-2) = pX(2,:) - (pX(3,:) - pX(1,:))
-         pXx(1, 3:nyx-2) = pX(1,:) - (pX(3,:) - pX(1,:))
-
-         !! EAST
-         pXx(nxx-1, 3:nyx-2) = pX(nx-1,:) + pX(nx,:) - pX(nx-2,:)
-         pXx(nxx  , 3:nyx-2) = pX(nx,:)   + pX(nx,:) - pX(nx-2,:)
-
-      END IF !IF(k_ew > -1)
-
-
-
-      !! ******************
-      !! Southern Extension
-      !! ******************
-      pXx(:, 2) = pXx(:,4) - (pXx(:,5) - pXx(:,3))
-      pXx(:, 1) = pXx(:,3) - (pXx(:,5) - pXx(:,3))
-
-      !! ******************
-      !! Northern Extension
-      !! ******************
-
-      SELECT CASE( iorca )
-         !
-      CASE (4)
-         pXx(2:nxx/2             ,nyx-1) = pXx(nxx:nxx-nxx/2-2:-1,nyx-5)
-         pXx(nxx:nxx-nxx/2-2:-1,nyx-1) = pXx(2:nxx/2             ,nyx-5)
-         pXx(2:nxx/2             ,nyx)   = pXx(nxx:nxx-nxx/2-2:-1,nyx-6)
-         pXx(nxx:nxx-nxx/2-2:-1,nyx)   = pXx(2:nxx/2             ,nyx-6)
-      CASE (6)
-         pXx(2:nxx/2               ,nyx-1) = pXx(nxx-1:nxx-nxx/2+1:-1,nyx-4)
-         pXx(nxx-1:nxx-nxx/2+1:-1,nyx-1) = pXx(2:nxx/2               ,nyx-4)
-         pXx(2:nxx/2               ,nyx)   = pXx(nxx-1:nxx-nxx/2+1:-1,nyx-5)
-         pXx(nxx-1:nxx-nxx/2+1:-1,nyx)   = pXx(2:nxx/2               ,nyx-5)
-      CASE DEFAULT
-         pXx(:,nyx-1) = pXx(:,nyx-3) + pXx(:,nyx-2) - pXx(:,nyx-4)
-         pXx(:,nyx)   = pXx(:,nyx-2) + pXx(:,nyx-2) - pXx(:,nyx-4)
-
-      END SELECT
-
-
-      !! Y array :
-      !! ---------
-
-      !! Top side :
-      SELECT CASE( iorca )
-
-      CASE (4)
-         pYx(2:nxx/2             ,nyx-1) = pYx(nxx:nxx-nxx/2-2:-1,nyx-5)
-         pYx(nxx:nxx-nxx/2-2:-1,nyx-1) = pYx(2:nxx/2             ,nyx-5)
-         pYx(2:nxx/2             ,nyx)   = pYx(nxx:nxx-nxx/2-2:-1,nyx-6)
-         pYx(nxx:nxx-nxx/2-2:-1,nyx)   = pYx(2:nxx/2             ,nyx-6)
-      CASE (6)
-         pYx(2:nxx/2               ,nyx-1) = pYx(nxx-1:nxx-nxx/2+1:-1,nyx-4)
-         pYx(nxx-1:nxx-nxx/2+1:-1,nyx-1) = pYx(2:nxx/2               ,nyx-4)
-         pYx(2:nxx/2               ,nyx)   = pYx(nxx-1:nxx-nxx/2+1:-1,nyx-5)
-         pYx(nxx-1:nxx-nxx/2+1:-1,nyx)   = pYx(2:nxx/2               ,nyx-5)
-      CASE DEFAULT
-         pYx(3:nxx-2, nyx-1) = pY(:, ny-1) + pY(:,ny) - pY(:,ny-2)
-         pYx(3:nxx-2, nyx)   = pY(:, ny)   + pY(:,ny) - pY(:,ny-2)
-      END SELECT
-
-
-      !! Bottom side :
-      pYx(3:nxx-2, 2) = pY(:,2) - (pY(:,3) - pY(:,1))
-      pYx(3:nxx-2, 1) = pY(:,1) - (pY(:,3) - pY(:,1))
-
-      IF(k_ew > -1) THEN
-
-         pYx( 1     , :) = pYx(nx - 1 - k_ew + 2, :)
-         pYx( 2     , :) = pYx(nx - k_ew     + 2, :)
-         pYx(nxx   , :) = pYx( 2 + k_ew     + 2, :)
-         pYx(nxx-1 , :) = pYx( 1 + k_ew     + 2, :)
-
-      ELSE
-         !! Left side :
-         pYx(2, :) = pYx(4,:) - (pYx(5,:) - pYx(3,:))
-         pYx(1, :) = pYx(3,:) - (pYx(5,:) - pYx(3,:))
-         !! Right side :
-         pYx(nxx-1,:) = pYx(nxx-3,:) + pYx(nxx-2, :) - pYx(nxx-4, :)
-         pYx(nxx,:)   = pYx(nxx-2,:) + pYx(nxx-2,:)  - pYx(nxx-4, :)
-
-      END IF
-
-
-      !! Data array :
-      !! ------------
-      IF( l_extend_F ) THEN
-
-         IF(k_ew > -1) THEN
-
-            pFx( 1     , 3:nyx-2) = pF(nx - 1 - k_ew , :)
-            pFx( 2     , 3:nyx-2) = pF(nx - k_ew     , :)
-            pFx(nxx   , 3:nyx-2) = pF( 2 + k_ew     , :)
-            pFx(nxx-1 , 3:nyx-2) = pF( 1 + k_ew     , :)
-
-         ELSE
-
-            !! Left side :
-            DO jj = 3, nyx-2
-               CALL extra_2_east(pXx(nxx-4,jj),pXx(nxx-3,jj),pXx(nxx-2,jj),        &
-                  &              pXx(nxx-1,jj),pXx(nxx,jj),                         &
-                  &              pFx(nxx-4,jj),pFx(nxx-3,jj),pFx(nxx-2,jj),  &
-                  &              pFx(nxx-1,jj),pFx(nxx,jj) )
-            END DO
-
-            !! Right side :
-            DO jj = 3, nyx-2
-               CALL extra_2_west(pXx(5,jj),pXx(4,jj),pXx(3,jj),         &
-                  &              pXx(2,jj),pXx(1,jj),                   &
-                  &              pFx(5,jj),pFx(4,jj),pFx(3,jj),   &
-                  &              pFx(2,jj),pFx(1,jj) )
-            END DO
-
-         END IF
-
-         !! Top :
-         SELECT CASE( iorca )
-         CASE (4)
-            IF(iverbose>0) PRINT *, 'ORCA north pole T-point folding type of extrapolation at northern boundary!'
-            pFx(2:nxx/2             ,nyx-1) = pFx(nxx:nxx-nxx/2-2:-1,nyx-5)
-            pFx(nxx:nxx-nxx/2-2:-1,nyx-1) = pFx(2:nxx/2             ,nyx-5)
-            pFx(2:nxx/2             ,nyx)   = pFx(nxx:nxx-nxx/2-2:-1,nyx-6)
-            pFx(nxx:nxx-nxx/2-2:-1,nyx)   = pFx(2:nxx/2             ,nyx-6)
-         CASE (6)
-            IF(iverbose>0) PRINT *, 'ORCA north pole F-point folding type of extrapolation at northern boundary!'
-            pFx(2:nxx/2               ,nyx-1) = pFx(nxx-1:nxx-nxx/2+1:-1,nyx-4)
-            pFx(nxx-1:nxx-nxx/2+1:-1,nyx-1) = pFx(2:nxx/2               ,nyx-4)
-            pFx(2:nxx/2               ,nyx)   = pFx(nxx-1:nxx-nxx/2+1:-1,nyx-5)
-            pFx(nxx-1:nxx-nxx/2+1:-1,nyx)   = pFx(2:nxx/2               ,nyx-5)
-
-         CASE DEFAULT
-            DO ji = 1, nxx
-               CALL extra_2_east(pYx(ji,nyx-4),pYx(ji,nyx-3),pYx(ji,nyx-2),       &
-                  &              pYx(ji,nyx-1),pYx(ji,nyx),                        &
-                  &              pFx(ji,nyx-4),pFx(ji,nyx-3),pFx(ji,nyx-2), &
-                  &              pFx(ji,nyx-1),pFx(ji,nyx) )
-            END DO
-         END SELECT
-
-         !! Bottom side :
-         DO ji = 1, nxx
-            CALL extra_2_west(pYx(ji,5),pYx(ji,4),pYx(ji,3),       &
-               &              pYx(ji,2),pYx(ji,1),                 &
-               &              pFx(ji,5),pFx(ji,4),pFx(ji,3), &
-               &              pFx(ji,2),pFx(ji,1) )
-         END DO
-
-      END IF !IF( l_extend_F )
-
-   END SUBROUTINE EXTEND_2D_ARRAYS
-
-
-
-
-
-
-
-   SUBROUTINE EXTEND_ARRAY_4(k_ew, pX, pY, pF, pFx, ctype,  is_orca_grid)
-
-      !! => needs pX, pY to interpolate the data if it's a data field other than lon or lat...
-
-      !!============================================================================
-      !! Extending input arrays with an extraband of two points at north,south,east
-      !! and west boundaries.
-      !!
-      !! The extension is done thanks to Akima's exptrapolation method.
-      !!
-      !! East-west periodicity of global map is taken into account through 'k_ew' :
-      !!
-      !!
-      !!  k_ew : east-west periodicity on the input file/grid
-      !!         k_ew = -1  --> no east-west periodicity (along x)
-      !!         k_ew >= 0  --> east-west periodicity with overlap of k_ew points (along x)
-      !!
-      !!
-      !!                       Author : Laurent BRODEAU, 2007
-      !!============================================================================
-      INTEGER ,                INTENT(in)  :: k_ew
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: pX, pY
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: pF
-      REAL(8), DIMENSION(:,:), INTENT(out) :: pFx
-      CHARACTER(len=1),        INTENT(in)  :: ctype
-      INTEGER ,      OPTIONAL, INTENT(in)  :: is_orca_grid
-      !!
-      LOGICAL :: l_data=.FALSE., l_lon=.FALSE., l_lat=.FALSE.
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: zXx, zYx
-      INTEGER :: nx, ny, nxx, nyx
-      INTEGER :: ji, jj, iorca
-      !!============================================================================
-      iorca = 0
-      IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
-
-      SELECT CASE( ctype )
-      CASE ('d')
-         l_data = .TRUE.
-         l_lon  = .TRUE.
-         l_lat  = .TRUE.
-      CASE ('x')
-         l_lon  = .TRUE.
-      CASE ('y')
-         l_lat  = .TRUE.
-      CASE DEFAULT
-         CALL STOP_THIS('[EXTEND_ARRAY_4] => only "d", "x", or "y" allowed for "ctype" !')
-      END SELECT
-
-      nx  = SIZE(pF ,1) ; ny  = SIZE(pF ,2)
-      nxx = SIZE(pFx,1) ; nyx = SIZE(pFx,2)
-
-      IF( nxx /= nx + 4 )                            CALL STOP_THIS('[EXTEND_ARRAY_4] => target x dim is not ni+4!!!')
-      IF( nyx /= ny + 4 )                            CALL STOP_THIS('[EXTEND_ARRAY_4] => target y dim is not nj+4!!!')
-      IF( (nx /= SIZE(pX,1)).OR.(ny /= SIZE(pX,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_4] => size of input longitude do not match!!!')
-      IF( (nx /= SIZE(pY,1)).OR.(ny /= SIZE(pY,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_4] => size of input latitude  do not match!!!')
-
-      !! Initializing :
-      IF( l_lon ) ALLOCATE( zXx(nxx,nyx) )
-      IF( l_lat ) ALLOCATE( zYx(nxx,nyx) )
-      pFx(:,:) = 0.
-
-      !! Filling center of domain:
-      IF( l_lon ) zXx(3:nxx-2, 3:nyx-2) = pX(:,:)
-      IF( l_lat ) zYx(3:nxx-2, 3:nyx-2) = pY(:,:)
-      pFx(3:nxx-2, 3:nyx-2)             = pF(:,:)
-
-
-      IF( l_lon ) THEN
-         !! X array :
-         !! ---------
-         IF(k_ew > -1) THEN   ! we can use east-west periodicity of input file to
-            !!                   ! fill extra bands :
-            zXx( 1     , 3:nyx-2) = pX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
-            zXx( 2     , 3:nyx-2) = pX(nx - k_ew     , :) - 360.
-            zXx(nxx   , 3:nyx-2) = pX( 2 + k_ew     , :) + 360.
-            zXx(nxx-1 , 3:nyx-2) = pX( 1 + k_ew     , :) + 360.
-         ELSE
-            !! WEST:
-            zXx(2, 3:nyx-2) = pX(2,:) - (pX(3,:) - pX(1,:))
-            zXx(1, 3:nyx-2) = pX(1,:) - (pX(3,:) - pX(1,:))
-            !! EAST:
-            zXx(nxx-1, 3:nyx-2) = pX(nx-1,:) + pX(nx,:) - pX(nx-2,:)
-            zXx(nxx  , 3:nyx-2) = pX(nx,:)   + pX(nx,:) - pX(nx-2,:)
-         END IF !IF(k_ew > -1)
-         !!
-         !! Southern Extension
-         zXx(:, 2) = zXx(:,4) - (zXx(:,5) - zXx(:,3))
-         zXx(:, 1) = zXx(:,3) - (zXx(:,5) - zXx(:,3))
-         !!
-         !! Northern Extension
-         SELECT CASE( iorca )
-         CASE (4)
-            zXx(2:nxx/2             ,nyx-1) = zXx(nxx:nxx-nxx/2-2:-1,nyx-5)
-            zXx(nxx:nxx-nxx/2-2:-1,nyx-1) = zXx(2:nxx/2             ,nyx-5)
-            zXx(2:nxx/2             ,nyx)   = zXx(nxx:nxx-nxx/2-2:-1,nyx-6)
-            zXx(nxx:nxx-nxx/2-2:-1,nyx)   = zXx(2:nxx/2             ,nyx-6)
-         CASE (6)
-            zXx(2:nxx/2               ,nyx-1) = zXx(nxx-1:nxx-nxx/2+1:-1,nyx-4)
-            zXx(nxx-1:nxx-nxx/2+1:-1,nyx-1) = zXx(2:nxx/2               ,nyx-4)
-            zXx(2:nxx/2               ,nyx)   = zXx(nxx-1:nxx-nxx/2+1:-1,nyx-5)
-            zXx(nxx-1:nxx-nxx/2+1:-1,nyx)   = zXx(2:nxx/2               ,nyx-5)
-         CASE DEFAULT
-            zXx(:,nyx-1) = zXx(:,nyx-3) + zXx(:,nyx-2) - zXx(:,nyx-4)
-            zXx(:,nyx)   = zXx(:,nyx-2) + zXx(:,nyx-2) - zXx(:,nyx-4)
-         END SELECT
-      END IF !IF( l_lon )
-
-
-      IF( l_lat ) THEN
-         !! Y array :
-         !! ---------
-         !! Top:
-         SELECT CASE( iorca )
-         CASE (4)
-            zYx(2:nxx/2             ,nyx-1) = zYx(nxx:nxx-nxx/2-2:-1,nyx-5)
-            zYx(nxx:nxx-nxx/2-2:-1,nyx-1) = zYx(2:nxx/2             ,nyx-5)
-            zYx(2:nxx/2             ,nyx)   = zYx(nxx:nxx-nxx/2-2:-1,nyx-6)
-            zYx(nxx:nxx-nxx/2-2:-1,nyx)   = zYx(2:nxx/2             ,nyx-6)
-         CASE (6)
-            zYx(2:nxx/2               ,nyx-1) = zYx(nxx-1:nxx-nxx/2+1:-1,nyx-4)
-            zYx(nxx-1:nxx-nxx/2+1:-1,nyx-1) = zYx(2:nxx/2               ,nyx-4)
-            zYx(2:nxx/2               ,nyx)   = zYx(nxx-1:nxx-nxx/2+1:-1,nyx-5)
-            zYx(nxx-1:nxx-nxx/2+1:-1,nyx)   = zYx(2:nxx/2               ,nyx-5)
-         CASE DEFAULT
-            zYx(3:nxx-2, nyx-1) = pY(:, ny-1) + pY(:,ny) - pY(:,ny-2)
-            zYx(3:nxx-2, nyx)   = pY(:, ny)   + pY(:,ny) - pY(:,ny-2)
-         END SELECT
-         !!
-         !! Bottom:
-         zYx(3:nxx-2, 2) = pY(:,2) - (pY(:,3) - pY(:,1))
-         zYx(3:nxx-2, 1) = pY(:,1) - (pY(:,3) - pY(:,1))
-         !!
-         !! East-West:
-         IF(k_ew > -1) THEN
-            zYx( 1     , :) = zYx(nx - 1 - k_ew + 2, :)
-            zYx( 2     , :) = zYx(nx - k_ew     + 2, :)
-            zYx(nxx   , :) = zYx( 2 + k_ew     + 2, :)
-            zYx(nxx-1 , :) = zYx( 1 + k_ew     + 2, :)
-         ELSE
-            !! West:
-            zYx(2, :) = zYx(4,:) - (zYx(5,:) - zYx(3,:))
-            zYx(1, :) = zYx(3,:) - (zYx(5,:) - zYx(3,:))
-            !! East:
-            zYx(nxx-1,:) = zYx(nxx-3,:) + zYx(nxx-2, :) - zYx(nxx-4, :)
-            zYx(nxx,:)   = zYx(nxx-2,:) + zYx(nxx-2,:)  - zYx(nxx-4, :)
-         END IF
-         !!
-      END IF !IF( l_lat )
-
-
-      !! Data array :
-      !! ------------
-      IF( l_data ) THEN
-
-         IF(k_ew > -1) THEN
-            pFx( 1     , 3:nyx-2) = pF(nx - 1 - k_ew , :)
-            pFx( 2     , 3:nyx-2) = pF(nx - k_ew     , :)
-            pFx(nxx   , 3:nyx-2) = pF( 2 + k_ew     , :)
-            pFx(nxx-1 , 3:nyx-2) = pF( 1 + k_ew     , :)
-         ELSE
-            !! East:
-            DO jj = 3, nyx-2
-               CALL extra_2_east(zXx(nxx-4,jj),zXx(nxx-3,jj),zXx(nxx-2,jj),        &
-                  &              zXx(nxx-1,jj),zXx(nxx,jj),                         &
-                  &              pFx(nxx-4,jj),pFx(nxx-3,jj),pFx(nxx-2,jj),  &
-                  &              pFx(nxx-1,jj),pFx(nxx,jj) )
-            END DO
-            !! West:
-            DO jj = 3, nyx-2
-               CALL extra_2_west(zXx(5,jj),zXx(4,jj),zXx(3,jj),         &
-                  &              zXx(2,jj),zXx(1,jj),                   &
-                  &              pFx(5,jj),pFx(4,jj),pFx(3,jj),   &
-                  &              pFx(2,jj),pFx(1,jj) )
-            END DO
-         END IF
-         !!
-         !! Top:
-         SELECT CASE( iorca )
-         CASE (4)
-            IF(iverbose>0) PRINT *, 'ORCA north pole T-point folding type of extrapolation at northern boundary!'
-            pFx(2:nxx/2             ,nyx-1) = pFx(nxx:nxx-nxx/2-2:-1,nyx-5)
-            pFx(nxx:nxx-nxx/2-2:-1,nyx-1) = pFx(2:nxx/2             ,nyx-5)
-            pFx(2:nxx/2             ,nyx)   = pFx(nxx:nxx-nxx/2-2:-1,nyx-6)
-            pFx(nxx:nxx-nxx/2-2:-1,nyx)   = pFx(2:nxx/2             ,nyx-6)
-         CASE (6)
-            IF(iverbose>0) PRINT *, 'ORCA north pole F-point folding type of extrapolation at northern boundary!'
-            pFx(2:nxx/2               ,nyx-1) = pFx(nxx-1:nxx-nxx/2+1:-1,nyx-4)
-            pFx(nxx-1:nxx-nxx/2+1:-1,nyx-1) = pFx(2:nxx/2               ,nyx-4)
-            pFx(2:nxx/2               ,nyx)   = pFx(nxx-1:nxx-nxx/2+1:-1,nyx-5)
-            pFx(nxx-1:nxx-nxx/2+1:-1,nyx)   = pFx(2:nxx/2               ,nyx-5)
-         CASE DEFAULT
-            DO ji = 1, nxx
-               CALL extra_2_east(zYx(ji,nyx-4),zYx(ji,nyx-3),zYx(ji,nyx-2),       &
-                  &              zYx(ji,nyx-1),zYx(ji,nyx),                        &
-                  &              pFx(ji,nyx-4),pFx(ji,nyx-3),pFx(ji,nyx-2), &
-                  &              pFx(ji,nyx-1),pFx(ji,nyx) )
-            END DO
-         END SELECT
-         !!
-         !! Bottom:
-         DO ji = 1, nxx
-            CALL extra_2_west(zYx(ji,5),zYx(ji,4),zYx(ji,3),       &
-               &              zYx(ji,2),zYx(ji,1),                 &
-               &              pFx(ji,5),pFx(ji,4),pFx(ji,3), &
-               &              pFx(ji,2),pFx(ji,1) )
-         END DO
-         !!
-      ELSE
-
-         IF( l_lon ) pFx(:,:) = zXx(:,:)
-         IF( l_lat ) pFx(:,:) = zYx(:,:)
-
-      END IF !IF( l_data )
-
-
-      IF( l_lon ) DEALLOCATE( zXx )
-      IF( l_lat ) DEALLOCATE( zYx )
-
-   END SUBROUTINE EXTEND_ARRAY_4
-
-
-
-
    
-   SUBROUTINE EXTEND_ARRAY_COOR_4(k_ew, pX, pY, pXx, pYx,  is_orca_grid)
+   SUBROUTINE EXTEND_ARRAY_2D_COOR(k_ew, pX, pY, pXx, pYx,  is_orca_grid)
       !!============================================================================
       !! Extending input arrays with an extraband of two points at north,south,east
       !! and west boundaries.
@@ -545,12 +77,12 @@ CONTAINS
       IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
       nx  = SIZE(pX ,1) ; ny  = SIZE(pX ,2)
-      IF( (nx  /= SIZE(pY ,1)).OR.(ny  /= SIZE(pY ,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_COOR_4] => size of input longitude do not match!!!')
+      IF( (nx  /= SIZE(pY ,1)).OR.(ny  /= SIZE(pY ,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => size of input longitude do not match!!!')
 
       nxx = SIZE(pXx,1) ; nyx = SIZE(pXx,2)
-      IF( nxx /= nx + 4 )                                CALL STOP_THIS('[EXTEND_ARRAY_COOR_4] => target x dim is not ni+4!!!')
-      IF( nyx /= ny + 4 )                                CALL STOP_THIS('[EXTEND_ARRAY_COOR_4] => target y dim is not nj+4!!!')
-      IF( (nxx /= SIZE(pYx,1)).OR.(nyx /= SIZE(pYx,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_COOR_4] => size of input latitude does not match longitude !!!')
+      IF( nxx /= nx + 4 )                                CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => target x dim is not ni+4!!!')
+      IF( nyx /= ny + 4 )                                CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => target y dim is not nj+4!!!')
+      IF( (nxx /= SIZE(pYx,1)).OR.(nyx /= SIZE(pYx,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => size of input latitude does not match longitude !!!')
 
       !! Initializing :
       pXx(:,:) = 0.
@@ -637,10 +169,10 @@ CONTAINS
          pYx(nxx,:)   = pYx(nxx-2,:) + pYx(nxx-2,:)  - pYx(nxx-4, :)
       END IF
       !!
-   END SUBROUTINE EXTEND_ARRAY_COOR_4
+   END SUBROUTINE EXTEND_ARRAY_2D_COOR
    
-
-   SUBROUTINE EXTEND_ARRAY_DATA_4(k_ew, pXx, pYx, pF, pFx,  is_orca_grid)
+   
+   SUBROUTINE EXTEND_ARRAY_2D_DATA(k_ew, pXx, pYx, pF, pFx,  is_orca_grid)
       !!============================================================================
       !! Extending input arrays with an extraband of two points at north,south,east
       !! and west boundaries.
@@ -672,10 +204,10 @@ CONTAINS
       nx  = SIZE(pF ,1) ; ny  = SIZE(pF ,2)
       nxx = SIZE(pFx,1) ; nyx = SIZE(pFx,2)
 
-      IF( nxx /= nx + 4 )                            CALL STOP_THIS('[EXTEND_ARRAY_DATA_4] => target x dim is not ni+4!!!')
-      IF( nyx /= ny + 4 )                            CALL STOP_THIS('[EXTEND_ARRAY_DATA_4] => target y dim is not nj+4!!!')
-      IF( (nxx /= SIZE(pXx,1)).OR.(nyx /= SIZE(pXx,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_DATA_4] => size of input longitude do not match!!!')
-      IF( (nxx /= SIZE(pYx,1)).OR.(nyx /= SIZE(pYx,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_DATA_4] => size of input latitude  do not match!!!')
+      IF( nxx /= nx + 4 )                            CALL STOP_THIS('[EXTEND_ARRAY_2D_DATA] => target x dim is not ni+4!!!')
+      IF( nyx /= ny + 4 )                            CALL STOP_THIS('[EXTEND_ARRAY_2D_DATA] => target y dim is not nj+4!!!')
+      IF( (nxx /= SIZE(pXx,1)).OR.(nyx /= SIZE(pXx,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_2D_DATA] => size of input longitude do not match!!!')
+      IF( (nxx /= SIZE(pYx,1)).OR.(nyx /= SIZE(pYx,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_2D_DATA] => size of input latitude  do not match!!!')
 
       !! Initializing :
       pFx(:,:) = 0.
@@ -738,7 +270,7 @@ CONTAINS
             &              pFx(ji,2),pFx(ji,1) )
       END DO
       !!
-   END SUBROUTINE EXTEND_ARRAY_DATA_4
+   END SUBROUTINE EXTEND_ARRAY_2D_DATA
 
 
 
@@ -1035,8 +567,7 @@ CONTAINS
    END SUBROUTINE extra_2_west_r4
 
 
-
-
+   
    SUBROUTINE PARTIAL_DERIV(k_ew, pX, pY, pF, dFdX, dFdY, d2FdXdY)
 
       !! Partial derivatives of a field ZF given on a regular gird !!!
@@ -1063,8 +594,8 @@ CONTAINS
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
 
-      CALL EXTEND_2D_ARRAYS(k_ew, pX, pY, ZX, ZY,  pF=pF, pFx=ZF)
-
+      CALL EXTEND_ARRAY_2D_COOR(k_ew, pX, pY, ZX, ZY)
+      CALL EXTEND_ARRAY_2D_DATA(k_ew, ZX, ZY, pF, ZF)
 
       !! Second order finite difference:
       !! i+1 => 4:nx+4 / i => 3:nx+2 / i-1 => 2:nx+2
@@ -2089,15 +1620,15 @@ CONTAINS
       ny = SIZE(pX,2)
 
       nyp2 = SIZE(XP,2)
-      IF( nyp2 /= ny + 2 ) CALL STOP_THIS('[EXTEND_2D_ARRAYS] => EXT_NORTH_TO_90_REGG : target y dim is not nj+2!!!')
+      IF( nyp2 /= ny + 2 ) CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => target y dim is not nj+2!!!')
 
       IF( (nx /= SIZE(YY,1)).OR.(ny /= SIZE(YY,2)).OR. &
          & (nx /= SIZE(pF,1)).OR.(ny /= SIZE(pF,2))) THEN
-         CALL STOP_THIS('[EXTEND_2D_ARRAYS] => EXT_NORTH_TO_90_REGG : size of input coor. and data do not match!!!')
+         CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => size of input coor. and data do not match!!!')
       END IF
       IF( (SIZE(XP,1) /= SIZE(YP,1)).OR.(SIZE(XP,2) /= SIZE(YP,2)).OR. &
          & (SIZE(XP,1) /= SIZE(FP,1)).OR.(SIZE(XP,2) /= SIZE(FP,2))) THEN
-         CALL STOP_THIS('[EXTEND_2D_ARRAYS] => EXT_NORTH_TO_90_REGG : size of output coor. and data do not match!!!')
+         CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => size of output coor. and data do not match!!!')
       END IF
 
       nyp1 = ny + 1
@@ -2113,8 +1644,9 @@ CONTAINS
 
       !! Testing if the grid is of the type of what we expect:
       rr = YY(nx/2,ny) ! highest latitude
-      IF( rr == 90.0 ) CALL STOP_THIS('[EXTEND_2D_ARRAYS] => EXT_NORTH_TO_90_REGG : mhh well you shouldnt be here I guess, 90 exists!...')
-      IF( SUM( (YY(:,ny) - rr)**2 ) > 1.E-12 ) CALL STOP_THIS('[EXTEND_2D_ARRAYS] => EXT_NORTH_TO_90_REGG : mhh well you shouldnt be here I guess, grid doesnt seem to be regular!...')
+      IF( rr == 90.0 ) CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => mhh well you shouldnt be here I guess, 90 exists!...')
+      IF( SUM( (YY(:,ny) - rr)**2 ) > 1.E-12 ) &
+         &  CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => mhh well you shouldnt be here I guess, grid not regular!')
 
       !! Longitude points for the extra upper row are just the same!
       XP(:,nyp1) = pX(:,ny)

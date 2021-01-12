@@ -85,6 +85,7 @@ CONTAINS
       CASE('akima')
 
          IF( jt == 1 ) THEN
+
             CALL AKIMA_INIT( ewper_src )
 
             !! Mapping once for all:
@@ -100,14 +101,17 @@ CONTAINS
             !$OMP BARRIER
 
             !lolodbg:
-            cf_tmp='akima_mapping_ji.nc'
-            CALL DUMP_FIELD( REAL(map_akm(:,:,1),4), cf_tmp, 'ji_src' )
-            cf_tmp='akima_mapping_jj.nc'
-            CALL DUMP_FIELD( REAL(map_akm(:,:,2),4), cf_tmp, 'jj_src' )
+            !cf_tmp='akima_mapping_ji.nc'
+            !CALL DUMP_FIELD( REAL(map_akm(:,:,1),4), cf_tmp, 'ji_src' )
+            !cf_tmp='akima_mapping_jj.nc'
+            !CALL DUMP_FIELD( REAL(map_akm(:,:,2),4), cf_tmp, 'jj_src' )
             !lolodbg.
 
          END IF !IF( jt == 1 )
 
+
+         !CALL STOP_THIS( 'right after jt==1 AKIMA_2D in mod_interp.f90 !' )
+         
          !$ IF(l_omp) WRITE(6,*) ''
 
          !$OMP PARALLEL DO
@@ -128,11 +132,8 @@ CONTAINS
 
          IF( jt == 1 ) THEN
 
-            CALL BILIN_2D_INIT( lon_src, lat_src, lon_trg, lat_trg,  mask_domain_trg=IGNORE )
+            CALL BILIN_2D_INIT()
             !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !
-
-
-            l_skip_bilin_mapping = .FALSE.
 
             !!lolodbg:
             cf_tmp='lon_src.nc'
@@ -161,6 +162,15 @@ CONTAINS
             !!lolodbg.
 
             IF( .NOT. l_skip_bilin_mapping ) THEN
+               !! Doing it no OMP:
+               !DO jo = 1, Nthrd
+               !   CALL MAPPING_BL( ewper_src, x_src_2d                   , y_src_2d                   , &
+               !      &                        x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), &
+               !      &             ithread=jo, pmsk_dom_trg=mask_ignore_trg(io1(jo):io2(jo),:) )
+               !END DO
+               !CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
+               !CALL STOP_THIS( 'LOLO v1' )
+               
                !$OMP PARALLEL DO
                DO jo = 1, Nthrd
                   !$ IF(l_omp) WRITE(6,*) ' Running "MAPPING_BL" on OMP thread #', INT(jo,1)
@@ -177,13 +187,13 @@ CONTAINS
 
          END IF
 
-         PRINT *, 'LOLO fddsffsd'; STOP
+         !CALL STOP_THIS( 'LOLO fddsffsd' )
 
          !$OMP PARALLEL DO
          DO jo = 1, Nthrd
             !$ IF(l_omp) WRITE(6,*) ' Running "bilin_2d" on OMP thread #', INT(jo,1)
-            CALL bilin_2d( ewper_src, lon_src, lat_src, data_src, &
-               &           lon_trg(io1(jo):io2(jo),:), lat_trg(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
+            CALL bilin_2d( ewper_src, x_src_2d, y_src_2d, data_src, &
+               &           x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), data_trg(io1(jo):io2(jo),:), &
                &           jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
          END DO
          !$OMP END PARALLEL DO
