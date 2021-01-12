@@ -29,7 +29,7 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: EXTEND_2D_ARRAYS
+   USE mod_manip, ONLY: EXTEND_2D_ARRAYS, EXTEND_ARRAY_4
 
    IMPLICIT NONE
 
@@ -108,9 +108,9 @@ CONTAINS
       !!        l_only_mapping : only do the mapping, so only fill array 'map_akm' !
       !!
       !!================================================================
-
-      !USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdbg
-
+      
+      USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdbg
+      
       !! Input/Output arguments
       INTEGER,                   INTENT(in)    :: k_ew_per, ithrd
       REAL(8),   DIMENSION(:,:),   INTENT(in)  :: X1, Y1
@@ -181,6 +181,29 @@ CONTAINS
 
       CALL EXTEND_2D_ARRAYS(k_ew_per, X1, Y1, x_src_2d_ext, y_src_2d_ext,   pF=REAL(Z1,8), pFx=Z_src_ext, is_orca_grid=i_orca_src)
 
+      CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_classic.nc', 'lon')
+      CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_classic.nc', 'lat')
+      CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_classic.nc', 'Z')
+
+
+
+      x_src_2d_ext = 0.
+      y_src_2d_ext = 0.
+      Z_src_ext    = 0.
+
+      CALL EXTEND_ARRAY_4( k_ew_per, X1, Y1,      X1   , x_src_2d_ext, 'x',  is_orca_grid=i_orca_src )
+      CALL EXTEND_ARRAY_4( k_ew_per, X1, Y1,      Y1   , y_src_2d_ext, 'y',  is_orca_grid=i_orca_src )
+      CALL EXTEND_ARRAY_4( k_ew_per, X1, Y1, REAL(Z1,8), Z_src_ext,    'd',  is_orca_grid=i_orca_src )
+
+      CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_new.nc', 'lon')
+      CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_new.nc', 'lat')
+      CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_new.nc', 'Z')
+
+
+
+      
+      CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
+      
       !! Computation of partial derivatives:
       CALL slopes_akima(k_ew_per, x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy)
 
