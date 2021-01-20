@@ -370,7 +370,7 @@ CONTAINS
       INTEGER, OPTIONAL,      INTENT(in)  :: jrec
       !!
       INTEGER :: ierr1, ierr2, jr, idr, Nr, lx
-      REAL(4) :: rsf, rao
+      !REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D_R8'
       !!
       jr = 0
@@ -384,8 +384,8 @@ CONTAINS
       END IF
       !!
       CALL sherr( NF90_INQ_VARID(id_f, TRIM(cv_in), id_v),  crtn,cf_in,cv_in)
-      ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
-      ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
+      !ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
+      !ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
       !!
       IF( jr > 0 ) THEN
          CALL sherr( NF90_GET_VAR(id_f, id_v, VX, start=(/1,jr/), count=(/lx,1/)),  crtn,cf_in,cv_in)
@@ -393,8 +393,8 @@ CONTAINS
          CALL sherr( NF90_GET_VAR(id_f, id_v, VX                                ),  crtn,cf_in,cv_in)
       END IF
       !!
-      IF(ierr1 == NF90_NOERR) VX = rsf*VX
-      IF(ierr2 == NF90_NOERR) VX = VX + rao
+      !IF(ierr1 == NF90_NOERR) VX = rsf*VX
+      !IF(ierr2 == NF90_NOERR) VX = VX + rao
       CALL sherr( NF90_CLOSE(id_f), crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_1D_R8
 
@@ -424,7 +424,7 @@ CONTAINS
       INTEGER, OPTIONAL,      INTENT(in)  :: jrec
       !!
       INTEGER :: ierr1, ierr2, jr, idr, Nr, lx
-      REAL(4) :: rsf, rao
+      !REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_1D_R4'
       !!
       jr = 0
@@ -438,8 +438,8 @@ CONTAINS
       END IF
       !!
       CALL sherr( NF90_INQ_VARID(id_f, TRIM(cv_in), id_v),  crtn,cf_in,cv_in)
-      ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
-      ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
+      !ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
+      !ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
       !!
       IF( jr > 0 ) THEN
          CALL sherr( NF90_GET_VAR(id_f, id_v, VX, start=(/1,jr/), count=(/lx,1/)),  crtn,cf_in,cv_in)
@@ -447,8 +447,8 @@ CONTAINS
          CALL sherr( NF90_GET_VAR(id_f, id_v, VX                                ),  crtn,cf_in,cv_in)
       END IF
       !!
-      IF(ierr1 == NF90_NOERR) VX = rsf*VX
-      IF(ierr2 == NF90_NOERR) VX = VX + rao
+      !IF(ierr1 == NF90_NOERR) VX = rsf*VX
+      !IF(ierr2 == NF90_NOERR) VX = VX + rao
       CALL sherr( NF90_CLOSE(id_f), crtn,cf_in,cv_in)
    END SUBROUTINE GETVAR_1D_R4
 
@@ -486,7 +486,7 @@ CONTAINS
       INTEGER,       OPTIONAL,   INTENT(in)    :: jt1, jt2, lz
 
       INTEGER :: lx, ly, n1, n2, n3, n4, jlev, its, ite, kz_stop = 0, ierr1, ierr2
-      REAL(4) :: rsf, rao
+      !REAL(4) :: rsf, rao
       LOGICAL :: l_okay
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R4'
 
@@ -511,8 +511,8 @@ CONTAINS
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
 
-      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
-      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
+      !ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      !ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
 
       IF( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
@@ -548,14 +548,14 @@ CONTAINS
          END IF
       END DO
       
-      IF(ierr1 == NF90_NOERR) THEN
-         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying scale-factor to '//TRIM(cv_in)//' !'
-         X = rsf*X
-      END IF
-      IF(ierr2 == NF90_NOERR) THEN
-         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying add-offset to '//TRIM(cv_in)//' !'
-         X = X + rao
-      END IF
+      !IF(ierr1 == NF90_NOERR) THEN
+      !   IF(kt == its) PRINT *, ' --- GETVAR_2D: applying scale-factor to '//TRIM(cv_in)//' !'
+      !   X = rsf*X
+      !END IF
+      !IF(ierr2 == NF90_NOERR) THEN
+      !   IF(kt == its) PRINT *, ' --- GETVAR_2D: applying add-offset to '//TRIM(cv_in)//' !'
+      !   X = X + rao
+      !END IF
 
       IF( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
@@ -577,7 +577,7 @@ CONTAINS
       INTEGER,       OPTIONAL,   INTENT(in)    :: jt1, jt2, lz
 
       INTEGER :: lx, ly, n1, n2, n3, n4, jlev, its, ite, kz_stop = 0, ierr1, ierr2
-      REAL(4) :: rsf, rao
+      !REAL(4) :: rsf, rao
       LOGICAL :: l_okay
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_2D_R8'
 
@@ -602,8 +602,8 @@ CONTAINS
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
 
-      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
-      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
+      !ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      !ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
 
       IF( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
@@ -639,14 +639,14 @@ CONTAINS
          END IF
       END DO
 
-      IF(ierr1 == NF90_NOERR) THEN
-         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying scale-factor to '//TRIM(cv_in)//' !'
-         X = rsf*X
-      END IF
-      IF(ierr2 == NF90_NOERR) THEN
-         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying add-offset to '//TRIM(cv_in)//' !'
-         X = X + rao
-      END IF
+      !IF(ierr1 == NF90_NOERR) THEN
+      !   IF(kt == its) PRINT *, ' --- GETVAR_2D: applying scale-factor to '//TRIM(cv_in)//' !'
+      !   X = rsf*X
+      !END IF
+      !IF(ierr2 == NF90_NOERR) THEN
+      !   IF(kt == its) PRINT *, ' --- GETVAR_2D: applying add-offset to '//TRIM(cv_in)//' !'
+      !   X = X + rao
+      !END IF
       
       IF( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
@@ -714,7 +714,7 @@ CONTAINS
          & lz            ! z dimension of the variable        (integer)
       INTEGER :: n1, n2, n3, n4, its, ite, izs, ize
       INTEGER :: ierr1, ierr2
-      REAL(4) :: rsf, rao
+      !REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_3D_R4'
 
       lx = size(X,1)
@@ -744,8 +744,8 @@ CONTAINS
 
       IF( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
 
-      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
-      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
+      !ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      !ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
 
       IF( kt == 0 ) THEN
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs/), count=(/lx,ly,ize/)), &
@@ -755,8 +755,8 @@ CONTAINS
             &      crtn,cf_in,cv_in)
       END IF
 
-      IF(ierr1 == NF90_NOERR) X = rsf*X
-      IF(ierr2 == NF90_NOERR) X = X + rao
+      !IF(ierr1 == NF90_NOERR) X = rsf*X
+      !IF(ierr2 == NF90_NOERR) X = X + rao
 
       IF( ( kt == ite ).OR.( kt == 0 ) )  THEN
          PRINT *, ' --- GETVAR_3D_R4: closing file '//TRIM(cf_in)//' !'
@@ -779,7 +779,7 @@ CONTAINS
          & lz            ! z dimension of the variable        (integer)
       INTEGER :: n1, n2, n3, n4, its, ite, izs, ize
       INTEGER :: ierr1, ierr2
-      REAL(4) :: rsf, rao
+      !REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_3D_R8'
       lx = SIZE(X,1)
       ly = size(X,2)
@@ -801,8 +801,8 @@ CONTAINS
          CALL sherr( NF90_INQ_VARID(idx_f, cv_in, idx_v),  crtn,cf_in,cv_in)
       END IF
       IF( (idx_f==0).AND.(idx_v==0) ) CALL print_err(crtn, ' PROBLEM #2 file and variable handle never created => '//TRIM(cv_in)//' in '//TRIM(cf_in))
-      ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
-      ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
+      !ierr1 = NF90_GET_ATT(idx_f, idx_v, 'scale_factor', rsf) ; !lolo, ugly at each time...
+      !ierr2 = NF90_GET_ATT(idx_f, idx_v, 'add_offset',   rao)
       IF( kt == 0 ) THEN
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs/), count=(/lx,ly,ize/)), &
             &      crtn,cf_in,cv_in)
@@ -810,8 +810,8 @@ CONTAINS
          CALL sherr( NF90_GET_VAR(idx_f, idx_v, X, start=(/1,1,izs,kt/), count=(/lx,ly,ize,1/)), &
             &      crtn,cf_in,cv_in)
       END IF
-      IF(ierr1 == NF90_NOERR) X = rsf*X
-      IF(ierr2 == NF90_NOERR) X = X + rao
+      !IF(ierr1 == NF90_NOERR) X = rsf*X
+      !IF(ierr2 == NF90_NOERR) X = X + rao
       IF( ( kt == ite ).OR.( kt == 0 ) )  THEN
          PRINT *, ' --- GETVAR_3D_R8: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
@@ -1807,13 +1807,13 @@ CONTAINS
       CHARACTER(len=*), INTENT(out) :: cmissval
       !!
       INTEGER :: ierr, jm, ierr1, ierr2
-      REAL(4) :: rsf, rao
+      !REAL(4) :: rsf, rao
       CHARACTER(len=80), PARAMETER :: crtn = 'CHECK_4_MISS'
       !!---------------------------------------------------------------------
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in) ! Opening file
       CALL sherr( NF90_INQ_VARID(id_f, cv_in, id_v),  crtn,cf_in,cv_in)    ! looking up variable
-      ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
-      ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
+      !ierr1 = NF90_GET_ATT(id_f, id_v, 'scale_factor', rsf)
+      !ierr2 = NF90_GET_ATT(id_f, id_v, 'add_offset',   rao)
 
       !! Scanning possible values until found:
       cmissval = '0'
@@ -1825,8 +1825,8 @@ CONTAINS
          END IF
       END DO
       !!
-      IF(ierr1 == NF90_NOERR) rmissv = rsf*rmissv
-      IF(ierr2 == NF90_NOERR) rmissv = rmissv + rao
+      !IF(ierr1 == NF90_NOERR) rmissv = rsf*rmissv
+      !IF(ierr2 == NF90_NOERR) rmissv = rmissv + rao
       !!
       IF( ierr == -43 ) THEN
          lmv = .FALSE.

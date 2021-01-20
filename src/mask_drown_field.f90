@@ -208,6 +208,8 @@ PROGRAM mask_drown_field
    CALL GETVAR_ATTRIBUTES(cf_fld, cv_tim,  nb_att_tim, v_tim_att)
    CALL GETVAR_ATTRIBUTES(cf_fld, cv_fld,  nb_att_fld, v_fld_att)
    
+   !PRINT *, 'LOLO: att for var=', v_fld_att ; STOP'LOLO'
+
 
    !CALL DIMS(cf_fld, cv_fld, ni, nj, nt, l0)
    CALL DIMS(cf_fld, cv_fld, ni, nj, nk, nt)
