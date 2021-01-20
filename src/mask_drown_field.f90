@@ -203,11 +203,15 @@ PROGRAM mask_drown_field
    CALL DIMS(cf_in, cv_in, ni, nj, nk, nt)
 
    IF ( nk > 0 ) THEN
-      PRINT *, 'The variable is 3D+T!'
-      l3d = .TRUE.
-      !nk = nt
-      !nt = l0
-      PRINT *, 'Dimension = ', ni, nj, nk, nt
+      IF ( nt < 1 ) THEN
+         !! It's likely a file with a time record not as "UNLIMITED"...
+         nt = nk
+         PRINT *, 'Dimension = ', ni, nj, nt
+      ELSE
+         PRINT *, 'The variable is 3D+T!'
+         l3d = .TRUE.
+         PRINT *, 'Dimension = ', ni, nj, nk, nt
+      END IF
       !!
    ELSE
       !! 2D or 2D + T

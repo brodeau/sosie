@@ -193,8 +193,9 @@ obj/mod_poly.o: src/mod_poly.f90 obj/io_ezcdf.o
 
 
 
-bin/mask_drown_field.x: src/mask_drown_field.f90 $(LIB_SOSIE)
-	$(FC) $(FF) -o bin/mask_drown_field.x src/mask_drown_field.f90 $(LIB)
+bin/mask_drown_field.x: src/mask_drown_field.f90 obj/mod_bdrown.o obj/io_ezcdf.o
+	@mkdir -p ./bin
+	$(FC) $(FF) obj/mod_bdrown.o obj/io_ezcdf.o -o bin/mask_drown_field.x src/mask_drown_field.f90 $(LIB_CDF)
 
 
 install: all
