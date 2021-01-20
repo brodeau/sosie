@@ -1,7 +1,8 @@
 MODULE io_ezcdf
 
    USE netcdf
-
+   !USE mod_conf, ONLY:: 
+   
    !! Netcdf input/output
    !!
    !! Author: Laurent Brodeau, 2010
@@ -261,8 +262,8 @@ CONTAINS
       !!          *
       !!
       !!------------------------------------------------------------------------
-      CHARACTER(len=*),                   INTENT(in)  :: cf_in, cv_in
-      INTEGER,                            INTENT(out) :: Nb_att
+      CHARACTER(len=*),                     INTENT(in)  :: cf_in, cv_in
+      INTEGER,                              INTENT(out) :: Nb_att
       TYPE(var_attr), DIMENSION(nbatt_max), INTENT(out) :: v_att_list
       !!
       !Local:
@@ -546,9 +547,15 @@ CONTAINS
             END IF
          END IF
       END DO
-
-      IF(ierr1 == NF90_NOERR) X = rsf*X
-      IF(ierr2 == NF90_NOERR) X = X + rao
+      
+      IF(ierr1 == NF90_NOERR) THEN
+         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying scale-factor to '//TRIM(cv_in)//' !'
+         X = rsf*X
+      END IF
+      IF(ierr2 == NF90_NOERR) THEN
+         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying add-offset to '//TRIM(cv_in)//' !'
+         X = X + rao
+      END IF
 
       IF( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
@@ -632,9 +639,15 @@ CONTAINS
          END IF
       END DO
 
-      IF(ierr1 == NF90_NOERR) X = rsf*X
-      IF(ierr2 == NF90_NOERR) X = X + rao
-
+      IF(ierr1 == NF90_NOERR) THEN
+         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying scale-factor to '//TRIM(cv_in)//' !'
+         X = rsf*X
+      END IF
+      IF(ierr2 == NF90_NOERR) THEN
+         IF(kt == its) PRINT *, ' --- GETVAR_2D: applying add-offset to '//TRIM(cv_in)//' !'
+         X = X + rao
+      END IF
+      
       IF( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
