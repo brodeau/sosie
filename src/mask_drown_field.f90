@@ -15,8 +15,8 @@ PROGRAM mask_drown_field
 
    !! Grid :
    CHARACTER(len=80) :: &
-      &    cv_in  = '', &
-      &    cv_t   = 'time', &
+      &    cv_fld  = '', &
+      &    cv_tim   = 'time', &
       &    cv_mm  = 'lsm', &
       &    cv_ewp = '0', &
       &    cv_how_far = '200', &
@@ -29,7 +29,7 @@ PROGRAM mask_drown_field
       &    cu     = ''
 
    CHARACTER(len=400) :: &
-      &      cf_in,         &
+      &      cf_fld,         &
       &      cf_out = 'fout.nc', &
       &      cf_mm  = 'mask.nc'
 
@@ -61,6 +61,11 @@ PROGRAM mask_drown_field
       &  clist_opt = (/ '-h','-v','-x','-y','-z','-t','-i','-m','-q','-p','-g','-o','-M','-D','-l','-u' /)
 
 
+   TYPE(var_attr), DIMENSION(nbatt_max):: v_lon_att, v_lat_att, v_tim_att, v_fld_att
+   INTEGER :: nb_att_lon, nb_att_lat, nb_att_tim, nb_att_fld
+
+   
+
 
    l3d = .FALSE.
 
@@ -82,10 +87,10 @@ PROGRAM mask_drown_field
          call usage()
 
       CASE('-i')
-         CALL GET_MY_ARG('input file', cf_in, 1)
+         CALL GET_MY_ARG('input file', cf_fld, 1)
 
       CASE('-v')
-         CALL GET_MY_ARG('input variable', cv_in, 1)
+         CALL GET_MY_ARG('input variable', cv_fld, 1)
 
       CASE('-x')
          CALL GET_MY_ARG('longitude', cv_lon, 1)
@@ -97,7 +102,7 @@ PROGRAM mask_drown_field
          CALL GET_MY_ARG('depth', cv_z, 1)
 
       CASE('-t')
-         CALL GET_MY_ARG('time', cv_t, 1)
+         CALL GET_MY_ARG('time', cv_tim, 1)
 
       CASE('-m')
          CALL GET_MY_ARG('mask file', cf_mm, 1)
@@ -138,7 +143,7 @@ PROGRAM mask_drown_field
    END DO
 
 
-   IF ( (trim(cv_in) == '').OR.(trim(cf_in) == '') ) THEN
+   IF ( (trim(cv_fld) == '').OR.(trim(cf_fld) == '') ) THEN
       PRINT *, ''
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
       CALL usage()
@@ -179,15 +184,15 @@ PROGRAM mask_drown_field
 
 
    PRINT *, ''
-   PRINT *, 'File in      :'  ;   PRINT *, cf_in
-   PRINT *, 'Variable in  :'  ;   PRINT *, cv_in
+   PRINT *, 'File in      :'  ;   PRINT *, cf_fld
+   PRINT *, 'Variable in  :'  ;   PRINT *, cv_fld
    PRINT *, 'File mask    :'  ;   PRINT *, cf_mm
    PRINT *, ''
 
 
    !! Testing dimensions of coordinates to see if regular or not
-   !CALL DIMS(cf_in, cv_lon, ni, nj, nt, l0)
-   CALL DIMS(cf_in, cv_lon, ni, nj, nk, nt)
+   !CALL DIMS(cf_fld, cv_lon, ni, nj, nt, l0)
+   CALL DIMS(cf_fld, cv_lon, ni, nj, nk, nt)
    IF ( ni > 0 ) THEN
       IF ( (nj == -1).and.(nt == -1).and.(nk == -1) )  lreg = .TRUE.
       IF ( (nj > 0)  .and.(nt == -1).and.(nk == -1) )  lreg = .FALSE.
@@ -198,9 +203,14 @@ PROGRAM mask_drown_field
       PRINT *, 'Problem found 2! Dimensions of coordinates are suspicious!' ; STOP
    END IF
 
+   CALL GETVAR_ATTRIBUTES(cf_fld, cv_lon,  nb_att_lon, v_lon_att)
+   CALL GETVAR_ATTRIBUTES(cf_fld, cv_lat,  nb_att_lat, v_lat_att)
+   CALL GETVAR_ATTRIBUTES(cf_fld, cv_tim,  nb_att_tim, v_tim_att)
+   CALL GETVAR_ATTRIBUTES(cf_fld, cv_fld,  nb_att_fld, v_fld_att)
+   
 
-   !CALL DIMS(cf_in, cv_in, ni, nj, nt, l0)
-   CALL DIMS(cf_in, cv_in, ni, nj, nk, nt)
+   !CALL DIMS(cf_fld, cv_fld, ni, nj, nt, l0)
+   CALL DIMS(cf_fld, cv_fld, ni, nj, nk, nt)
 
    IF ( nk > 0 ) THEN
       IF ( nt < 1 ) THEN
@@ -223,7 +233,7 @@ PROGRAM mask_drown_field
 
    PRINT *, ''
 
-   CALL GET_SF_AO(cf_in, cv_in, zsf, zao)
+   CALL GET_SF_AO(cf_fld, cv_fld, zsf, zao)
 
 
    ALLOCATE ( vtime(nt) )
@@ -234,15 +244,15 @@ PROGRAM mask_drown_field
 
 
    IF ( nt /= 1 ) THEN  ! there is a time dimension
-      CALL GETVAR_1D(cf_in, cv_t, vtime)
+      CALL GETVAR_1D(cf_fld, cv_tim, vtime)
    ELSE
       vtime = 1.
    END IF
 
-   IF ( l3d ) CALL GETVAR_1D(cf_in, cv_z, vdpth)
+   IF ( l3d ) CALL GETVAR_1D(cf_fld, cv_z, vdpth)
 
    !! Getting long name and unit :
-   CALL GET_VAR_INFO(cf_in, cv_in, cu, clnm)
+   CALL GET_VAR_INFO(cf_fld, cv_fld, cu, clnm)
    PRINT *, 'Unit      = ', trim(cu)
    PRINT *, 'Long name = ', trim(clnm); PRINT *, ''
 
@@ -250,23 +260,23 @@ PROGRAM mask_drown_field
 
    IF ( lreg ) THEN
       ALLOCATE ( vlon(ni), vlat(nj), xlon(ni,1), xlat(nj,1) )
-      CALL GETVAR_1D(cf_in, cv_lon, vlon)
-      CALL GETVAR_1D(cf_in, cv_lat, vlat)
+      CALL GETVAR_1D(cf_fld, cv_lon, vlon)
+      CALL GETVAR_1D(cf_fld, cv_lat, vlat)
       xlon(:,1) = vlon(:) ; xlat(:,1) = vlat(:)
    ELSE
       ALLOCATE ( xlon(ni,nj), xlat(ni,nj) )
-      CALL GETVAR_2D(ifx, ivx, cf_in, cv_lon, 0, 0, 0, xlon)   !lolo => not cool should be able to DOUBLE!
-      CALL GETVAR_2D(ify, ivy, cf_in, cv_lat, 0, 0, 0, xlat)   !lolo => not cool should be able to DOUBLE!
+      CALL GETVAR_2D(ifx, ivx, cf_fld, cv_lon, 0, 0, 0, xlon)   !lolo => not cool should be able to DOUBLE!
+      CALL GETVAR_2D(ify, ivy, cf_fld, cv_lat, 0, 0, 0, xlat)   !lolo => not cool should be able to DOUBLE!
    END IF
 
 
    PRINT *, ''
 
    IF ( TRIM(cf_mm) == '0' ) THEN
-      CALL CHECK_4_MISS(cf_in, cv_in, l_missv, rmissv, cmissv)
+      CALL CHECK_4_MISS(cf_fld, cv_fld, l_missv, rmissv, cmissv)
       PRINT *, 'Will extract mask from treated file from missing value "'//TRIM(cmissv)//'"....'
       IF ( .NOT. l_missv ) THEN
-         PRINT *, 'PROBLEM: variable ',TRIM(cv_in),' of file ',TRIM(cf_in),' doesnt have a missing-value attribute!'
+         PRINT *, 'PROBLEM: variable ',TRIM(cv_fld),' of file ',TRIM(cf_fld),' doesnt have a missing-value attribute!'
          STOP
       END IF
       PRINT *, ' => missing value to use is', rmissv
@@ -306,9 +316,9 @@ PROGRAM mask_drown_field
    DO jt = 1, nt
 
       IF ( l3d ) THEN
-         CALL GETVAR_3D(ifi, ivi, cf_in, cv_in, nt,     jt, data(:,:,:))
+         CALL GETVAR_3D(ifi, ivi, cf_fld, cv_fld, nt,     jt, data(:,:,:))
       ELSE
-         CALL GETVAR_2D(ifi, ivi, cf_in, cv_in, nt,  0, jt, data(:,:,1))
+         CALL GETVAR_2D(ifi, ivi, cf_fld, cv_fld, nt,  0, jt, data(:,:,1))
       END IF
 
       IF ( trim(cf_mm) == '0' ) THEN
@@ -343,12 +353,12 @@ PROGRAM mask_drown_field
 
       IF ( l3d ) THEN
          CALL P3D_T(ifo, ivo, nt, jt, xlon, xlat, vdpth, vtime, data, &
-            &     cf_out, cv_lon, cv_lat, cv_z, cv_t, cv_in, rmv)
+            &     cf_out, cv_lon, cv_lat, cv_z, cv_tim, cv_fld, rmv)
       ELSE
-         CALL P2D_T(ifo, ivo, nt, jt, xlon, xlat,        vtime, data(:,:,1), &
-            &     cf_out, cv_lon, cv_lat,       cv_t, cv_in, rmv)
+         CALL P2D_T( ifo, ivo, nt, jt, xlon, xlat,        vtime, data(:,:,1), &
+            &        cf_out, cv_lon, cv_lat,       cv_tim, cv_fld, rmv,         &
+            &        attr_lon=v_lon_att, attr_lat=v_lat_att, attr_t=v_tim_att, attr_F=v_fld_att )
       END IF
-
 
    END DO
 
