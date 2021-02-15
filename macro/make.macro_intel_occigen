@@ -8,7 +8,7 @@
 FC = ifort
 
 # Root directory for Netcdf:
-NETCDF_DIR = $(NETCDF4_DIR)
+NETCDF_DIR = /store/CT1/hmg2840/lbrodeau/opt/hdf5_netcdf4_intel_mpi
 
 # netcf libraries are in: <NETCDF_DIR>/lib/
 # netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
