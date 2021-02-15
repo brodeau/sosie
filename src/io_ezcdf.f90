@@ -1668,7 +1668,7 @@ CONTAINS
       LOGICAL :: lcopy_att_F = .FALSE., &
          &       lcopy_att_z = .FALSE., &
          &     l_add_extrema = .TRUE.
-      INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
+      INTEGER, DIMENSION(:), ALLOCATABLE :: vidim, ichksz
 
       CHARACTER(len=80), PARAMETER :: crtn = 'P3D_T'
 
@@ -1725,13 +1725,15 @@ CONTAINS
 
          !! Variable
          IF( TRIM(cv_t) /= '' ) THEN
-            ALLOCATE (vidim(4))
+            ALLOCATE (vidim(4),ichksz(4) )
             vidim = (/id_x,id_y,id_z,id_t/)
+            ichksz = (/0,0,1,1/)
          ELSE
-            ALLOCATE (vidim(3))
+            ALLOCATE (vidim(3),ichksz(3))
             vidim = (/id_x,id_y,id_z/)
+            ichksz = (/0,1,1/)
          END IF
-         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=idflt), &
+         CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, chunksizes=ichksz, deflate_level=idflt), &
             &       crtn,cf_in,cv_in)
          DEALLOCATE ( vidim )
 
