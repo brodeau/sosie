@@ -87,7 +87,7 @@ test: bin/test_stuffs.x
 
 bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
-	$(FC) $(FF) src/sosie.f90 -o bin/sosie3.x $(LIB)
+	$(FC) $(FF_SAFE) src/sosie.f90 -o bin/sosie3.x $(LIB)
 
 bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 	$(FC) $(FF) src/corr_vect.f90 -o bin/corr_vect.x $(LIB)
@@ -145,7 +145,7 @@ $(LIB_SOSIE): $(OBJ)
 obj/io_ezcdf.o: src/io_ezcdf.f90
 	@mkdir -p obj
 	@mkdir -p mod
-	$(FC) $(FF) -I$(NCDF_INC) -c src/io_ezcdf.f90 -o obj/io_ezcdf.o
+	$(FC) $(FF_SAFE) -I$(NCDF_INC) -c src/io_ezcdf.f90 -o obj/io_ezcdf.o
 
 obj/mod_conf.o: src/mod_conf.f90 obj/io_ezcdf.o
 	@mkdir -p obj
@@ -160,10 +160,10 @@ obj/mod_init.o: src/mod_init.f90 obj/mod_conf.o obj/mod_scoord.o
 obj/mod_grids.o: src/mod_grids.f90 obj/mod_conf.o obj/io_ezcdf.o obj/mod_manip.o
 	$(FC) $(FF) -c src/mod_grids.f90 -o obj/mod_grids.o
 
-obj/mod_interp.o: src/mod_interp.f90 obj/mod_nemotools.o
+obj/mod_interp.o: src/mod_interp.f90 obj/mod_conf.o obj/mod_manip.o obj/mod_grids.o obj/mod_bdrown.o obj/mod_drown.o obj/mod_akima_2d.o obj/mod_bilin_2d.o obj/mod_akima_1d.o obj/io_ezcdf.o obj/mod_nemotools.o
 	$(FC) $(FF) -c src/mod_interp.f90 -o obj/mod_interp.o
 
-obj/mod_manip.o: src/mod_manip.f90
+obj/mod_manip.o: src/mod_manip.f90 obj/mod_conf.o obj/io_ezcdf.o
 	$(FC) $(FF) -c src/mod_manip.f90 -o obj/mod_manip.o
 
 obj/mod_drown.o: src/mod_drown.f90

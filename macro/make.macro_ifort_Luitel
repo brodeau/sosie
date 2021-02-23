@@ -13,29 +13,20 @@ NETCDF_DIR = /opt/hdf5_netcdf4_intel
 L_NCDF = -lnetcdff
 
 # Compiler's libraries location:
-LIB_COMP_DIR = $(INTEL_DIR)/linux/compiler/lib/intel64_lin
+#LIB_COMP_DIR = /opt/intel/compilers_and_libraries_2019.1.144/linux/compiler/lib/intel64_lin
 
 
 # Fortran compilation flags:
 # -- Production
 FF = -O3 -i4 -xHOST -traceback -module mod/
-#
-# -- Debugging
-#FF = -O0 -g -check all -warn all -traceback -debug extended -C -module mod/
-#FF = -O0 -g -check all -fpe0 -warn all -traceback -debug extended -C -module mod/
-#FF = -O2 -g -check all -traceback -debug extended -C -module mod/
-#FF = -O0 -qopenmp -g -check all -warn all -traceback -debug extended -CB -module mod/
 
+# -- Debugging:
+#FF =  -fpe0 -O0 -g -check all -warn all -traceback -debug extended -C -module mod/
 
-#
+## For io_ezcdf.f90:
+FF_SAFE = -O2 -i4 -xHOST -traceback -module mod/
 
 
 # Directory to install binaries:
 INSTALL_DIR = /usr/local
 
-
-# interp_to_ephem.x requires the "datetime fortran" library modules to be compiled on your system!
-# => https://github.com/wavebitscientific/datetime-fortran
-#
-DATETIME_FORTRAN_DIR=$(HOME)/src/datetime-fortran/build
-#

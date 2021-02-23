@@ -41,8 +41,9 @@ PROGRAM CORR_VECT
    CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
 
    CHARACTER(len=80) :: &
-      &    cv_out_U    = 'uraw',   &   ! raw U name
-      &    cv_out_V    = 'vraw'        ! raw V name
+      &    cv_u_in='0', cv_v_in='0', &
+      &    cv_out_U    = 'uraw',     &   ! raw U name
+      &    cv_out_V    = 'vraw'          ! raw V name
 
    CHARACTER(len=800)  :: &
       &    cf_raw_U,    &  ! file containing u_raw
@@ -89,17 +90,16 @@ PROGRAM CORR_VECT
    INTEGER :: jt, jk
 
    LOGICAL :: &
-      &    l_inv = .FALSE.,   &
-      &    l_anlt = .FALSE.,  & ! analytic input field (U=1, V=0) DEBUG...
-      &    l_3d_inv = .FALSE., &   !: will treat 3d files in inverse mode...
-      &    lmout_x, lmout_y, &
-      &    lexist !,  &
+      &    l_inv    = .FALSE., &
+      &    l_anlt   = .FALSE., & !: analytic input field (U=1, V=0) DEBUG...
+      &    l_3d_inv = .FALSE., & !: will treat 3d files in inverse mode...
+      &    lmout_x, lmout_y,   &
+      &    lexist
 
    REAL(4), PARAMETER :: zrmv = -9999.
 
-   CHARACTER(LEN=2), DIMENSION(9), PARAMETER :: &
-      &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-t','-1' /)
-   !&            clist_opt = (/ '-I','-h','-m','-G','-p','-x','-y','-f','-i','-t','-1' /)
+   CHARACTER(LEN=2), DIMENSION(10), PARAMETER :: &
+      &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-v','-t','-1' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -112,9 +112,6 @@ PROGRAM CORR_VECT
 
    !! Getting string arguments :
    !! --------------------------
-
-   !! Some defaults:
-   cv_rot_U = 'vectx' ; cv_rot_V = 'vecty'
 
    jarg = 0
 
@@ -133,32 +130,6 @@ PROGRAM CORR_VECT
          !!
       CASE('-I')
          l_inv = .TRUE.
-         !!
-         !!
-         !CASE('-x')
-         !   IF ( jarg + 1 > iargc() ) THEN
-         !      PRINT *, 'ERROR: Missing zonal component name!' ; call usage_corr_vect()
-         !   ELSE
-         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-         !         PRINT *, 'ERROR: Missing zonal component name!'; call usage_corr_vect()
-         !      ELSE
-         !         cv_rot_U = trim(cr)
-         !      END IF
-         !   END IF
-         !!
-         !!
-         !CASE('-y')
-         !   IF ( jarg + 1 > iargc() ) THEN
-         !      PRINT *, 'ERROR: Missing meridional component name!' ; call usage_corr_vect()
-         !   ELSE
-         !      jarg = jarg + 1 ;  CALL getarg(jarg,cr)
-         !      IF ( ANY(clist_opt == trim(cr)) ) THEN
-         !         PRINT *, 'ERROR: Missing meridional component name!'; call usage_corr_vect()
-         !      ELSE
-         !         cv_rot_V = trim(cr)
-         !      END IF
-         !   END IF
          !!
       CASE('-f')
          IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
@@ -199,7 +170,7 @@ PROGRAM CORR_VECT
          END IF
          !!
       CASE('-i')
-         IF ( jarg + 2 > iargc() ) THEN ! checking that there is at least 2 other arguments following
+         IF ( jarg + 2 > iargc() ) THEN
             PRINT *, 'ERROR: Missing input file names!' ; call usage_corr_vect()
          ELSE
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
@@ -213,6 +184,25 @@ PROGRAM CORR_VECT
                PRINT *, 'ERROR: Missing input file name 2 !' ; call usage_corr_vect()
             ELSE
                cvfilin = trim(cr)
+            END IF
+         END IF
+         !!
+         !!
+      CASE('-v')
+         IF ( jarg + 2 > iargc() ) THEN
+            PRINT *, 'ERROR: Missing input file names!' ; call usage_corr_vect()
+         ELSE
+            jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+            IF ( ANY(clist_opt == trim(cr)) ) THEN
+               PRINT *, 'ERROR: Missing input variable name 1 !' ; call usage_corr_vect()
+            ELSE
+               cv_u_in = trim(cr)
+            END IF
+            jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+            IF ( ANY(clist_opt == trim(cr)) ) THEN
+               PRINT *, 'ERROR: Missing input variable name 2 !' ; call usage_corr_vect()
+            ELSE
+               cv_v_in = trim(cr)
             END IF
          END IF
          !!
@@ -246,85 +236,92 @@ PROGRAM CORR_VECT
       STOP
    END IF
 
-   IF ( (cgrid_trg /= 'T').AND.(cgrid_trg /= 'U') ) call usage_corr_vect()
+   IF ( (.NOT. l_inv).AND.(cgrid_trg /= 'T').AND.(cgrid_trg /= 'U') ) THEN
+      PRINT *, 'ERROR: unknown target grid point type: '//trim(cgrid_trg)//'!'
+      CALL usage_corr_vect()
+   END IF
 
    PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
    PRINT *, ''
 
 
    IF ( l_inv ) THEN
+      
+      IF( (TRIM(cv_u_in)=='0').OR.(TRIM(cv_u_in)=='0') ) THEN
+         PRINT *, 'ERROR: you must specify the names of vector components with the "-v" switch!'
+         STOP
+      END IF
       PRINT *, ' * Vector files to unrotate = ', trim(cufilin), ' , ', trim(cvfilin)
-      !PRINT *, '   => associated variable names = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
+      PRINT *, '   => associated variable names = ', TRIM(cv_u_in), ' , ', TRIM(cv_v_in)
       IF ( trim(cv_time_0) == 'none' ) THEN
          PRINT *, 'ERROR: you must specify the name of time variable with the "-t" switch!'; STOP
       END IF
       PRINT *, '   => time variable name = ', trim(cv_time_0)
-      !ELSE
-      !PRINT *, ' * Name for corrected vector components = ', TRIM(cv_rot_U), ' , ', TRIM(cv_rot_V)
    END IF
 
    PRINT *, ' * mesh_mask file to use = ', TRIM(cf_mm)
 
-   cnmlst_x = TRIM(cf_nml_sosie)//'_x'
-   cnmlst_y = TRIM(cf_nml_sosie)//'_y'
-
-   PRINT *, ' * namelists we expect => ', TRIM(cnmlst_x)//' and '//TRIM(cnmlst_y)
-   PRINT *, ''
-
-
-   INQUIRE(FILE=trim(cf_mm), EXIST=lexist )
-   IF ( .NOT. lexist ) THEN
-      WRITE(*,'("The mesh_mask file ",a," file was not found!")') trim(cf_mm)
-      CALL usage_corr_vect()
-   END IF
-
-
-   !! Namelist of X component:
-   INQUIRE(FILE=TRIM(cnmlst_x), EXIST=lexist )
-   IF ( .NOT. lexist ) THEN
-      WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_x)
-      CALL usage_corr_vect()
-   END IF
-   PRINT *, ''
-   cf_nml_sosie = TRIM(cnmlst_x)
-   CALL READ_NMLST(2)
-   lmout_x  = lmout
-   cv_rot_U = cv_out
-   cn_xtr_x = cextra
-
-
-   !! Namelist of Y component:
-   INQUIRE(FILE=TRIM(cnmlst_y), EXIST=lexist )
-   IF ( .NOT. lexist ) THEN
-      WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_y)
-      CALL usage_corr_vect()
-   END IF
-   PRINT *, ''
-   cf_nml_sosie = TRIM(cnmlst_y)
-   CALL READ_NMLST(2)
-   lmout_y  = lmout
-   cv_rot_V = cv_out
-   cn_xtr_y = cextra
-
-
-   IF ( cgrid_trg == 'T' ) THEN
-      PRINT *, ' *** Gonna save on grid T.'
-      cextra_x = 'gridT_'//TRIM(cn_xtr_x)
-      cextra_y = 'gridT_'//TRIM(cn_xtr_y)
-   ELSEIF ( cgrid_trg == 'U' ) THEN
-      PRINT *, ' *** Gonna save on grid U and V.'
-      cextra_x = 'gridU_'//TRIM(cn_xtr_x)
-      cextra_y = 'gridV_'//TRIM(cn_xtr_y)
-   ELSE
-      PRINT *, 'ERROR: "cgrid_trg" value unknown: ', TRIM(cgrid_trg) ; STOP
-   END IF
-   PRINT *, ''
 
 
 
-   IF ( .NOT. l_inv ) THEN
+   
+   IF(.NOT. l_inv) THEN
 
-      !! !!     N O R M A L   C O R R E C T I O N
+      !!     N O R M A L   C O R R E C T I O N
+      
+      cnmlst_x = TRIM(cf_nml_sosie)//'_x'
+      cnmlst_y = TRIM(cf_nml_sosie)//'_y'
+
+      PRINT *, ' * namelists we expect => ', TRIM(cnmlst_x)//' and '//TRIM(cnmlst_y)
+      PRINT *, ''
+
+      INQUIRE(FILE=trim(cf_mm), EXIST=lexist )
+      IF ( .NOT. lexist ) THEN
+         WRITE(*,'("The mesh_mask file ",a," file was not found!")') trim(cf_mm)
+         CALL usage_corr_vect()
+      END IF
+
+
+      !! Namelist of X component:
+      INQUIRE(FILE=TRIM(cnmlst_x), EXIST=lexist )
+      IF ( .NOT. lexist ) THEN
+         WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_x)
+         CALL usage_corr_vect()
+      END IF
+      PRINT *, ''
+      cf_nml_sosie = TRIM(cnmlst_x)
+      CALL READ_NMLST(2)
+      lmout_x  = lmout
+      cv_rot_U = cv_out
+      cn_xtr_x = cextra
+
+
+      !! Namelist of Y component:
+      INQUIRE(FILE=TRIM(cnmlst_y), EXIST=lexist )
+      IF ( .NOT. lexist ) THEN
+         WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_y)
+         CALL usage_corr_vect()
+      END IF
+      PRINT *, ''
+      cf_nml_sosie = TRIM(cnmlst_y)
+      CALL READ_NMLST(2)
+      lmout_y  = lmout
+      cv_rot_V = cv_out
+      cn_xtr_y = cextra
+
+
+      IF ( cgrid_trg == 'T' ) THEN
+         PRINT *, ' *** Gonna save on grid T.'
+         cextra_x = 'gridT_'//TRIM(cn_xtr_x)
+         cextra_y = 'gridT_'//TRIM(cn_xtr_y)
+      ELSEIF ( cgrid_trg == 'U' ) THEN
+         PRINT *, ' *** Gonna save on grid U and V.'
+         cextra_x = 'gridU_'//TRIM(cn_xtr_x)
+         cextra_y = 'gridV_'//TRIM(cn_xtr_y)
+      ELSE
+         PRINT *, 'ERROR: "cgrid_trg" value unknown: ', TRIM(cgrid_trg) ; STOP
+      END IF
+      PRINT *, ''
 
       IF ( l_reg_trg ) THEN
          PRINT *, 'Vector correction only makes sense if your target grid is distorded!'
@@ -647,10 +644,10 @@ PROGRAM CORR_VECT
 
       PRINT *, 'Will unrotate vector fields given on an irregular grid!'
       !!
-      IF ( l_reg_src ) THEN
-         PRINT *, 'Reverse vector correction only makes sense if your source grid is distorded!'
-         PRINT *, '  => check "l_reg_src" into the namelist...' ; PRINT *, ''; STOP
-      END IF
+      !IF ( l_reg_src ) THEN
+      !   PRINT *, 'Reverse vector correction only makes sense if your source grid is distorded!'
+      !   PRINT *, '  => check "l_reg_src" into the namelist...' ; PRINT *, ''; STOP
+      !END IF
       !!
       !!
       !!
@@ -688,15 +685,15 @@ PROGRAM CORR_VECT
       cf_raw_V = cvfilin(1:nbc-nlext)
       cf_raw_V = TRIM(cf_raw_V)//'_unrotated.nc'
 
-      cv_out_U = trim(cv_rot_U)//'_unrotated'
-      cv_out_V = trim(cv_rot_V)//'_unrotated'
+      cv_out_U = trim(cv_u_in)//'_unrotated'
+      cv_out_V = trim(cv_v_in)//'_unrotated'
 
 
       !! Geting array dimension and testing...
       !! -------------------------------------
 
-      CALL DIMS(cufilin, cv_rot_U, ni1, nj1, nk1, Ntr1)
-      CALL DIMS(cvfilin, cv_rot_V, ni2, nj2, nk2, Ntr2)
+      CALL DIMS(cufilin, cv_u_in, ni1, nj1, nk1, Ntr1)
+      CALL DIMS(cvfilin, cv_v_in, ni2, nj2, nk2, Ntr2)
 
       CALL DIMS(cf_mm,   cv_glamt, ni_g, nj_g, nk_g, Ntr)
 
@@ -819,12 +816,12 @@ PROGRAM CORR_VECT
 
             !! Getting U :
             !! -----------
-            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_rot_U, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_u_in, Ntr, jk*i3d, jt, ztmp4, lz=nk)
             U_r8 = ztmp4
 
             !! Getting V :
             !! -----------
-            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_rot_V, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_v_in, Ntr, jk*i3d, jt, ztmp4, lz=nk)
             V_r8 = ztmp4
 
 
@@ -895,19 +892,14 @@ SUBROUTINE usage_corr_vect()
    PRINT *,''
    PRINT *,'  *** MANDATORY for both normal and inverse mode:'
    PRINT *,''
-   !PRINT *,' -x  <name U>         => Specify name for x comp. in output file'
-   !PRINT *,'                         (or input file if inverse mode)'
-   !PRINT *,''
-   !PRINT *,' -y  <name V>         => Specify name for y comp. in output file'
-   !PRINT *,'                         (or input file if inverse mode)'
-   !PRINT *,''
    PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
    PRINT *,''
    PRINT *,''
    PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
    PRINT *,''
-   PRINT *,' -f  <namelist_file>  => Specify which namelist file to use'
-   PRINT *, '                        No namelist needed when inverse correction'
+   PRINT *,' -f  <namelist_prefix> => common file name prefix for the 2 namelists to be read'
+   PRINT *,'                       => expects to find <namelist_prefix>_x & <namelist_prefix>_y !'
+   PRINT *, '                         [no namelist needed when inverse correction]'
    PRINT *,''
    PRINT *,' -G  <T/U>            => Specify if you want to save rotated vector'
    PRINT *, '                        on T-grid (T) or U- and V-grid (U)'
@@ -917,6 +909,8 @@ SUBROUTINE usage_corr_vect()
    PRINT *,''
    PRINT *,' -i <x.nc> <y.nc>     =>  unrotate vector fields given in these 2 files'
    PRINT *,'                          to the same grid'
+   PRINT *, ''
+   PRINT *,' -v  <nameU> <nameV>  => Specify names for x and ycomp. in intput files'
    PRINT *,''
    PRINT *,' -t <time_name>       =>  name of time variable in <x.nc> and <y.nc>'
    PRINT *,''
