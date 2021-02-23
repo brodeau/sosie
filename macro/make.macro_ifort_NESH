@@ -1,21 +1,17 @@
 # Makefile for SOSIE with Intel Ifort on nesh-fe.rz.uni-kiel.de
 # =============================================================
-#
-# Load modules at compilation and at runtime:
-#
-# module load intel17.0.4 netcdf4.4.1intel hdf5-1.8.19intel
-#
-# (You might want to adapt this to newer versions of these modules.)
-#
+# Pleas load the following modules on nesh before compiling package
+# module load intel/20.0.4 netcdf-fortran-intel/4.5.3 hdf5-intel/1.10.7 netcdf-c-intel/4.7.4
 
 # Fortran compiler:
 FC = ifort
 
 # Linking argument: usually -lnetcdf or -lnetcdff (or both):
-L_NCDF = -lnetcdf -lnetcdff
+NETCDF_DIR = /gxfs_work1/gxfs_home_interim/sw/spack/spack0.16.0/usr/opt/spack/linux-rhel8-x86_64/intel-20.0.4/netcdf-fortran-4.5.3-ebr6xnqufaqypadqtpvg7sp33wdg67ha
+L_NCDF = -L$(NETCDF_DIR)/lib -lnetcdf -lnetcdff
 
 # Fortran compilation flags:
-FF = -xHOST -O3 -i4 -module mod/
+FF = -xHOST -O3 -i4 -I$(NETCDF_DIR)/include -module mod/
 
 # Directory to install binaries:
 INSTALL_DIR = ./bin
