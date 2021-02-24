@@ -11,7 +11,7 @@ NETCDF_DIR = /gxfs_work1/gxfs_home_interim/sw/spack/spack0.16.0/usr/opt/spack/li
 L_NCDF = -L$(NETCDF_DIR)/lib -lnetcdf -lnetcdff
 
 # Fortran compilation flags:
-FF = -xHOST -O3 -i4 -I$(NETCDF_DIR)/include -module mod/
+FF = -xHOST -O3 -i4 -I$(NETCDF_DIR)/include -I./mod/
 
 # Directory to install binaries:
 INSTALL_DIR = ./bin
