@@ -36,7 +36,7 @@ PROGRAM CORR_VECT
    CHARACTER(LEN=400)  :: cn_xtr_x, cn_xtr_y, cextra_x, cextra_y
 
    CHARACTER(len=3)    :: cdum
-   CHARACTER(len=1)    :: cgrid_trg='0'
+   CHARACTER(len=3)    :: cgrid_trg='T'
    CHARACTER(len=80)   :: cv_time_0 = 'none'
    CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
 
@@ -236,7 +236,7 @@ PROGRAM CORR_VECT
       STOP
    END IF
 
-   IF ( (.NOT. l_inv).AND.(cgrid_trg /= 'T').AND.(cgrid_trg /= 'U') ) THEN
+   IF ( (cgrid_trg /= 'U,V').AND.(TRIM(cgrid_trg) /= 'T') ) THEN
       PRINT *, 'ERROR: unknown target grid point type: '//trim(cgrid_trg)//'!'
       CALL usage_corr_vect()
    END IF
@@ -310,12 +310,12 @@ PROGRAM CORR_VECT
       cn_xtr_y = cextra
 
 
-      IF ( cgrid_trg == 'T' ) THEN
-         PRINT *, ' *** Gonna save on grid T.'
+      IF ( trim(cgrid_trg) == 'T' ) THEN
+         PRINT *, ' *** Will save on T-grid points.'
          cextra_x = 'gridT_'//TRIM(cn_xtr_x)
          cextra_y = 'gridT_'//TRIM(cn_xtr_y)
-      ELSEIF ( cgrid_trg == 'U' ) THEN
-         PRINT *, ' *** Gonna save on grid U and V.'
+      ELSEIF ( cgrid_trg == 'U,V' ) THEN
+         PRINT *, ' *** Will save on U,V-grid points.'
          cextra_x = 'gridU_'//TRIM(cn_xtr_x)
          cextra_y = 'gridV_'//TRIM(cn_xtr_y)
       ELSE
@@ -410,7 +410,7 @@ PROGRAM CORR_VECT
          &    xlon_u(ni,nj)  , xlat_u(ni,nj) , xlon_v(ni,nj)  , xlat_v(ni,nj) , &
          &    xlon_f(ni,nj) , xlat_f(ni,nj), ztmp8(ni,nj), &
          &    vtime(Ntr)   )
-      IF ( cgrid_trg == 'U' ) ALLOCATE ( mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
+      IF ( cgrid_trg == 'U,V' ) ALLOCATE ( mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
 
       ALLOCATE (XCOST8(ni,nj) , XSINT8(ni,nj) , XCOSU8(ni,nj) , XSINU8(ni,nj) , XCOSV8(ni,nj) , XSINV8(ni,nj) , &
          &      XCOSF8(ni,nj) , XSINF8(ni,nj) , U_r8(ni,nj) , V_r8(ni,nj) )
@@ -419,14 +419,14 @@ PROGRAM CORR_VECT
       IF ( i3d == 1 ) THEN
          ALLOCATE ( vdepth(nk) )
          CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
-         IF ( cgrid_trg == 'U' ) THEN
+         IF ( cgrid_trg == 'U,V' ) THEN
             CALL GETMASK_3D(cf_lsm_trg, 'umask', mask_u(:,:,:))
             CALL GETMASK_3D(cf_lsm_trg, 'vmask', mask_v(:,:,:))
          ELSE
             CALL GETMASK_3D(cf_lsm_trg, 'tmask', mask_t(:,:,:))
          END IF
       ELSE
-         IF ( cgrid_trg == 'U' ) THEN
+         IF ( cgrid_trg == 'U,V' ) THEN
             CALL GETMASK_2D(cf_lsm_trg, 'umask', mask_u(:,:,1), jlev=1)
             CALL GETMASK_2D(cf_lsm_trg, 'vmask', mask_v(:,:,1), jlev=1)
          ELSE
@@ -519,14 +519,14 @@ PROGRAM CORR_VECT
             Ydum8 = XCOST8*V_r8 - XSINT8*U_r8
 
 
-            IF ( cgrid_trg == 'T' ) THEN
+            IF ( TRIM(cgrid_trg) == 'T' ) THEN
                !! to T-grid, nothing to do...
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, Xdum8, 'T', -1.0_8 )
                U_c(:,:,jk) = REAL(Xdum8 , 4)
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, Ydum8, 'T', -1.0_8 )
                V_c(:,:,jk) = REAL(Ydum8 , 4)
                !!
-            ELSEIF ( cgrid_trg == 'U' ) THEN
+            ELSEIF ( cgrid_trg == 'U,V' ) THEN
                !! to U-V grid, need to interpolate
                ztmp8(1:ni-1,:) = 0.5*(Xdum8(1:ni-1,:)+Xdum8(2:ni,:))
                IF ( iorca > 0 ) CALL lbc_lnk( iorca, ztmp8, 'U', -1.0_8 )
@@ -543,7 +543,7 @@ PROGRAM CORR_VECT
 
 
          IF ( lmout_x .AND. lmout_y ) THEN
-            IF ( cgrid_trg == 'U' ) THEN
+            IF ( cgrid_trg == 'U,V' ) THEN
                WHERE ( mask_u == 0 ) U_c = rmiss_val
                WHERE ( mask_v == 0 ) V_c = rmiss_val
             ELSE
@@ -558,7 +558,7 @@ PROGRAM CORR_VECT
          IF ( i3d == 1 ) THEN
 
             !! 3D:
-            IF ( cgrid_trg == 'U' ) THEN
+            IF ( cgrid_trg == 'U,V' ) THEN
                CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_t_out, cv_rot_U,      &
                   &    rmiss_val, attr_t=vatt_info_t)
@@ -577,7 +577,7 @@ PROGRAM CORR_VECT
          ELSE
 
             !! 2D:
-            IF ( cgrid_trg == 'U' ) THEN
+            IF ( cgrid_trg == 'U,V' ) THEN
                CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1), &
                   &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
                   &    rmiss_val, attr_t=vatt_info_t)
@@ -828,19 +828,20 @@ PROGRAM CORR_VECT
             !! Unrotating U :
             !! --------------
             U_c(:,:,jk) = REAL(XCOST8*U_r8 - XSINT8*V_r8 , 4) ! note the '-' sign --> reverse correction
-
-
+            !#LB: on what grid points is this supposed to be??? U or T? Presently the rest of the code assume it's U !!!
+            
 
             !! Unrotating V :
             !! --------------
             V_c(:,:,jk) = REAL(XCOST8*V_r8 + XSINT8*U_r8 , 4) ! note the + sign for reverse correction
-
+            !#LB: on what grid points is this supposed to be??? V or T? Presently the rest of the code assume it's V !!!
 
 
          END DO  ! jk
 
+         !#LB: need to fix the following if I'm wrong about U,V or T
+         !#LB:  + also INCLUDE the possibility to chose 'T' or 'U,V' for the grid on which to save, just as for the rotation case (lines 522->539)
 
-         !lulu
          WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = zrmv
          WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = zrmv
 
@@ -901,9 +902,6 @@ SUBROUTINE usage_corr_vect()
    PRINT *,'                       => expects to find <namelist_prefix>_x & <namelist_prefix>_y !'
    PRINT *, '                         [no namelist needed when inverse correction]'
    PRINT *,''
-   PRINT *,' -G  <T/U>            => Specify if you want to save rotated vector'
-   PRINT *, '                        on T-grid (T) or U- and V-grid (U)'
-   PRINT *,''
    PRINT *,''
    PRINT *,'  *** MANDATORY for INVERSE MODE (-I switch) :'
    PRINT *,''
@@ -916,6 +914,10 @@ SUBROUTINE usage_corr_vect()
    PRINT *,''
    PRINT *,''
    PRINT *,'  *** MISC options :'
+   PRINT *,''
+   PRINT *,' -G  <T/U,V>          => Specify grid points where to save the (un)rotated vector'
+   PRINT *, '                       ==>    T    points "-G T" DEFAULT !'
+   PRINT *, '                       ==> U and V points "-G U,V"'
    PRINT *,''
    PRINT *,' -h                   => Show this message'
    PRINT *,''
