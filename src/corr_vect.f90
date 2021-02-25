@@ -819,20 +819,23 @@ PROGRAM CORR_VECT
             CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_u_in, Ntr, jk*i3d, jt, ztmp4, lz=nk)
             U_r8 = ztmp4
 
+            
+
             !! Getting V :
             !! -----------
             CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_v_in, Ntr, jk*i3d, jt, ztmp4, lz=nk)
             V_r8 = ztmp4
 
-
             !! Unrotating U :
             !! --------------
+            !#LB: U_r8 is on U-points!
             U_c(:,:,jk) = REAL(XCOST8*U_r8 - XSINT8*V_r8 , 4) ! note the '-' sign --> reverse correction
             !#LB: on what grid points is this supposed to be??? U or T? Presently the rest of the code assume it's U !!!
             
 
             !! Unrotating V :
             !! --------------
+            !#LB: V_r8 is on V-points!
             V_c(:,:,jk) = REAL(XCOST8*V_r8 + XSINT8*U_r8 , 4) ! note the + sign for reverse correction
             !#LB: on what grid points is this supposed to be??? V or T? Presently the rest of the code assume it's V !!!
 
