@@ -17,4 +17,4 @@
 # Correcting with output on U,V-grid points:
 ../../bin/corr_vect.x -G U,V -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
 
-rm -f uraw*.nc* vraw*.nc*
+#rm -f uraw*.nc* vraw*.nc*

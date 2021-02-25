@@ -133,11 +133,11 @@ PROGRAM CORR_VECT
          !!
       CASE('-f')
          IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
-            PRINT *, 'ERROR: Missing namelist name!' ; call usage_corr_vect()
+            PRINT *,'ERROR: Missing namelist name!' ; call usage_corr_vect()
          ELSE
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: ', trim(cr), ' is definitively not the name of the namelist!'
+               PRINT *,'ERROR: ', trim(cr), ' is definitively not the name of the namelist!'
                call usage_corr_vect()
             ELSE
                cf_nml_sosie = trim(cr)
@@ -146,11 +146,11 @@ PROGRAM CORR_VECT
          !!
       CASE('-m')
          IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
-            PRINT *, 'ERROR: Missing mesh_mask file name!' ; call usage_corr_vect()
+            PRINT *,'ERROR: Missing mesh_mask file name!' ; call usage_corr_vect()
          ELSE
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: ', trim(cr), ' is definitively not the name of the mesh_mask file!'
+               PRINT *,'ERROR: ', trim(cr), ' is definitively not the name of the mesh_mask file!'
                call usage_corr_vect()
             ELSE
                cf_mm = trim(cr)
@@ -159,11 +159,11 @@ PROGRAM CORR_VECT
          !!
       CASE('-G')
          IF ( jarg + 1 > iargc() ) THEN
-            PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!' ; call usage_corr_vect()
+            PRINT *,'ERROR: Missing grid type to write to ("T" or "UV"?) !!' ; call usage_corr_vect()
          ELSE
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == TRIM(cr)) ) THEN
-               PRINT *, 'ERROR: Missing grid type to write to ("T" or "UV"?) !!'; CALL usage_corr_vect()
+               PRINT *,'ERROR: Missing grid type to write to ("T" or "UV"?) !!'; CALL usage_corr_vect()
             ELSE
                cgrid_trg = TRIM(cr)
             END IF
@@ -171,17 +171,17 @@ PROGRAM CORR_VECT
          !!
       CASE('-i')
          IF ( jarg + 2 > iargc() ) THEN
-            PRINT *, 'ERROR: Missing input file names!' ; call usage_corr_vect()
+            PRINT *,'ERROR: Missing input file names!' ; call usage_corr_vect()
          ELSE
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: Missing input file name 1 !' ; call usage_corr_vect()
+               PRINT *,'ERROR: Missing input file name 1 !' ; call usage_corr_vect()
             ELSE
                cufilin = trim(cr)
             END IF
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: Missing input file name 2 !' ; call usage_corr_vect()
+               PRINT *,'ERROR: Missing input file name 2 !' ; call usage_corr_vect()
             ELSE
                cvfilin = trim(cr)
             END IF
@@ -190,17 +190,17 @@ PROGRAM CORR_VECT
          !!
       CASE('-v')
          IF ( jarg + 2 > iargc() ) THEN
-            PRINT *, 'ERROR: Missing input file names!' ; call usage_corr_vect()
+            PRINT *,'ERROR: Missing input file names!' ; call usage_corr_vect()
          ELSE
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: Missing input variable name 1 !' ; call usage_corr_vect()
+               PRINT *,'ERROR: Missing input variable name 1 !' ; call usage_corr_vect()
             ELSE
                cv_u_in = trim(cr)
             END IF
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: Missing input variable name 2 !' ; call usage_corr_vect()
+               PRINT *,'ERROR: Missing input variable name 2 !' ; call usage_corr_vect()
             ELSE
                cv_v_in = trim(cr)
             END IF
@@ -208,11 +208,11 @@ PROGRAM CORR_VECT
          !!
       CASE('-t')
          IF ( jarg + 1 > iargc() ) THEN
-            PRINT *, 'ERROR: Missing time name!' ; call usage_corr_vect()
+            PRINT *,'ERROR: Missing time name!' ; call usage_corr_vect()
          ELSE
             jarg = jarg + 1 ;  CALL getarg(jarg,cr)
             IF ( ANY(clist_opt == trim(cr)) ) THEN
-               PRINT *, 'ERROR: Missing time name!'; call usage_corr_vect()
+               PRINT *,'ERROR: Missing time name!'; call usage_corr_vect()
             ELSE
                cv_time_0 = trim(cr)
             END IF
@@ -222,7 +222,7 @@ PROGRAM CORR_VECT
          l_anlt = .TRUE.
          !!
       CASE DEFAULT
-         PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
+         PRINT *,'Unknown option: ', trim(cr) ; PRINT *,''
          CALL usage_corr_vect()
          !!
       END SELECT
@@ -232,34 +232,34 @@ PROGRAM CORR_VECT
 
 
    IF ( (.NOT. l_inv).AND.( TRIM(cufilin) /= 'none' ) ) THEN
-      PRINT *, 'ERROR: specify the "-I" switch if you want to perform inverse correction!'
+      PRINT *,'ERROR: specify the "-I" switch if you want to perform inverse correction!'
       STOP
    END IF
 
    IF ( (cgrid_trg /= 'U,V').AND.(TRIM(cgrid_trg) /= 'T') ) THEN
-      PRINT *, 'ERROR: unknown target grid point type: '//trim(cgrid_trg)//'!'
+      PRINT *,'ERROR: unknown target grid point type: '//trim(cgrid_trg)//'!'
       CALL usage_corr_vect()
    END IF
 
-   PRINT *, ''; PRINT *, 'Use "-h" for help'; PRINT *, ''
-   PRINT *, ''
+   PRINT *,''; PRINT *,'Use "-h" for help'; PRINT *,''
+   PRINT *,''
 
 
    IF ( l_inv ) THEN
       
       IF( (TRIM(cv_u_in)=='0').OR.(TRIM(cv_u_in)=='0') ) THEN
-         PRINT *, 'ERROR: you must specify the names of vector components with the "-v" switch!'
+         PRINT *,'ERROR: you must specify the names of vector components with the "-v" switch!'
          STOP
       END IF
-      PRINT *, ' * Vector files to unrotate = ', trim(cufilin), ' , ', trim(cvfilin)
-      PRINT *, '   => associated variable names = ', TRIM(cv_u_in), ' , ', TRIM(cv_v_in)
+      PRINT *,' * Vector files to unrotate = ', trim(cufilin), ' , ', trim(cvfilin)
+      PRINT *,'   => associated variable names = ', TRIM(cv_u_in), ' , ', TRIM(cv_v_in)
       IF ( trim(cv_time_0) == 'none' ) THEN
-         PRINT *, 'ERROR: you must specify the name of time variable with the "-t" switch!'; STOP
+         PRINT *,'ERROR: you must specify the name of time variable with the "-t" switch!'; STOP
       END IF
-      PRINT *, '   => time variable name = ', trim(cv_time_0)
+      PRINT *,'   => time variable name = ', trim(cv_time_0)
    END IF
 
-   PRINT *, ' * mesh_mask file to use = ', TRIM(cf_mm)
+   PRINT *,' * mesh_mask file to use = ', TRIM(cf_mm)
 
 
 
@@ -272,8 +272,8 @@ PROGRAM CORR_VECT
       cnmlst_x = TRIM(cf_nml_sosie)//'_x'
       cnmlst_y = TRIM(cf_nml_sosie)//'_y'
 
-      PRINT *, ' * namelists we expect => ', TRIM(cnmlst_x)//' and '//TRIM(cnmlst_y)
-      PRINT *, ''
+      PRINT *,' * namelists we expect => ', TRIM(cnmlst_x)//' and '//TRIM(cnmlst_y)
+      PRINT *,''
 
       INQUIRE(FILE=trim(cf_mm), EXIST=lexist )
       IF ( .NOT. lexist ) THEN
@@ -288,7 +288,7 @@ PROGRAM CORR_VECT
          WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_x)
          CALL usage_corr_vect()
       END IF
-      PRINT *, ''
+      PRINT *,''
       cf_nml_sosie = TRIM(cnmlst_x)
       CALL READ_NMLST(2)
       lmout_x  = lmout
@@ -302,7 +302,7 @@ PROGRAM CORR_VECT
          WRITE(*,'("The namelist file ",a," file was not found!")') TRIM(cnmlst_y)
          CALL usage_corr_vect()
       END IF
-      PRINT *, ''
+      PRINT *,''
       cf_nml_sosie = TRIM(cnmlst_y)
       CALL READ_NMLST(2)
       lmout_y  = lmout
@@ -311,21 +311,21 @@ PROGRAM CORR_VECT
 
 
       IF ( trim(cgrid_trg) == 'T' ) THEN
-         PRINT *, ' *** Will save on T-grid points.'
+         PRINT *,' *** Will save on T-grid points.'
          cextra_x = 'gridT_'//TRIM(cn_xtr_x)
          cextra_y = 'gridT_'//TRIM(cn_xtr_y)
       ELSEIF ( cgrid_trg == 'U,V' ) THEN
-         PRINT *, ' *** Will save on U,V-grid points.'
+         PRINT *,' *** Will save on U,V-grid points.'
          cextra_x = 'gridU_'//TRIM(cn_xtr_x)
          cextra_y = 'gridV_'//TRIM(cn_xtr_y)
       ELSE
-         PRINT *, 'ERROR: "cgrid_trg" value unknown: ', TRIM(cgrid_trg) ; STOP
+         PRINT *,'ERROR: "cgrid_trg" value unknown: ', TRIM(cgrid_trg) ; STOP
       END IF
-      PRINT *, ''
+      PRINT *,''
 
       IF ( l_reg_trg ) THEN
-         PRINT *, 'Vector correction only makes sense if your target grid is distorded!'
-         PRINT *, '  => check "l_reg_trg" into the namelist...' ; PRINT *, ''; STOP
+         PRINT *,'Vector correction only makes sense if your target grid is distorded!'
+         PRINT *,'  => check "l_reg_trg" into the namelist...' ; PRINT *,''; STOP
       END IF
 
 
@@ -334,7 +334,7 @@ PROGRAM CORR_VECT
       cf_raw_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
          &   //trim(ctarget)//'_'//trim(cn_xtr_y)//'.nc'
 
-      PRINT *, 'The two input pre-interpolated needed files are :'
+      PRINT *,'The two input pre-interpolated needed files are :'
       PRINT *, trim(cf_raw_U) ;   PRINT *, trim(cf_raw_V) ;
 
       cf_out_U = TRIM(cd_out)//'/'//TRIM(cv_rot_U)//'_'//TRIM(csource)//'-' &
@@ -342,14 +342,14 @@ PROGRAM CORR_VECT
       cf_out_V = TRIM(cd_out)//'/'//TRIM(cv_rot_V)//'_'//TRIM(csource)//'-' &
          &   //TRIM(ctarget)//'_'//TRIM(cextra_y)//'.nc'
 
-      PRINT *, '' ;   PRINT *, 'output files :'
-      PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ; PRINT *, '' ; PRINT *, ''
+      PRINT *,'' ;   PRINT *,'output files :'
+      PRINT *, trim(cf_out_U) ;   PRINT *, trim(cf_out_V) ; PRINT *,'' ; PRINT *,''
 
-      PRINT *, 'File containing x and y raw components of vector to be treated :'
+      PRINT *,'File containing x and y raw components of vector to be treated :'
       PRINT *, trim(cf_raw_U)
-      PRINT *, trim(cf_raw_V) ; PRINT *, ''
-      PRINT *, 'File containing grid :'
-      PRINT *, trim(cf_mm) ; PRINT *, ''
+      PRINT *, trim(cf_raw_V) ; PRINT *,''
+      PRINT *,'File containing grid :'
+      PRINT *, trim(cf_mm) ; PRINT *,''
 
 
       !! Geting array dimension and testing...
@@ -362,12 +362,12 @@ PROGRAM CORR_VECT
 
       !! testing ni agreement :
       IF ( (ni1 /= ni2).or.(ni1 /= ni_g).or.(ni2 /= ni_g) ) THEN
-         PRINT *, 'Dimension Error! : the 3 files dont agree for x length.' ; STOP
+         PRINT *,'Dimension Error! : the 3 files dont agree for x length.' ; STOP
       END IF
 
       !! testing nj agreement :
       IF ( (nj1 /= nj2).or.(nj1 /= nj_g).or.(nj2 /= nj_g) ) THEN
-         PRINT *, 'Dimension Error! : the 3 files dont agree for y length.'; STOP
+         PRINT *,'Dimension Error! : the 3 files dont agree for y length.'; STOP
       END IF
 
       ni = ni1 ; nj = nj1
@@ -375,7 +375,7 @@ PROGRAM CORR_VECT
 
       !! testing nk agreement :
       IF ( nk1 /= nk2 ) THEN
-         PRINT *, 'Dimension Error! : u and v files dont agree for z length.'
+         PRINT *,'Dimension Error! : u and v files dont agree for z length.'
          STOP
       END IF
 
@@ -384,7 +384,7 @@ PROGRAM CORR_VECT
 
       !! testing nt agreement :
       IF ( Ntr1 /= Ntr2 ) THEN
-         PRINT *, 'Dimension Error! : u and v files dont agree for time length.'
+         PRINT *,'Dimension Error! : u and v files dont agree for time length.'
          STOP
       END IF
 
@@ -400,7 +400,7 @@ PROGRAM CORR_VECT
 
       WRITE(*,'("Space dimension is : ",i4," x",i4," x",i4)') ni, nj, nk
       WRITE(*,'(i4," time records for u and v")') Ntr
-      PRINT *, ''
+      PRINT *,''
 
 
       !! Allocations :
@@ -445,14 +445,14 @@ PROGRAM CORR_VECT
       CALL GETVAR_2D(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)
 
 
-      PRINT *, ''
+      PRINT *,''
 
       !! Is this a known ORCA grid (just for info now, not used!):
       gt_orca = IS_ORCA_NORTH_FOLD( xlat_t )
       iorca = gt_orca%ifld_nord
-      IF ( iorca == 4 ) PRINT *, ' Grid is an ORCA grid with north-pole T-point folding!'
-      IF ( iorca == 6 ) PRINT *, ' Grid is an ORCA grid with north-pole F-point folding!'
-      PRINT *, ''
+      IF ( iorca == 4 ) PRINT *,' Grid is an ORCA grid with north-pole T-point folding!'
+      IF ( iorca == 6 ) PRINT *,' Grid is an ORCA grid with north-pole F-point folding!'
+      PRINT *,''
 
 
       !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
@@ -490,7 +490,7 @@ PROGRAM CORR_VECT
 
       DO jt = 1, Ntr
 
-         PRINT *, ''; PRINT *, 'Time step =', jt ; PRINT *, ''
+         PRINT *,''; PRINT *,'Time step =', jt ; PRINT *,''
 
          DO jk = 1, nk
 
@@ -509,7 +509,7 @@ PROGRAM CORR_VECT
             END IF
 
 
-            !IF ( iorca > 0 ) PRINT *, '   *** goona "lbc_lnk" with iorca =', iorca
+            !IF ( iorca > 0 ) PRINT *,'   *** goona "lbc_lnk" with iorca =', iorca
 
 
             !! Getting U and V on T-grid:
@@ -642,11 +642,11 @@ PROGRAM CORR_VECT
    ELSE
       !! !!     I N V E R S E   C O R R E C T I O N
 
-      PRINT *, 'Will unrotate vector fields given on an irregular grid!'
+      PRINT *,'Will unrotate vector fields given on an irregular grid!'
       !!
       !IF ( l_reg_src ) THEN
-      !   PRINT *, 'Reverse vector correction only makes sense if your source grid is distorded!'
-      !   PRINT *, '  => check "l_reg_src" into the namelist...' ; PRINT *, ''; STOP
+      !   PRINT *,'Reverse vector correction only makes sense if your source grid is distorded!'
+      !   PRINT *,'  => check "l_reg_src" into the namelist...' ; PRINT *,''; STOP
       !END IF
       !!
       !!
@@ -656,14 +656,14 @@ PROGRAM CORR_VECT
       cf_raw_V = trim(cd_out)//'/'//trim(cv_out_V)//'_'//trim(csource)//'-' &
          &   //trim(ctarget)//'_'//trim(cextra)//'.nc'
       !!
-      PRINT *, 'The two unrotated raw files will be produced :'
+      PRINT *,'The two unrotated raw files will be produced :'
       PRINT *, trim(cf_raw_U) ;   PRINT *, trim(cf_raw_V) ;
       !!
-      PRINT *, '' ;   PRINT *, 'Input files :'
-      PRINT *, trim(cufilin) ;   PRINT *, trim(cvfilin) ; PRINT *, '' ; PRINT *, ''
+      PRINT *,'' ;   PRINT *,'Input files :'
+      PRINT *, trim(cufilin) ;   PRINT *, trim(cvfilin) ; PRINT *,'' ; PRINT *,''
       !!
-      PRINT *, 'File containing input grid :'
-      PRINT *, trim(cf_mm) ; PRINT *, ''
+      PRINT *,'File containing input grid :'
+      PRINT *, trim(cf_mm) ; PRINT *,''
 
 
       !! Creating name for unrotated output file:
@@ -674,7 +674,7 @@ PROGRAM CORR_VECT
          !   cfext = 'nc4'
          !   nlext = 4
          !ELSE
-         PRINT *, 'Unknow file extension for ',TRIM(cufilin) ; STOP
+         PRINT *,'Unknow file extension for ',TRIM(cufilin) ; STOP
          !END IF
       END IF
 
@@ -699,13 +699,13 @@ PROGRAM CORR_VECT
 
       !! testing ni agreement :
       IF ( (ni1 /= ni2).or.(ni1 /= ni_g).or.(ni2 /= ni_g) ) THEN
-         PRINT *, 'Dimension Error! : the 3 files dont agree for x length.'
+         PRINT *,'Dimension Error! : the 3 files dont agree for x length.'
          STOP
       END IF
 
       !! testing nj agreement :
       IF ( (nj1 /= nj2).or.(nj1 /= nj_g).or.(nj2 /= nj_g) ) THEN
-         PRINT *, 'Dimension Error! : the 3 files dont agree for y length.'
+         PRINT *,'Dimension Error! : the 3 files dont agree for y length.'
          STOP
       END IF
 
@@ -715,7 +715,7 @@ PROGRAM CORR_VECT
       !! testing 3D and nk agreement :
 
       IF ( (nk1 /= nk2) ) THEN
-         PRINT *, 'Dimension Error! : the 2 files dont agree for number of levels.'; STOP
+         PRINT *,'Dimension Error! : the 2 files dont agree for number of levels.'; STOP
       END IF
 
 
@@ -723,22 +723,22 @@ PROGRAM CORR_VECT
          l_3d_inv = .TRUE.
          nk = nk1
          i3d = 1
-         PRINT *, ''; PRINT *, 'Will perform 3D un-rotating!!!' ; PRINT *, ''
+         PRINT *,''; PRINT *,'Will perform 3D un-rotating!!!' ; PRINT *,''
       END IF
 
 
       !! testing nt agreement :
       IF ( Ntr1 /= Ntr2 ) THEN
-         PRINT *, 'Dimension Error! : u and v files dont agree for time length.'
+         PRINT *,'Dimension Error! : u and v files dont agree for time length.'
          STOP
       END IF
 
       ni = ni1 ; nj = nj1 ; Ntr = Ntr1
 
       WRITE(*,'("Dimension is : ",i4," x",i4)') ni, nj
-      PRINT *, 'Number of levels to treat =>', nk
+      PRINT *,'Number of levels to treat =>', nk
       WRITE(*,'(i4," time records for u and v")') Ntr
-      PRINT *, ''
+      PRINT *,''
 
 
 
@@ -804,15 +804,15 @@ PROGRAM CORR_VECT
 
       DO jt = 1, Ntr
 
-         PRINT *, ''
-         PRINT *, ''
-         PRINT *, ''; PRINT *, 'Time step =', jt ; PRINT *, ''
+         PRINT *,''
+         PRINT *,''
+         PRINT *,''; PRINT *,'Time step =', jt ; PRINT *,''
 
          DO jk = 1, nk
 
 
 
-            PRINT *, '  *** Un-rotating level =', jk
+            PRINT *,'  *** Un-rotating level =', jk
 
             !! Getting U :
             !! -----------
@@ -873,14 +873,14 @@ PROGRAM CORR_VECT
 
       END DO
 
-      PRINT *, ''
-      PRINT *, 'Files created:'; PRINT *, '   ', trim(cf_raw_U); PRINT *, '   ', trim(cf_raw_V)
-      PRINT *, ''
+      PRINT *,''
+      PRINT *,'Files created:'; PRINT *,'   ', trim(cf_raw_U); PRINT *,'   ', trim(cf_raw_V)
+      PRINT *,''
 
    END IF ! on l_inv
 
 
-   PRINT *, 'Done!'
+   PRINT *,'Done!'
 
 END PROGRAM CORR_VECT
 
@@ -901,16 +901,32 @@ SUBROUTINE usage_corr_vect()
    PRINT *,''
    PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
    PRINT *,''
+   PRINT *,' Note: In "normal" aka "rotation" mode, corr_vect.x will read U and V'
+   PRINT *,'       bluntly interpolated from a regular grid onto the T-grid points'
+   PRINT *,'       of the TARGET NEMO grid, and rotate them according to the local'
+   PRINT *,'       distortion of the TARGET NEMO grid.'
+   PRINT *,'       Result is the rotated vector on T-grid points, unless the "-G U,V"'
+   PRINT *,'       switch is used!'
+   PRINT *,'       If "-G U,V" is used rotated vector is interpolated on U and V points.'
+   PRINT *,''
    PRINT *,' -f  <namelist_prefix> => common file name prefix for the 2 namelists to be read'
    PRINT *,'                       => expects to find <namelist_prefix>_x & <namelist_prefix>_y !'
-   PRINT *, '                         [no namelist needed when inverse correction]'
+   PRINT *,'                         [no namelist needed when inverse correction]'
    PRINT *,''
    PRINT *,''
    PRINT *,'  *** MANDATORY for INVERSE MODE (-I switch) :'
    PRINT *,''
+   PRINT *,' Note: In "inverse" aka "de-rotation" mode, corr_vect.x will read U and V'
+   PRINT *,'      of a vector native of NEMO (like current field output from NEMO)'
+   PRINT *,'      and will "un-rotate" it so each component can then be inter-'
+   PRINT *,'      polated on a regular grid.'
+   PRINT *,'      Input vector components, U,V, are provided on their respective'
+   PRINT *,'      U- & V-grid points.'
+   PRINT *,'      Result is the "de-rotated" vector on T-grid points of NEMO grid.'
+   PRINT *,''
    PRINT *,' -i <x.nc> <y.nc>     => unrotate vector fields given in these 2 files'
    PRINT *,'                         to the same grid'
-   PRINT *, ''
+   PRINT *,''
    PRINT *,' -v  <nameU> <nameV>  => names for x and y components in intput files'
    PRINT *,''
    PRINT *,' -t <time_name>       => name of time variable in <x.nc> and <y.nc>'
@@ -919,8 +935,8 @@ SUBROUTINE usage_corr_vect()
    PRINT *,'  *** MISC options :'
    PRINT *,''
    PRINT *,' -G  <T/U,V>          => Specify grid points where to save the (un)rotated vector'
-   PRINT *, '                       ==>    T    points "-G T" DEFAULT !'
-   PRINT *, '                       ==> U and V points "-G U,V"'
+   PRINT *,'                       ==>    T    points "-G T" DEFAULT !'
+   PRINT *,'                       ==> U and V points "-G U,V"'
    PRINT *,''
    PRINT *,' -h                   => Show this message'
    PRINT *,''

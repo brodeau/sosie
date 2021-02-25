@@ -110,18 +110,17 @@ ewper_src  = 0
 !!         * cv_lat_trg = '1.0'  ! your dy, here 1.0 deg.
 !!
 !!
-!! cf_lsm_trg : file containing target land-sea mask [char]
-!!              MUST BE 3D for 3D interpolation!
-!!              - or specify 'missing_value' if a 'missing_value' netcdf
-!!                attribute defines the mask on a field 'X' in file 'cf_x_trg'
-!!                (not needed if "lmout = .FALSE." --> '')
-!!              - or specify 'val' so points with value "rmiss_val" in the file
-!!                to be saved will be masked!
+!! cf_lsm_trg : (not needed if "lmout = .FALSE." --> '')
+!!              file containing TARGET land-sea mask [char]
+!!              land-sea mask MUST BE 3D for 3D interpolation!
+!!              - or specify 'missing_value' if you want to "scan" field "cv_lsm_trg"
+!!                into file "cf_x_trg" after values that seem to define a masked region!
 !!
-!! cv_lsm_trg : name of land-sea mask variable in 'cf_lsm_trg'     [char]
-!!              or name of field 'X' in 'cf_x_trg' if you specified
-!!              cf_lsm_trg = 'missing_value'
-!!              (not needed if "lmout = .FALSE." --> '')
+!! cv_lsm_trg : (not needed if "lmout = .FALSE." --> '')
+!!              name of land-sea mask variable in 'cf_lsm_trg'     [char]
+!!              - or name of field 'X' in 'cf_x_trg' that seem to define a masked
+!!                region (based on NaN/missing value) IF you specified
+!!                cf_lsm_trg = 'missing_value'
 !!
 !! ewper_trg : east-west periodicity on the target file/grid [integer]
 !!             = -1 --> no periodicity
@@ -169,7 +168,7 @@ ewper_trg  = 2
 !!              but on nk_trg levels!
 !!              => for example interpolates a 3D field from grid ORCAX.L46 to ORCAX.L75
 !!
-!! idrown : Two values in this structure: np_drown, nt_smooth ([integer],[integer]):
+!! idrown : Three values in this structure: np_drown, nt_smooth, l_msk_chg ([integer],[integer],[boolean]):
 !!          * np_drown : whether we call DROWN land filling procedure (>0) or not (=0)
 !!            which propagates/extrapolates sea values (defined where lsm==1) of field
 !!            cv_src by "np_drown" grid points over land regions (defined where lsm==0)
@@ -179,7 +178,15 @@ ewper_trg  = 2
 !!          regions, it is intended to prevent land values to polute/contaminate sea
 !!          regions during the interpolation process!
 !!
-!! l_save_drwn : save the input field that has been drowned (idrown must be > 0!)
+!! ixtrpl_bot : in case of 3D interpolation, this option forces sosie to vertically
+!!              extrapolate the source field (on its source grid) downward into the
+!!              bedrock prior to interpolation
+!!              = 0 : not used
+!!              = 1 : used, method => persistence of the wet bottom point value
+!!              = 2 : used, method => using the DROWN routine...
+!!
+!! l_save_drwn : save the input field after it has undergone "DROWNING" (idrown > 0!)
+!!               and/or downward bedrock extrapolation (ixtrpl_bot > 0!)
 !!
 !! ismooth : if ismooth > 0 the field to be interpolated will be smoothed
 !!           prior to interpolation. By applying ismooth times a type of
@@ -220,7 +227,8 @@ ewper_trg  = 2
 &ninterp
 cmethod     = 'akima'
 !!
-idrown      = 100,90
+idrown      = 100,50,.FALSE.
+ixtrpl_bot  = 0
 l_save_drwn = .false.
 ismooth     = 0
 jt1         = 0
@@ -256,7 +264,7 @@ ibx_xtra_sm = 0, 0,0, 0,0  ! Extra-smoothing on a given rectangular region: ibx_
 !!         if lmout is set to .FALSE. and cf_lsm_trg is different than '' the target
 !!         field will be drowned using the mask defined by cf_lsm_trg (and cv_lsm_trg)
 !!
-!! rmiss_val : missing value given to target field (for continents) [logical]
+!! rmiss_val : missing value given to target field (for continents) [real]
 !!
 !! lct   : whether to control or not time variable [logical]
 !!         TRUE -> specify time array with starting time 't0' and step 't_stp'
