@@ -81,7 +81,7 @@ CONTAINS
       !! Local variables
       INTEGER :: nx1, ny1, ny1w, nx2, ny2
 
-      REAL(8) :: alpha, beta, rmeanv, ymx
+      REAL(8) :: rmv, alpha, beta, rmeanv, ymx
       LOGICAL :: l_add_extra_j, lefw
       INTEGER :: icpt, ji, jj
 
@@ -92,6 +92,8 @@ CONTAINS
       CHARACTER(len=2)   :: ctype
       CHARACTER(len=400) :: cf_wght
 
+      rmv = REAL(rmissval, 8)
+      
       ctype = TEST_XYZ(X10,Y10,Z1)
       nx1 = SIZE(Z1,1)
       ny1 = SIZE(Z1,2)
@@ -204,7 +206,7 @@ CONTAINS
       END IF
 
 
-      Z2(:,:) = rflg ! Flagging non-interpolated output points
+      Z2(:,:) = rmv ! Flagging non-interpolated output points
       icpt = 0
 
       mask_ignore_trg(:,:) = 1
@@ -234,14 +236,14 @@ CONTAINS
          END DO
       END DO
 
-      Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*-9995. ! masking problem points as in mask_ignore_trg
+      Z2 = Z2*REAL(mask_ignore_trg, 4) + REAL(1-mask_ignore_trg, 4)*(-9995.) ! masking problem points as in mask_ignore_trg
 
 
       IF ( l_first_call_interp_routine ) THEN
          !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
          IF ( i_orca_trg >= 4 ) THEN
             rmeanv = SUM(Z2(:,ny2))/nx2
-            l_last_y_row_missing = ( (rmeanv < rflg + 0.1).AND.(rmeanv > rflg - 0.1) )
+            l_last_y_row_missing = ( (rmeanv < rmv + 0.1).AND.(rmeanv > rmv - 0.1) )
          END IF
       END IF
 
@@ -415,10 +417,12 @@ CONTAINS
       INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_trg
       REAL(4),    DIMENSION(:,:),   ALLOCATABLE :: distance_to_np
 
-      REAL(8) :: alpha, beta
+      REAL(8) :: rmv, alpha, beta
       LOGICAL :: l_ok, lagain
       INTEGER :: icpt, idb, jdb
 
+      rmv = REAL(rmissval, 8)
+      
       nxi = size(X1,1)
       nyi = size(X1,2)
 
@@ -462,7 +466,7 @@ CONTAINS
                IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: xP, yP =', xP, yP
                IF((ji==idb).AND.(jj==jdb)) PRINT *, ' *** LOLO debug: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
 
-               IF ( (iP/=INT(rflg)).AND.(jP/=INT(rflg)).AND.(jP<nyi) ) THEN   ! jP<ny1 < last upper row was an extrapolation!
+               IF ( (iP/=INT(rmv)).AND.(jP/=INT(rmv)).AND.(jP<nyi) ) THEN   ! jP<ny1 < last upper row was an extrapolation!
 
                   iPm1 = iP-1
                   iPp1 = iP+1
@@ -640,9 +644,9 @@ CONTAINS
       MTRCS(:,:,1) = i_nrst_in(:,:)
       MTRCS(:,:,2) = j_nrst_in(:,:)
 
-      WHERE ( (i_nrst_in == INT(rflg)).OR.(j_nrst_in == INT(rflg)) )
-         ZAB(:,:,1) = rflg
-         ZAB(:,:,2) = rflg
+      WHERE ( (i_nrst_in == INT(rmv)).OR.(j_nrst_in == INT(rmv)) )
+         ZAB(:,:,1) = rmv
+         ZAB(:,:,2) = rmv
       END WHERE
 
       !! Awkwardly fixing problematic points but remembering them in ID_problem
@@ -651,7 +655,7 @@ CONTAINS
       WHERE ( ((ZAB(:,:,1) < 0.).AND.(ZAB(:,:,1) > -repsilon)) ) ZAB(:,:,1) = 0.0
       WHERE ( ((ZAB(:,:,2) < 0.).AND.(ZAB(:,:,2) > -repsilon)) ) ZAB(:,:,2) = 0.0
 
-      WHERE ( (ZAB(:,:,1) > rflg).AND.(ZAB(:,:,1) < 0.) )
+      WHERE ( (ZAB(:,:,1) > rmv).AND.(ZAB(:,:,1) < 0.) )
          ZAB(:,:,1) = 0.5
          ID_problem(:,:) = 4
       END WHERE
@@ -660,7 +664,7 @@ CONTAINS
          ID_problem(:,:) =  5
       END WHERE
 
-      WHERE ( (ZAB(:,:,2) > rflg).AND.(ZAB(:,:,2) < 0.) )
+      WHERE ( (ZAB(:,:,2) > rmv).AND.(ZAB(:,:,2) < 0.) )
          ZAB(:,:,2) = 0.5
          ID_problem(:,:) = 6
       END WHERE
@@ -680,7 +684,7 @@ CONTAINS
       WHERE (mask_ignore_trg <  -2) ID_problem = -3 ! No idea if possible... #lolo
 
       !! Print metrics and weight into a netcdf file 'cf_w':
-      CALL P2D_MAPPING_AB(cf_w, lon_trg, lat_trg, MTRCS, ZAB, rflg, ID_problem,  d2np=distance_to_np)
+      CALL P2D_MAPPING_AB(cf_w, lon_trg, lat_trg, MTRCS, ZAB, rmv, ID_problem,  d2np=distance_to_np)
 
       DEALLOCATE ( i_nrst_in, j_nrst_in, MTRCS, ZAB, ID_problem, mask_ignore_trg )
       IF ( l_save_distance_to_np ) DEALLOCATE ( distance_to_np )

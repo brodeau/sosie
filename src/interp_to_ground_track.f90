@@ -2,15 +2,15 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    USE io_ezcdf
    USE mod_conf
-   USE mod_bilin_2d
    USE mod_manip
+   USE mod_bilin_2d
    USE mod_drown
 
    !!========================================================================
    !! Purpose :
    !! ---------
    !!
-   !! Author :   Laurent Brodeau, 2018
+   !! Author :   Laurent Brodeau, 2018, 2019, 2020, 2021
    !! --------
    !!
    !!========================================================================
@@ -21,11 +21,10 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    INTEGER, PARAMETER :: iverbose = 1
    LOGICAL, PARAMETER :: &      
-      &   l_debug_SARAL = .FALSE., &
+      &   l_debug_SARAL   = .FALSE., &
       &   l_debug_mapping = .FALSE., &
-      &   l_drown_in = .FALSE., & ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
-      &   l_akima = .TRUE., &
-      &   l_bilin = .FALSE.
+      &   l_drown_in      = .FALSE.    ! Not needed for now, since we ignore points
+      !                                ! that are less than 1 point away from land...
    !!
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
@@ -65,7 +64,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    LOGICAL ::  &
       &     l_get_mask_metrics_from_meshmask = .FALSE., &
       &     l_mask_input_data = .FALSE., &
-      &   l_write_nc_show_track = .FALSE., &
+      &     l_write_nc_show_track = .FALSE., &
       &     l_exist   = .FALSE., &
       &     l_use_anomaly = .FALSE., &  ! => will transform a SSH into a SLA (SSH - MEAN(SSH))
       &     l_loc1, l_loc2, &
@@ -89,7 +88,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    !!
    !!
    INTEGER :: ji_min, ji_max, jj_min, jj_max, nib, njb
-
+   !!
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: xdum_r4, show_obs, xvar, xvar1, xvar2, xmean
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlont, xlatt
    !!
@@ -117,8 +116,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    OPEN(UNIT=6, FORM='FORMATTED', RECL=512)
 
-
-
    !! Epoch is our reference time unit, it is "seconds since 1970-01-01 00:00:00" which translates into:
    tut_epoch%unit   = 's'
    tut_epoch%year   = 1970
@@ -129,11 +126,6 @@ PROGRAM INTERP_TO_GROUND_TRACK
    tut_epoch%second = 0
 
    PRINT *, ''
-
-
-
-
-
 
    !PRINT *, 'Distance Paris - New-York =', DISTANCE(2.35_8, 360._8-74._8, 48.83_8, 40.69_8)
 
@@ -360,7 +352,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       DEALLOCATE ( imask_ignr )
    END IF
 
-   IF( iverbose == 2 ) CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+   IF( iverbose == 2 ) CALL DUMP_FIELD(REAL(imask), 'mask_in.nc', 'lsm') !, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
    
    lmask(:,:) = .FALSE.
    WHERE( imask == 1 ) lmask = .TRUE.
@@ -399,7 +391,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
       PRINT *, 'Looks like regional setup (longitude-wise at least...)'
       l_glob_lon_wize = .FALSE.
       !!
-      WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)'), lon_min_1,lon_max_1
+      WRITE(*,'("  => disregarding target points with lon < ",f7.2," and lon > ",f7.2)') lon_min_1,lon_max_1
    END IF
    PRINT *, ''
 
@@ -415,7 +407,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    l_glob_lat_wize = .TRUE.
    IF ( lat_max < 88. ) THEN
       l_glob_lat_wize =.FALSE.
-      WRITE(*,'("  => going to disregard points of target domain with lat < ",f7.2," and lat > ",f7.2)'), lat_min,lat_max
+      WRITE(*,'("  => disregarding target points with lat < ",f7.2," and lat > ",f7.2)') lat_min,lat_max
    END IF
    PRINT *, ''
 
@@ -502,8 +494,8 @@ PROGRAM INTERP_TO_GROUND_TRACK
             xmean = xmean + xdum_r4/REAL(Ntm,4)
          END DO
          id_f1=0 ;  id_v1=0
-         !WHERE ( imask == 0 ) xmean = -9999.
-         CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+         !WHERE ( imask == 0 ) xmean = rmissval
+         CALL DUMP_FIELD(xmean, 'mean_'//TRIM(cv_mod)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
       END IF
 
       t_min_e = MINVAL(vt_obs)
@@ -653,12 +645,12 @@ PROGRAM INTERP_TO_GROUND_TRACK
       !! Finding and storing the nearest points of NEMO grid to track points:
       !CALL FIND_NEAREST_POINT(xlon_gt_0, xlat_gt_0, xlont, xlatt,  JIidx, JJidx)
       ALLOCATE ( show_obs(nib,njb) )
-      show_obs(:,:) = -9999.
+      show_obs(:,:) = rmissval
       DO jtf = 1, Ntf
          IF ( (JIidx(1,jtf)>0).AND.(JJidx(1,jtf)>0) )  show_obs(JIidx(1,jtf), JJidx(1,jtf)) = REAL(jtf,4)
       END DO
       WHERE (imask == 0) show_obs = -100.
-      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'NP_track__'//TRIM(cconf)//'.nc', 'track', xlont, xlatt, cv_lon, cv_lat, rfill=-9999.)
+      CALL DUMP_FIELD(REAL(show_obs(:,:),4), 'NP_track__'//TRIM(cconf)//'.nc', 'track', xlont, xlatt, cv_lon, cv_lat, rfill=rmissval)
       !lolo:
       !CALL DUMP_FIELD(REAL(xlont(:,:),4), 'lon_360.nc', 'lon')
       !show_obs = SIGN(1.,180.-xlont)*MIN(xlont,ABS(xlont-360.))
@@ -679,11 +671,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
 
 
-   Ftrack_mod_np(:) = -9999.
-   Ftrack_obs(:)    = -9999.
-   Ftrack_mod(:)    = -9999.
+   Ftrack_mod_np(:) = rmissval
+   Ftrack_obs(:)    = rmissval
+   Ftrack_mod(:)    = rmissval
    Fmask(:)         = 0
-   rcycle_obs(:)    = -9999.
+   rcycle_obs(:)    = rmissval
 
    jtm_1_o = -100
    jtm_2_o = -100
@@ -789,14 +781,14 @@ PROGRAM INTERP_TO_GROUND_TRACK
    END DO
 
    WHERE ( Fmask == 0 )
-      Ftrack_mod    = -9999.
-      Ftrack_mod_np = -9999.
-      Ftrack_obs    = -9999.
-      rcycle_obs    = -9999.
-      vdistance     = -9999.
+      Ftrack_mod    = rmissval
+      Ftrack_mod_np = rmissval
+      Ftrack_obs    = rmissval
+      rcycle_obs    = rmissval
+      vdistance     = rmissval
    END WHERE
 
-   WHERE ( Ftrack_mod < -9990. ) Ftrack_mod = -9999.
+   WHERE ( Ftrack_mod < -9990. ) Ftrack_mod = rmissval
 
 
    PRINT *, ''
@@ -805,7 +797,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' * Output file = ', trim(cf_out)
    PRINT *, ''
 
-   CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', -9999., &
+   CALL PT_SERIES(vtf(:), REAL(Ftrack_mod,4), cf_out, 'time', cv_mod, 'm', 'Model data, bi-linear interpolation', rmissval, &
       &     ct_unit=TRIM(cunit_time_trg), &
       &     vdt02=REAL(Ftrack_mod_np,4),  cv_dt02=TRIM(cv_mod)//'_np', cln02='Model data, nearest-point interpolation', &
       &     vdt03=REAL(Ftrack_obs,4),     cv_dt03=cv_obs,              cln03='Original data as in track file...',   &
@@ -817,11 +809,11 @@ PROGRAM INTERP_TO_GROUND_TRACK
 
    IF ( iverbose == 3 ) THEN
       WHERE ( imask == 0 )
-         RES_2D_MOD = -9999.
-         RES_2D_OBS = -9999.
+         RES_2D_MOD = rmissval
+         RES_2D_OBS = rmissval
       END WHERE
-      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
-      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=-9999.)
+      CALL DUMP_FIELD(RES_2D_MOD, 'RES_2D_MOD__'//TRIM(cconf)//'.nc', cv_mod, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
+      CALL DUMP_FIELD(RES_2D_OBS, 'RES_2D_OBS__'//TRIM(cconf)//'.nc', cv_obs, xlont, xlatt, 'nav_lon', 'nav_lat', rfill=rmissval)
    END IF
 
    !IF ( l_debug ) DEALLOCATE ( JIidx, JJidx )

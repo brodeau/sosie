@@ -143,7 +143,7 @@ PROGRAM SOSIE
          !! Replacing NaN with 0. to avoid some fuck-up later...
          DO jj =  1, nj_src
             DO ji =  1, ni_src
-               IF ( ISNAN(data_src(ji,jj)) ) data_src(ji,jj) = -9999.
+               IF ( ISNAN(data_src(ji,jj)) ) data_src(ji,jj) = rmissval
             END DO
          END DO
          !END IF

@@ -39,8 +39,6 @@ PROGRAM INTERP_TO_HYDRO_SECTION
       &   l_akima = .TRUE., &
       &   l_bilin = .FALSE.
    !!
-   REAL(4), PARAMETER :: rmissval = -9999. ! flag for missing value
-   !!
    INTEGER :: Nrec, jr, jt_m, nz, iP, jP, iquadran, jk
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: xlon_o, xlat_o
@@ -413,7 +411,7 @@ PROGRAM INTERP_TO_HYDRO_SECTION
    !   DEALLOCATE ( imask_ignr )
    !END IF
 
-   IF(l_debug) CALL DUMP_FIELD(REAL(imask_m), 'mask_3d_in.nc', 'lsm') !, xlon_m, xlat_m, 'nav_lon', 'nav_lat', rfill=-9999.)
+   IF(l_debug) CALL DUMP_FIELD(REAL(imask_m), 'mask_3d_in.nc', 'lsm') !, xlon_m, xlat_m, 'nav_lon', 'nav_lat', rfill=rmissval)
 
 
 

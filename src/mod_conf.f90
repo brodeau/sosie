@@ -8,6 +8,8 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
+   REAL(4), PARAMETER :: rmissval = -9999.
+
    LOGICAL, SAVE :: l_first_call_interp_routine, &
       &             l_drown_src, & ! DROWN source field
       &             l_glob_lon_wize, l_glob_lat_wize, &
@@ -127,7 +129,7 @@ MODULE MOD_CONF
    !                               ! and how many times to smooth the drowned area
 
    INTEGER :: ixtrpl_bot = 0
-   
+
 
    !! S-coordinates specific
    !! -----------------------

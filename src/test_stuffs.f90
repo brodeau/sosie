@@ -1,9 +1,9 @@
 PROGRAM TEST_STUFFS
 
-   !USE mod_conf
+   !USE mod_conf,   ONLY : rmissval
    !USE mod_init
    USE io_ezcdf
-   USE mod_grids,  ONLY: IS_ORCA_NORTH_FOLD
+   USE mod_grids,  ONLY : IS_ORCA_NORTH_FOLD
    USE mod_nemotools
 
    !!========================================================================
@@ -90,8 +90,6 @@ PROGRAM TEST_STUFFS
       &    l_3d_inv = .FALSE., &   !: will treat 3d files in inverse mode...
       &    lmout_x, lmout_y, &
       &    lexist !,  &
-
-   REAL(4), PARAMETER :: zrmv = -9999.
 
    REAL(8) :: rsgn
 

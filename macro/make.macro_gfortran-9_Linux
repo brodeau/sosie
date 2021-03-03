@@ -19,16 +19,21 @@ LIB_COMP_DIR = /usr/lib/gcc/x86_64-linux-gnu/$(VERSION)
 
 
 # Fortran compilation flags:
-# -- Production
-FF = -O2 -ffree-line-length-200 -fbounds-check -J./mod -I./mod
+# -- Common:
+FF_BASE = -J./mod -I./mod
+# -- Production:
+FF = -O2 -ffree-line-length-200 -fbounds-check $(FF_BASE)
+# -- Debugging:
+#FF = -O0 -ffree-line-length-200 -w -fbounds-check -Wall $(FF_BASE)
+
+
+
 
 ## For io_ezcdf.f90:
 FF_SAFE = $(FF)
 
-###FF = -O3 -ffree-line-length-200 -J./mod -I./mod 
+###FF = -O3 -ffree-line-length-200 $(FF_BASE) 
 
-# -- Debugging
-#FF = -O0 -ffree-line-length-200 -w -fbounds-check -J./mod -I./mod
 
 # Directory to install binaries:
 INSTALL_DIR = /usr/local

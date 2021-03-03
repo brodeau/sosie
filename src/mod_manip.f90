@@ -3,8 +3,9 @@ MODULE MOD_MANIP
    !! Misc. manipulations and operations on 2D arrays...
 
    !! Author: L. Brodeau
-
-   USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
+   
+   USE mod_conf, ONLY: rmissval
+   !USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
 
    IMPLICIT NONE
    
@@ -42,9 +43,6 @@ MODULE MOD_MANIP
       &      find_nearest_point, &
       &      shrink_vector, to_degE, degE_to_degWE, &
       &      ext_north_to_90_regg
-
-   REAL(8), PARAMETER, PUBLIC :: rflg = -9999.
-
 
    !LOGICAL, PARAMETER :: ldebug = .TRUE., l_force_use_of_twisted = .FALSE.
    !LOGICAL, PARAMETER :: ldebug = .FALSE., l_force_use_of_twisted = .TRUE.
@@ -1184,7 +1182,7 @@ CONTAINS
          END IF
       END DO
 
-      rlat_old   = rflg
+      rlat_old = rmissval
       jj_t_old = -10
 
       DO jj_t = j_strt_t, j_stop_t, jlat_icr

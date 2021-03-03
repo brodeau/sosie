@@ -5,13 +5,11 @@ PROGRAM mask_drown_field
    !! MASK or DROWN a given field with a special (missing) value
    !!         Extrapolate sea values over continents thanks to the DROWN algorithm
 
-   use io_ezcdf
-   use mod_bdrown
-
+   USE io_ezcdf
+   USE mod_bdrown
+   USE mod_conf, ONLY : rmissval
+   
    IMPLICIT NONE
-
-
-   REAL(4), PARAMETER :: rmv = -9999.
 
    !! Grid :
    CHARACTER(len=80) :: &
@@ -342,7 +340,7 @@ PROGRAM mask_drown_field
 
       IF ( l_mask_f ) THEN
          PRINT *, ' *** masking field at time =', jt
-         WHERE ( mask == 0 ) data = rmv
+         WHERE ( mask == 0 ) data = rmissval
       END IF
 
       IF ( l_drwn_f ) THEN
@@ -355,10 +353,10 @@ PROGRAM mask_drown_field
 
       IF ( l3d ) THEN
          CALL P3D_T(ifo, ivo, nt, jt, xlon, xlat, vdpth, vtime, data, &
-            &     cf_out, cv_lon, cv_lat, cv_z, cv_tim, cv_fld, rmv)
+            &     cf_out, cv_lon, cv_lat, cv_z, cv_tim, cv_fld, rmissval)
       ELSE
          CALL P2D_T( ifo, ivo, nt, jt, xlon, xlat,        vtime, data(:,:,1), &
-            &        cf_out, cv_lon, cv_lat,       cv_tim, cv_fld, rmv,         &
+            &        cf_out, cv_lon, cv_lat,       cv_tim, cv_fld, rmissval,         &
             &        attr_lon=v_lon_att, attr_lat=v_lat_att, attr_t=v_tim_att, attr_F=v_fld_att )
       END IF
 

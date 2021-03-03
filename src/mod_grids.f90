@@ -1279,7 +1279,7 @@ CONTAINS
          DO jk =  1, nk
             DO jj =  1, nj
                DO ji =  1, ni
-                  IF( ISNAN(z3d_tmp(ji,jj,jk)) ) z3d_tmp(ji,jj,jk) = -9999.
+                  IF( ISNAN(z3d_tmp(ji,jj,jk)) ) z3d_tmp(ji,jj,jk) = rmissval
                END DO
             END DO
          END DO
@@ -1300,7 +1300,7 @@ CONTAINS
          END IF
 
          IF( ISNAN(rmv) ) THEN
-            WHERE ( z3d_tmp < -9990. ) mask = 0  ! NaN have been replaced with -9999. earlier !
+            WHERE ( z3d_tmp < -9990. ) mask = 0  ! NaN have been replaced with rmissval earlier !
          ELSE
             WHERE ( z3d_tmp == rmv   ) mask = 0
          END IF
@@ -1323,7 +1323,7 @@ CONTAINS
 
       ELSEIF((TRIM(cmthd)=='nan').OR.(TRIM(cmthd)=='NaN')) THEN
          WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from NaN values in '//TRIM(cv_src)//' at jt = ', jt0
-         ! =>  NaN values have been flagged earlier and replaced by -9999.
+         ! =>  NaN values have been flagged earlier and replaced by rmissval
          WHERE ( z3d_tmp < -9998. ) mask = 0
       ELSE
          WRITE(6,*) 'ERROR! (CREATE_LSM_3D of mod_grids.f90): Unknown value for "cmthd": '//TRIM(cmthd)//' !' ; STOP
@@ -1384,7 +1384,7 @@ CONTAINS
          CALL GETVAR_2D(if0, iv0, cf_fld, cv_fld, Ntr, jz0, jt0, z2d_tmp)
          DO jj =  1, nj
             DO ji =  1, ni
-               IF( ISNAN(z2d_tmp(ji,jj)) ) z2d_tmp(ji,jj) = -9999.
+               IF( ISNAN(z2d_tmp(ji,jj)) ) z2d_tmp(ji,jj) = rmissval
             END DO
          END DO
       END IF
@@ -1402,7 +1402,7 @@ CONTAINS
          END IF
 
          IF( ISNAN(rmv) ) THEN
-            WHERE ( z2d_tmp < -9990. ) mask = 0  ! NaN have been replaced with -9999. earlier !
+            WHERE ( z2d_tmp < -9990. ) mask = 0  ! NaN have been replaced with rmissval earlier !
          ELSE
             WHERE ( z2d_tmp == rmv )   mask = 0
          END IF
@@ -1424,7 +1424,7 @@ CONTAINS
 
       ELSEIF((TRIM(cmthd)=='nan').OR.(TRIM(cmthd)=='NaN')) THEN
          WRITE(6,*) ' Land-sea mask "'//TRIM(cinfo)//'" is defined from NaN values in '//TRIM(cv_src)//' at jt = ', jt0
-         ! =>  NaN values have been flagged earlier and replaced by -9999.
+         ! =>  NaN values have been flagged earlier and replaced by rmissval
          WHERE ( z2d_tmp < -9998. ) mask = 0
 
       ELSE
