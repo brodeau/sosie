@@ -10,9 +10,11 @@ PROGRAM IJ_FROM_LON_LAT
       &   l_debug = .FALSE., &
       &   l_drown_in = .FALSE. ! Not needed since we ignore points that are less than 1 point away from land... drown the field to avoid spurious values right at the coast!
    !!
+   CHARACTER(len=256), PARAMETER :: cf_out='ij_found.out' ! output ASCII file to be generated
+   
    REAL(8), PARAMETER :: res = 0.1  ! resolution in degree
    !!
-   INTEGER :: io,  npoints, jl
+   INTEGER :: io, npoints, jl, ji, jj
    !!
    REAL(8), DIMENSION(:,:), ALLOCATABLE :: vpt_lon, vpt_lat
    !!
@@ -24,7 +26,6 @@ PROGRAM IJ_FROM_LON_LAT
 
    !! Grid, default name :
    CHARACTER(len=80) :: &
-      &    cv_mod, &
       &    cv_lon = 'glamt',         & ! input grid longitude name, T-points
       &    cv_lat = 'gphit'            ! input grid latitude name,  T-points
 
@@ -46,7 +47,7 @@ PROGRAM IJ_FROM_LON_LAT
       &    cf_mod, &
       &    cf_ascii='file_in.txt'
    !!
-   CHARACTER(len=512), DIMENSION(:), ALLOCATABLE :: cb_name
+   CHARACTER(len=16), DIMENSION(:), ALLOCATABLE :: cb_name
    !!
    INTEGER      :: &
       &    jarg, &
@@ -74,7 +75,7 @@ PROGRAM IJ_FROM_LON_LAT
 
    REAL(8) :: lon_min_1, lon_max_1, lon_min_2, lon_max_2, lat_min, lat_max
 
-   REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg
+   REAL(8) :: lon_min_trg, lon_max_trg, lat_min_trg, lat_max_trg, rx, rx0
 
 
 
@@ -120,8 +121,8 @@ PROGRAM IJ_FROM_LON_LAT
       END SELECT
 
    END DO
-
-   IF ( (trim(cv_mod) == '').OR.(trim(cf_mod) == '') ) THEN
+   
+   IF ( TRIM(cf_mod) == '' ) THEN
       PRINT *, ''
       PRINT *, 'You must at least specify input file (-i) !!!'
       CALL usage()
@@ -132,7 +133,6 @@ PROGRAM IJ_FROM_LON_LAT
    PRINT *, ''
 
    PRINT *, ' * Input file = ', trim(cf_mod)
-   PRINT *, '   => associated variable names = ', trim(cv_mod)
    PRINT *, '   => associated longitude/latitude/time = ', trim(cv_lon), ', ', trim(cv_lat)
 
 
@@ -294,6 +294,16 @@ PROGRAM IJ_FROM_LON_LAT
 
    
    PRINT *, ''
+
+   OPEN(16, FILE=TRIM(cf_out), FORM='FORMATTED', RECL=256, STATUS='unknown')
+
+   WRITE(16,*) '#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+   WRITE(16,*) '#  Output of "ij_from_lon_lat.x" / nearest-point location'
+   WRITE(16,*) '#   => based on horizontal coordinates found into "', TRIM(cf_mod), '"'
+   WRITE(16,*) '#'
+   WRITE(16,*) '#      Name        ji    jj    Long(ji,jj)  Lat(ji,jj)  (Input long.  Input lat.)'
+   WRITE(16,*) '#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+
    PRINT *, '#  NEAREST POINTS ON GRID:'
    
    DO jl = 1, npoints
@@ -310,10 +320,23 @@ PROGRAM IJ_FROM_LON_LAT
          STOP
       END IF
 
+      ji = JIidx(1,jl)
+      jj = JJidx(1,jl)
+      
+      rx  = MOD( MOD(xlont(ji,jj) , 360.) + 540. , 360.) - 180.
+      rx0 = MOD( MOD(vpt_lon(1,jl), 360.) + 540. , 360.) - 180.
+      
+      
       WRITE(*,'(" *** Point #",i4,", ",a," -> i,j: ",i4.4,",",i4.4," (lon,lat:",f9.4,",",f9.4,")")') &
-         &     jl, TRIM(cb_name(jl)), JIidx(1,jl), JJidx(1,jl), vpt_lon(1,jl), vpt_lat(1,jl)
+         &     jl, TRIM(cb_name(jl)), ji, jj, vpt_lon(1,jl), vpt_lat(1,jl)
+      
+      WRITE(16,'(a16," ",i5," ",i5," ",f12.6," ",f12.6," ",f12.6," ",f12.6)') &
+         & TRIM(cb_name(jl)), ji, jj,   rx, xlatt(ji,jj),   rx0, vpt_lat(1,jl)
       
    END DO
+
+   CLOSE(16)
+   
    PRINT *, ''
 
    IF ( npoints == 2 ) THEN
@@ -324,7 +347,10 @@ PROGRAM IJ_FROM_LON_LAT
    END IF
 
 
-
+   PRINT *, ''
+   PRINT *, '  ==> check file "',TRIM(cf_out), '" for results...'
+   PRINT *, ' Bye!'
+   PRINT *, ''
 
 CONTAINS
 

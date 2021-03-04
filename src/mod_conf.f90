@@ -252,7 +252,6 @@ MODULE MOD_CONF
       &   lat_trg      ! latitude array on target grid
 
 
-
 CONTAINS
    
    SUBROUTINE STOP_THIS( cmsg1,  cmsg2, cmsg3 )

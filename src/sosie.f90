@@ -243,7 +243,7 @@ PROGRAM SOSIE
             &      lon_trg_b, lat_trg, vt, data_trg,    &
             &      cf_out, cv_lon_trg, cv_lat_trg, cv_t_out,    &
             &      cv_out, rfct_miss*REAL(rmiss_val,4), &
-            &      attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_time=vatt_info_t, attr_F=vatt_info_F, &
+            &      attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_t=vatt_info_t, attr_F=vatt_info_F, &
             &      cextrainfo=cextinf)
 
          IF ( l_save_drwn ) THEN
@@ -253,7 +253,7 @@ PROGRAM SOSIE
             !   &       lon_src, lat_src, vt, data_src(:,:,1),    &
             !   &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_t_src,    &
             !   &       cv_src, 0., &
-            !   &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_time=vatt_info_t, attr_F=vatt_info_F )
+            !   &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_t=vatt_info_t, attr_F=vatt_info_F )
          END IF
 
 
@@ -286,7 +286,7 @@ PROGRAM SOSIE
                &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
                &       cv_out, rfct_miss*REAL(rmiss_val,4), &
                &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
-               &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+               &       attr_t=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
 
             IF ( l_save_drwn ) THEN
@@ -296,7 +296,7 @@ PROGRAM SOSIE
                !   &       TRIM(cf_src)//'.drwn', cv_lon_src, cv_lat_src, cv_z_src, cv_t_src,    &
                !   &       cv_src, 0., &
                !   &       attr_lon=vatt_info_lon_src, attr_lat=vatt_info_lat_src, attr_z=vatt_info_z_src, &
-               !   &       attr_time=vatt_info_t, attr_F=vatt_info_F )
+               !   &       attr_t=vatt_info_t, attr_F=vatt_info_F )
             END IF
 
 
@@ -308,7 +308,7 @@ PROGRAM SOSIE
                &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
                &       cv_out, rfct_miss*REAL(rmiss_val,4), &
                &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
-               &       attr_time=vatt_info_t, attr_F=vatt_info_F, &
+               &       attr_t=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
          ELSE
             WRITE(6,*) 'Unknown vertical coordinate' ; STOP
