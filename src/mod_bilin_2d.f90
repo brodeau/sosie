@@ -28,12 +28,22 @@ MODULE MOD_BILIN_2D
 
    !! Mapping for bilin:
    TYPE :: bln_map
-      REAL(8)          :: ralfa
-      REAL(8)          :: rbeta
-      INTEGER          :: jip
-      INTEGER          :: jjp
-      INTEGER(1)       :: iqdrn
-      INTEGER(2)       :: ipb ! ID of problem if any...
+      REAL(8)    :: ralfa
+      REAL(8)    :: rbeta
+      INTEGER    :: jip
+      INTEGER    :: jjp
+      INTEGER(1) :: iqdrn
+      !!
+      INTEGER :: ip1
+      INTEGER :: ip2
+      INTEGER :: ip3
+      INTEGER :: ip4
+      REAL(4) :: rw1
+      REAL(4) :: rw2
+      REAL(4) :: rw3
+      REAL(4) :: rw4
+      !!
+      INTEGER(2)            :: ipb ! ID of problem if any...
    END TYPE bln_map
 
    TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: bilin_map
@@ -53,7 +63,7 @@ MODULE MOD_BILIN_2D
 
    LOGICAL,                                 PUBLIC, SAVE :: l_skip_bilin_mapping
 
-   PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
+   PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL
 
 CONTAINS
 
@@ -157,8 +167,8 @@ CONTAINS
       !!
       !! Input/Output arguments
       INTEGER,                 INTENT(in)  :: k_ew_per
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: pX1, pY1
-      REAL(4), DIMENSION(:,:), INTENT(in)  :: pZ1
+      REAL(8), DIMENSION(ni_src,nj_src), INTENT(in)  :: pX1, pY1
+      REAL(4), DIMENSION(ni_src,nj_src), INTENT(in)  :: pZ1
       REAL(8), DIMENSION(:,:), INTENT(in)  :: pX2, pY2
       REAL(4), DIMENSION(:,:), INTENT(out) :: pZ2
       INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
@@ -166,14 +176,15 @@ CONTAINS
       !! Local variables
       INTEGER :: nx2, ny2, iqd, iP, jP
       REAL(8) :: alpha, beta, rmeanv
-      INTEGER :: ji, jj, iom1, iom2
+      INTEGER :: ji, jj, iom1, iom2, kp1, kp2, kp3, kp4
+      REAL(4) :: wup, w1, w2, w3, w4
+      INTEGER :: i1, j1, i2, j2, i3, j3, i4, j4
 
       nx2 = SIZE(pZ2,1)
       ny2 = SIZE(pZ2,2)
 
       iom1 = io1(ithrd)
       iom2 = io2(ithrd)
-      
 
       PRINT *, 'LOLOdbg: BILIN_2D() => shape of pX1 =', SIZE(pX1,1), SIZE(pX1,2)
 
@@ -191,7 +202,7 @@ CONTAINS
 
          bilin_map(ji,:)%jip = MAX( bilin_map(ji,:)%jip , 1 )  ! so no i or j <= 0
          bilin_map(ji,:)%jjp = MAX( bilin_map(ji,:)%jjp , 1 )  ! so no i or j <= 0
-         
+
       END DO
       !WHERE ( bilin_map(iom1:iom2,:)%jip < 1 ) mask_ignore_trg = 0
       !WHERE ( bilin_map(iom1:iom2,:)%jjp < 1 ) mask_ignore_trg = 0
@@ -213,13 +224,54 @@ CONTAINS
                !! COPY:
                IF (iverbose>0) WRITE(6,*) ' *** BILIN_2D: "identical point" detected (crit: 1.E-5) => copying value, no interpolation!'
                pZ2(ji,jj) = pZ1(iP,jP)
+               !!
             ELSE
                !! INTERPOLATION:
                !pZ2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqd, alpha, beta, pZ1)
                !pZ2(ji,jj) = INTERP_BL(k_ew_per, ithrd, ji, jj, pZ1)
 
-               CALL INTERP_BL( k_ew_per, ithrd, ji, jj, pZ1, pZ2(ji,jj) )
-               
+               !CALL INTERP_BL( k_ew_per, ithrd, ji, jj, pZ1, pZ2(ji,jj) )
+
+               kp1 = bilin_map(ji,jj)%ip1
+               kp2 = bilin_map(ji,jj)%ip2
+               kp3 = bilin_map(ji,jj)%ip3
+               kp4 = bilin_map(ji,jj)%ip4
+
+               j1 = kp1 / ni_src
+               j2 = kp2 / ni_src
+               j3 = kp3 / ni_src
+               j4 = kp4 / ni_src
+
+               i1 = MOD(kp1, ni_src)
+               i2 = MOD(kp2, ni_src)
+               i3 = MOD(kp3, ni_src)
+               i4 = MOD(kp4, ni_src)
+
+               w1 = bilin_map(ji,jj)%rw1
+               w2 = bilin_map(ji,jj)%rw2
+               w3 = bilin_map(ji,jj)%rw3
+               w4 = bilin_map(ji,jj)%rw4
+
+               wup = w1 + w2 + w3 + w4
+
+               !IF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
+               !   WRITE(6,*) ' WARNING: INTERP_BL => at least one of the i,j index is zero!'
+               !END IF
+
+               IF ( wup == 0. ) THEN
+                  pZ2(ji,jj) = -9998.
+               ELSEIF ( (i1<1).OR.(i2<1).OR.(i3<1).OR.(i4<1) ) THEN
+                  pZ2(ji,jj) = -9997.
+               ELSEIF ( (j1<1).OR.(j2<1).OR.(j3<1).OR.(j4<1) ) THEN
+                  pZ2(ji,jj) = -9996.
+               ELSEIF ( (j1>nj_src).OR.(j2>nj_src).OR.(j3>nj_src).OR.(j4>nj_src) ) THEN
+                  pZ2(ji,jj) = -9995.
+               ELSEIF ( (i1>ni_src).OR.(i2>ni_src).OR.(i3>ni_src).OR.(i4>ni_src) ) THEN
+                  pZ2(ji,jj) = -9994.
+               ELSE
+                  pZ2(ji,jj) = ( pZ1(i1,j1)*w1 + pZ1(i2,j2)*w2 + pZ1(i3,j3)*w3 + pZ1(i4,j4)*w4 )/wup
+               END IF
+
             END IF
          END DO
       END DO
@@ -251,128 +303,10 @@ CONTAINS
       !      pZ2(nx2-1:nx2-nx2/2+1:-1,ny2) = pZ2(2:nx2/2             ,ny2-1)
       !   END IF
       !END IF
-
+      
       l_1st_call_bilin(ithrd) = .FALSE.
 
    END SUBROUTINE BILIN_2D
-
-
-   !FUNCTION INTERP_BL(k_ew_per, kiP, kjP, kqd, pa, pb, Z_in)
-   SUBROUTINE INTERP_BL(k_ew_per, ithrd, ilt, jlt, Z_in, pres )
-   
-      INTEGER,                 INTENT(in) :: k_ew_per
-      INTEGER,                 INTENT(in) :: ithrd, ilt, jlt   ! LOCAL (local omp domain) coordinates of treated point on target domain
-      !INTEGER,                 INTENT(in) :: kiP, kjP, kqd
-      !REAL(8),                 INTENT(in) :: pa, pb
-      REAL(4), DIMENSION(:,:), INTENT(in) :: Z_in
-      REAL(4),                 INTENT(out) :: pres
-
-      INTEGER :: kiP, kjP, kqd
-      REAL(8) :: pa, pb
-      
-      !REAL(4) :: INTERP_BL
-      REAL(4) ::  wup, w1, w2, w3, w4
-      INTEGER :: ki, kj, nxi, nyi, kiPm1, kiPp1
-      INTEGER :: i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
-      INTEGER :: Nitl
-      
-      !! Choose the 4 interpolation points, according to sector and nearest point (kiP, kjP)
-
-      !!   o<--o        x<--o         o<--x         o<--o
-      !! 1 |   ^ NE   2 |   ^ SE    3 |   ^ SW    4 |   ^ NW
-      !!   v   |        v   |         v   |         v   |
-      !!   x-->o        o-->o         o-->o         o-->x
-
-      !! Source domain is used in its whole...
-      nxi = SIZE(Z_in,1)
-      nyi = SIZE(Z_in,2)
-
-      !PRINT *, 'LOLOINTERP_BL: ithrd, shape(io1), i1, i2 =>', INT(ithrd,1), INT(SIZE(io1),1), INT(io1(ithrd),2), INT(io2(ithrd),2)
-      
-      !ki = ilt + io1(ithrd) - 1
-      ki = io1(ithrd) - 1 + ilt
-      kj = jlt
-
-      !!
-      Nitl = SIZE(bilin_map(:,:)%jip,1)
-      IF( ki > Nitl ) THEN
-         PRINT *, 'PROBLEM: ki > Nitl ! ithrd, ki, Nitl, ilt, io1(ithrd) ', INT(ithrd,1), ki, Nitl, ilt, io1(ithrd)
-         STOP
-      END IF
-      
-      kiP = bilin_map(ki,kj)%jip
-      kjP = bilin_map(ki,kj)%jjp
-      kqd = bilin_map(ki,kj)%iqdrn
-      pa  = bilin_map(ki,kj)%ralfa
-      pb  = bilin_map(ki,kj)%rbeta
-      
-      kiPm1 = kiP-1
-      kiPp1 = kiP+1
-      IF ( (kiPm1 ==   0  ).AND.(k_ew_per>=0) )  kiPm1 = nxi - k_ew_per
-      IF ( (kiPp1 == nxi+1).AND.(k_ew_per>=0) )  kiPp1 = 1   + k_ew_per
-      
-
-      SELECT CASE (kqd)
-
-      CASE (1)  ! nearest point is the bottom left corner point of local mesh
-         i1=kiP   ; j1 = kjP  ! local mesh is located NE of nearest point
-         i2=kiPp1 ; j2 = kjP
-         i3=kiPp1 ; j3 = kjP+1
-         i4=kiP   ; j4 = kjP+1
-
-      CASE (2)  ! nearest point is the top left corner point of mesh
-         i1=kiP   ; j1 = kjP    ! local mesh is located SE of nearest point
-         i2=kiP   ; j2 = kjP-1
-         i3=kiPp1 ; j3 = kjP-1
-         i4=kiPp1 ; j4 = kjP
-         
-      CASE (3)  ! nearest point is the top righ corner point of mesh
-         i1=kiP   ; j1 = kjP   ! local mesh is located SW of nearest point
-         i2=kiPm1 ; j2 = kjP
-         i3=kiPm1 ; j3 = kjP-1
-         i4=kiP   ; j4 = kjP-1
-
-      CASE (4)  ! nearest point is the bottom right corner point of mesh
-         i1=kiP   ; j1 = kjP  ! local mesh is located NW of nearest point
-         i2=kiP   ; j2 = kjP+1
-         i3=kiPm1 ; j3 = kjP+1
-         i4=kiPm1 ; j4 = kjP
-
-      END SELECT
-      
-      !! compute sum weight above target point
-      w1=REAL( (1. - pa)*(1. - pb) , 4)
-      w2=REAL(       pa *(1. - pb) , 4)
-      w3=REAL(       pa * pb       , 4)
-      w4=REAL( (1. - pa)* pb       , 4)
-
-      wup = w1 + w2 + w3 + w4
-
-      !IF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
-      !   WRITE(6,*) ' WARNING: INTERP_BL => at least one of the i,j index is zero!'
-      !END IF
-
-      ! interpolate with non-masked  values, above target point
-      
-      !PRINT *, 'LOLO: j1,j2,j3,j4=', j1,j2,j3,j4
-
-      IF ( wup == 0. ) THEN
-         pres = -9998.
-      ELSEIF ( (i1<1).OR.(i2<1).OR.(i3<1).OR.(i4<1) ) THEN
-         pres = -9997.
-      ELSEIF ( (j1<1).OR.(j2<1).OR.(j3<1).OR.(j4<1) ) THEN
-         pres = -9996.
-      ELSEIF ( (j1>nyi).OR.(j2>nyi).OR.(j3>nyi).OR.(j4>nyi) ) THEN
-         pres = -9995.
-      ELSEIF ( (i1>nxi).OR.(i2>nxi).OR.(i3>nxi).OR.(i4>nxi) ) THEN
-         pres = -9994.
-      ELSE
-         pres = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
-      ENDIF
-
-   END SUBROUTINE INTERP_BL
-
-
 
 
    SUBROUTINE MAPPING_BL(k_ew_per, plon_src, plat_src, plon_trg, plat_trg,  ithread, pmsk_dom_trg)
@@ -399,7 +333,7 @@ CONTAINS
       INTEGER :: &
          &     iqd, iqd0, iqd_old, &
          &     iP, jP,             &
-         &     nxi, nyi, nxo, nyo, &
+         &     nxo, nyo, &
          &     ji, jj,   &
          &     iPm1, iPp1,  &
          &     jPm1, jPp1,  &
@@ -426,6 +360,7 @@ CONTAINS
       REAL(8) :: zalfa, zbeta
       LOGICAL :: l_ok, lagain, lpdebug
       INTEGER :: icpt, ithrd, iom1, iom2
+      INTEGER :: i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
       !!
       CHARACTER(len=80) :: cf_tmp !lolodbg
       !!----------------------------------------------------------------------------
@@ -434,9 +369,6 @@ CONTAINS
       IF( PRESENT(ithread) ) ithrd = ithread
       iom1 = io1(ithrd)
       iom2 = io2(ithrd)
-
-      nxi = SIZE(plon_src,1)
-      nyi = SIZE(plon_src,2)
 
       nxo = SIZE(plon_trg,1)
       nyo = SIZE(plon_trg,2)
@@ -505,9 +437,9 @@ CONTAINS
                jP = kj_nrst(ji,jj)
 
                IF(lpdebug) WRITE(6,*) ' *** #DEBUG: xP, yP =', xP, yP
-               IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
+               IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iP, jP, ni_src, nj_src =', iP, jP, ni_src, nj_src
 
-               IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) ) THEN
+               IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nj_src) ) THEN
                   ! jP<ny1 < last upper row was an extrapolation!
                   iPm1 = iP-1
                   iPp1 = iP+1
@@ -516,20 +448,20 @@ CONTAINS
 
                   IF ( iPm1 == 0 ) THEN
                      !! We are in the extended case !!!
-                     IF ( k_ew_per>=0 ) iPm1 = nxi - k_ew_per
+                     IF ( k_ew_per>=0 ) iPm1 = ni_src - k_ew_per
                   END IF
 
-                  IF ( iPp1 == nxi+1 ) THEN
+                  IF ( iPp1 == ni_src+1 ) THEN
                      IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
                   END IF
 
                   IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iPm1, iPp1 =', iPm1, iPp1
                   IF(lpdebug) WRITE(6,*) ' *** #DEBUG: jPm1, jPp1 =', jPm1, jPp1
 
-                  IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi)) THEN
-                     IF(iverbose>0) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
-                     IF(iverbose>0) WRITE(6,*) '          iPm1, iPp1, nxi =', iPm1, iPp1, nxi
-                     IF(iverbose>0) WRITE(6,*) '          jPm1, jPp1, nyi =', jPm1, jPp1, nyi
+                  IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > ni_src)) THEN
+                     IF(iverbose>0) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,ni_src,nj_src,iP,jP
+                     IF(iverbose>0) WRITE(6,*) '          iPm1, iPp1, ni_src =', iPm1, iPp1, ni_src
+                     IF(iverbose>0) WRITE(6,*) '          jPm1, jPp1, nj_src =', jPm1, jPp1, nj_src
                      IF(iverbose>0) WRITE(6,*) '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
                      IF(iverbose>0) WRITE(6,*) ''
                   ELSE
@@ -673,11 +605,66 @@ CONTAINS
                      zbln_map(ji,jj)%rbeta = zbeta
                      zbln_map(ji,jj)%ipb   = 0
 
-                  END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi))
-               END IF ! IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) )
+                     
+                     !!LOOOOOOOOOOOOOOOOOOO
+                     !lilo
+                     !kiPm1 = kiP-1
+                     !kiPp1 = kiP+1
+                     !IF ( (kiPm1 ==   0  ).AND.(k_ew_per>=0) )  kiPm1 = ni_src - k_ew_per
+                     !IF ( (kiPp1 == ni_src+1).AND.(k_ew_per>=0) )  kiPp1 = 1   + k_ew_per
+                     
+                     SELECT CASE (iqd)
+                        !!
+                        !! Choose the 4 interpolation points, according to sector and nearest point (kiP, kjP)
+                        !!   o<--o        x<--o         o<--x         o<--o
+                        !! 1 |   ^ NE   2 |   ^ SE    3 |   ^ SW    4 |   ^ NW
+                        !!   v   |        v   |         v   |         v   |
+                        !!   x-->o        o-->o         o-->o         o-->x
+                        !!
+                     CASE (1)  ! nearest point is the bottom left corner point of local mesh
+                        i1=iP   ; j1=jP  ! local mesh is located NE of nearest point
+                        i2=iPp1 ; j2=jP
+                        i3=iPp1 ; j3=jPp1
+                        i4=iP   ; j4=jPp1
+
+                     CASE (2)  ! nearest point is the top left corner point of mesh
+                        i1=iP   ; j1=jP    ! local mesh is located SE of nearest point
+                        i2=iP   ; j2=jPm1
+                        i3=iPp1 ; j3=jPm1
+                        i4=iPp1 ; j4=jP
+
+                     CASE (3)  ! nearest point is the top righ corner point of mesh
+                        i1=iP   ; j1=jP   ! local mesh is located SW of nearest point
+                        i2=iPm1 ; j2=jP
+                        i3=iPm1 ; j3=jPm1
+                        i4=iP   ; j4=jPm1
+
+                     CASE (4)  ! nearest point is the bottom right corner point of mesh
+                        i1=iP   ; j1=jP  ! local mesh is located NW of nearest point
+                        i2=iP   ; j2=jPp1
+                        i3=iPm1 ; j3=jPp1
+                        i4=iPm1 ; j4=jP
+
+                     END SELECT
+
+                     zbln_map(ji,jj)%ip1 = (j1-1)*ni_src + i1
+                     zbln_map(ji,jj)%ip2 = (j2-1)*ni_src + i2
+                     zbln_map(ji,jj)%ip3 = (j3-1)*ni_src + i3
+                     zbln_map(ji,jj)%ip4 = (j4-1)*ni_src + i4
+
+                     !lilo
+                     !! compute sum weight above target point
+                     zbln_map(ji,jj)%rw1 = REAL( (1. - zalfa)*(1. - zbeta) , 4)
+                     zbln_map(ji,jj)%rw2 = REAL(       zalfa *(1. - zbeta) , 4)
+                     zbln_map(ji,jj)%rw3 = REAL(       zalfa * zbeta       , 4)
+                     zbln_map(ji,jj)%rw4 = REAL( (1. - zalfa)* zbeta       , 4)
+
+                  END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > ni_src))
+               END IF ! IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nj_src) )
             END IF ! IF ( kmsk_ignr_trg(ji,jj)==1 )
-         ENDDO
-      ENDDO
+            !!
+         ENDDO ! DO ji = 1, nxo
+      ENDDO ! DO jj = 1, nyo
 
       !lolo: UGLY!
       zbln_map(:,:)%jip = ki_nrst(:,:)
@@ -721,17 +708,6 @@ CONTAINS
       WHERE (kmsk_ignr_trg <= -1) zbln_map(:,:)%ipb = -1 ! Nearest point was not found by "FIND_NEAREST"
       WHERE (kmsk_ignr_trg ==  0) zbln_map(:,:)%ipb = -2 ! No idea if possible... #lolo
       WHERE (kmsk_ignr_trg <  -2) zbln_map(:,:)%ipb = -3 ! No idea if possible... #lolo
-
-
-      !lolodbg:
-      !WRITE(cf_tmp,'("alfa_thread",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(zbln_map(:,:)%ralfa,4), cf_tmp, 'alfa')
-      !!
-      !WRITE(cf_tmp,'("beta_thread",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(zbln_map(:,:)%rbeta,4), cf_tmp, 'beta')
-      !lolodbg.
 
       bilin_map(iom1:iom2,:) = zbln_map(:,:)
 
@@ -915,7 +891,7 @@ CONTAINS
 
 
 
-   SUBROUTINE P2D_MAPPING_AB(cf_out, plon, plat, pbln_map, rflag )
+   SUBROUTINE P2D_MAPPING_AB( cf_out, plon, plat, pbln_map, rflag )
 
       USE netcdf
       USE io_ezcdf, ONLY : sherr
@@ -929,7 +905,10 @@ CONTAINS
       CHARACTER(LEN=400), PARAMETER   ::     &
          &    cabout = 'Created with SOSIE interpolation environement => https://github.com/brodeau/sosie/'
       !!
-      INTEGER          :: nx, ny, id_v1, id_v2, id_v3, id_v4, id_v5, id_v6, id_dnp
+      INTEGER          :: nx, ny, id_dnp
+      INTEGER          :: id_v01, id_v02, id_v03, id_v04, id_v05, id_v06, id_v07, id_v08, id_v09, id_v10, &
+         &                id_v11, id_v12, id_v13, id_v14
+      !!
       CHARACTER(len=80), PARAMETER :: crtn = 'P2D_MAPPING_AB'
 
       nx = SIZE(pbln_map,1)
@@ -946,12 +925,21 @@ CONTAINS
       CALL sherr( NF90_DEF_VAR(id_f, 'lon',  NF90_DOUBLE, (/id_x,id_y/), id_lo, deflate_level=5),  crtn,cf_out,'lon')
       CALL sherr( NF90_DEF_VAR(id_f, 'lat',  NF90_DOUBLE, (/id_x,id_y/), id_la, deflate_level=5),  crtn,cf_out,'lat')
       !!
-      CALL sherr( NF90_DEF_VAR(id_f, 'iP',   NF90_INT,    (/id_x,id_y/), id_v1, deflate_level=5),  crtn,cf_out,'iP'   )
-      CALL sherr( NF90_DEF_VAR(id_f, 'jP',   NF90_INT,    (/id_x,id_y/), id_v2, deflate_level=5),  crtn,cf_out,'jP'   )
-      CALL sherr( NF90_DEF_VAR(id_f, 'iqd',  NF90_INT,    (/id_x,id_y/), id_v3, deflate_level=5),  crtn,cf_out,'iqd'  )
-      CALL sherr( NF90_DEF_VAR(id_f, 'alfa', NF90_DOUBLE, (/id_x,id_y/), id_v4, deflate_level=5),  crtn,cf_out,'alfa' )
-      CALL sherr( NF90_DEF_VAR(id_f, 'beta', NF90_DOUBLE, (/id_x,id_y/), id_v5, deflate_level=5),  crtn,cf_out,'beta' )
-      CALL sherr( NF90_DEF_VAR(id_f, 'ipb',  NF90_INT,    (/id_x,id_y/), id_v6, deflate_level=5),  crtn,cf_out,'ipb'  )
+      CALL sherr( NF90_DEF_VAR(id_f, 'iP',   NF90_INT,    (/id_x,id_y/), id_v01, deflate_level=5),  crtn,cf_out,'iP'   )
+      CALL sherr( NF90_DEF_VAR(id_f, 'jP',   NF90_INT,    (/id_x,id_y/), id_v02, deflate_level=5),  crtn,cf_out,'jP'   )
+      CALL sherr( NF90_DEF_VAR(id_f, 'iqd',  NF90_INT,    (/id_x,id_y/), id_v03, deflate_level=5),  crtn,cf_out,'iqd'  )
+      CALL sherr( NF90_DEF_VAR(id_f, 'alfa', NF90_DOUBLE, (/id_x,id_y/), id_v04, deflate_level=5),  crtn,cf_out,'alfa' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'beta', NF90_DOUBLE, (/id_x,id_y/), id_v05, deflate_level=5),  crtn,cf_out,'beta' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'ipb',  NF90_INT,    (/id_x,id_y/), id_v06, deflate_level=5),  crtn,cf_out,'ipb'  )
+      !!
+      CALL sherr( NF90_DEF_VAR(id_f, 'ip1',   NF90_INT,   (/id_x,id_y/), id_v07, deflate_level=5),  crtn,cf_out,'ip1' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'ip2',   NF90_INT,   (/id_x,id_y/), id_v08, deflate_level=5),  crtn,cf_out,'ip2' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'ip3',   NF90_INT,   (/id_x,id_y/), id_v09, deflate_level=5),  crtn,cf_out,'ip3' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'ip4',   NF90_INT,   (/id_x,id_y/), id_v10, deflate_level=5),  crtn,cf_out,'ip4' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'rw1', NF90_FLOAT,   (/id_x,id_y/), id_v11, deflate_level=5),  crtn,cf_out,'w1' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'rw2', NF90_FLOAT,   (/id_x,id_y/), id_v12, deflate_level=5),  crtn,cf_out,'w2' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'rw3', NF90_FLOAT,   (/id_x,id_y/), id_v13, deflate_level=5),  crtn,cf_out,'w3' )
+      CALL sherr( NF90_DEF_VAR(id_f, 'rw4', NF90_FLOAT,   (/id_x,id_y/), id_v14, deflate_level=5),  crtn,cf_out,'w4' )
 
       IF ( l_save_distance_to_np ) THEN
          CALL sherr( NF90_DEF_VAR(id_f, 'dist_np', NF90_REAL, (/id_x,id_y/), id_dnp, deflate_level=5), crtn,cf_out,'dist_np' )
@@ -960,13 +948,22 @@ CONTAINS
       END IF
 
       IF ( rflag /= 0. ) THEN
-         CALL sherr( NF90_PUT_ATT(id_f, id_v1, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iP   (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v2, '_FillValue',  INT(rflag)  ), crtn,cf_out,'jP   (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v3, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iqd  (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v4, '_FillValue', REAL(rflag,8)), crtn,cf_out,'alfa (masking)' )
-         CALL sherr( NF90_PUT_ATT(id_f, id_v5, '_FillValue', REAL(rflag,8)), crtn,cf_out,'beta (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v01, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iP   (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v02, '_FillValue',  INT(rflag)  ), crtn,cf_out,'jP   (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v03, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iqd  (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v04, '_FillValue', REAL(rflag,8)), crtn,cf_out,'alfa (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v05, '_FillValue', REAL(rflag,8)), crtn,cf_out,'beta (masking)' )
+         !!
+         CALL sherr( NF90_PUT_ATT(id_f, id_v07, '_FillValue',  INT(rflag)  ), crtn,cf_out,'ip1  (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v08, '_FillValue',  INT(rflag)  ), crtn,cf_out,'ip2  (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v09, '_FillValue',  INT(rflag)  ), crtn,cf_out,'ip3  (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v10, '_FillValue',  INT(rflag)  ), crtn,cf_out,'ip4  (masking)' )
+         !!
+         CALL sherr( NF90_PUT_ATT(id_f, id_v11, '_FillValue', REAL(rflag,4)), crtn,cf_out,'w1   (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v12, '_FillValue', REAL(rflag,4)), crtn,cf_out,'w2   (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v13, '_FillValue', REAL(rflag,4)), crtn,cf_out,'w3   (masking)' )
+         CALL sherr( NF90_PUT_ATT(id_f, id_v14, '_FillValue', REAL(rflag,4)), crtn,cf_out,'w4   (masking)' )
       END IF
-      !lolo
 
       CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear interpolation with SOSIE.'), &
          &      crtn,cf_out,'dummy')
@@ -977,13 +974,23 @@ CONTAINS
       CALL sherr( NF90_PUT_VAR(id_f, id_lo, plon),     crtn,cf_out,'lon')
       CALL sherr( NF90_PUT_VAR(id_f, id_la, plat),     crtn,cf_out,'lat')
 
-      CALL sherr( NF90_PUT_VAR(id_f, id_v1, pbln_map(:,:)%jip   ),  crtn,cf_out,'iP')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v2, pbln_map(:,:)%jjp   ),  crtn,cf_out,'jP')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v3, pbln_map(:,:)%iqdrn ),  crtn,cf_out,'iqd')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v4, pbln_map(:,:)%ralfa ),  crtn,cf_out,'alfa')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v5, pbln_map(:,:)%rbeta ),  crtn,cf_out,'beta')
-      CALL sherr( NF90_PUT_VAR(id_f, id_v6, pbln_map(:,:)%ipb   ),  crtn,cf_out,'ipb')
-
+      CALL sherr( NF90_PUT_VAR(id_f, id_v01, pbln_map(:,:)%jip   ),  crtn,cf_out,'iP')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v02, pbln_map(:,:)%jjp   ),  crtn,cf_out,'jP')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v03, pbln_map(:,:)%iqdrn ),  crtn,cf_out,'iqd')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v04, pbln_map(:,:)%ralfa ),  crtn,cf_out,'alfa')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v05, pbln_map(:,:)%rbeta ),  crtn,cf_out,'beta')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v06, pbln_map(:,:)%ipb   ),  crtn,cf_out,'ipb')
+      !!
+      CALL sherr( NF90_PUT_VAR(id_f, id_v07, pbln_map(:,:)%ip1   ),  crtn,cf_out,'ip1')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v08, pbln_map(:,:)%ip2   ),  crtn,cf_out,'ip2')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v09, pbln_map(:,:)%ip3   ),  crtn,cf_out,'ip3')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v10, pbln_map(:,:)%ip4   ),  crtn,cf_out,'ip4')
+      !!
+      CALL sherr( NF90_PUT_VAR(id_f, id_v11, pbln_map(:,:)%rw1   ),  crtn,cf_out,'rw1')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v12, pbln_map(:,:)%rw2   ),  crtn,cf_out,'rw2')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v13, pbln_map(:,:)%rw3   ),  crtn,cf_out,'rw3')
+      CALL sherr( NF90_PUT_VAR(id_f, id_v14, pbln_map(:,:)%rw4   ),  crtn,cf_out,'rw4')
+      !!
       IF ( l_save_distance_to_np ) CALL sherr( NF90_PUT_VAR(id_f, id_dnp, distance_to_np), crtn,cf_out,'lon' )
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_out,'dummy')
@@ -991,7 +998,9 @@ CONTAINS
    END SUBROUTINE P2D_MAPPING_AB
 
 
-   SUBROUTINE  RD_MAPPING_AB(cf_in, pbln_map)
+
+
+   SUBROUTINE RD_MAPPING_AB(cf_in, pbln_map)
       !!
       USE netcdf
       USE io_ezcdf, ONLY : sherr
@@ -1000,28 +1009,47 @@ CONTAINS
       TYPE(bln_map), DIMENSION(:,:), INTENT(out) :: pbln_map
       !!
       INTEGER :: id_f
-      INTEGER :: id_v1, id_v2, id_v3, id_v4, id_v5, id_v6
+      INTEGER :: id_v01, id_v02, id_v03, id_v04, id_v05, id_v06, id_v07, id_v08, id_v09, id_v10, &
+         &       id_v11, id_v12, id_v13, id_v14
+
       !!
       CHARACTER(len=80), PARAMETER :: crtn = 'RD_MAPPING_AB'
       !!
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,'dummy' )
       !!
-      CALL sherr( NF90_INQ_VARID(id_f, 'iP',   id_v1),  crtn,cf_in,'iP'   )
-      CALL sherr( NF90_INQ_VARID(id_f, 'jP',   id_v2),  crtn,cf_in,'jP'   )
-      CALL sherr( NF90_INQ_VARID(id_f, 'iqd',  id_v3),  crtn,cf_in,'iqd'  )
-      CALL sherr( NF90_INQ_VARID(id_f, 'alfa', id_v4),  crtn,cf_in,'alfa' )
-      CALL sherr( NF90_INQ_VARID(id_f, 'beta', id_v5),  crtn,cf_in,'beta' )
-      CALL sherr( NF90_INQ_VARID(id_f, 'ipb',  id_v6),  crtn,cf_in,'ipb'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'iP',   id_v01),  crtn,cf_in,'iP'   )
+      CALL sherr( NF90_INQ_VARID(id_f, 'jP',   id_v02),  crtn,cf_in,'jP'   )
+      CALL sherr( NF90_INQ_VARID(id_f, 'iqd',  id_v03),  crtn,cf_in,'iqd'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'alfa', id_v04),  crtn,cf_in,'alfa' )
+      CALL sherr( NF90_INQ_VARID(id_f, 'beta', id_v05),  crtn,cf_in,'beta' )
+      CALL sherr( NF90_INQ_VARID(id_f, 'ipb',  id_v06),  crtn,cf_in,'ipb'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'ip1',  id_v07),  crtn,cf_in,'ip1'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'ip2',  id_v08),  crtn,cf_in,'ip2'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'ip3',  id_v09),  crtn,cf_in,'ip3'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'ip4',  id_v10),  crtn,cf_in,'ip4'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'rw1',  id_v11),  crtn,cf_in,'rw1'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'rw2',  id_v12),  crtn,cf_in,'rw2'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'rw3',  id_v13),  crtn,cf_in,'rw3'  )
+      CALL sherr( NF90_INQ_VARID(id_f, 'rw4',  id_v14),  crtn,cf_in,'rw4'  )
       !!
-      CALL sherr( NF90_GET_VAR(id_f, id_v1, pbln_map(:,:)%jip   ), crtn,cf_in,'iP'   )
-      CALL sherr( NF90_GET_VAR(id_f, id_v2, pbln_map(:,:)%jjp   ), crtn,cf_in,'jP'   )
-      CALL sherr( NF90_GET_VAR(id_f, id_v3, pbln_map(:,:)%iqdrn ), crtn,cf_in,'iqd'  )
-      CALL sherr( NF90_GET_VAR(id_f, id_v4, pbln_map(:,:)%ralfa ), crtn,cf_in,'alfa' )
-      CALL sherr( NF90_GET_VAR(id_f, id_v5, pbln_map(:,:)%rbeta ), crtn,cf_in,'beta' )
-      CALL sherr( NF90_GET_VAR(id_f, id_v6, pbln_map(:,:)%ipb   ), crtn,cf_in,'ipb'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v01, pbln_map(:,:)%jip   ), crtn,cf_in,'iP'   )
+      CALL sherr( NF90_GET_VAR(id_f, id_v02, pbln_map(:,:)%jjp   ), crtn,cf_in,'jP'   )
+      CALL sherr( NF90_GET_VAR(id_f, id_v03, pbln_map(:,:)%iqdrn ), crtn,cf_in,'iqd'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v04, pbln_map(:,:)%ralfa ), crtn,cf_in,'alfa' )
+      CALL sherr( NF90_GET_VAR(id_f, id_v05, pbln_map(:,:)%rbeta ), crtn,cf_in,'beta' )
+      CALL sherr( NF90_GET_VAR(id_f, id_v06, pbln_map(:,:)%ipb   ), crtn,cf_in,'ipb'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v07, pbln_map(:,:)%ip1   ), crtn,cf_in,'ip1'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v08, pbln_map(:,:)%ip2   ), crtn,cf_in,'ip2'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v09, pbln_map(:,:)%ip3   ), crtn,cf_in,'ip3'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v10, pbln_map(:,:)%ip4   ), crtn,cf_in,'ip4'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v11, pbln_map(:,:)%rw1   ), crtn,cf_in,'rw1'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v12, pbln_map(:,:)%rw2   ), crtn,cf_in,'rw2'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v13, pbln_map(:,:)%rw3   ), crtn,cf_in,'rw3'  )
+      CALL sherr( NF90_GET_VAR(id_f, id_v14, pbln_map(:,:)%rw4   ), crtn,cf_in,'rw4'  )
       !!
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,'dummy' )
       !!
    END SUBROUTINE RD_MAPPING_AB
+
 
 END MODULE MOD_BILIN_2D
