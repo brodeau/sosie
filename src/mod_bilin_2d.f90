@@ -36,7 +36,7 @@ MODULE MOD_BILIN_2D
       INTEGER(2)       :: ipb ! ID of problem if any...
    END TYPE bln_map
 
-   TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE, SAVE :: bilin_map
+   TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: bilin_map
    REAL(4),       DIMENSION(:,:), ALLOCATABLE, SAVE :: distance_to_np
    LOGICAL,       DIMENSION(:),   ALLOCATABLE, SAVE :: l_1st_call_bilin
    !--------
@@ -266,7 +266,8 @@ CONTAINS
 
       REAL(4) :: INTERP_BL
       REAL(4) ::  wup, w1, w2, w3, w4
-      INTEGER  :: nxi, nyi, jiPm1, jiPp1, i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
+      INTEGER :: nxi, nyi, jiPm1, jiPp1
+      INTEGER :: i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
 
       !! Choose the 4 interpolation points, according to sector and nearest point (jiP, jjP)
 
@@ -337,6 +338,7 @@ CONTAINS
       ELSEIF ( (i1>nxi).OR.(i2>nxi).OR.(i3>nxi).OR.(i4>nxi) ) THEN
          INTERP_BL = -9994.
       ELSE
+         !lolo:PRINT *, 'j1, j2, j3, j4 =', j1, j2, j3, j4
          INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
 

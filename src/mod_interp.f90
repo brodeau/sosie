@@ -151,16 +151,16 @@ CONTAINS
                !!
                WRITE(cf_tmp,'("ignr_trg_",i2.2,".nc")') jo
                CALL DUMP_FIELD(REAL(mask_ignore_trg(io1(jo):io2(jo),:),4), cf_tmp, 'mask_ignore')
+               !!
+               WRITE(cf_tmp,'("bilin_map_alfa_",i2.2,".nc")') jo
+               CALL DUMP_FIELD(REAL(bilin_map(io1(jo):io2(jo),:)%ralfa,4), cf_tmp, 'alfa')
+               WRITE(cf_tmp,'("bilin_map_beta_",i2.2,".nc")') jo
+               CALL DUMP_FIELD(REAL(bilin_map(io1(jo):io2(jo),:)%rbeta,4), cf_tmp, 'beta')
             END DO
 
-            !jo=2
-            !CALL MAPPING_BL( ewper_src, x_src_2d                   , y_src_2d                   , &
-            !   &                        x_trg_2d(io1(jo):io2(jo),:), y_trg_2d(io1(jo):io2(jo),:), &
-            !   &             ithread=jo, pmsk_dom_trg=mask_ignore_trg(io1(jo):io2(jo),:) )
-            !CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
-            !STOP'lolodbg!'
-            !!lolodbg.
 
+            PRINT *, ' l_skip_bilin_mapping =', l_skip_bilin_mapping
+            
             IF( .NOT. l_skip_bilin_mapping ) THEN
                !! Doing it no OMP:
                !DO jo = 1, Nthrd
@@ -181,12 +181,19 @@ CONTAINS
                !$OMP END PARALLEL DO
 
                !$OMP BARRIER
-
                CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
-            END IF
+               
+            ELSE
+               PRINT *, 'LOLO: skipping building of mapping!'
+            END IF !IF( .NOT. l_skip_bilin_mapping )
 
-         END IF
+            
 
+         END IF !IF( jt == 1 )
+
+         
+
+         
          !CALL STOP_THIS( 'LOLO fddsffsd' )
 
          !$OMP PARALLEL DO
@@ -197,7 +204,16 @@ CONTAINS
                &           jo, mask_domain_trg=IGNORE(io1(jo):io2(jo),:) )
          END DO
          !$OMP END PARALLEL DO
+         !$OMP BARRIER
+         
+         DO jo = 1, Nthrd
+            WRITE(cf_tmp,'("DATA_trg_",i2.2,".nc")') jo
+            CALL DUMP_FIELD( data_trg(io1(jo):io2(jo),:), cf_tmp, 'data')
+         END DO
+         
 
+         STOP'lolodbg! mod_interp.f90'
+         
          !IF( jt == 1 ) CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
          !STOP'LOLO after BILIN_2D_WRITE_MAPPING in mod_interp.f90 !!!'
 
