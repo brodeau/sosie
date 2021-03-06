@@ -206,18 +206,19 @@ CONTAINS
          !$OMP END PARALLEL DO
          !$OMP BARRIER
          
-         DO jo = 1, Nthrd
-            WRITE(cf_tmp,'("DATA_trg_",i2.2,".nc")') jo
-            CALL DUMP_FIELD( data_trg(io1(jo):io2(jo),:), cf_tmp, 'data')
-         END DO
-         
-
-         STOP'lolodbg! mod_interp.f90'
+         !DO jo = 1, Nthrd
+         !   WRITE(cf_tmp,'("DATA_trg_",i2.2,".nc")') jo
+         !   CALL DUMP_FIELD( data_trg(io1(jo):io2(jo),:), cf_tmp, 'data')
+         !END DO        
+         !STOP'lolodbg! mod_interp.f90'
          
          !IF( jt == 1 ) CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
          !STOP'LOLO after BILIN_2D_WRITE_MAPPING in mod_interp.f90 !!!'
 
 
+
+
+         
       CASE('no_xy')
          CALL STOP_THIS( '[mod_interp.f90] => method "no_xy" makes no sense for 2D interp!' )
 

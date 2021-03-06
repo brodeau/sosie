@@ -59,9 +59,9 @@ MODULE MOD_BILIN_2D
 
    !LOGICAL, SAVE :: l_last_y_row_missing = .FALSE.
 
-   !! PUBLIC:
 
-   LOGICAL,                                 PUBLIC, SAVE :: l_skip_bilin_mapping
+   !! PUBLIC:
+   LOGICAL, PUBLIC, SAVE :: l_skip_bilin_mapping
 
    PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL
 
@@ -72,10 +72,6 @@ CONTAINS
       !!==============================================================================
       !!
       USE io_ezcdf, ONLY : TEST_XYZ  ! , DUMP_2D_FIELD
-      !!
-      !REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
-      !REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
-      !INTEGER(1), DIMENSION(:,:), OPTIONAL, INTENT(in) :: mask_domain_trg
       !!
       LOGICAL :: lefw
       !!==============================================================================
@@ -88,7 +84,7 @@ CONTAINS
       WRITE(6,'("   * Allocating array bilin_map: ",i5," x ",i5)') ni_trg, nj_trg
       ALLOCATE ( bilin_map(ni_trg,nj_trg) )
 
-      IF (l_save_distance_to_np) ALLOCATE ( distance_to_np(ni_trg,nj_trg) )
+      IF(l_save_distance_to_np) ALLOCATE ( distance_to_np(ni_trg,nj_trg) )
 
       ALLOCATE ( l_1st_call_bilin(Nthrd) )
       l_1st_call_bilin(:)     = .TRUE.
@@ -100,7 +96,7 @@ CONTAINS
       WRITE(6,*) '  * Mapping file is "',TRIM(cf_wght_bilin),'" !'
 
       INQUIRE(FILE=cf_wght_bilin, EXIST=lefw )
-      IF ( lefw ) THEN
+      IF( lefw ) THEN
          WRITE(6,*) '    => it was found in current directory !'
          WRITE(6,*) '      => still! Make sure that this is really the one you need...'
          CALL RD_MAPPING_AB(cf_wght_bilin, bilin_map(:,:))
@@ -126,20 +122,24 @@ CONTAINS
    END SUBROUTINE BILIN_2D_INIT
 
 
+
+
+
    SUBROUTINE BILIN_2D_WRITE_MAPPING( )
       !!
       WRITE(6,*) ''
-      IF ( l_skip_bilin_mapping ) THEN
+      IF( l_skip_bilin_mapping ) THEN
          WRITE(6,*) '  ==> NOT writing bilin mapping file because it was found...'
       ELSE
          WRITE(6,*) '  ==> writing bilin mapping into "', TRIM(cf_wght_bilin),'" !'
          CALL P2D_MAPPING_AB( cf_wght_bilin, lon_trg, lat_trg, bilin_map, rmissval )
       END IF
       !!
-      IF (l_save_distance_to_np) DEALLOCATE( distance_to_np )
+      IF(l_save_distance_to_np) DEALLOCATE( distance_to_np )
       WRITE(6,*) ''; WRITE(6,*) ''
       !!
    END SUBROUTINE BILIN_2D_WRITE_MAPPING
+
 
 
 
@@ -176,7 +176,7 @@ CONTAINS
       !! Local variables
       INTEGER :: nx2, ny2, iqd, iP, jP
       REAL(8) :: alpha, beta, rmeanv
-      INTEGER :: ji, jj, iom1, iom2, kp1, kp2, kp3, kp4
+      INTEGER :: ji, jj, jio, iom1, iom2, kp1, kp2, kp3, kp4
       REAL(4) :: wup, w1, w2, w3, w4
       INTEGER :: i1, j1, i2, j2, i3, j3, i4, j4
 
@@ -188,7 +188,7 @@ CONTAINS
 
       PRINT *, 'LOLOdbg: BILIN_2D() => shape of pX1 =', SIZE(pX1,1), SIZE(pX1,2)
 
-      !IF ( l_1st_call_bilin(ithrd) ) l_last_y_row_missing = .FALSE.
+      !IF( l_1st_call_bilin(ithrd) ) l_last_y_row_missing = .FALSE.
 
       pZ2(:,:) = rmissval ! Flagging non-interpolated output points
 
@@ -214,28 +214,27 @@ CONTAINS
 
       DO jj=1, ny2
          DO ji=1, nx2
-            iP    = bilin_map(ji+iom1-1,jj)%jip
-            jP    = bilin_map(ji+iom1-1,jj)%jjp
-            iqd = bilin_map(ji+iom1-1,jj)%iqdrn
-            alpha = bilin_map(ji+iom1-1,jj)%ralfa
-            beta  = bilin_map(ji+iom1-1,jj)%rbeta
             !!
-            IF ( (ABS(degE_to_degWE(pX1(iP,jP))-degE_to_degWE(pX2(ji,jj)))<1.E-5) .AND. (ABS(pY1(iP,jP)-pY2(ji,jj))<1.E-5) ) THEN
+            jio   = ji+iom1-1
+            !!
+            iP    = bilin_map(jio,jj)%jip
+            jP    = bilin_map(jio,jj)%jjp
+            iqd   = bilin_map(jio,jj)%iqdrn
+            alpha = bilin_map(jio,jj)%ralfa
+            beta  = bilin_map(jio,jj)%rbeta
+            !!
+            IF( (ABS(degE_to_degWE(pX1(iP,jP))-degE_to_degWE(pX2(ji,jj)))<1.E-5) .AND. (ABS(pY1(iP,jP)-pY2(ji,jj))<1.E-5) ) THEN
                !! COPY:
-               IF (iverbose>0) WRITE(6,*) ' *** BILIN_2D: "identical point" detected (crit: 1.E-5) => copying value, no interpolation!'
+               IF(iverbose>0) WRITE(6,*) ' *** BILIN_2D: "identical point" detected (crit: 1.E-5) => copying value, no interpolation!'
                pZ2(ji,jj) = pZ1(iP,jP)
                !!
             ELSE
                !! INTERPOLATION:
-               !pZ2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqd, alpha, beta, pZ1)
-               !pZ2(ji,jj) = INTERP_BL(k_ew_per, ithrd, ji, jj, pZ1)
 
-               !CALL INTERP_BL( k_ew_per, ithrd, ji, jj, pZ1, pZ2(ji,jj) )
-
-               kp1 = bilin_map(ji,jj)%ip1
-               kp2 = bilin_map(ji,jj)%ip2
-               kp3 = bilin_map(ji,jj)%ip3
-               kp4 = bilin_map(ji,jj)%ip4
+               kp1 = bilin_map(jio,jj)%ip1
+               kp2 = bilin_map(jio,jj)%ip2
+               kp3 = bilin_map(jio,jj)%ip3
+               kp4 = bilin_map(jio,jj)%ip4
 
                j1 = kp1 / ni_src
                j2 = kp2 / ni_src
@@ -247,26 +246,26 @@ CONTAINS
                i3 = MOD(kp3, ni_src)
                i4 = MOD(kp4, ni_src)
 
-               w1 = bilin_map(ji,jj)%rw1
-               w2 = bilin_map(ji,jj)%rw2
-               w3 = bilin_map(ji,jj)%rw3
-               w4 = bilin_map(ji,jj)%rw4
+               w1 = bilin_map(jio,jj)%rw1
+               w2 = bilin_map(jio,jj)%rw2
+               w3 = bilin_map(jio,jj)%rw3
+               w4 = bilin_map(jio,jj)%rw4
 
                wup = w1 + w2 + w3 + w4
 
-               !IF ( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
+               !IF( (i1==0).OR.(j1==0).OR.(i2==0).OR.(j2==0).OR.(i3==0).OR.(j3==0).OR.(i4==0).OR.(j4==0) ) THEN
                !   WRITE(6,*) ' WARNING: INTERP_BL => at least one of the i,j index is zero!'
                !END IF
 
-               IF ( wup == 0. ) THEN
+               IF( wup == 0. ) THEN
                   pZ2(ji,jj) = -9998.
-               ELSEIF ( (i1<1).OR.(i2<1).OR.(i3<1).OR.(i4<1) ) THEN
+               ELSEIF( (i1<1).OR.(i2<1).OR.(i3<1).OR.(i4<1) ) THEN
                   pZ2(ji,jj) = -9997.
-               ELSEIF ( (j1<1).OR.(j2<1).OR.(j3<1).OR.(j4<1) ) THEN
+               ELSEIF( (j1<1).OR.(j2<1).OR.(j3<1).OR.(j4<1) ) THEN
                   pZ2(ji,jj) = -9996.
-               ELSEIF ( (j1>nj_src).OR.(j2>nj_src).OR.(j3>nj_src).OR.(j4>nj_src) ) THEN
+               ELSEIF( (j1>nj_src).OR.(j2>nj_src).OR.(j3>nj_src).OR.(j4>nj_src) ) THEN
                   pZ2(ji,jj) = -9995.
-               ELSEIF ( (i1>ni_src).OR.(i2>ni_src).OR.(i3>ni_src).OR.(i4>ni_src) ) THEN
+               ELSEIF( (i1>ni_src).OR.(i2>ni_src).OR.(i3>ni_src).OR.(i4>ni_src) ) THEN
                   pZ2(ji,jj) = -9994.
                ELSE
                   pZ2(ji,jj) = ( pZ1(i1,j1)*w1 + pZ1(i2,j2)*w2 + pZ1(i3,j3)*w3 + pZ1(i4,j4)*w4 )/wup
@@ -279,9 +278,9 @@ CONTAINS
       pZ2(:,:) = pZ2(:,:)*REAL(mask_ignore_trg(iom1:iom2,:), 4) + REAL(1-mask_ignore_trg(iom1:iom2,:), 4)*(-9995.) ! masking problem points as in mask_ignore_trg
 
 
-      !IF ( l_1st_call_bilin(ithrd) ) THEN
+      !IF( l_1st_call_bilin(ithrd) ) THEN
       !   !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
-      !   IF ( i_orca_trg >= 4 ) THEN
+      !   IF( i_orca_trg >= 4 ) THEN
       !      PRINT *, i_orca_trg, 'LOLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO'
       !      rmeanv = SUM(pZ2(:,ny2))/nx2
       !      l_last_y_row_missing(ithrd) = ( (rmeanv < rmissval + 0.1).AND.(rmeanv > rmissval - 0.1) )
@@ -289,24 +288,27 @@ CONTAINS
       !END IF
 
       !WRITE(6,*) ' l_last_y_row_missing =>', l_last_y_row_missing
-      !IF ( i_orca_trg == 4 ) WRITE(6,*) ' Target grid is an ORCA grid with north-pole T-point folding!'
-      !IF ( i_orca_trg == 6 ) WRITE(6,*) ' Target grid is an ORCA grid with north-pole F-point folding!'
+      !IF( i_orca_trg == 4 ) WRITE(6,*) ' Target grid is an ORCA grid with north-pole T-point folding!'
+      !IF( i_orca_trg == 6 ) WRITE(6,*) ' Target grid is an ORCA grid with north-pole F-point folding!'
 
       !! Correcting last missing band if relevant: LOLO: should use lbc_lnk no ????
-      !IF ( l_last_y_row_missing(ithrd) ) THEN
-      !   IF ( i_orca_trg == 4 ) THEN
+      !IF( l_last_y_row_missing(ithrd) ) THEN
+      !   IF( i_orca_trg == 4 ) THEN
       !      pZ2(2:nx2/2           ,ny2)   = pZ2(nx2:nx2-nx2/2-2:-1,ny2-2)
       !      pZ2(nx2:nx2-nx2/2-2:-1,ny2)   = pZ2(2:nx2/2           ,ny2-2)
       !   END IF
-      !   IF ( i_orca_trg == 6 ) THEN
+      !   IF( i_orca_trg == 6 ) THEN
       !      pZ2(2:nx2/2             ,ny2) = pZ2(nx2-1:nx2-nx2/2+1:-1,ny2-1)
       !      pZ2(nx2-1:nx2-nx2/2+1:-1,ny2) = pZ2(2:nx2/2             ,ny2-1)
       !   END IF
       !END IF
-      
-      l_1st_call_bilin(ithrd) = .FALSE.
+
+      l_1st_call_bilin(ithrd) = .FALSE.  ; !lolo: is it still in use ???
 
    END SUBROUTINE BILIN_2D
+
+
+  
 
 
    SUBROUTINE MAPPING_BL(k_ew_per, plon_src, plat_src, plon_trg, plat_trg,  ithread, pmsk_dom_trg)
@@ -393,7 +395,7 @@ CONTAINS
       ki_nrst(:,:)      = 0
       kj_nrst(:,:)      = 0
 
-      IF ( PRESENT(pmsk_dom_trg) ) kmsk_ignr_trg(:,:) = pmsk_dom_trg(:,:)
+      IF( PRESENT(pmsk_dom_trg) ) kmsk_ignr_trg(:,:) = pmsk_dom_trg(:,:)
 
       CALL FIND_NEAREST_POINT( plon_trg, plat_trg, plon_src, plat_src, ki_nrst, kj_nrst,  &
          &                     ithread=ithrd, pmsk_dom_trg=kmsk_ignr_trg )
@@ -424,7 +426,7 @@ CONTAINS
 
             lpdebug = ( (iverbose==2).AND.(ji==idb).AND.(jj==jdb) )
 
-            IF ( kmsk_ignr_trg(ji,jj)==1 ) THEN
+            IF( kmsk_ignr_trg(ji,jj)==1 ) THEN
                !! => exclude regions that do not exist on source domain (kmsk_ignr_trg==0) and
                !! points for which the nearest point was not found (kmsk_ignr_trg==-1 or -2)
 
@@ -439,26 +441,26 @@ CONTAINS
                IF(lpdebug) WRITE(6,*) ' *** #DEBUG: xP, yP =', xP, yP
                IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iP, jP, ni_src, nj_src =', iP, jP, ni_src, nj_src
 
-               IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nj_src) ) THEN
+               IF( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nj_src) ) THEN
                   ! jP<ny1 < last upper row was an extrapolation!
                   iPm1 = iP-1
                   iPp1 = iP+1
                   jPm1 = jP-1
                   jPp1 = jP+1
 
-                  IF ( iPm1 == 0 ) THEN
+                  IF( iPm1 == 0 ) THEN
                      !! We are in the extended case !!!
-                     IF ( k_ew_per>=0 ) iPm1 = ni_src - k_ew_per
+                     IF( k_ew_per>=0 ) iPm1 = ni_src - k_ew_per
                   END IF
 
-                  IF ( iPp1 == ni_src+1 ) THEN
-                     IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
+                  IF( iPp1 == ni_src+1 ) THEN
+                     IF( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
                   END IF
 
                   IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iPm1, iPp1 =', iPm1, iPp1
                   IF(lpdebug) WRITE(6,*) ' *** #DEBUG: jPm1, jPp1 =', jPm1, jPp1
 
-                  IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > ni_src)) THEN
+                  IF((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > ni_src)) THEN
                      IF(iverbose>0) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,ni_src,nj_src,iP,jP
                      IF(iverbose>0) WRITE(6,*) '          iPm1, iPp1, ni_src =', iPm1, iPp1, ni_src
                      IF(iverbose>0) WRITE(6,*) '          jPm1, jPp1, nj_src =', jPm1, jPp1, nj_src
@@ -507,11 +509,11 @@ CONTAINS
                      ! To avoid problem with the GW meridian, pass to -180, 180 when working around GW
                      hPp = degE_to_degWE(hP)
                      !!
-                     IF ( hN > hE ) hN = hN -360._8
-                     IF ( hPp > hN .AND. hPp <= hE ) iqd=1
-                     IF ( hP > hE  .AND. hP <= hS )  iqd=2
-                     IF ( hP > hS  .AND. hP <= hW )  iqd=3
-                     IF ( hP > hW  .AND. hPp <= hN)  iqd=4
+                     IF( hN > hE ) hN = hN -360._8
+                     IF( hPp > hN .AND. hPp <= hE ) iqd=1
+                     IF( hP > hE  .AND. hP <= hS )  iqd=2
+                     IF( hP > hS  .AND. hP <= hW )  iqd=3
+                     IF( hP > hW  .AND. hPp <= hN)  iqd=4
 
                      iqd0    = iqd
                      iqd_old = iqd
@@ -520,7 +522,7 @@ CONTAINS
                      loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
                      loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
 
-                     IF (l_save_distance_to_np) distance_to_np(ji+iom1-1,jj) = DISTANCE(xP, lonP, yP, latP)
+                     IF(l_save_distance_to_np) distance_to_np(ji+iom1-1,jj) = DISTANCE(xP, lonP, yP, latP)
 
                      !! Problem is that sometimes, in the case of really twisted
                      !! meshes this method screws up, iqd is not what it
@@ -554,7 +556,7 @@ CONTAINS
                         l_ok = L_InPoly ( loni(1:4), lati(1:4), xP, yP )    ! $$
                         IF(lpdebug) WRITE(6,*) ' *** #DEBUG: l_ok =', l_ok
 
-                        IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
+                        IF( (.NOT. l_ok).AND.(yP < 88.) ) THEN
                            !! Mhhh... Seems like the "heading()" approach
                            !! screwed up... i.e the point xP,yP is not into the
                            !! mesh corresponding to current iquadran, trying all
@@ -566,9 +568,9 @@ CONTAINS
                            !! Everything okay! Point is inside the the mesh
                            !! corresponding to current iquadran ! :D
                            lagain = .FALSE.
-                           IF ( (icpt>0).AND.(lpdebug) ) WRITE(6,*) ' --- iquadran corrected thanks to iterative test (old,new) =>', iqd_old, iqd
+                           IF( (icpt>0).AND.(lpdebug) ) WRITE(6,*) ' --- iquadran corrected thanks to iterative test (old,new) =>', iqd_old, iqd
                         END IF
-                        IF ( icpt == 5 ) THEN
+                        IF( icpt == 5 ) THEN
                            lagain = .FALSE. ! simply give up
                            iqd = iqd0 ! Giving what first method gave
                         END IF
@@ -579,10 +581,10 @@ CONTAINS
                      CALL LOCAL_COORD(loni, lati, zalfa, zbeta, iproblem)
                      zbln_map(ji,jj)%ipb = iproblem
 
-                     !LOLO: mark this in ID_problem => case when iqd = iqd0 ( IF ( icpt == 5 ) ) above!!!
-                     IF ( icpt == 5 ) zbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
+                     !LOLO: mark this in ID_problem => case when iqd = iqd0 ( IF( icpt == 5 ) ) above!!!
+                     IF( icpt == 5 ) zbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
 
-                     IF (lpdebug) THEN
+                     IF(lpdebug) THEN
                         WRITE(6,*) ' *** #DEBUG :'
                         WRITE(6,*) 'Nearest point :',lonP,  latP,  hP, hPp
                         WRITE(6,*) 'North point :',  lonN , latN , hN
@@ -605,14 +607,14 @@ CONTAINS
                      zbln_map(ji,jj)%rbeta = zbeta
                      zbln_map(ji,jj)%ipb   = 0
 
-                     
+
                      !!LOOOOOOOOOOOOOOOOOOO
                      !lilo
                      !kiPm1 = kiP-1
                      !kiPp1 = kiP+1
-                     !IF ( (kiPm1 ==   0  ).AND.(k_ew_per>=0) )  kiPm1 = ni_src - k_ew_per
-                     !IF ( (kiPp1 == ni_src+1).AND.(k_ew_per>=0) )  kiPp1 = 1   + k_ew_per
-                     
+                     !IF( (kiPm1 ==   0  ).AND.(k_ew_per>=0) )  kiPm1 = ni_src - k_ew_per
+                     !IF( (kiPp1 == ni_src+1).AND.(k_ew_per>=0) )  kiPp1 = 1   + k_ew_per
+
                      SELECT CASE (iqd)
                         !!
                         !! Choose the 4 interpolation points, according to sector and nearest point (kiP, kjP)
@@ -659,9 +661,9 @@ CONTAINS
                      zbln_map(ji,jj)%rw3 = REAL(       zalfa * zbeta       , 4)
                      zbln_map(ji,jj)%rw4 = REAL( (1. - zalfa)* zbeta       , 4)
 
-                  END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > ni_src))
-               END IF ! IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nj_src) )
-            END IF ! IF ( kmsk_ignr_trg(ji,jj)==1 )
+                  END IF ! IF((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > ni_src))
+               END IF ! IF( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nj_src) )
+            END IF ! IF( kmsk_ignr_trg(ji,jj)==1 )
             !!
          ENDDO ! DO ji = 1, nxo
       ENDDO ! DO jj = 1, nyo
@@ -754,7 +756,7 @@ CONTAINS
       zxlam = xlam       !: save input longitude in workinh array
 
       ! when near the 0 deg line and we must work in the frame -180 180
-      IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
+      IF((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
          &                            .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) &
          &  zxlam = degE_to_degWE(zxlam)
 
@@ -802,7 +804,7 @@ CONTAINS
 
       END DO   ! loop until zres small enough (or itermax reach )
 
-      IF ( niter >= itermax )   THEN
+      IF( niter >= itermax )   THEN
          zalpha = 0.5
          zbeta  = 0.5
          ipb    = 11
@@ -812,7 +814,7 @@ CONTAINS
       pb = zbeta
 
       !! Problem if the 4 latitudes surrounding 'lati' are equal!
-      IF ( (xphi(1)==xphi(2)).AND.(xphi(2)==xphi(3)).AND.(xphi(3)==xphi(4)) ) THEN
+      IF( (xphi(1)==xphi(2)).AND.(xphi(2)==xphi(3)).AND.(xphi(3)==xphi(4)) ) THEN
          pa  = 0.5
          pb  = 0.5
          ipb = 12
@@ -865,7 +867,7 @@ CONTAINS
       zconv=zpi/180.  ! for degree to radian conversion
 
       !! There is a problem if the Greenwich meridian pass between a and b
-      IF (iverbose>1) WRITE(6,*) ' * HEADIN() => Plonb  Plona ' , plonb, plona
+      IF(iverbose>1) WRITE(6,*) ' * HEADIN() => Plonb  Plona ' , plonb, plona
       xa=plona*zconv
       xb=plonb*zconv
 
@@ -875,17 +877,17 @@ CONTAINS
       rr = MAX(ABS(tan(zpi/4.-zconv*platb/2.)), repsilon)  !lolo just to avoid FPE sometimes
       yb = -LOG(rr)
 
-      IF (iverbose>1) WRITE(6,*) ' * HEADIN() =>  xa_xb , modulo 2pi', xb-xa, MOD((xb-xa),2*zpi)
+      IF(iverbose>1) WRITE(6,*) ' * HEADIN() =>  xa_xb , modulo 2pi', xb-xa, MOD((xb-xa),2*zpi)
       xb_xa=MOD((xb-xa),2*zpi)
 
-      IF ( xb_xa >=  zpi ) xb_xa = xb_xa -2*zpi
-      IF ( xb_xa <= -zpi ) xb_xa = xb_xa +2*zpi
-      IF (iverbose>1)  WRITE(6,*) ' * HEADIN() => yb-ya, xb_xa ', yb-ya , xb_xa
+      IF( xb_xa >=  zpi ) xb_xa = xb_xa -2*zpi
+      IF( xb_xa <= -zpi ) xb_xa = xb_xa +2*zpi
+      IF(iverbose>1)  WRITE(6,*) ' * HEADIN() => yb-ya, xb_xa ', yb-ya , xb_xa
 
       angled = ATAN2(xb_xa, yb - ya)
 
       heading=angled*180./zpi
-      IF (heading < 0) heading = heading + 360._8
+      IF(heading < 0) heading = heading + 360._8
 
    END FUNCTION heading
 
@@ -941,13 +943,13 @@ CONTAINS
       CALL sherr( NF90_DEF_VAR(id_f, 'rw3', NF90_FLOAT,   (/id_x,id_y/), id_v13, deflate_level=5),  crtn,cf_out,'w3' )
       CALL sherr( NF90_DEF_VAR(id_f, 'rw4', NF90_FLOAT,   (/id_x,id_y/), id_v14, deflate_level=5),  crtn,cf_out,'w4' )
 
-      IF ( l_save_distance_to_np ) THEN
+      IF( l_save_distance_to_np ) THEN
          CALL sherr( NF90_DEF_VAR(id_f, 'dist_np', NF90_REAL, (/id_x,id_y/), id_dnp, deflate_level=5), crtn,cf_out,'dist_np' )
          CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'long_name', 'Distance to nearest point'),             crtn,cf_out,'dist_np' )
          CALL sherr( NF90_PUT_ATT(id_f, id_dnp, 'units'    , 'km'                       ),             crtn,cf_out,'dist_np' )
       END IF
 
-      IF ( rflag /= 0. ) THEN
+      IF( rflag /= 0. ) THEN
          CALL sherr( NF90_PUT_ATT(id_f, id_v01, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iP   (masking)' )
          CALL sherr( NF90_PUT_ATT(id_f, id_v02, '_FillValue',  INT(rflag)  ), crtn,cf_out,'jP   (masking)' )
          CALL sherr( NF90_PUT_ATT(id_f, id_v03, '_FillValue',  INT(rflag)  ), crtn,cf_out,'iqd  (masking)' )
@@ -991,7 +993,7 @@ CONTAINS
       CALL sherr( NF90_PUT_VAR(id_f, id_v13, pbln_map(:,:)%rw3   ),  crtn,cf_out,'rw3')
       CALL sherr( NF90_PUT_VAR(id_f, id_v14, pbln_map(:,:)%rw4   ),  crtn,cf_out,'rw4')
       !!
-      IF ( l_save_distance_to_np ) CALL sherr( NF90_PUT_VAR(id_f, id_dnp, distance_to_np), crtn,cf_out,'lon' )
+      IF( l_save_distance_to_np ) CALL sherr( NF90_PUT_VAR(id_f, id_dnp, distance_to_np), crtn,cf_out,'lon' )
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_out,'dummy')
 
