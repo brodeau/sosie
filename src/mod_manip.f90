@@ -872,7 +872,6 @@ CONTAINS
          !j_strt_t = MINVAL(MINLOC(Ytrg, mask=(Ytrg>=y_min_s), dim=2))  ! smallest j on target source that covers smallest source latitude
          i1dum = MINLOC(Ytrg, mask=(Ytrg>=y_min_s), dim=2)
          j_strt_t = MINVAL(i1dum, mask=(i1dum>0))
-         DEALLOCATE ( i1dum )
          j_stop_t = MAXVAL(MAXLOC(Ytrg, mask=(Ytrg<=y_max_s), dim=2))  ! largest j on target source that covers largest source latitude
          IF ( j_strt_t > j_stop_t ) jlat_icr = -1 ! latitude decreases as j increases (like ECMWF grids...)
          IF (ldebug) THEN
@@ -893,7 +892,7 @@ CONTAINS
       PRINT *, ''
 
       IF ( PRESENT( mask_domain_trg ) ) mask_domain_trg(:,:) = mask_ignore_t(:,:)
-      DEALLOCATE ( mask_ignore_t )
+      DEALLOCATE ( mask_ignore_t, i1dum )
 
    END SUBROUTINE FIND_NEAREST_POINT
 
@@ -1151,7 +1150,6 @@ CONTAINS
          !! Smalles ever possible j index of the smallest latitude in region where Ysrc>=rlat_low
          i1dum = MINLOC(Ysrc, mask=(Ysrc .GT. rlat_low), dim=2)
          jmin_band = MINVAL(i1dum, mask=(i1dum>0))
-         DEALLOCATE ( i1dum )
          !!
          !! To be sure to include everything, adding 1 extra points below and above:
          J_VLAT_S(jlat,1) = MAX(jmin_band - 1,   1  )
@@ -1306,7 +1304,7 @@ CONTAINS
       WHERE ( JIpos == -1 ) mask_t = -1
       WHERE ( JJpos == -1 ) mask_t = -2
 
-      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_S, e1_s, e2_s, mspot_lon , mspot_lat , Xdist )
+      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_S, e1_s, e2_s, mspot_lon , mspot_lat , Xdist, i1dum)
 
    END SUBROUTINE FIND_NEAREST_TWISTED
 
