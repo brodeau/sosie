@@ -378,7 +378,7 @@ PROGRAM INTERP_TO_GROUND_TRACK
    PRINT *, ' *** Minimum longitude on source domain: ', lon_min_2
    PRINT *, ' *** Maximum longitude on source domain: ', lon_max_2   
    ! lolo: disgusting!:
-   l_loc1 = ((lon_min_1 <  0.).AND.(lon_min_1 > -170.)).OR.((lon_max_1 >  0. ).AND.(lon_min_1 <  170.))
+   l_loc1 = ((lon_min_1 <  0.).AND.(lon_min_1 > -170.)).OR.((lon_max_1 >  0. ).AND.(lon_max_1 <  170.))
    l_loc2 = (lon_min_2 >= 0.).AND.(lon_min_2 <   2.5).AND.(lon_max_2 >357.5).AND.(lon_max_2 <= 360.)
    IF (.NOT. l_loc1) THEN
       IF ( l_loc2 ) THEN

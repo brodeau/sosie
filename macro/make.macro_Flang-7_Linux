@@ -2,9 +2,9 @@
 # =================================================================================
 
 # Fortran compiler:
-FC = gfortran
+FC = flang
 
-VERSION = 9
+VERSION = 7
 
 # Root directory for Netcdf:
 # netcf libraries are in: <NETCDF_DIR>/lib/
@@ -20,11 +20,15 @@ LIB_COMP_DIR = /usr/lib/gcc/x86_64-linux-gnu/$(VERSION)
 
 # Fortran compilation flags:
 # -- Common:
-FF_BASE = -J./mod -I./mod
+FF_BASE = --module-dependency-dir ./mod -I./mod
 # -- Production:
-FF = -O2 -ffree-line-length-200 -fbounds-check $(FF_BASE)
+FF = -O2 $(FF_BASE)
+#FF = -O2 -ffree-line-length-200 -fbounds-check $(FF_BASE)
 # -- Debugging:
 #FF = -O0 -ffree-line-length-200 -w -fbounds-check -Wall $(FF_BASE)
+
+
+
 
 ## For io_ezcdf.f90:
 FF_SAFE = $(FF)
