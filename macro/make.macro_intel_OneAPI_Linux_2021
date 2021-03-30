@@ -18,14 +18,14 @@ L_NCDF = -lnetcdff
 
 # Fortran compilation flags:
 # -- Common:
-FF_BASE = -module mod/
+FF_BASE = -I mod/ -module mod/
 # -- Production:
-FF = -O3 -i4 -xHOST -traceback -module mod/ $(FF_BASE)
+FF = -O3 -i4 -xHOST -traceback $(FF_BASE)
 # -- Debugging:
 #FF =  -fpe0 -O0 -g -check all -warn all -traceback -debug extended -C $(FF_BASE)
 
 ## For io_ezcdf.f90 (netCDF bug => "-fpe0" cannot be used here:
-FF_SAFE = -O2 -i4 -xHOST -traceback 
+FF_SAFE = -O2 -i4 -xHOST $(FF_BASE)
 
 
 # Directory to install binaries:
