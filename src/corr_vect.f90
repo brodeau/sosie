@@ -244,7 +244,7 @@ PROGRAM CORR_VECT
 
 
    IF ( l_inv ) THEN
-      
+
       IF( (TRIM(cv_u_in)=='0').OR.(TRIM(cv_u_in)=='0') ) THEN
          PRINT *,'ERROR: you must specify the names of vector components with the "-v" switch!'
          STOP
@@ -262,11 +262,11 @@ PROGRAM CORR_VECT
 
 
 
-   
+
    IF(.NOT. l_inv) THEN
 
       !!     N O R M A L   C O R R E C T I O N
-      
+
       cnmlst_x = TRIM(cf_nml_sosie)//'_x'
       cnmlst_y = TRIM(cf_nml_sosie)//'_y'
 
@@ -498,11 +498,11 @@ PROGRAM CORR_VECT
                V_r8 = 0.
             ELSE
                !! Getting uncorrected U on grid T:
-               CALL  GETVAR_2D(idf_u, idv_u, cf_raw_U, cv_out_U, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+               CALL  GETVAR_2D(idf_u, idv_u, cf_raw_U, cv_out_U, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
                U_r8 = ztmp4
 
                !! Getting uncorrected V on grid T:
-               CALL  GETVAR_2D(idf_v, idv_v, cf_raw_V, cv_out_V, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+               CALL  GETVAR_2D(idf_v, idv_v, cf_raw_V, cv_out_V, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
                V_r8 = ztmp4
             END IF
 
@@ -814,14 +814,14 @@ PROGRAM CORR_VECT
 
             !! Getting U :
             !! -----------
-            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_u_in, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_u_in, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
             U_r8 = ztmp4
 
-            
+
 
             !! Getting V :
             !! -----------
-            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_v_in, Ntr, jk*i3d, jt, ztmp4, lz=nk)
+            CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_v_in, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
             V_r8 = ztmp4
 
             !! Unrotating U :
@@ -829,7 +829,7 @@ PROGRAM CORR_VECT
             !#LB: U_r8 is on U-points!
             U_c(:,:,jk) = REAL(XCOST8*U_r8 - XSINT8*V_r8 , 4) ! note the '-' sign --> reverse correction
             !#LB: on what grid points is this supposed to be??? U or T? Presently the rest of the code assume it's U !!!
-            
+
 
             !! Unrotating V :
             !! --------------
@@ -880,65 +880,66 @@ PROGRAM CORR_VECT
 
    PRINT *,'Done!'
 
+
+CONTAINS
+
+
+   SUBROUTINE usage_corr_vect()
+      !!
+      PRINT *,''
+      PRINT *,'   List of command line options:'
+      PRINT *,''
+      PRINT *,' -I   => will perform inverse correction, ie un-rotate a ORCA grid'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  *** MANDATORY for both normal and inverse mode:'
+      PRINT *,''
+      PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
+      PRINT *,''
+      PRINT *,' Note: In "normal" aka "rotation" mode, corr_vect.x will read U and V'
+      PRINT *,'       bluntly interpolated from a regular grid onto the T-grid points'
+      PRINT *,'       of the TARGET NEMO grid, and rotate them according to the local'
+      PRINT *,'       distortion of the TARGET NEMO grid.'
+      PRINT *,'       Result is the rotated vector on T-grid points, unless the "-G U,V"'
+      PRINT *,'       switch is used!'
+      PRINT *,'       If "-G U,V" is used rotated vector is interpolated on U and V points.'
+      PRINT *,''
+      PRINT *,' -f  <namelist_prefix> => common file name prefix for the 2 namelists to be read'
+      PRINT *,'                       => expects to find <namelist_prefix>_x & <namelist_prefix>_y !'
+      PRINT *,'                         [no namelist needed when inverse correction]'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  *** MANDATORY for INVERSE MODE (-I switch) :'
+      PRINT *,''
+      PRINT *,' Note: In "inverse" aka "de-rotation" mode, corr_vect.x will read U and V'
+      PRINT *,'      of a vector native of NEMO (like current field output from NEMO)'
+      PRINT *,'      and will "un-rotate" it so each component can then be inter-'
+      PRINT *,'      polated on a regular grid.'
+      PRINT *,'      Input vector components, U,V, are provided on their respective'
+      PRINT *,'      U- & V-grid points.'
+      PRINT *,'      Result is the "de-rotated" vector on T-grid points of NEMO grid.'
+      PRINT *,''
+      PRINT *,' -i <x.nc> <y.nc>     => unrotate vector fields given in these 2 files'
+      PRINT *,'                         to the same grid'
+      PRINT *,''
+      PRINT *,' -v  <nameU> <nameV>  => names for x and y components in intput files'
+      PRINT *,''
+      PRINT *,' -t <time_name>       => name of time variable in <x.nc> and <y.nc>'
+      PRINT *,''
+      PRINT *,''
+      PRINT *,'  *** MISC options :'
+      PRINT *,''
+      PRINT *,' -G  <T/U,V>          => Specify grid points where to save the (un)rotated vector'
+      PRINT *,'                       ==>    T    points "-G T" DEFAULT !'
+      PRINT *,'                       ==> U and V points "-G U,V"'
+      PRINT *,''
+      PRINT *,' -h                   => Show this message'
+      PRINT *,''
+      STOP
+      !!
+   END SUBROUTINE usage_corr_vect
+   !!
 END PROGRAM CORR_VECT
-
-
-
-SUBROUTINE usage_corr_vect()
-   !!
-   PRINT *,''
-   PRINT *,'   List of command line options:'
-   PRINT *,''
-   PRINT *,' -I   => will perform inverse correction, ie un-rotate a ORCA grid'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  *** MANDATORY for both normal and inverse mode:'
-   PRINT *,''
-   PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
-   PRINT *,''
-   PRINT *,' Note: In "normal" aka "rotation" mode, corr_vect.x will read U and V'
-   PRINT *,'       bluntly interpolated from a regular grid onto the T-grid points'
-   PRINT *,'       of the TARGET NEMO grid, and rotate them according to the local'
-   PRINT *,'       distortion of the TARGET NEMO grid.'
-   PRINT *,'       Result is the rotated vector on T-grid points, unless the "-G U,V"'
-   PRINT *,'       switch is used!'
-   PRINT *,'       If "-G U,V" is used rotated vector is interpolated on U and V points.'
-   PRINT *,''
-   PRINT *,' -f  <namelist_prefix> => common file name prefix for the 2 namelists to be read'
-   PRINT *,'                       => expects to find <namelist_prefix>_x & <namelist_prefix>_y !'
-   PRINT *,'                         [no namelist needed when inverse correction]'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  *** MANDATORY for INVERSE MODE (-I switch) :'
-   PRINT *,''
-   PRINT *,' Note: In "inverse" aka "de-rotation" mode, corr_vect.x will read U and V'
-   PRINT *,'      of a vector native of NEMO (like current field output from NEMO)'
-   PRINT *,'      and will "un-rotate" it so each component can then be inter-'
-   PRINT *,'      polated on a regular grid.'
-   PRINT *,'      Input vector components, U,V, are provided on their respective'
-   PRINT *,'      U- & V-grid points.'
-   PRINT *,'      Result is the "de-rotated" vector on T-grid points of NEMO grid.'
-   PRINT *,''
-   PRINT *,' -i <x.nc> <y.nc>     => unrotate vector fields given in these 2 files'
-   PRINT *,'                         to the same grid'
-   PRINT *,''
-   PRINT *,' -v  <nameU> <nameV>  => names for x and y components in intput files'
-   PRINT *,''
-   PRINT *,' -t <time_name>       => name of time variable in <x.nc> and <y.nc>'
-   PRINT *,''
-   PRINT *,''
-   PRINT *,'  *** MISC options :'
-   PRINT *,''
-   PRINT *,' -G  <T/U,V>          => Specify grid points where to save the (un)rotated vector'
-   PRINT *,'                       ==>    T    points "-G T" DEFAULT !'
-   PRINT *,'                       ==> U and V points "-G U,V"'
-   PRINT *,''
-   PRINT *,' -h                   => Show this message'
-   PRINT *,''
-   STOP
-   !!
-END SUBROUTINE usage_corr_vect
-!!

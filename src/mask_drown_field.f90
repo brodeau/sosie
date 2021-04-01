@@ -8,7 +8,7 @@ PROGRAM mask_drown_field
    USE io_ezcdf
    USE mod_bdrown
    USE mod_conf, ONLY : rmissval
-   
+
    IMPLICIT NONE
 
    !! Grid :
@@ -62,7 +62,7 @@ PROGRAM mask_drown_field
    TYPE(var_attr), DIMENSION(nbatt_max):: v_lon_att, v_lat_att, v_tim_att, v_fld_att
    INTEGER :: nb_att_lon, nb_att_lat, nb_att_tim, nb_att_fld
 
-   
+
 
 
    l3d = .FALSE.
@@ -82,7 +82,7 @@ PROGRAM mask_drown_field
       SELECT CASE (trim(cr))
 
       CASE('-h')
-         call usage()
+         call usage_mdf()
 
       CASE('-i')
          CALL GET_MY_ARG('input file', cf_fld, 1)
@@ -134,7 +134,7 @@ PROGRAM mask_drown_field
 
       CASE DEFAULT
          PRINT *, 'Unknown option: ', trim(cr) ; PRINT *, ''
-         CALL usage()
+         CALL usage_mdf()
 
       END SELECT
 
@@ -144,7 +144,7 @@ PROGRAM mask_drown_field
    IF ( (trim(cv_fld) == '').OR.(trim(cf_fld) == '') ) THEN
       PRINT *, ''
       PRINT *, 'You must at least specify input file (-i) and input variable (-v)!!!'
-      CALL usage()
+      CALL usage_mdf()
    END IF
 
    IF ( (.NOT. l_mask_f) .AND. (.NOT. l_drwn_f) ) THEN
@@ -205,7 +205,7 @@ PROGRAM mask_drown_field
    CALL GETVAR_ATTRIBUTES(cf_fld, cv_lat,  nb_att_lat, v_lat_att)
    CALL GETVAR_ATTRIBUTES(cf_fld, cv_tim,  nb_att_tim, v_tim_att)
    CALL GETVAR_ATTRIBUTES(cf_fld, cv_fld,  nb_att_fld, v_fld_att)
-   
+
    !PRINT *, 'LOLO: att for var=', v_fld_att ; STOP'LOLO'
 
 
@@ -363,10 +363,9 @@ PROGRAM mask_drown_field
    END DO
 
 
-
-
 CONTAINS
 
+   
    SUBROUTINE GET_MY_ARG(cname, cvalue, nbarg)
 
       CHARACTER(len=*), INTENT(in)    :: cname
@@ -375,14 +374,14 @@ CONTAINS
       !                                        !: so far: 0 or 1
 
       IF ( (jarg + 1 > iargc()).AND.(nbarg > 0) ) THEN
-         PRINT *, 'ERROR: Missing ',trim(cname),' name!' ; call usage()
+         PRINT *, 'ERROR: Missing ',trim(cname),' name!' ; call usage_mdf()
       ELSE
 
          CALL getarg(jarg+1,cr) ! reading next argument
 
          !! We do not want a -* after a -* that expects an argument:
          IF ( (nbarg > 0) .AND. ANY(clist_opt == trim(cr)) ) THEN
-            PRINT *, 'ERROR: Missing',trim(cname),' name!'; call usage()
+            PRINT *, 'ERROR: Missing',trim(cname),' name!'; call usage_mdf()
 
          ELSEIF (nbarg > 0) THEN
             cvalue = trim(cr)
@@ -390,68 +389,63 @@ CONTAINS
 
             !! We do not want a following argument so we want a -* after or nothing
          ELSE IF ( ( (jarg + 1 <= iargc()).AND.(nbarg == 0) ).AND. (.NOT. ANY(clist_opt == trim(cr)) ) ) THEN
-            PRINT *, 'ERROR: ',trim(cname),' does not expect an argument!'; call usage()
+            PRINT *, 'ERROR: ',trim(cname),' does not expect an argument!'; call usage_mdf()
 
          END IF
       END IF
    END SUBROUTINE GET_MY_ARG
 
 
+   SUBROUTINE usage_mdf()
+      !!
+      !! OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  !! MB: Pb with gfortran
+      !!
+      WRITE(6,*) ''
+      WRITE(6,*) '   List of command line options:'
+      WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -M                   => MASK the field'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -D                   => DROWN the field'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
+      WRITE(6,*) ''
+      WRITE(6,*) '    Optional:'
+      WRITE(6,*)  ''
+      WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file (default: lat)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -m  <mask_file>      => Specify mask file to be used (default: mask.nc)'
+      WRITE(6,*) '                         or "0" to use missing-value attribute value of input variable'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -q  <name>           => Specify mask name in mask file (default: lsm)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -p  <integer>        => DROWN: east-west periodicity in points (default: 0)'
+      WRITE(6,*) '                         * no periodicity       => -1'
+      WRITE(6,*) '                         * no overlaping point  =>  0'
+      WRITE(6,*) '                         * N  overlaping points =>  N'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -l  <real>           => to set a lower bound for the field (ex: "-10." not "-10")'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -u  <real>           => to set an upper bound for the field (ex: "100." not "100")'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -g  <integer>        => DROWN: how far into land the variable is drowned'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -o  <output_file.nc> => Output file (default: fout.nc)'
+      WRITE(6,*) ''
+      WRITE(6,*) ' -h                   => Show this message'
+      WRITE(6,*) ''
+      !!
+      CLOSE(6)
+      STOP
+      !!
+   END SUBROUTINE usage_mdf
+   !!
 END PROGRAM mask_drown_field
-
-
-
-
-
-SUBROUTINE usage()
-   !!
-   !! OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  !! MB: Pb with gfortran
-   !!
-   WRITE(6,*) ''
-   WRITE(6,*) '   List of command line options:'
-   WRITE(6,*) '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -M                   => MASK the field'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -D                   => DROWN the field'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -i <input_file.nc>   => INPUTE FILE'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -v  <name>           => Specify variable name in input file'
-   WRITE(6,*) ''
-   WRITE(6,*) '    Optional:'
-   WRITE(6,*)  ''
-   WRITE(6,*) ' -x  <name>           => Specify longitude name in input file (default: lon)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -y  <name>           => Specify latitude  name in input file (default: lat)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -z  <name>           => Specify depth name in input file (default: depth)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -t  <name>           => Specify time name in input file (default: time)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -m  <mask_file>      => Specify mask file to be used (default: mask.nc)'
-   WRITE(6,*) '                         or "0" to use missing-value attribute value of input variable'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -q  <name>           => Specify mask name in mask file (default: lsm)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -p  <integer>        => DROWN: east-west periodicity in points (default: 0)'
-   WRITE(6,*) '                         * no periodicity       => -1'
-   WRITE(6,*) '                         * no overlaping point  =>  0'
-   WRITE(6,*) '                         * N  overlaping points =>  N'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -l  <real>           => to set a lower bound for the field (ex: "-10." not "-10")'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -u  <real>           => to set an upper bound for the field (ex: "100." not "100")'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -g  <integer>        => DROWN: how far into land the variable is drowned' 
-   WRITE(6,*) ''
-   WRITE(6,*) ' -o  <output_file.nc> => Output file (default: fout.nc)'
-   WRITE(6,*) ''
-   WRITE(6,*) ' -h                   => Show this message'
-   WRITE(6,*) ''
-   !!
-   CLOSE(6)
-   STOP
-   !!
-END SUBROUTINE usage
-!!
