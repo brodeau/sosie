@@ -7,6 +7,7 @@ PROGRAM mask_drown_field
 
    USE io_ezcdf
    USE mod_bdrown
+   USE mod_drown
    USE mod_conf, ONLY : rmissval
 
    IMPLICIT NONE
@@ -345,9 +346,14 @@ PROGRAM mask_drown_field
 
       IF ( l_drwn_f ) THEN
          PRINT *, ' *** drowning field at time =', jt
+         !$OMP PARALLEL DEFAULT(NONE) SHARED(nk,iewper,DATA,mask,i_how_far) PRIVATE(jk)
+         !$OMP DO SCHEDULE(DYNAMIC)
          DO jk = 1, nk
-            CALL BDROWN(iewper, DATA(:,:,jk), mask(:,:,jk), nb_inc=i_how_far)
+            PRINT *, ' - drowning fields at level = ',jk
+            CALL DROWN(iewper, DATA(:,:,jk), mask(:,:,jk), i_how_far)
          END DO
+         !$OMP END DO
+         !$OMP END PARALLEL
       END IF
 
 

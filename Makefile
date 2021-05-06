@@ -31,12 +31,12 @@ SUFFIXES :=
 
 
 OBJ = obj/io_ezcdf.o \
-obj/mod_conf.o \
-obj/mod_init.o \
-obj/mod_manip.o \
-obj/mod_grids.o \
+obj/mod_conf.o   \
+obj/mod_init.o   \
+obj/mod_manip.o  \
+obj/mod_grids.o  \
 obj/mod_bdrown.o \
-obj/mod_drown.o \
+obj/mod_drown.o  \
 obj/mod_akima_2d.o \
 obj/mod_bilin_2d.o \
 obj/mod_akima_1d.o \
@@ -48,19 +48,20 @@ obj/mod_poly.o
 #obj/mod_drown.o \
 
 OBJ_I2GT = obj/io_ezcdf.o \
-obj/mod_conf.o \
-obj/mod_manip.o \
-obj/mod_drown.o \
-obj/mod_bdrown.o \
+obj/mod_conf.o     \
+obj/mod_manip.o    \
+obj/mod_bdrown.o   \
+obj/mod_drown.o    \
 obj/mod_bilin_2d.o \
 obj/mod_poly.o
 
 #obj/mod_drown.o \
 
 OBJ_I2HS = obj/io_ezcdf.o \
-obj/mod_conf.o \
-obj/mod_manip.o \
-obj/mod_bdrown.o \
+obj/mod_conf.o     \
+obj/mod_manip.o    \
+obj/mod_bdrown.o   \
+obj/mod_drown.o    \
 obj/mod_bilin_2d.o \
 obj/mod_akima_1d.o \
 obj/mod_poly.o
@@ -71,6 +72,7 @@ OBJ_CRS = obj/mod_nemo.o obj/crs.o obj/crsdom.o
 # Modules to install in $INSTALL_DIR/include :
 MOD_INST= mod/io_ezcdf.mod \
 mod/mod_akima_2d.mod \
+mod/mod_drown.mod   \
 mod/mod_bdrown.mod
 
 all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/ij_from_lon_lat.x
@@ -193,7 +195,7 @@ obj/mod_poly.o: src/mod_poly.f90 obj/io_ezcdf.o
 
 
 
-OBJ_MSK_DRWN = obj/mod_conf.o obj/mod_manip.o obj/mod_bdrown.o obj/io_ezcdf.o
+OBJ_MSK_DRWN = obj/mod_conf.o obj/mod_manip.o obj/mod_drown.o obj/mod_bdrown.o obj/io_ezcdf.o
 bin/mask_drown_field.x: src/mask_drown_field.f90 $(OBJ_MSK_DRWN)
 	@mkdir -p ./bin
 	$(FC) $(FF) $(OBJ_MSK_DRWN) -o bin/mask_drown_field.x src/mask_drown_field.f90 $(LIB_CDF)

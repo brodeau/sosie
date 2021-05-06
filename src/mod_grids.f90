@@ -1243,7 +1243,7 @@ CONTAINS
       INTEGER :: ni, nj, nk
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
       REAL    :: rval_thrshld
-
+      PRINT *, 'CREATE_LSM_3D'
       IF( .NOT. ((cinfo == 'source').OR.(cinfo == 'target')) ) THEN
          PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
       END IF

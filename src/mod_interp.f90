@@ -2,8 +2,8 @@ MODULE MOD_INTERP
 
    USE mod_conf       !* important parameters, namelist and misc routines
    USE mod_manip      !* misc. manipulation of 2D arrays
-   !USE mod_drown      !* extrapolation over masked surfaces
-   USE mod_bdrown      !* extrapolation over masked surfaces
+   USE mod_drown3d    !* extrapolation over masked surfaces
+   USE mod_bdrown
    USE mod_akima_2d   !* Akima method algorithm
    USE mod_bilin_2d   !* Bi-linear method (for handling irregular source grids)
    USE mod_akima_1d   !* 1D Akima method for vertical interpolation
@@ -11,6 +11,8 @@ MODULE MOD_INTERP
 
    USE mod_nemotools, ONLY: lbc_lnk
    USE io_ezcdf,      ONLY: DUMP_FIELD ; !LOLOdebug
+
+   USE, INTRINSIC :: ieee_arithmetic
 
    IMPLICIT NONE
 
@@ -41,7 +43,6 @@ CONTAINS
          !! Extrapolate sea values over land :
          IF( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,1),  xfield=data_src )
          CALL BDROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth) !lolo
-         !CALL DROWN(ewper_src, data_src, mask_src(:,:,1), nb_inc=idrown%np_penetr)
          IF( l_save_drwn ) data_src_drowned(:,:,1) = data_src(:,:)
 
       ELSE
@@ -97,7 +98,6 @@ CONTAINS
       !! => apply a drown because the relevant areas were masked (even if lmout==false)!
       IF(jj_ex_btm > 0) THEN
          CALL BDROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth) !lolo
-         !CALL DROWN(ewper_trg, data_trg, mask_trg(:,:,1), nb_inc=idrown%np_penetr)
       END IF
       !lolo.
 
@@ -119,10 +119,6 @@ CONTAINS
          PRINT *, ''
       END IF
 
-
-
-
-
       !! Masking result if requested
       IF( lmout ) THEN
          WHERE (mask_trg(:,:,1) == 0)  data_trg = rmiss_val
@@ -134,8 +130,6 @@ CONTAINS
       IF( i_orca_trg > 0 ) CALL lbc_lnk( i_orca_trg, data_trg, c_orca_trg, 1.0_8 )
 
    END SUBROUTINE INTERP_2D
-
-
 
    SUBROUTINE INTERP_3D(jt)
 
@@ -166,70 +160,34 @@ CONTAINS
          END DO
       END IF
 
-
-      IF( ixtrpl_bot == 1 ) THEN
-         PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
-         PRINT *, '    ==> using persistence method'
-         !! Downward extrapolation of last wet value into the sea-bed
-         DO jj=1, nj_src
-            DO ji=1, ni_src
-               jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
-               IF( jk_bot>1 ) THEN
-                  zwet   = data3d_src(ji,jj,jk_bot-1)
-                  !PRINT *, 'LOLO: bottom: jk_bot, nk_src, zwet =', jk_bot, nk_src, zwet
-                  data3d_src(ji,jj,jk_bot:nk_src) = zwet ! persistence !
-               END IF
-            END DO
-         END DO
-      END IF
-
-      IF( (ixtrpl_bot == 2).AND.(nk_src > 5) ) THEN
-         PRINT *, '### Extrapolating bottom value of source field downward into the sea-bed!'
-         PRINT *, '    ==> using DROWN method'
-         !! First, need to do some sort of vertical drown downward to propagate the bottom
-         !! value (last water pomit mask==1) down into the sea-bed...
-         !! => calling drown vertical slice by vertical slices (zonal vertical slices)
-         !! Find the level from which less than 10 % of the rectangular domain is water
-         jk_almst_btm = 2
-         DO jk = jk_almst_btm, nk_src
-            IF( SUM(REAL(mask_src(:,:,jk),4)) / REAL(ni_src*nj_src,4) < 0.1 ) EXIT
-         END DO
-         jk_almst_btm = MIN( jk , nk_src - nk_src/5 )
-         !PRINT *, '#LOLO / mod_interp.f90: jk_almst_btm =', jk_almst_btm, nk_src
-         !!
-         DO jj = 1, nj_src
-            CALL BDROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=20, nb_smooth=5 ) !lolo
-            !CALL DROWN( -1, data3d_src(:,jj,jk_almst_btm:nk_src), mask_src(:,jj,jk_almst_btm:nk_src), nb_inc=20 )
-         END DO
-         !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '02_Slice_in_just_after_vert_drown.tmp', 's')
-         !!
-      END IF !IF( (ixtrpl_bot == 2).AND.(nk_src > 5) )
-
-      IF( ixtrpl_bot>0 ) PRINT *, '   => Done!'
-      !IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_after_bedrock_extrapolation.nc', TRIM(cv_src) )
-
       PRINT *, ''
 
-      DO jk = 1, nk_src
-
-         PRINT *, '### Preparing source field at level : ', jk
-
-         IF( l_drown_src ) THEN
-            !! Now, the official DROWN can be done!
-            !! Extrapolate sea values over land :
-            WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
-            !PRINT *, 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
+      IF( l_drown_src ) THEN
+         !! Now, the official DROWN can be done!
+         !! Extrapolate sea values over land :
+         DO jk = 1, nk_src
+            PRINT *, 'create mask'
             IF( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )
-            CALL BDROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth ) !lolo
-            !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr )
-            IF( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
-            !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's') !#LB
-         ELSE
-            PRINT *, '-------------------'
-            PRINT *, 'DROWN NOT CALLED!!!'
-            PRINT *, '-------------------'
-         END IF
+         END DO
+         !
+         CALL DROWN3D(ewper_src, data3d_src, mask_src, 'BOUN' ) !idrown%np_penetr )
+         !
+         IF( l_save_drwn ) data_src_drowned(:,:,:) = data3d_src(:,:,:)
+         !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's') !#LB
+      ELSE
+         PRINT *, '-------------------'
+         PRINT *, 'DROWN NOT CALLED!!!'
+         PRINT *, '-------------------'
 
+         ! set to NaN value still at on 'land'
+         WHERE ( mask_src == 0 )
+            data3d_src = ieee_value(1., ieee_quiet_nan)
+         END WHERE
+
+      END IF
+      CALL DUMP_FIELD(data3d_src, 'data_before_hint.nc', 'data_before_hint') !#LB
+
+      DO jk = 1, nk_src
          IF( ismooth > 0 ) THEN
             IF( TRIM(cmethod) == 'no_xy' ) THEN
                PRINT *, 'ERROR: makes no sense to perform "no_xy" vertical interpolation and to have ismooth > 0 !'
@@ -255,10 +213,8 @@ CONTAINS
 
       END DO !DO jk = 1, nk_src
 
-
-
       !! Prevent last level to f-word shit up when not a single water point (last level is only rock!)
-      IF( SUM(mask_src(:,:,nk_src)) == 0) data3d_src(:,:,nk_src) = data3d_src(:,:,nk_src-1) ! persistence!
+      !! IF( SUM(mask_src(:,:,nk_src)) == 0) data3d_src(:,:,nk_src) = data3d_src(:,:,nk_src-1) ! persistence!
 
       !LOLOdebug:
       !DO jk = nk_src/2, nk_src
@@ -335,7 +291,10 @@ CONTAINS
 
       !! Time for vertical interpolation
 
+      CALL PERSISTENCE_TOPBOT(data3d_tmp)
 
+      CALL DUMP_FIELD(data3d_tmp, 'data_before_zint.nc', 'data_before_zint') !#LB
+      
       !IF( .NOT. (TRIM(cf_x_trg)  == 'spheric') ) THEN  !LOLO WTF was this???
       IF( .NOT. l_identical_levels ) THEN  ! ( l_identical_levels always false for S-coordinates...)
 
@@ -439,6 +398,18 @@ CONTAINS
 
       END IF  !IF( .NOT. l_identical_levels )      ! => no vertical interpolation required...
 
+      CALL DUMP_FIELD(data3d_trg, 'data_after_zint.nc', 'data_after_zint') !#LB
+
+      WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
+      !
+      CALL DROWN3D(ewper_trg, data3d_trg, mask_trg, 'HOLE' ) !idrown%np_penetr )
+      CALL DUMP_FIELD(data3d_trg, 'data_after_hole.nc', 'data_after_hole') !#LB
+      !
+      CALL DROWN3D(ewper_trg, data3d_trg, mask_trg, 'LAND' ) !idrown%np_penetr )
+      
+      !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's') !#LB
+
+      PRINT *, ''
 
       !! avoid working with 3D arrays as a whole : produce SEGV on some machines (small)
       !! RD : replaced out of bounds values by vmin/vmax not rmiss_val
