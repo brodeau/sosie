@@ -154,10 +154,5 @@ Check **so_ORCA2-ORCA1_test.nc**
 &nbsp;
 
 #### Bi-linear remapping ORCA to ORCA 
+
 Examples are stored into "examples/ORCAX_to_ORCAY"
-
-Remapping metric/weight files for big source/target configurations can be downloaded at the following link, since they are very time-consuming to generate. 
-
-https://drive.google.com/drive/folders/1YB7iuDIStZVGCi-FOh6g6AbGQmKj07Px
-
-
