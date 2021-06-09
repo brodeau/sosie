@@ -11,7 +11,8 @@ https://brodeau.github.io/sosie/) -->
 You need a FORTRAN-90 compiler and the netCDF-4 (HDF5) library with f90 support.
 
 For stability, clone branch 3.0 or the older 2.6 corresponding to releases of the same name...
-`git clone -b '3.0' ...`
+
+`>> git clone -b '3.0' ...`
 
 
 
