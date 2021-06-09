@@ -31,10 +31,8 @@ Compiling the executables:
    executables have been created and are ready to be used
 
  * `sosie3.x` is the executable used to interpolate 2D fields of a scalar and
-   "vectors onto regular grids", it requires a `namelist` configuration file,
-   the provided template namelist should be documented enough to start now.
-   * check `template_scalar.namelist` for the interpolation of a scalar field
-   * check `template_U.namelist` and `template_V.namelist` for a vector
+   "vectors onto regular grids", it requires a *namelist* configuration file,
+   the provided template *namelist* `template.namelist` should be documented enough to start now.
 
  * `corr_vect.x` is used to correct vector components in the case of a distorded
    grid, it needs BOTH components of the vector primarly interpolated with
@@ -42,8 +40,8 @@ Compiling the executables:
    See the EXAMPLE section for more details.
 
  You can start to interpolate!
- * Tune the `namelist` file according to your needs...
- * It`s a good idea to use scripts to automatically generate namelists
+ * Tune the *namelist* file according to your needs...
+ * It`s a good idea to use scripts to automatically generate *namelists*
 
 
 
@@ -60,10 +58,9 @@ For ROMS examples:
 
 Save and extract them into the `examples` sub-directory of SOSIE.
 
-Into this `examples` sub-directory you will find various namelists and scripts
+Into this `examples` sub-directory you will find various *namelists* and scripts
 to test SOSIE on working configurations.  For each example you will find a
-commented and working namelist (usually namelist.exampleX, sometimes a more
-explicit name ) explaining the relevant namelist tuning.  We encourage you to
+commented and working *namelist* (usually `namelist.exampleX`) explaining the relevant *namelist* tuning.  We encourage you to
 use a software like ncview to visualize fields to be interpolated and fields
 that have been interpolated.
 The common approach to test a given example (# X):
@@ -122,7 +119,7 @@ Do the "raw" interpolation for the zonal component of the wind:
 Do the "raw" interpolation for the meridional component of the wind:
 
       >> sosie3.x -f namelist.example4_O1t_y
-Now that uraw_1x1-deg-ORCA1_grid_T.nc4 and uraw_1x1-deg-ORCA1_grid_T.nc4 are created, time to correct onto the T-grid:
+Now that `uraw_1x1-deg-ORCA1_grid_T.nc4` and `uraw_1x1-deg-ORCA1_grid_T.nc4` are created, it's time to *rotate* them onto the T-grid:
 
       >> corr_vect.x -G T -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
 Check `u10_1x1-deg-ORCA1_grid_T.nc4` and `v10_1x1-deg-ORCA1_grid_T.nc4` (vector components on T-points of the grid).
