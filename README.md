@@ -3,15 +3,17 @@
 ![SOSIE Logo](https://brodeau.github.io/sosie/sosie_files/sosie_300.svg)
 
 
-### SOSIE version 3.0 (use branch "2.6" if you want the older version)
-
 # Getting started with SOSIE
-(Also check the online SOSIE doc for more info on the interpolation method:
-https://brodeau.github.io/sosie/)
 
-You need a FORTRAN-90 compiler and the netcdf library (with f90 support) installed.
+<!-- (Also check the online SOSIE doc for more info on the interpolation method:
+https://brodeau.github.io/sosie/) -->
 
-3.0
+You need a FORTRAN-90 compiler and the netCDF-4 (HDF5) library with f90 support.
+
+For stability, clone branch 3.0 or the older 2.6 corresponding to releases of the same name...
+`git clone -b '3.0' ...`
+
+
 
 Compiling the executables:
 --
