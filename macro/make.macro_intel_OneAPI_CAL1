@@ -1,0 +1,32 @@
+# Makefile for SOSIE with Intel Ifort on Linux
+# ============================================
+
+# Fortran compiler:
+FC = ifort
+
+# Root directory for Netcdf:
+# netcf libraries are in: <NETCDF_DIR>/lib/
+# netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+NETCDF_DIR = /mnt/meom/workdir/brodeau/opt/hdf5_netcdf4_intel_seq
+
+# Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
+L_NCDF = -lnetcdff
+
+# Compiler's libraries location:
+#LIB_COMP_DIR = /opt/intel/compilers_and_libraries_2019.1.144/linux/compiler/lib/intel64_lin
+
+
+# Fortran compilation flags:
+# -- Common:
+FF_BASE = -i4 -xHOST -I mod/ -module mod/
+# -- Production:
+FF = -O3 $(FF_BASE)
+# -- Debugging:
+#FF =  -O0 -fpe0 -g -check all -warn all -traceback -debug extended -C $(FF_BASE)
+
+## For io_ezcdf.f90 (netCDF bug => "-fpe0" cannot be used here:
+FF_SAFE = -O2 $(FF_BASE)
+
+# Directory to install binaries:
+INSTALL_DIR = ${HOME}/local
+

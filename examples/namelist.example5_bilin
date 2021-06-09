@@ -1,0 +1,67 @@
+!! -------------------
+!! Namelist for SOSIE
+!! -------------------
+!!
+!! EXAMPLE 5: Interpolation of a few time records of air temperature at 2m of ECMWF
+!! high-res operational analysis on a stereographic projection of the Arctic
+!! #########
+!!
+!!
+&ndom_src
+csource    = 'ECMWF-2560x480'
+ivect      = 0    ! this is not a vector interpolation
+l_reg_src  = .true.    ! input grid is regular (lon and lat are "1D")
+cf_src     = 'data/T2M_ECMWF-OA_20141201_3h_2560x480_North.nc4'
+cv_src     = 'T2M'
+cv_t_src   = 'time'
+cf_x_src   = 'data/T2M_ECMWF-OA_20141201_3h_2560x480_North.nc4'
+cv_lon_src = 'lon'
+cv_lat_src = 'lat'
+cf_lsm_src = 'data/T2M_ECMWF-OA_20141201_3h_2560x480_North.nc4'
+cv_lsm_src = 'lsm'
+ewper_src  = 0   ! input field does have a east-west periodicity with 0 overlapping points
+/
+!!
+!!
+&ndom_trg
+ctarget    = 'polar-stereo-448x304'
+l_reg_trg  = .false.     ! Target grid is not regular !!!
+cf_x_trg   = 'data/Polar_Stereographic_Land-Ocean-Coastline-Ice_Masks_448x304_LB.nc'
+cv_lon_trg = 'longitude'
+cv_lat_trg = 'latitude'
+cf_lsm_trg = 'data/Polar_Stereographic_Land-Ocean-Coastline-Ice_Masks_448x304_LB.nc'
+cv_lsm_trg = 'mask'
+ewper_trg  = 0
+/
+!!
+!!
+&ninterp
+cmethod     = 'bilin'
+!!
+idrown      = 100,50
+ixtrpl_bot  = 1
+l_save_drwn = .true.
+ismooth     = 0
+jt1         = 0    ! we want to interpolate each time record
+jt2         = 0    !           //
+jplev       = 1
+vmax        =  1.E6
+vmin        = -1.E6
+ismooth_out = 0
+/
+!!
+!!
+&noutput
+cv_out    = 'T2M'
+cu_out    = 'K'
+cln_out   = '2m air temperature, 20141201, ECMWF op. an.'
+cv_t_out  = 'time'
+cd_out    = '.'
+cextra    = 'Arctic__bilin'
+lmout     = .true.      ! We want to mask continents!
+rmiss_val = -9999.
+lct       = .false.     ! we use time vector from input file
+t0        = 0.
+t_stp     = 0.
+/
+!!

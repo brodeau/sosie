@@ -13,15 +13,12 @@ NCDF_LIB=$(NETCDF_DIR)/lib
 NCDF_INC=$(NETCDF_DIR)/include
 
 #========================================================
-#          You should not change anything below
+#         You should not change anything below
 #========================================================
 
-LIB_SOSIE = lib/libsosie.a
-
-# LIBRARY :
-LIB_CDF = -L$(NCDF_LIB) $(L_NCDF)
-LIB     = -L./lib -lsosie $(LIB_CDF)
-
+# LIBRARY linking:
+LD_NC  = -L$(NCDF_LIB) $(L_NCDF) ; # "L_NCDF" defined in make.macro ... (ex: "-lnetcdff")
+LD_ALL = -L./lib -lsosie $(LD_NC)
 
 # Disable implicit rules to speedup build
 .SUFFIXES:
@@ -29,6 +26,7 @@ SUFFIXES :=
 %.o:
 %.mod:
 
+LIB_SOSIE = lib/libsosie.a
 
 OBJ = obj/io_ezcdf.o \
 obj/mod_conf.o \
@@ -87,27 +85,27 @@ test: bin/test_stuffs.x
 
 bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) src/sosie.f90 -o bin/sosie3.x $(LIB)
+	$(FC) $(FF_SAFE) src/sosie.f90 -o bin/sosie3.x $(LD_ALL)
 
 bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
-	$(FC) $(FF_SAFE) src/corr_vect.f90 -o bin/corr_vect.x $(LIB)
+	$(FC) $(FF_SAFE) src/corr_vect.f90 -o bin/corr_vect.x $(LD_ALL)
 
 bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
-	$(FC) $(FF_SAFE) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
+	$(FC) $(FF_SAFE) src/test_stuffs.f90 -o bin/test_stuffs.x $(LD_ALL)
 
 
 bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 $(OBJ_I2GT)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB_CDF)
+	$(FC) $(FF_SAFE) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LD_NC)
 
 bin/interp_to_hydro_section.x: src/interp_to_hydro_section.f90 $(OBJ_I2HS)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) $(OBJ_I2HS) src/interp_to_hydro_section.f90 -o bin/interp_to_hydro_section.x $(LIB_CDF)
+	$(FC) $(FF_SAFE) $(OBJ_I2HS) src/interp_to_hydro_section.f90 -o bin/interp_to_hydro_section.x $(LD_NC)
 
 OBJ_IJLL = obj/io_ezcdf.o obj/mod_conf.o obj/mod_manip.o
 bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 $(OBJ_IJLL)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) $(OBJ_IJLL) src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
+	$(FC) $(FF_SAFE) $(OBJ_IJLL) src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LD_NC)
 
 
 ### CRS:
@@ -124,7 +122,7 @@ obj/crsdom.o: src/crs/crsdom.f90 obj/crs.o
 
 bin/nemo_coarsener.x: src/crs/nemo_coarsener.f90 $(OBJ_CRS) obj/io_ezcdf.o obj/mod_manip.o
 	@mkdir -p bin
-	$(FC) $(FF) -I$(NCDF_INC) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/crs/nemo_coarsener.f90 -o bin/nemo_coarsener.x $(LIB_CDF)
+	$(FC) $(FF) -I$(NCDF_INC) obj/io_ezcdf.o obj/mod_manip.o $(OBJ_CRS) src/crs/nemo_coarsener.f90 -o bin/nemo_coarsener.x $(LD_NC)
 
 
 
@@ -196,7 +194,7 @@ obj/mod_poly.o: src/mod_poly.f90 obj/io_ezcdf.o
 OBJ_MSK_DRWN = obj/mod_conf.o obj/mod_manip.o obj/mod_bdrown.o obj/io_ezcdf.o
 bin/mask_drown_field.x: src/mask_drown_field.f90 $(OBJ_MSK_DRWN)
 	@mkdir -p ./bin
-	$(FC) $(FF) $(OBJ_MSK_DRWN) -o bin/mask_drown_field.x src/mask_drown_field.f90 $(LIB_CDF)
+	$(FC) $(FF) $(OBJ_MSK_DRWN) -o bin/mask_drown_field.x src/mask_drown_field.f90 $(LD_NC)
 
 
 install: all
