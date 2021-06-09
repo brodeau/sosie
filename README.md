@@ -19,31 +19,31 @@ For stability, clone branch 3.0 or the older 2.6 corresponding to releases of th
 Compiling the executables:
 --
 
- * Create 'make.macro', the Makefile configurable part. This files should be a symbolic
-   link or a copy of architecture-related templates found in the 'macro' directory,
+ * Create `make.macro`, the configurable part of the `Makefile`. This files should be a symbolic
+   link or a copy of architecture-related templates found in the `macro` directory,
    this file must specify your compiler and options as well as the path to netcdf
 
- * It's important to specify the default INTEGER precision to 4 in your compilation flags (switch "-i4" for *ifort* and "-fdefault-integer-4" for *Gfortran*)
+ * It's important to specify the default INTEGER precision to 4 in your compilation flags (switch `-i4` for *ifort* and `-fdefault-integer-4` for *Gfortran*)
 
- * compile the executables by simply running "make" (gmake)
+ * compile the executables by simply running `make` (gmake)
 
- * if everything goes well, the 'sosie3.x' and 'corr\_vect.x'
+ * if everything goes well, the `sosie3.x` and `corr_vect.x`
    executables have been created and are ready to be used
 
- * 'sosie3.x' is the executable used to interpolate 2D fields of a scalar and
-   "vectors onto regular grids", it requires a 'namelist' configuration file,
+ * `sosie3.x` is the executable used to interpolate 2D fields of a scalar and
+   "vectors onto regular grids", it requires a `namelist` configuration file,
    the provided template namelist should be documented enough to start now.
-        --> check 'template\_scalar.namelist' for the interpolation of a scalar field
-        --> check 'template\_U.namelist' and 'template\_V.namelist' for a vector
+   * check `template_scalar.namelist` for the interpolation of a scalar field
+   * check `template_U.namelist` and `template_V.namelist` for a vector
 
- * 'corr\_vect.x' is used to correct vector components in the case of a distorded
+ * `corr_vect.x` is used to correct vector components in the case of a distorded
    grid, it needs BOTH components of the vector primarly interpolated with
-   'sosie3.x'. By default it only support ORCA grids configuration.
+   `sosie3.x`. By default it only support ORCA grids configuration.
    See the EXAMPLE section for more details.
 
  You can start to interpolate!
- * Tune the 'namelist' file according to your needs...
- * It's a good idea to use scripts to automatically generate namelists
+ * Tune the `namelist` file according to your needs...
+ * It`s a good idea to use scripts to automatically generate namelists
 
 
 
@@ -58,9 +58,9 @@ For generic examples:
 For ROMS examples:
 * data_roms.tar.gz &rarr; https://drive.google.com/uc?authuser=0&id=1ljE3KZu1fqQlKSumm3CtaR0Uf2I9yps3&export=download
 
-Save and extract them into the "examples" sub-directory of SOSIE.
+Save and extract them into the `examples` sub-directory of SOSIE.
 
-Into this "examples" sub-directory you will find various namelists and scripts
+Into this `examples` sub-directory you will find various namelists and scripts
 to test SOSIE on working configurations.  For each example you will find a
 commented and working namelist (usually namelist.exampleX, sometimes a more
 explicit name ) explaining the relevant namelist tuning.  We encourage you to
@@ -75,24 +75,25 @@ The common approach to test a given example (# X):
 &nbsp;
 
 #### Example #1: basic 2D scalar field interpolation
+
 Interpolation of Reynolds (2002) Long Term Mean SST onto the ORCA1 grid
-(illustrated on Fig. 3-4). Uncompress files coordinates+tmask\_ORCA1.nc.gz and
-sst.ltm.1971-2000.nc.gz in ./data
+(illustrated on Fig. 3-4). Uncompress files `coordinates+tmask_ORCA1.nc.gz` and
+`sst.ltm.1971-2000.nc.gz` into `./data/`:
 
       >> sosie3.x -f namelist.example1
 
-Check SST\_360x180-ORCA1\_REYNOLDS\_LTM.nc
+Check `SST_360x180-ORCA1_REYNOLDS_LTM.nc`
 
 &nbsp;
 
 #### Example #2: 3D scalar field interpolation
 
 3D interpolation of Levitus (1998) temperature climatology onto the ORCA1 grid
-(only march). Uncompress files coordinates+tmask\_ORCA1.nc.gz and
-T\_levitus\_march.nc.gz in ./data
+(only march). Uncompress files `coordinates+tmask_ORCA1.nc.gz` and
+`T_levitus_march.nc.gz` into `./data/`
 
      >> sosie3.x -f namelist.example2
-Check temp\_360x180-ORCA1\_march.nc
+Check `temp_360x180-ORCA1_march.nc`
 
 &nbsp;
 
@@ -100,10 +101,10 @@ Check temp\_360x180-ORCA1\_march.nc
 
 2D interpolation of a SST snapshot from a random NEMO-ORCA1 simulation onto
 lat-lon 1x1 deg. grid using the bilinear algorithm. Uncompress the file
-sst\_ORCA1\_example.nc.gz in ./data
+`sst_ORCA1_example.nc.gz` into `./data/`
 
     >> sosie3.x -f namelist.example3
-Check sst\_ORCA1-1x1\_test.nc
+Check `sst_ORCA1-1x1_test.nc`
 
 &nbsp;
 
@@ -124,12 +125,12 @@ Do the "raw" interpolation for the meridional component of the wind:
 Now that uraw_1x1-deg-ORCA1_grid_T.nc4 and uraw_1x1-deg-ORCA1_grid_T.nc4 are created, time to correct onto the T-grid:
 
       >> corr_vect.x -G T -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
-Check u10_1x1-deg-ORCA1_grid_T.nc4 and v10_1x1-deg-ORCA1_grid_T.nc4 (vector components on T-points of the grid).
+Check `u10_1x1-deg-ORCA1_grid_T.nc4` and `v10_1x1-deg-ORCA1_grid_T.nc4` (vector components on T-points of the grid).
 
 It is possible to do the same correction onto U,V grid points rather than T points:
 
       >> corr_vect.x -G U -f namelist.example4_O1t -m ../data/mesh_mask_ORCA1v2_light.nc4
-Check u10_1x1-deg-ORCA1_grid_U.nc4 and v10_1x1-deg-ORCA1_grid_V.nc4.
+Check `u10_1x1-deg-ORCA1_grid_U.nc4` and `v10_1x1-deg-ORCA1_grid_V.nc4`.
 
 
 
@@ -141,7 +142,7 @@ Do the interpolation:
 
           >> sosie3.x -f namelist.example5
 
-Check **T2M_2560x480-polar-stereo_Arctic.nc**
+Check `T2M_2560x480-polar-stereo_Arctic.nc`
 
 
 &nbsp;
@@ -152,7 +153,7 @@ Do the interpolation:
 
           >> sosie3.x -f namelist.example6
 
-Check **so_ORCA2-ORCA1_test.nc**
+Check `so_ORCA2-ORCA1_test.nc`
 
 &nbsp;
 
