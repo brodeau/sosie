@@ -17,6 +17,8 @@ MODULE MOD_BILIN_2D
    USE mod_poly
    USE mod_grids, ONLY: mask_ignore_trg
 
+   USE io_ezcdf, ONLY : DUMP_FIELD !lolodbg
+   
    IMPLICIT NONE
 
    PRIVATE
@@ -387,8 +389,6 @@ CONTAINS
       !!      * pmsk_dom_trg: ignore (dont't treat) regions of the target domain where pmsk_dom_trg==0 !
       !!----------------------------------------------------------------------------
       !!
-      USE io_ezcdf, ONLY : DUMP_FIELD !lolodbg
-      !!
       INTEGER,                 INTENT(in) :: k_ew_per
       REAL(8), DIMENSION(:,:), INTENT(in) :: plon_src, plat_src
       REAL(8), DIMENSION(:,:), INTENT(in) :: plon_trg, plat_trg
@@ -427,6 +427,8 @@ CONTAINS
       LOGICAL :: l_ok, lagain, lpdebug
       INTEGER :: icpt, ithrd, iom1, iom2
       !!
+      !!DEBUG:
+      !INTEGER :: jx
       CHARACTER(len=80) :: cf_tmp !lolodbg
       !!----------------------------------------------------------------------------
 
@@ -437,6 +439,10 @@ CONTAINS
 
       nxi = SIZE(plon_src,1)
       nyi = SIZE(plon_src,2)
+      WRITE(6,'("LOLOdbg/MAPPING_BL: shape of plon_src for thread #",i1,": ",i4.4,"x",i4.4)') ithrd, nxi, nyi
+      
+
+      
 
       nxo = SIZE(plon_trg,1)
       nyo = SIZE(plon_trg,2)
@@ -446,7 +452,7 @@ CONTAINS
          STOP
       END IF
 
-      WRITE(6,'("LOLOdbg/MAPPING_BL: size of domain for thread #",i1,": ",i4.4,"x",i4.4)') ithrd, nxo, nyo
+      WRITE(6,'("LOLOdbg/MAPPING_BL: size of target domain for thread #",i1,": ",i4.4,"x",i4.4)') ithrd, nxo, nyo
 
 
       ALLOCATE ( zbln_map(nxo,nyo), kmsk_ignr_trg(nxo,nyo), ki_nrst(nxo,nyo), kj_nrst(nxo,nyo) )
@@ -463,29 +469,33 @@ CONTAINS
 
       IF ( PRESENT(pmsk_dom_trg) ) kmsk_ignr_trg(:,:) = pmsk_dom_trg(:,:)
 
+      !! DEBUG: checking input fields for each different thread:
+      WRITE(cf_tmp,'("in_mbl_lon_src_",i2.2,".nc")') ithrd
+      CALL DUMP_FIELD(REAL(plon_src(:,:),4), cf_tmp, 'lon')
+      WRITE(cf_tmp,'("in_mbl_lat_src_",i2.2,".nc")') ithrd
+      CALL DUMP_FIELD(REAL(plat_src(:,:),4), cf_tmp, 'lat')
+      !!
+      WRITE(cf_tmp,'("in_mbl_lon_trg_",i2.2,".nc")') ithrd
+      CALL DUMP_FIELD(REAL(plon_trg,4), cf_tmp, 'lon')
+      WRITE(cf_tmp,'("in_mbl_lat_trg_",i2.2,".nc")') ithrd
+      CALL DUMP_FIELD(REAL(plat_trg,4), cf_tmp, 'lat')      
+      !STOP
+
       CALL FIND_NEAREST_POINT( plon_trg, plat_trg, plon_src, plat_src, ki_nrst, kj_nrst,  &
          &                     ithread=ithrd, pmsk_dom_trg=kmsk_ignr_trg )
 
       !lolodbg:
-      !WRITE(cf_tmp,'("aa_nrst_ji",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(ki_nrst,4), cf_tmp, 'ji')
-      !!
-      !WRITE(cf_tmp,'("aa_nrst_jj",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(kj_nrst,4), cf_tmp, 'jj')
-      !!
-      !WRITE(cf_tmp,'("plon_trg_",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(plon_trg,4), cf_tmp, 'lon')
-      !WRITE(cf_tmp,'("plat_trg_",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(plat_trg,4), cf_tmp, 'lat')
-      !!
-
+      WRITE(cf_tmp,'("in_mbl_nrst_ji",i2.2,".nc")') ithread
+      PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
+      CALL DUMP_FIELD(REAL(ki_nrst,4), cf_tmp, 'ji')
+      !
+      WRITE(cf_tmp,'("in_mbl_nrst_jj",i2.2,".nc")') ithread
+      PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
+      CALL DUMP_FIELD(REAL(kj_nrst,4), cf_tmp, 'jj')
       !lolodbg.
 
-
+      !$OMP BARRIER
+      !STOP'lilo'
 
       DO jj = 1, nyo
          DO ji = 1, nxo
@@ -724,15 +734,20 @@ CONTAINS
 
 
       !lolodbg:
-      !WRITE(cf_tmp,'("alfa_thread",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(zbln_map(:,:)%ralfa,4), cf_tmp, 'alfa')
+      WRITE(cf_tmp,'("in_mbl_alfa_thread",i2.2,".nc")') ithread
+      PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
+      CALL DUMP_FIELD(REAL(zbln_map(:,:)%ralfa,4), cf_tmp, 'alfa')
       !!
-      !WRITE(cf_tmp,'("beta_thread",i2.2,".nc")') ithread
-      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      !CALL DUMP_FIELD(REAL(zbln_map(:,:)%rbeta,4), cf_tmp, 'beta')
+      WRITE(cf_tmp,'("in_mbl_beta_thread",i2.2,".nc")') ithread
+      PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
+      CALL DUMP_FIELD(REAL(zbln_map(:,:)%rbeta,4), cf_tmp, 'beta')
       !lolodbg.
 
+
+      !$OMP BARRIER
+      STOP'mod_bilin_2d.f90:MAPPING_BL()=>lilo2'
+
+      
       bilin_map(iom1:iom2,:) = zbln_map(:,:)
 
       DEALLOCATE ( zbln_map, kmsk_ignr_trg, ki_nrst, kj_nrst )

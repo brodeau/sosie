@@ -136,27 +136,25 @@ CONTAINS
             !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !
 
             !!lolodbg:
-            cf_tmp='lon_src.nc'
-            CALL DUMP_FIELD(REAL(x_src_2d(:,:),4), cf_tmp, 'lon')
-            cf_tmp='lat_src.nc'
-            CALL DUMP_FIELD(REAL(y_src_2d(:,:),4), cf_tmp, 'lat')
+            !CALL DUMP_FIELD(REAL(x_src_2d(:,:),4), 'lon_src.nc', 'lon')
+            !CALL DUMP_FIELD(REAL(y_src_2d(:,:),4), 'lat_src.nc', 'lat')
 
-            !! Check what's inside each chunk:
-            DO jo = 1, Nthrd
-               WRITE(cf_tmp,'("lon_trg_",i2.2,".nc")') jo
-               CALL DUMP_FIELD(REAL(x_trg_2d(io1(jo):io2(jo),:),4), cf_tmp, 'lon')
+            !! Check what's inside each chunk:            
+            !DO jo = 1, Nthrd
+               !WRITE(cf_tmp,'("lon_trg_",i2.2,".nc")') jo
+               !CALL DUMP_FIELD(REAL(x_trg_2d(io1(jo):io2(jo),:),4), cf_tmp, 'lon')
                !!
-               WRITE(cf_tmp,'("lat_trg_",i2.2,".nc")') jo
-               CALL DUMP_FIELD(REAL(y_trg_2d(io1(jo):io2(jo),:),4), cf_tmp, 'lat')
+               !WRITE(cf_tmp,'("lat_trg_",i2.2,".nc")') jo
+               !CALL DUMP_FIELD(REAL(y_trg_2d(io1(jo):io2(jo),:),4), cf_tmp, 'lat')
                !!
-               WRITE(cf_tmp,'("ignr_trg_",i2.2,".nc")') jo
-               CALL DUMP_FIELD(REAL(mask_ignore_trg(io1(jo):io2(jo),:),4), cf_tmp, 'mask_ignore')
+               !WRITE(cf_tmp,'("ignr_trg_",i2.2,".nc")') jo
+               !CALL DUMP_FIELD(REAL(mask_ignore_trg(io1(jo):io2(jo),:),4), cf_tmp, 'mask_ignore')
                !!
-               WRITE(cf_tmp,'("bilin_map_alfa_",i2.2,".nc")') jo
-               CALL DUMP_FIELD(REAL(bilin_map(io1(jo):io2(jo),:)%ralfa,4), cf_tmp, 'alfa')
-               WRITE(cf_tmp,'("bilin_map_beta_",i2.2,".nc")') jo
-               CALL DUMP_FIELD(REAL(bilin_map(io1(jo):io2(jo),:)%rbeta,4), cf_tmp, 'beta')
-            END DO
+               !WRITE(cf_tmp,'("bilin_map_alfa_",i2.2,".nc")') jo
+               !CALL DUMP_FIELD(REAL(bilin_map(io1(jo):io2(jo),:)%ralfa,4), cf_tmp, 'alfa')
+               !WRITE(cf_tmp,'("bilin_map_beta_",i2.2,".nc")') jo
+               !CALL DUMP_FIELD(REAL(bilin_map(io1(jo):io2(jo),:)%rbeta,4), cf_tmp, 'beta')
+            !END DO
 
 
             PRINT *, ' l_skip_bilin_mapping =', l_skip_bilin_mapping
@@ -181,6 +179,9 @@ CONTAINS
                !$OMP END PARALLEL DO
 
                !$OMP BARRIER
+               
+               STOP'LOLO:mod_interp.f90'
+               
                CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
                
             ELSE

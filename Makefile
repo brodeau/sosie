@@ -88,27 +88,27 @@ test: bin/test_stuffs.x
 
 bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) src/sosie.f90 -o bin/sosie3.x $(LIB)
+	$(FC) $(FF) src/sosie.f90 -o bin/sosie3.x $(LIB)
 
 bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
-	$(FC) $(FF_SAFE) src/corr_vect.f90 -o bin/corr_vect.x $(LIB)
+	$(FC) $(FF) src/corr_vect.f90 -o bin/corr_vect.x $(LIB)
 
 bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
-	$(FC) $(FF_SAFE) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
+	$(FC) $(FF) src/test_stuffs.f90 -o bin/test_stuffs.x $(LIB)
 
 
 bin/interp_to_ground_track.x: src/interp_to_ground_track.f90 $(OBJ_I2GT)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB_CDF)
+	$(FC) $(FF) $(OBJ_I2GT) src/interp_to_ground_track.f90 -o bin/interp_to_ground_track.x $(LIB_CDF)
 
 bin/interp_to_hydro_section.x: src/interp_to_hydro_section.f90 $(OBJ_I2HS)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) $(OBJ_I2HS) src/interp_to_hydro_section.f90 -o bin/interp_to_hydro_section.x $(LIB_CDF)
+	$(FC) $(FF) $(OBJ_I2HS) src/interp_to_hydro_section.f90 -o bin/interp_to_hydro_section.x $(LIB_CDF)
 
 OBJ_IJLL = obj/io_ezcdf.o obj/mod_conf.o obj/mod_manip.o
 bin/ij_from_lon_lat.x: src/ij_from_lon_lat.f90 $(OBJ_IJLL)
 	@mkdir -p bin
-	$(FC) $(FF_SAFE) $(OBJ_IJLL) src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
+	$(FC) $(FF) $(OBJ_IJLL) src/ij_from_lon_lat.f90 -o bin/ij_from_lon_lat.x $(LIB_CDF)
 
 
 ### CRS:

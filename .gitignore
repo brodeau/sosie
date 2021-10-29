@@ -13,4 +13,7 @@ lib
 obj
 mod
 *.tar.gz
-
+*.BAK
+*.OK
+*.NEW
+*.OLD

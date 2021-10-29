@@ -1933,7 +1933,8 @@ CONTAINS
          vextrema(1,:) = (/MINVAL(xlon),MAXVAL(xlon)/); vextrema(2,:) = (/MINVAL(xlat),MAXVAL(xlat)/)
       END IF
       IF( PRESENT(rfill) ) l_mask = .TRUE.
-      CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, id_f), crtn,cf_in,cv_in)
+      !CALL sherr( NF90_CREATE(cf_in, NF90_NETCDF4, id_f), crtn,cf_in,cv_in)
+      CALL sherr( NF90_CREATE(cf_in, NF90_CLOBBER, id_f), crtn,cf_in,cv_in)
       IF( l_zcoord ) THEN
          CALL prepare_nc(id_f, cdt, Ni, Nj, cv_lo, cv_la, '',  vextrema, &
             &            id_x, id_y, i01, id_lo, id_la, i02, &
@@ -1943,7 +1944,7 @@ CONTAINS
             &            id_x, id_y, i01, id_lo, id_la, i02, &
             &            crtn,cf_in,cv_in)
       END IF
-      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v, deflate_level=idflt), crtn,cf_in,cv_in)
+      CALL sherr( NF90_DEF_VAR(id_f, TRIM(cv_in), NF90_FLOAT, (/id_x,id_y/), id_v), crtn,cf_in,cv_in)
       IF(l_mask)  CALL sherr( NF90_PUT_ATT(id_f, id_v,trim(cmv0),        rfill                 ), crtn,cf_in,cv_in)
       IF(l_zcoord) CALL sherr( NF90_PUT_ATT(id_f, id_v,'coordinates',TRIM(cv_la)//" "//TRIM(cv_lo)), crtn,cf_in,cv_in)
       CALL sherr( NF90_ENDDEF(id_f),  crtn,cf_in,cv_in)
@@ -2311,14 +2312,14 @@ CONTAINS
          IF( (cdt0 == '2d').OR.(cdt0 == 'y1') ) THEN
             CALL sherr( NF90_DEF_DIM(id_file, 'x', nx, id_ji), cri,cfi,cvi)
             CALL sherr( NF90_DEF_DIM(id_file, 'y', ny, id_jj), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, (/id_ji,id_jj/), id_lon, deflate_level=idflt), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, (/id_ji,id_jj/), id_lat, deflate_level=idflt), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, (/id_ji,id_jj/), id_lon), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, (/id_ji,id_jj/), id_lat), cri,cfi,cvi)
             !!
          ELSE IF( cdt0 == '1d' ) THEN
             CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_lon), nx, id_ji), cri,cfi,cvi)
             CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_lat), ny, id_jj), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, id_ji, id_lon, deflate_level=idflt), cri,cfi,cvi)
-            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, id_jj, id_lat, deflate_level=idflt), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lon), NF90_DOUBLE, id_ji, id_lon), cri,cfi,cvi)
+            CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_lat), NF90_DOUBLE, id_jj, id_lat), cri,cfi,cvi)
          END IF
          !!
          IF( lcopy_att_lon )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_lon, attr_lon,  cri,cfi,cvi)
@@ -2341,7 +2342,7 @@ CONTAINS
       !!  TIME
       IF( TRIM(cv_time) /= '' ) THEN
          CALL sherr( NF90_DEF_DIM(id_file, TRIM(cv_time), NF90_UNLIMITED, id_jt), cri,cfi,cvi)
-         CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time, deflate_level=idflt), cri,cfi,cvi)
+         CALL sherr( NF90_DEF_VAR(id_file, TRIM(cv_time), NF90_DOUBLE, id_jt, id_time), cri,cfi,cvi)
          IF( lcopy_att_tim )  CALL SET_ATTRIBUTES_TO_VAR(id_file, id_time, attr_tim,  cri,cfi,cvi)
          IF( l_add_extrema ) THEN
             CALL sherr( NF90_PUT_ATT(id_file, id_time, 'valid_min',vxtrm(3,1)), cri,cfi,cvi)

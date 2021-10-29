@@ -11,6 +11,8 @@ NETCDF_DIR = /opt/hdf5_netcdf4_intel
 
 # Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
 L_NCDF = -lnetcdff
+# WARNING: io_ezcdf.f90 MUST NOT be compiled with `-qopenmp`
+
 
 # Compiler's libraries location:
 LIB_COMP_DIR = $(INTEL_DIR)/compiler/lib/intel64_lin
@@ -19,14 +21,14 @@ L_OMP  = -liomp5
 
 # Fortran compilation flags:
 # -- Common:
-FF_BASE = -qopenmp -i4 -module mod
+FF_BASE = -i4 -module mod
 # -- Production:
-#FF = -O3 -xHOST -traceback $(FF_BASE)
+#FF = -qopenmp -O3 -xHOST -traceback $(FF_BASE)
 # -- Debugging:
-FF =  -O0 -fpe0 -g -check all -warn all -traceback -debug extended -C $(FF_BASE)
+FF = -qopenmp -O0 -fpe0 -g -check all -warn all -traceback -debug extended -C $(FF_BASE)
 
 ## For io_ezcdf.f90 (netCDF bug => "-fpe0" cannot be used here:
-FF_SAFE = -O2 -i4 -xHOST -traceback $(FF_BASE)
+FF_SAFE = -O0 -i4 -xHOST -traceback $(FF_BASE)
 
 # Directory to install binaries:
 INSTALL_DIR = /usr/local

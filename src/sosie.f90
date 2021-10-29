@@ -51,8 +51,8 @@ PROGRAM SOSIE
 
    INTEGER    :: &
       &   jt, jte, jct, jcz,  &
-      &   idf_o, idf_i, idv_o, idv_i, &  !: netcdf ID for source/target file
-      &   idf_id, idv_id  !: drowned source field...
+      &   idf_o, idf_i, idv_o, idv_i  !: netcdf ID for source/target file
+
 
    INTEGER :: noinc, ileft, ipl, jo
 
