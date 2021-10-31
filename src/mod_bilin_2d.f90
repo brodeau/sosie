@@ -18,7 +18,7 @@ MODULE MOD_BILIN_2D
    USE mod_grids, ONLY: mask_ignore_trg
 
    USE io_ezcdf, ONLY : DUMP_FIELD !lolodbg
-   
+
    IMPLICIT NONE
 
    PRIVATE
@@ -175,7 +175,7 @@ CONTAINS
 
       iom1 = io1(ithrd)
       iom2 = io2(ithrd)
-      
+
 
       PRINT *, 'LOLOdbg: BILIN_2D() => shape of pX1 =', SIZE(pX1,1), SIZE(pX1,2)
 
@@ -193,7 +193,7 @@ CONTAINS
 
          bilin_map(ji,:)%jip = MAX( bilin_map(ji,:)%jip , 1 )  ! so no i or j <= 0
          bilin_map(ji,:)%jjp = MAX( bilin_map(ji,:)%jjp , 1 )  ! so no i or j <= 0
-         
+
       END DO
       !WHERE ( bilin_map(iom1:iom2,:)%jip < 1 ) mask_ignore_trg = 0
       !WHERE ( bilin_map(iom1:iom2,:)%jjp < 1 ) mask_ignore_trg = 0
@@ -221,7 +221,7 @@ CONTAINS
                !pZ2(ji,jj) = INTERP_BL(k_ew_per, ithrd, ji, jj, pZ1)
 
                CALL INTERP_BL( k_ew_per, ithrd, ji, jj, pZ1, pZ2(ji,jj) )
-               
+
             END IF
          END DO
       END DO
@@ -261,7 +261,7 @@ CONTAINS
 
    !FUNCTION INTERP_BL(k_ew_per, kiP, kjP, kqd, pa, pb, Z_in)
    SUBROUTINE INTERP_BL(k_ew_per, ithrd, ilt, jlt, Z_in, pres )
-   
+
       INTEGER,                 INTENT(in) :: k_ew_per
       INTEGER,                 INTENT(in) :: ithrd, ilt, jlt   ! LOCAL (local omp domain) coordinates of treated point on target domain
       !INTEGER,                 INTENT(in) :: kiP, kjP, kqd
@@ -271,13 +271,13 @@ CONTAINS
 
       INTEGER :: kiP, kjP, kqd
       REAL(8) :: pa, pb
-      
+
       !REAL(4) :: INTERP_BL
       REAL(4) ::  wup, w1, w2, w3, w4
       INTEGER :: ki, kj, nxi, nyi, kiPm1, kiPp1
       INTEGER :: i1=0, j1=0, i2=0, j2=0, i3=0, j3=0, i4=0, j4=0
       INTEGER :: Nitl
-      
+
       !! Choose the 4 interpolation points, according to sector and nearest point (kiP, kjP)
 
       !!   o<--o        x<--o         o<--x         o<--o
@@ -290,7 +290,7 @@ CONTAINS
       nyi = SIZE(Z_in,2)
 
       !PRINT *, 'LOLOINTERP_BL: ithrd, shape(io1), i1, i2 =>', INT(ithrd,1), INT(SIZE(io1),1), INT(io1(ithrd),2), INT(io2(ithrd),2)
-      
+
       !ki = ilt + io1(ithrd) - 1
       ki = io1(ithrd) - 1 + ilt
       kj = jlt
@@ -301,18 +301,18 @@ CONTAINS
          PRINT *, 'PROBLEM: ki > Nitl ! ithrd, ki, Nitl, ilt, io1(ithrd) ', INT(ithrd,1), ki, Nitl, ilt, io1(ithrd)
          STOP
       END IF
-      
+
       kiP = bilin_map(ki,kj)%jip
       kjP = bilin_map(ki,kj)%jjp
       kqd = bilin_map(ki,kj)%iqdrn
       pa  = bilin_map(ki,kj)%ralfa
       pb  = bilin_map(ki,kj)%rbeta
-      
+
       kiPm1 = kiP-1
       kiPp1 = kiP+1
       IF ( (kiPm1 ==   0  ).AND.(k_ew_per>=0) )  kiPm1 = nxi - k_ew_per
       IF ( (kiPp1 == nxi+1).AND.(k_ew_per>=0) )  kiPp1 = 1   + k_ew_per
-      
+
 
       SELECT CASE (kqd)
 
@@ -327,7 +327,7 @@ CONTAINS
          i2=kiP   ; j2 = kjP-1
          i3=kiPp1 ; j3 = kjP-1
          i4=kiPp1 ; j4 = kjP
-         
+
       CASE (3)  ! nearest point is the top righ corner point of mesh
          i1=kiP   ; j1 = kjP   ! local mesh is located SW of nearest point
          i2=kiPm1 ; j2 = kjP
@@ -341,7 +341,7 @@ CONTAINS
          i4=kiPm1 ; j4 = kjP
 
       END SELECT
-      
+
       !! compute sum weight above target point
       w1=REAL( (1. - pa)*(1. - pb) , 4)
       w2=REAL(       pa *(1. - pb) , 4)
@@ -355,7 +355,7 @@ CONTAINS
       !END IF
 
       ! interpolate with non-masked  values, above target point
-      
+
       !PRINT *, 'LOLO: j1,j2,j3,j4=', j1,j2,j3,j4
 
       IF ( wup == 0. ) THEN
@@ -430,6 +430,7 @@ CONTAINS
       !!DEBUG:
       !INTEGER :: jx
       CHARACTER(len=80) :: cf_tmp !lolodbg
+      LOGICAL :: l_skip_P
       !!----------------------------------------------------------------------------
 
       ithrd = 1 ! no OpenMP !
@@ -440,9 +441,9 @@ CONTAINS
       nxi = SIZE(plon_src,1)
       nyi = SIZE(plon_src,2)
       WRITE(6,'("LOLOdbg/MAPPING_BL: shape of plon_src for thread #",i1,": ",i4.4,"x",i4.4)') ithrd, nxi, nyi
-      
 
-      
+
+
 
       nxo = SIZE(plon_trg,1)
       nyo = SIZE(plon_trg,2)
@@ -478,7 +479,7 @@ CONTAINS
       WRITE(cf_tmp,'("in_mbl_lon_trg_",i2.2,".nc")') ithrd
       CALL DUMP_FIELD(REAL(plon_trg,4), cf_tmp, 'lon')
       WRITE(cf_tmp,'("in_mbl_lat_trg_",i2.2,".nc")') ithrd
-      CALL DUMP_FIELD(REAL(plat_trg,4), cf_tmp, 'lat')      
+      CALL DUMP_FIELD(REAL(plat_trg,4), cf_tmp, 'lat')
       !STOP
 
       CALL FIND_NEAREST_POINT( plon_trg, plat_trg, plon_src, plat_src, ki_nrst, kj_nrst,  &
@@ -496,7 +497,9 @@ CONTAINS
 
       !$OMP BARRIER
       !STOP'lilo'
+      ! jusqu'ici, ok!
 
+      !! PART I lilo
       DO jj = 1, nyo
          DO ji = 1, nxo
 
@@ -517,42 +520,17 @@ CONTAINS
                IF(lpdebug) WRITE(6,*) ' *** #DEBUG: xP, yP =', xP, yP
                IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iP, jP, nxi, nyi =', iP, jP, nxi, nyi
 
+
                IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<nyi) ) THEN
-                  ! jP<ny1 < last upper row was an extrapolation!
-                  iPm1 = iP-1
-                  iPp1 = iP+1
-                  jPm1 = jP-1
-                  jPp1 = jP+1
 
-                  IF ( iPm1 == 0 ) THEN
-                     !! We are in the extended case !!!
-                     IF ( k_ew_per>=0 ) iPm1 = nxi - k_ew_per
-                  END IF
+                  CALL GIVE_NGHBR_POINTS_SRC( k_ew_per, iP, jP, nxi, nyi, plon_src, plat_src,  &
+                     &                        l_skip_P, iPm1, iPp1, jPm1, jPp1, lonP, latP,    &
+                     &                        lonN, latN, lonE, latE, lonS, latS, lonW, latW )
 
-                  IF ( iPp1 == nxi+1 ) THEN
-                     IF ( k_ew_per>=0 ) iPp1 = 1   + k_ew_per
-                  END IF
-
-                  IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iPm1, iPp1 =', iPm1, iPp1
-                  IF(lpdebug) WRITE(6,*) ' *** #DEBUG: jPm1, jPp1 =', jPm1, jPp1
-
-                  IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi)) THEN
-                     IF(iverbose>0) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ',xP,yP,nxi,nyi,iP,jP
-                     IF(iverbose>0) WRITE(6,*) '          iPm1, iPp1, nxi =', iPm1, iPp1, nxi
-                     IF(iverbose>0) WRITE(6,*) '          jPm1, jPp1, nyi =', jPm1, jPp1, nyi
-                     IF(iverbose>0) WRITE(6,*) '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
-                     IF(iverbose>0) WRITE(6,*) ''
-                  ELSE
-
-                     lonP = MOD(plon_src(iP,jP)  , 360._8) ; latP = plat_src(iP,jP)   ! nearest point
-                     lonN = MOD(plon_src(iP,jPp1), 360._8) ; latN = plat_src(iP,jPp1) ! N (grid)
-                     lonE = MOD(plon_src(iPp1,jP), 360._8) ; latE = plat_src(iPp1,jP) ! E (grid)
-                     lonS = MOD(plon_src(iP,jPm1), 360._8) ; latS = plat_src(iP,jPm1) ! S (grid)
-                     lonW = MOD(plon_src(iPm1,jP), 360._8) ; latW = plat_src(iPm1,jP) ! W (grid)
+                  IF ( .NOT. l_skip_P ) THEN
 
                      !! Restore target point longitude between 0 and 360
                      xP = MOD(xP,360._8)
-
 
                      !!LB:
                      !! All this HEADING stuf is aimed at finding in which source grid cell
@@ -747,7 +725,7 @@ CONTAINS
       !$OMP BARRIER
       STOP'mod_bilin_2d.f90:MAPPING_BL()=>lilo2'
 
-      
+
       bilin_map(iom1:iom2,:) = zbln_map(:,:)
 
       DEALLOCATE ( zbln_map, kmsk_ignr_trg, ki_nrst, kj_nrst )
@@ -1038,5 +1016,95 @@ CONTAINS
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,'dummy' )
       !!
    END SUBROUTINE RD_MAPPING_AB
+
+
+
+
+
+   SUBROUTINE GIVE_NGHBR_POINTS_SRC( kewp, iX, jX, nxs, nys, xlon_src, xlat_src,  &
+      &                              lskip, iXm1, iXp1, jXm1, jXp1, plonX, platX, &
+      &                              plonN, platN, plonE, platE, plonS, platS, plonW, platW )
+      !!==============================================================================
+      !!
+      !! INPUT:
+      !!   * kewp : easr-west periodicity
+      !!   * iX   : i-index of nearest point on source grid
+      !!   * jX   : j-index of nearest point on source grid
+      !!   * nxs, nys : shape of input array GLOBAL ???
+      !!   * xlon_src : 2D array of source longitude
+      !!   * xlat_src : 2D array of source latitude
+      !!
+      !! OUTPUT:
+      !!   * lskip : if TRUE, skip this point...
+      !!   * plonX, platX : coordinates of nearest point on source grid
+      !!   * plonN, platN, plonE, platE, plonS, platS, plonW, platW : coordinates of the 4 points surrounding the nearest point on source grid
+      !!
+      !!==========================================================================================================
+      INTEGER,                 INTENT(in)  :: kewp, iX, jX, nxs, nys
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: xlon_src, xlat_src
+      LOGICAL,                 INTENT(out) :: lskip
+      INTEGER,                 INTENT(out) :: iXm1, iXp1, jXm1, jXp1
+      REAL(8),                 INTENT(out) :: plonX, platX, plonN, platN, plonE, platE, plonS, platS, plonW, platW
+      !!
+      !INTEGER :: nxs, nys
+      !!==========================================================================================================
+      !nxs = SIZE(xlon_src,1)
+      !nys = SIZE(xlon_src,2)
+      !
+      ! jX<ny1 < last upper row was an extrapolation!
+      iXm1 = iX-1
+      iXp1 = iX+1
+      jXm1 = jX-1
+      jXp1 = jX+1
+
+      plonX = 0.
+      platX = 0.
+      plonN = 0.
+      platN = 0.
+      plonE = 0.
+      platE = 0.
+      plonS = 0.
+      platS = 0.
+      plonW = 0.
+      platW = 0.
+
+      !! LOLO: remove from now, it's problematic in OMP with x-decomposition !!!!
+      !!      => all EWP shit should be done before OMP???
+      !IF ( iXm1 == 0 ) THEN
+      !   !! We are in the extended case !!!
+      !   IF ( kewp>=0 ) iXm1 = nxs - kewp
+      !END IF
+      !IF ( iXp1 == nxs+1 ) THEN
+      !   IF ( kewp>=0 ) iXp1 = 1   + kewp
+      !END IF
+      !IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iXm1, iXp1 =', iXm1, iXp1
+      !IF(lpdebug) WRITE(6,*) ' *** #DEBUG: jXm1, jXp1 =', jXm1, jXp1
+
+      lskip = ((iXm1 < 1).OR.(jXm1 < 1).OR.(iXp1 > nxs).OR.(jXp1 > nys))
+
+      IF ( .NOT. lskip) THEN
+
+         plonX = MOD(xlon_src(iX,jX)  , 360._8)
+         plonN = MOD(xlon_src(iX,jXp1), 360._8)
+         plonE = MOD(xlon_src(iXp1,jX), 360._8)
+         plonS = MOD(xlon_src(iX,jXm1), 360._8)
+         plonW = MOD(xlon_src(iXm1,jX), 360._8)
+
+         platX = xlat_src(iX,jX)   ! nearest point
+         platN = xlat_src(iX,jXp1) ! N (grid)
+         platE = xlat_src(iXp1,jX) ! E (grid)
+         platS = xlat_src(iX,jXm1) ! S (grid)
+         platW = xlat_src(iXm1,jX) ! W (grid)
+
+      ELSE
+         IF(iverbose>0) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ',xlon_src(iX,jX),xlon_src(iX,jX),nxs,nys,iX,jX
+         IF(iverbose>0) WRITE(6,*) '          iXm1, iXp1, nxs =', iXm1, iXp1, nxs
+         IF(iverbose>0) WRITE(6,*) '          jXm1, jXp1, nys =', jXm1, jXp1, nys
+         !IF(iverbose>0) WRITE(6,*) '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
+         IF(iverbose>0) WRITE(6,*) ''
+      END IF
+
+   END SUBROUTINE GIVE_NGHBR_POINTS_SRC
+
 
 END MODULE MOD_BILIN_2D
