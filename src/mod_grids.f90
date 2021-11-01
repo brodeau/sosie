@@ -13,21 +13,16 @@ MODULE  MOD_GRIDS
       MODULE PROCEDURE CREATE_LSM_2D, CREATE_LSM_3D
    END INTERFACE CREATE_LSM
 
-
    PUBLIC :: SRC_DOMAIN, &
       &      TRG_DOMAIN, &
+      &      MK_2D_LON_LAT, &
       &      IS_ORCA_NORTH_FOLD, &
       &      TERMINATE, &
       &      CREATE_LSM
 
-   INTEGER :: &
-      &     ji, jj, jk, jt0, jz0, &
-      &     n1, n2, n3, nrec,   &
-      &     if0, iv0
-
-   REAL(wpl) :: rmv, dx, dy
-   LOGICAL :: lmval
-
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_src_2d, y_src_2d ! 2D coordinates of source domain of shape (ni_src,nj_src) !
+   REAL(8),    DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: x_trg_2d, y_trg_2d ! 2D coorddinate of target domain of shape (ni_trg,nj_trg) !
+   INTEGER(1), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: mask_ignore_trg
 
 CONTAINS
 
@@ -42,9 +37,9 @@ CONTAINS
       !! Allocate source arrays with source dimensions :
       ALLOCATE ( data_src(ni_src,nj_src), mask_src(ni_src,nj_src,nk_src), data_src_b(ni_src,nj_src),    &
          &       mask_src_b(ni_src,nj_src,nk_src), vt0(Ntr0), vt(Ntr) )
-      
+
       IF( l_save_drwn .OR. (ixtrpl_bot>0) ) ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
-      
+
       vt(:) = 0.
 
       IF( l_reg_src ) THEN
@@ -81,12 +76,12 @@ CONTAINS
       max_lon_src = MAXVAL(lon_src);   max_lat_src = MAXVAL(lat_src)
       min_lon_src = MINVAL(lon_src);   min_lat_src = MINVAL(lat_src)
 
-      PRINT *, ''
+      WRITE(6,*) ''
       gt_orca_src = IS_ORCA_NORTH_FOLD( lat_src , cname_long=trim(cv_lon_src) )
       i_orca_src  = gt_orca_src%ifld_nord
-      IF( i_orca_src == 4 ) PRINT *, ' Source grid is an ORCA grid with north-pole T-point folding!'
-      IF( i_orca_src == 6 ) PRINT *, ' Source grid is an ORCA grid with north-pole F-point folding!'
-      PRINT *, ''
+      IF( i_orca_src == 4 ) WRITE(6,*) ' Source grid is an ORCA grid with north-pole T-point folding!'
+      IF( i_orca_src == 6 ) WRITE(6,*) ' Source grid is an ORCA grid with north-pole F-point folding!'
+      WRITE(6,*) ''
 
    END SUBROUTINE SRC_DOMAIN
 
@@ -97,13 +92,12 @@ CONTAINS
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: xdum
       REAL(8) :: zz
-
+      INTEGER :: ji,jj
 
       IF( (TRIM(cmethod) == 'no_xy').OR.(l_save_drwn ) ) THEN
          CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lon_src, nb_att_lon_src, vatt_info_lon_src)
          CALL GETVAR_ATTRIBUTES(cf_x_src, cv_lat_src, nb_att_lat_src, vatt_info_lat_src)
       END IF
-
 
       IF( TRIM(cmethod) == 'no_xy' ) THEN
          l_reg_trg = l_reg_src
@@ -117,9 +111,6 @@ CONTAINS
          vatt_info_lon_trg = vatt_info_lon_src
          vatt_info_lat_trg = vatt_info_lat_src
       END IF
-
-
-
 
       CALL know_dim_trg()
 
@@ -156,7 +147,7 @@ CONTAINS
          nlat_icr_trg = nlat_icr_src
 
          CALL rd_vgrid(nk_trg, cf_z_trg, cv_z_trg, depth_trg(1,1,:))
-         WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_trg(1,1,:) ; WRITE(6,*) ''
+         WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; WRITE(6,*) depth_trg(1,1,:) ; WRITE(6,*) ''
          CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg,  nb_att_z_trg, vatt_info_z_trg)
          DO ji=1,ni_trg
             DO jj=1,nj_trg
@@ -178,13 +169,13 @@ CONTAINS
             WRITE(6,'("Mhhh interesting, target and vertical both have ", i4.4 ," vertical levels!")') nk_src
             zz = SUM( ( 1000.*(depth_trg(1,1,:) - depth_src(1,1,:)) )**2 )
             IF( zz < 5.0 ) THEN
-               PRINT *, ' => well, they are actually identical!', zz
+               WRITE(6,*) ' => well, they are actually identical!', zz
                l_identical_levels = .TRUE.
             ELSE
-               PRINT *, ' => well, they are not identical...'
-               PRINT *, '      => zz =', zz
+               WRITE(6,*) ' => well, they are not identical...'
+               WRITE(6,*) '      => zz =', zz
             END IF
-            PRINT *, ''
+            WRITE(6,*) ''
          END IF
 
          max_lat_trg = maxval(lat_trg) ;   min_lat_trg = minval(lat_trg) ;
@@ -227,7 +218,7 @@ CONTAINS
             END IF
             WHERE ( xdum < min_lat_src ) IGNORE=0
             WHERE ( xdum > max_lat_src ) IGNORE=0
-            PRINT *, ''
+            WRITE(6,*) ''
          END IF
 
          !LOLO:
@@ -288,9 +279,9 @@ CONTAINS
       gt_orca_trg = IS_ORCA_NORTH_FOLD( lon_trg , cname_long=trim(cv_lon_trg) )
       i_orca_trg = gt_orca_trg%ifld_nord
       c_orca_trg = gt_orca_trg%cgrd_type
-      IF( i_orca_trg == 4 ) PRINT *, ' Target grid is an ORCA '//c_orca_trg//' grid with north-pole T-point folding!'
-      IF( i_orca_trg == 6 ) PRINT *, ' Target grid is an ORCA '//c_orca_trg//' grid with north-pole F-point folding!'
-      PRINT *, ''
+      IF( i_orca_trg == 4 ) WRITE(6,*) ' Target grid is an ORCA '//c_orca_trg//' grid with north-pole T-point folding!'
+      IF( i_orca_trg == 6 ) WRITE(6,*) ' Target grid is an ORCA '//c_orca_trg//' grid with north-pole F-point folding!'
+      WRITE(6,*) ''
 
    END SUBROUTINE TRG_DOMAIN
 
@@ -328,6 +319,8 @@ CONTAINS
       !! Local :
       REAL    :: lon_min_2, lon_max_2
       LOGICAL :: l_loc1, l_loc2
+      INTEGER :: ji, jj, n1, n2, n3, nrec, jz0
+      INTEGER :: if0=0, iv0=0
 
       !! Getting grid on source domain:
       CALL rd_grid(-1, l_reg_src, cf_x_src, cv_lon_src, cv_lat_src, lon_src, lat_src)
@@ -341,7 +334,7 @@ CONTAINS
          ELSEIF( TRIM(ctype_z_src) == 'z' ) THEN
             !! in z case, the depth vector is copied at each grid-point
             CALL rd_vgrid(nk_src, cf_z_src, cv_z_src, depth_src(1,1,:))
-            !WRITE(6,*) ''; WRITE(6,*) 'Source Depths ='; PRINT *, depth_src(1,1,:) ; WRITE(6,*) ''
+            !WRITE(6,*) ''; WRITE(6,*) 'Source Depths ='; WRITE(6,*) depth_src(1,1,:) ; WRITE(6,*) ''
             DO ji=1,ni_src
                DO jj=1,nj_src
                   depth_src(ji,jj,:) = depth_src(1,1,:)
@@ -349,11 +342,11 @@ CONTAINS
             ENDDO
             IF( l_save_drwn) CALL GETVAR_ATTRIBUTES(cf_z_src, cv_z_src,  nb_att_z_src, vatt_info_z_src)
          ELSE
-            PRINT*,''; PRINT *, 'Not a valid source vertical coordinate' ; PRINT*,''
+            PRINT*,''; WRITE(6,*) 'Not a valid source vertical coordinate' ; PRINT*,''
          ENDIF
 
          IF( TRIM(ctype_z_src) == 'z' ) THEN
-            PRINT*,''; WRITE(6,*) 'Source has z coordinates and depth vector is:'; PRINT *, depth_src(1,1,:); PRINT*,''
+            PRINT*,''; WRITE(6,*) 'Source has z coordinates and depth vector is:'; WRITE(6,*) depth_src(1,1,:); PRINT*,''
          ELSEIF( TRIM(ctype_z_src) == 'sigma' ) THEN
             PRINT*,''; WRITE(6,*) 'Source has sigma coordinates and depth range is ', MINVAL(depth_src), &
                &                           ' to ', MAXVAL(depth_src) ; PRINT*,''
@@ -364,8 +357,8 @@ CONTAINS
 
       lon_min_1 = MINVAL(lon_src)
       lon_max_1 = MAXVAL(lon_src)
-      PRINT *, ' *** Minimum longitude on source domain before reorg. : ', REAL(lon_min_1,4)
-      PRINT *, ' *** Maximum longitude on source domain before reorg. : ', REAL(lon_max_1,4)
+      WRITE(6,*) ' *** Minimum longitude on source domain before reorg. : ', REAL(lon_min_1,4)
+      WRITE(6,*) ' *** Maximum longitude on source domain before reorg. : ', REAL(lon_max_1,4)
 
       IF( TRIM(cmethod) /= 'no_xy' ) THEN
          IF( l_reg_src ) THEN
@@ -380,21 +373,21 @@ CONTAINS
 
       lon_min_2 = MINVAL(lon_src)
       lon_max_2 = MAXVAL(lon_src)
-      PRINT *, ' *** Minimum longitude on source domain now: ', lon_min_2
-      PRINT *, ' *** Maximum longitude on source domain now: ', lon_max_2
+      WRITE(6,*) ' *** Minimum longitude on source domain now: ', lon_min_2
+      WRITE(6,*) ' *** Maximum longitude on source domain now: ', lon_max_2
 
       ! lolo: IMPROVE! This is disgusting:
       l_loc1 = (lon_min_1 <  0.).AND.(lon_min_1 > -175.).AND.(lon_max_1 >  0. ).AND.(lon_max_1 <  175.)
       l_loc2 = (lon_min_2 >= 0.).AND.(lon_min_2 <   2.5).AND.(lon_max_2 >357.5).AND.(lon_max_2 <= 360.)
       IF( (.NOT. l_loc1).AND.(l_loc2) ) THEN
          l_glob_lon_wize = .TRUE.
-         PRINT *, 'Looks like global setup (longitude-wise at least...)'
+         WRITE(6,*) 'Looks like global setup (longitude-wise at least...)'
       ELSE
-         PRINT *, 'Looks like regional setup (longitude-wise at least...)'
+         WRITE(6,*) 'Looks like regional setup (longitude-wise at least...)'
          l_glob_lon_wize = .FALSE.
          WRITE(*,'("  => going to disregard points of target domain with lon < ",f7.2," and lon > ",f7.2)') lon_min_1,lon_max_1
       END IF
-      PRINT *, ''
+      WRITE(6,*) ''
 
       l_glob_lat_wize = .TRUE.
       IF( MAXVAL(lat_src) < 88. ) l_glob_lat_wize =.FALSE.
@@ -429,7 +422,7 @@ CONTAINS
             IF( l3d .AND. ( jplev > 1 ) ) THEN
                IF( n3 == nk_src ) THEN
                   WRITE(6,*) 'Opening 3D land-sea mask on source grid for level', jplev
-                  PRINT *, trim(cv_lsm_src)
+                  WRITE(6,*) trim(cv_lsm_src)
                   !! if terrain-following, open the 2d mask, not sure interp one single level works
                   IF(TRIM(ctype_z_src) == 'sigma' ) THEN
                      CALL GETMASK_2D(cf_lsm_src, cv_lsm_src, mask_src(:,:,1))
@@ -487,6 +480,10 @@ CONTAINS
 
    SUBROUTINE get_trg_conf()
 
+      INTEGER :: ji, jj, jz0
+      INTEGER :: if0=0, iv0=0
+      REAL(wpl) :: dx, dy
+
       IF( TRIM(cmethod) /= 'no_xy' ) THEN
 
          IF( (l_reg_trg).AND.(TRIM(cf_x_trg) == 'spheric') ) THEN
@@ -503,15 +500,15 @@ CONTAINS
                lat_trg(jj,1) = -90 + dy/2.0 + dy*REAL(jj - 1 , 8)
             END DO
 
-            WRITE(6,*) ''; WRITE(6,*) 'Target Longitude array (deg.E):'; PRINT *, lon_trg; WRITE(6,*) ''
-            WRITE(6,*) 'Target Latitude array (deg.N):';  PRINT *, lat_trg; WRITE(6,*) ''; WRITE(6,*) ''
+            WRITE(6,*) ''; WRITE(6,*) 'Target Longitude array (deg.E):'; WRITE(6,*) lon_trg; WRITE(6,*) ''
+            WRITE(6,*) 'Target Latitude array (deg.N):';  WRITE(6,*) lat_trg; WRITE(6,*) ''; WRITE(6,*) ''
 
          ELSE
             !! Getting target grid from netcdf file:
             CALL rd_grid(ivect, l_reg_trg, cf_x_trg, cv_lon_trg, cv_lat_trg, lon_trg, lat_trg)
             IF( l_reg_trg ) THEN
-               WRITE(6,*) ''; WRITE(6,*) 'Target Longitude array (deg.E):'; PRINT *, lon_trg; WRITE(6,*) ''
-               WRITE(6,*) 'Target Latitude array (deg.N):';  PRINT *, lat_trg; WRITE(6,*) ''; WRITE(6,*) ''
+               WRITE(6,*) ''; WRITE(6,*) 'Target Longitude array (deg.E):'; WRITE(6,*) lon_trg; WRITE(6,*) ''
+               WRITE(6,*) 'Target Latitude array (deg.N):';  WRITE(6,*) lat_trg; WRITE(6,*) ''; WRITE(6,*) ''
             END IF
          END IF
 
@@ -566,7 +563,7 @@ CONTAINS
                   depth_trg(ji,jj,:) = depth_trg(1,1,:)
                ENDDO
             ENDDO
-            WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_trg(1,1,:) ; WRITE(6,*) ''
+            WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; WRITE(6,*) depth_trg(1,1,:) ; WRITE(6,*) ''
 
          ELSE
             PRINT*,''; WRITE(6,*) 'Not a valid target vertical coordinate' ; STOP
@@ -575,7 +572,7 @@ CONTAINS
 
          !RD fix this
          !         IF(trim(ctype_z_trg) == 'z' ) THEN
-         !            PRINT*,''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_trg(1,1,:) ; PRINT*,''
+         !            PRINT*,''; WRITE(6,*) 'Target Depths ='; WRITE(6,*) depth_trg(1,1,:) ; PRINT*,''
          !         ELSEIF( trim(ctype_z_trg) == 'sigma' ) THEN
          !            PRINT*,''; WRITE(6,*) 'Target on sigma coordinates' ; PRINT*,''
          !         ENDIF
@@ -584,7 +581,7 @@ CONTAINS
 
       !RD fix this
       !         CALL rd_vgrid(nk_trg, cf_z_trg, cv_z_trg, depth_trg)
-      !         WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; PRINT *, depth_trg ; WRITE(6,*) ''
+      !         WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; WRITE(6,*) depth_trg ; WRITE(6,*) ''
       !         CALL GETVAR_ATTRIBUTES(cf_z_trg, cv_z_trg,  nb_att_z_trg, vatt_info_z_trg)
 
       !!  Getting target mask (mandatory doing 3D interpolation!)
@@ -671,7 +668,7 @@ CONTAINS
       !! Local
       LOGICAL :: lreg2d, l2dyreg_x, l2dyreg_y
       CHARACTER(len=8) :: cdomain, clreg
-      INTEGER :: &
+      INTEGER :: nrec, &
          &     idx, Nx, Ny, &
          &     ii, ij, if1, iv1, &
          &     ilx1, ily1, ilz1,   &
@@ -994,6 +991,9 @@ CONTAINS
 
    SUBROUTINE know_dim_trg
       !!
+      INTEGER :: n1, n2, nrec
+      REAL(wpl) :: dx, dy
+
       nk_trg = 1
       !!
       IF( TRIM(cmethod) /= 'no_xy' ) THEN
@@ -1032,7 +1032,7 @@ CONTAINS
          !!
          WRITE(6,*) ''
          WRITE(6,*) ' => we read target levels in the following file:'
-         PRINT *, TRIM(cf_z_trg); WRITE(6,*) ''
+         WRITE(6,*) TRIM(cf_z_trg); WRITE(6,*) ''
          IF( trim(ctype_z_trg) == 'sigma' ) THEN
             nk_trg = ssig_trg%Nlevels
          ELSE
@@ -1239,21 +1239,23 @@ CONTAINS
       CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
       REAL(wpl), OPTIONAL, DIMENSION(:,:,:), INTENT(in) :: xfield
 
-      LOGICAL :: l_use_field_array
-      INTEGER :: ni, nj, nk
+      LOGICAL :: l_use_field_array, lmval
+      INTEGER :: ni, nj, nk, ji, jj, jk, jt0
+      INTEGER :: if0=0, iv0=0
+      REAL(wpl) :: rmv
       REAL(wpl), DIMENSION(:,:,:), ALLOCATABLE :: z3d_tmp
       REAL    :: rval_thrshld
 
       IF( .NOT. ((cinfo == 'source').OR.(cinfo == 'target')) ) THEN
-         PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
+         WRITE(6,*) 'ERROR (CREATE_LSM_3D of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
       END IF
       IF(PRESENT(cf_fld)) THEN
          IF(.NOT. PRESENT(cv_fld)) THEN
-            PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "cf_fld" is specified so must be "cv_fld" !!!'; STOP
+            WRITE(6,*) 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "cf_fld" is specified so must be "cv_fld" !!!'; STOP
          END IF
       END IF
       IF( (PRESENT(cf_fld)).AND.(PRESENT(xfield)) ) THEN
-         PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "cf_fld" and "cv_fld" are specified then "xfield" should not !!!'; STOP
+         WRITE(6,*) 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "cf_fld" and "cv_fld" are specified then "xfield" should not !!!'; STOP
       END IF
 
       ni = SIZE(mask,1)
@@ -1264,7 +1266,7 @@ CONTAINS
       IF(PRESENT(xfield)) THEN
          l_use_field_array = .TRUE.
          IF( (SIZE(xfield,1)/=ni).OR.(SIZE(xfield,2)/=nj).OR.(SIZE(xfield,1)/=nk) ) THEN
-            PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "mask" and "xfield" do not agree in shape!!!'; STOP
+            WRITE(6,*) 'ERROR (CREATE_LSM_3D of mod_grids.f90) : if "mask" and "xfield" do not agree in shape!!!'; STOP
          END IF
       END IF
 
@@ -1291,11 +1293,11 @@ CONTAINS
       IF( TRIM(cmthd) == 'missing_value' ) THEN
          WRITE(6,*) 'Opening land-sea mask "'//TRIM(cinfo)//'" from missing_value of source field "'//TRIM(cv_fld)//'"!'
          CALL CHECK_4_MISS(cf_fld, cv_fld, lmval, rmv, ca_missval)
-         !PRINT *, 'LOLO: rmv =', rmv, ISNAN(rmv)
+         !WRITE(6,*) 'LOLO: rmv =', rmv, ISNAN(rmv)
 
          IF( .NOT. lmval ) THEN
-            PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
-            PRINT *, '      (in '//TRIM(cf_fld)//')'
+            WRITE(6,*) 'ERROR (CREATE_LSM_3D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
+            WRITE(6,*) '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
 
@@ -1344,21 +1346,23 @@ CONTAINS
       CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
       REAL(wpl), OPTIONAL, DIMENSION(:,:), INTENT(in) :: xfield
       !!
-      LOGICAL :: l_use_field_array
-      INTEGER :: ni, nj
+      LOGICAL :: l_use_field_array, lmval
+      INTEGER :: ni, nj, ji, jj, jz0, jt0
+      INTEGER :: if0=0, iv0=0
+      REAL(wpl) :: rmv
       REAL(wpl), DIMENSION(:,:), ALLOCATABLE :: z2d_tmp
       REAL    :: rval_thrshld
 
       IF( .NOT. ((cinfo == 'source').OR.(cinfo == 'target')) ) THEN
-         PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
+         WRITE(6,*) 'ERROR (CREATE_LSM_2D of mod_grids.f90) : unknown "cinfo" => ', cinfo ; STOP
       END IF
       IF(PRESENT(cf_fld)) THEN
          IF(.NOT. PRESENT(cv_fld)) THEN
-            PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "cf_fld" is specified so must be "cv_fld" !!!'; STOP
+            WRITE(6,*) 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "cf_fld" is specified so must be "cv_fld" !!!'; STOP
          END IF
       END IF
       IF( (PRESENT(cf_fld)).AND.(PRESENT(xfield)) ) THEN
-         PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "cf_fld" and "cv_fld" are specified then "xfield" should not !!!'; STOP
+         WRITE(6,*) 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "cf_fld" and "cv_fld" are specified then "xfield" should not !!!'; STOP
       END IF
 
       ni = SIZE(mask,1)
@@ -1368,7 +1372,7 @@ CONTAINS
       IF(PRESENT(xfield)) THEN
          l_use_field_array = .TRUE.
          IF( (SIZE(xfield,1)/=ni).OR.(SIZE(xfield,2)/=nj) ) THEN
-            PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "mask" and "xfield" do not agree in shape!!!'; STOP
+            WRITE(6,*) 'ERROR (CREATE_LSM_2D of mod_grids.f90) : if "mask" and "xfield" do not agree in shape!!!'; STOP
          END IF
       END IF
 
@@ -1396,8 +1400,8 @@ CONTAINS
          WRITE(6,*) 'Opening land-sea mask "'//TRIM(cinfo)//'" from missing_value of source field "'//TRIM(cv_fld)//'"!'
          CALL CHECK_4_MISS(cf_fld, cv_fld, lmval, rmv, ca_missval)
          IF( .NOT. lmval ) THEN
-            PRINT *, 'ERROR (CREATE_LSM_2D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
-            PRINT *, '      (in '//TRIM(cf_fld)//')'
+            WRITE(6,*) 'ERROR (CREATE_LSM_2D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
+            WRITE(6,*) '      (in '//TRIM(cf_fld)//')'
             STOP
          END IF
 
@@ -1435,5 +1439,86 @@ CONTAINS
    END SUBROUTINE CREATE_LSM_2D
 
 
+
+   SUBROUTINE MK_2D_LON_LAT( px_src, py_src, px_trg, py_trg )
+      !!==============================================================================
+      !!  Input :
+      !!             px_src : 2D source longitude array of shape (ni,nj) or (ni,1)
+      !!             py_src : 2D source latitude  array of shape (ni,nj) or (nj,1)
+      !!             px_trg : 2D target longitude array of shape (ni,nj) or (ni,1)
+      !!             py_trg : 2D target latitude  array of shape (ni,nj) or (nj,1)
+      !!==============================================================================
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
+      REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
+      !!
+      INTEGER :: ji, jj
+      CHARACTER(len=26) :: cm='[MK_2D_LON_LAT@mod_grids]: '
+      LOGICAL :: l_1d_src=.FALSE., l_1d_trg=.FALSE.
+      !!==============================================================================
+
+      !! Source:
+      IF( (SIZE(px_src,2)==1).AND.(SIZE(py_src,2)==1) ) THEN
+         !! They are fake 2D...
+         IF(  (SIZE(px_src,1)/=ni_src).AND.(SIZE(py_src,1)==nj_src) ) CALL STOP_THIS(cm//'px_src & py_src have a weird shape (1D) !')
+         l_1d_src = .TRUE.
+      ELSEIF( (SIZE(px_src,1)==SIZE(py_src,1)).AND.(SIZE(px_src,2)==SIZE(py_src,2)) ) THEN
+         !! They are already actual 2D arrays, and have the same shape!
+         IF( (SIZE(px_src,1)/=ni_src).AND.(SIZE(px_src,2)==nj_src) ) CALL STOP_THIS(cm//'px_src & py_src have a weird shape (2D) !')
+      ELSE
+         CALL STOP_THIS(cm//'px_src & py_src do not agree in shape !')
+      END IF
+
+      !! Target:
+      IF( (SIZE(px_trg,2)==1).AND.(SIZE(py_trg,2)==1) ) THEN
+         !! They are fake 2D...
+         IF(  (SIZE(px_trg,1)/=ni_trg).AND.(SIZE(py_trg,1)==nj_trg) ) CALL STOP_THIS(cm//'px_trg & py_trg have a weird shape (1D) !')
+         l_1d_trg = .TRUE.
+      ELSEIF( (SIZE(px_trg,1)==SIZE(py_trg,1)).AND.(SIZE(px_trg,2)==SIZE(py_trg,2)) ) THEN
+         !! They are already actual 2D arrays, and have the same shape!
+         IF( (SIZE(px_trg,1)/=ni_trg).AND.(SIZE(px_trg,2)==nj_trg) ) CALL STOP_THIS(cm//'px_trg & py_trg have a weird shape (2D) !')
+      ELSE
+         CALL STOP_THIS(cm//'px_trg & py_trg do not agree in shape !')
+      END IF
+
+      IF(iverbose>0) WRITE(6,*) cm//' => all coordinate arrays have expected shape :)'
+
+      ! Source coordinates made 2D:
+      WRITE(6,*) ''
+      WRITE(6,'("   * Allocating and filling 2D source Long and Lat: ",i5," x ",i5)') ni_src, nj_src
+      ALLOCATE ( x_src_2d(ni_src,nj_src) , y_src_2d(ni_src,nj_src) )
+      IF( l_1d_src ) THEN
+         DO jj=1, nj_src
+            x_src_2d(:,jj) = px_src(:,1)
+         END DO
+         DO ji=1, ni_src
+            y_src_2d(ji,:) = py_src(:,1)
+         END DO
+      ELSE
+         x_src_2d(:,:) = px_src(:,:)
+         y_src_2d(:,:) = py_src(:,:)
+      END IF
+
+      ! Target coordinates made 2D:
+      WRITE(6,*) ''
+      WRITE(6,'("   * Allocating and filling 2D target Long and Lat: ",i5," x ",i5)') ni_trg, nj_trg
+      ALLOCATE ( x_trg_2d(ni_trg,nj_trg) , y_trg_2d(ni_trg,nj_trg), mask_ignore_trg(ni_trg,nj_trg) )
+      IF( l_1d_trg ) THEN
+         DO jj=1, nj_trg
+            x_trg_2d(:,jj) = px_trg(:,1)
+         END DO
+         DO ji=1, ni_trg
+            y_trg_2d(ji,:) = py_trg(:,1)
+         END DO
+      ELSE
+         x_trg_2d(:,:) = px_trg(:,:)
+         y_trg_2d(:,:) = py_trg(:,:)
+      END IF
+      !!
+      mask_ignore_trg(:,:) = 1
+      !!
+      WRITE(6,*) '  * All done! (x_src_2d, y_src_2d, x_trg_2d, y_trg_2d)'
+      WRITE(6,*) ''
+      !!
+   END SUBROUTINE MK_2D_LON_LAT
 
 END MODULE MOD_GRIDS

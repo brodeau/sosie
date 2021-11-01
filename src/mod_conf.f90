@@ -8,9 +8,16 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
+   INTEGER, SAVE :: iverbose=0 ! level of verbose: 0 to 2...                                                              
+
+   !! Some constants:
+   REAL(8), PARAMETER :: rpi0   = ACOS(-1._8), &
+      &                  rd2rad = rpi0/180._8, & ! for degree to radian conversion
+      &                  rradE  = (6378.137_8 + 6356.7523_8)/2._8 ! Earth radius km
+
    REAL(4), PARAMETER :: rmissval = -9999.
 
-   LOGICAL, SAVE :: l_first_call_interp_routine, &
+   LOGICAL, SAVE :: &
       &             l_drown_src, & ! DROWN source field
       &             l_glob_lon_wize, l_glob_lat_wize, &
       &             l_identical_levels=.FALSE.  ! if true and 3D interpolation => means that source and target vertical grids are identical!
@@ -236,4 +243,19 @@ MODULE MOD_CONF
       &   lon_trg_b, & !  //   backup
       &   lat_trg      ! latitude array on target grid
 
+
+CONTAINS
+   
+   SUBROUTINE STOP_THIS( cmsg1,  cmsg2, cmsg3 )
+      CHARACTER(len=*),           INTENT(in) :: cmsg1
+      CHARACTER(len=*), OPTIONAL, INTENT(in) :: cmsg2, cmsg3
+      !!
+      WRITE(6,*) ''
+      WRITE(6,*)                    'ERROR: '//TRIM(cmsg1)
+      IF(PRESENT(cmsg2)) WRITE(6,*) '      => '//TRIM(cmsg2)
+      IF(PRESENT(cmsg3)) WRITE(6,*) '      => '//TRIM(cmsg3)
+      WRITE(6,*) ''
+      STOP
+   END SUBROUTINE STOP_THIS
+   
 END MODULE MOD_CONF

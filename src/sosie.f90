@@ -56,6 +56,11 @@ PROGRAM SOSIE
 
    REAL(4) :: rfct_miss=1.
 
+   !! for timing:
+   CHARACTER(LEN=8)      :: cldate
+   CHARACTER(LEN=10)     :: cltime
+   CHARACTER(LEN=5)      :: clzone
+   INTEGER, DIMENSION(8), SAVE :: ivalue1, ivalue2
 
    !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
@@ -64,6 +69,13 @@ PROGRAM SOSIE
    WRITE(6,*)'            S  O  S  I  E    version ', trim(csosie_version)
    WRITE(6,*)'=========================================================='
    WRITE(6,*)''
+
+
+
+
+   CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue1)
+   WRITE(6,'(" ### staring at: ",8i4)') ivalue1(:)
+
 
 
    !! Fecthing command line arguments if any:
@@ -87,7 +99,7 @@ PROGRAM SOSIE
 
 
    IF ( Ntr == 0 ) THEN
-      PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
+      WRITE(6,*) 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
    END IF
 
    IF ( .NOT. lmout) rfct_miss = 0.
@@ -105,6 +117,8 @@ PROGRAM SOSIE
    IF ( TRIM(cln_out) /= '' ) CALL FORCE_ATTR('long_name', cln_out, vatt_info_F)
 
 
+   WRITE(6,*) ''
+   WRITE(6,*) ''
 
    jj = SCAN(TRIM(cf_src), '.', BACK=.TRUE.) - 1
    ji = SCAN(TRIM(cf_src), '/', BACK=.TRUE.) + 1
@@ -116,9 +130,8 @@ PROGRAM SOSIE
    !!                  M A I N   T I M E   L O O P
    !!                -------------------------------
 
-   l_first_call_interp_routine = .TRUE.
-
-   jct = 0 ;  jcz = 0
+   jct = 0
+   jcz = 0
    IF ( ltime ) jct = 1
    IF (  l3d  ) jcz = 1
 
@@ -223,7 +236,7 @@ PROGRAM SOSIE
                &       attr_t=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
          ELSE
-            PRINT *, 'Unknown vertical coordinate' ; STOP
+            WRITE(6,*) 'Unknown vertical coordinate' ; STOP
          ENDIF
 
       END IF ! .not. l_itrp_3d
@@ -232,11 +245,21 @@ PROGRAM SOSIE
 
    CALL TERMINATE() ! deleting and de-allocating arrays...
 
-   PRINT *, ''; PRINT *, TRIM(cf_out), ' is created'; PRINT *, ''
+   WRITE(6,*) ''; WRITE(6,*) TRIM(cf_out), ' is created'; WRITE(6,*) ''
 
-   IF ( l_save_drwn ) PRINT *, 'Also saved drowned input field => ', TRIM(cf_drwn)
+   IF ( l_save_drwn ) WRITE(6,*) 'Also saved drowned input field => ', TRIM(cf_src)//'.drwn'
 
-   PRINT *, ''
+
+   CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue2)
+   WRITE(6,'(" ###  started at: ",8i4)') ivalue1(:)
+   WRITE(6,'(" ### stopping at: ",8i4)') ivalue2(:)
+
+   WRITE(6,*) ''
+   rfct_miss = ivalue1(8)/1000. + ivalue1(7) + ivalue1(6)*60. + ivalue1(5)*3600.
+   rfct_miss = ivalue2(8)/1000. + ivalue2(7) + ivalue2(6)*60. + ivalue2(5)*3600. - rfct_miss
+   WRITE(6,'(" ### Total time in seconds: ",f11.4)') rfct_miss
+
+
 
    CLOSE(6)
 
