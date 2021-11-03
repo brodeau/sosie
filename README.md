@@ -43,6 +43,14 @@ Compiling the executables:
  * Tune the *namelist* file according to your needs...
  * It`s a good idea to use scripts to automatically generate *namelists*
 
+#### Debian-based Gnu-Linux distro like Ubuntu
+
+Using version 10 (or close) of Gfortran:
+
+    >> sudo apt install gfortran-10 libnetcdf-dev libnetcdff-dev
+    >> ln -sf macro/make.macro_gfortran-10_Linux make.macro
+    >> make
+
 
 
 A few working examples / test cases:
