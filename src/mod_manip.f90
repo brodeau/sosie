@@ -768,6 +768,7 @@ CONTAINS
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_t
       LOGICAL :: l_is_reg_s, l_is_reg_t
+      CHARACTER(len=128) :: cmsg
 
       ithrd = 0 ! no OpenMP !
       IF( PRESENT(ithread) ) ithrd = ithread
@@ -780,23 +781,11 @@ CONTAINS
       PRINT *, ' Source domain size: ', nx_s, ny_s
       PRINT *, ' Target domain size: ', nx_t, ny_t
 
-      IF( (SIZE(Ysrc,1) /= nx_s) .OR. (SIZE(Ysrc,2) /= ny_s) ) THEN
-         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Ysrc dont agree in shape with Xsrc'
-         STOP
-      END IF
-      IF( (SIZE(Ytrg,1) /= nx_t) .OR. (SIZE(Ytrg,2) /= ny_t) ) THEN
-         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Ytrg dont agree in shape with Xtrg'
-         STOP
-      END IF
-      IF( (SIZE(JIp,1) /= nx_t) .OR. (SIZE(JIp,2) /= ny_t) ) THEN
-         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JIp dont agree in shape with Xtrg'
-         PRINT *, SIZE(JIp,1), SIZE(JIp,2), 'vs', nx_t, ny_t
-         STOP
-      END IF
-      IF( (SIZE(JJp,1) /= nx_t) .OR. (SIZE(JJp,2) /= ny_t) ) THEN
-         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): JJp dont agree in shape with Xtrg'
-         STOP
-      END IF
+      cmsg = '`FIND_NEAREST_POINT` of mod_manip.f90 =>'
+      IF((SIZE(Ysrc,1)/= nx_s).OR.(SIZE(Ysrc,2)/= ny_s)) CALL STOP_THIS(cmsg//' Ysrc dont agree in shape with Xsrc')
+      IF((SIZE(Ytrg,1)/= nx_t).OR.(SIZE(Ytrg,2)/= ny_t)) CALL STOP_THIS(cmsg//' Ytrg dont agree in shape with Xtrg')
+      IF((SIZE(JIp,1) /= nx_t).OR.(SIZE(JIp,2) /= ny_t)) CALL STOP_THIS(cmsg//' JIp dont agree in shape with Xtrg')
+      IF((SIZE(JJp,1) /= nx_t).OR.(SIZE(JJp,2) /= ny_t)) CALL STOP_THIS(cmsg//' JJp dont agree in shape with Xtrg')
 
       PRINT *, ''
       !! Checking if source domain is regular or not.  => will allow later to
@@ -1480,10 +1469,7 @@ CONTAINS
       !!-------------------------------------------------------------------------
       nx = SIZE(Xlon,1)
       ny = SIZE(Xlon,2)
-      IF( (SIZE(Xlat,1) /= nx) .OR. (SIZE(Xlat,2) /= ny) ) THEN
-         PRINT *, ' ERROR (L_IS_GRID_REGULAR of mod_grids.f90): Xlat does not agree in shape with Xlon!'
-         STOP
-      END IF
+      IF((SIZE(Xlat,1)/=nx).OR.(SIZE(Xlat,2)/=ny)) CALL STOP_THIS('`L_IS_GRID_REGULAR` of mod_grids.f90 => Xlat does not agree in shape with Xlon!')
       l_is_grid_regular = .TRUE.
       !!  a/ checking on longitude array: (LOLO: use epsilon(Xlon) instead 1.E-12?)
       DO jj = 2, ny
@@ -1524,14 +1510,8 @@ CONTAINS
       !!
       INTEGER :: jo, jn, nold
       nold = SIZE(vect,1)
-      IF( nold /= SIZE(vmask_ignore,1) ) THEN
-         PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): data vector and mask vector do not agree in length!'
-         STOP
-      END IF
-      IF( (new_size > nold).OR.(new_size<=0) ) THEN
-         PRINT *, ' ERROR (SHRINK_VECTOR of mod_manip.f90): your new_size does not make sense!'
-         STOP
-      END IF
+      IF( nold /= SIZE(vmask_ignore,1) )     CALL STOP_THIS('`SHRINK_VECTOR` of mod_manip.f90 => data vector and mask vector do not agree in length!')
+      IF((new_size > nold).OR.(new_size<=0)) CALL STOP_THIS('`SHRINK_VECTOR` of mod_manip.f90 => your new_size does not make sense!')
       jn = 0
       DO jo = 1, nold
          IF( vmask_ignore(jo) == 1 ) THEN
