@@ -80,6 +80,9 @@ CONTAINS
       IF( (nx  /= SIZE(pY ,1)).OR.(ny  /= SIZE(pY ,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => size of input longitude do not match!!!')
 
       nxx = SIZE(pXx,1) ; nyx = SIZE(pXx,2)
+
+      !PRINT *, 'LOLO: shape of pX  =>', nx, ny
+      !PRINT *, 'LOLO: shape of pXx =>', nxx, nyx      
       IF( nxx /= nx + 4 )                                CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => target x dim is not ni+4!!!')
       IF( nyx /= ny + 4 )                                CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => target y dim is not nj+4!!!')
       IF( (nxx /= SIZE(pYx,1)).OR.(nyx /= SIZE(pYx,2)) ) CALL STOP_THIS('[EXTEND_ARRAY_2D_COOR] => size of input latitude does not match longitude !!!')
@@ -1666,7 +1669,6 @@ CONTAINS
       !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: YP =', YP(nx/2,:)
       !PRINT *, ''
       !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: FP =', FP(nx/2,:)
-      !STOP 'boo'
 
    END SUBROUTINE EXT_NORTH_TO_90_REGG
 

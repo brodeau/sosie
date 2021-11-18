@@ -77,20 +77,20 @@ CONTAINS
 
          !!---------------------------------------------------------------------------------------------
       CASE('akima')
-         
+         !lilo
          IF( jt == 1 ) THEN
             
             CALL AKIMA_INIT( ewper_src )
             
-            CALL AKIMA_2D( ewper_src, x_src_2d, y_src_2d, data_src,  &
+            CALL AKIMA_2D( ewper_src,                     data_src,  &
                &                      x_trg_2d, y_trg_2d, data_trg,  &
                &           l_only_mapping=.TRUE. )
             
          END IF
+
+         CALL AKIMA_2D( ewper_src,                     data_src,  &
+            &                      x_trg_2d, y_trg_2d, data_trg )
          
-         CALL AKIMA_2D( ewper_src, x_src_2d, y_src_2d, data_src,  &
-            &                      x_trg_2d, y_trg_2d, data_trg,  &
-            &           l_only_mapping=.TRUE. )         
          !!---------------------------------------------------------------------------------------------
          
          !!---------------------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ CONTAINS
                CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
 
             ELSE
-               PRINT *, 'LOLO: skipping building of mapping!'
+               PRINT *, ' *_* / Skip the building of the mapping!'
             END IF !IF( .NOT. l_skip_bilin_mapping )
 
          END IF
@@ -197,11 +197,18 @@ CONTAINS
 
       CHARACTER(len=128) :: cfdbg !DEBUG
 
+      IF( jt == 1 ) THEN
+         WRITE(6,*) ''
+         WRITE(6,*) ' Making source and target longitude,latitude as 2D arrays => MK_2D_LON_LAT() !'
+         CALL MK_2D_LON_LAT( lon_src, lat_src, lon_trg, lat_trg )
+         !!  ==> allocates and fills: x_src_2d, y_src_2d, x_trg_2d & y_trg_2d
+         WRITE(6,*) ''
+      END IF
+      
       !! Interpolation of each of the nk_src levels onto the target grid
       !! --------------------------------------------------------------
 
       !IF( ixtrpl_bot>0 ) CALL DUMP_FIELD( data3d_src(:,:,:), 'field_before_bedrock_extrapolation.nc', TRIM(cv_src) )
-
 
       WRITE(6,*) ''
 
@@ -250,8 +257,9 @@ CONTAINS
             !! Extrapolate sea values over land :
             WRITE(6,'("     --- ",a,": Extrapolating source data over land at level #",i3.3)') TRIM(cv_src), jk
             !WRITE(6,*) 'LOLO: calling DROWN with: ', idrown%np_penetr, idrown%nt_smooth
-            IF( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk),  xfield=data3d_src(:,:,jk) )
-            CALL BDROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth ) !lolo
+            IF( idrown%l_msk_chg ) CALL CREATE_LSM( 'source', cf_lsm_src, cv_lsm_src, mask_src(:,:,jk), &
+               &                                     xfield=data3d_src(:,:,jk) )
+            CALL BDROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr, nb_smooth=idrown%nt_smooth )
             !CALL DROWN(ewper_src, data3d_src(:,:,jk), mask_src(:,:,jk), nb_inc=idrown%np_penetr )
             IF( l_save_drwn ) data_src_drowned(:,:,jk) = data3d_src(:,:,jk)
             !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '01_Slice_in_just_after_horiz_drown.tmp', 's') !#LB
@@ -319,7 +327,7 @@ CONTAINS
 
 
       WRITE(6,*) ''
-      WRITE(6,*) ' 3D field prepared at all levels, ready to be interpolated...'
+      WRITE(6,*) ' 3D field pre-processed at all levels, ready to be interpolated...'
       WRITE(6,*) ''
 
       !CALL DUMP_FIELD(data3d_src(:,nj_src/2,:), '03_Slice_in_before_interp.tmp', 's') !#LB
@@ -331,17 +339,28 @@ CONTAINS
          IF(TRIM(cmethod) /= 'no_xy' ) WRITE(6,*) '  *** interpolating at level ', jk
 
          SELECT CASE(TRIM(cmethod))
-
+            
+            
          CASE('akima')
-            CALL AKIMA_2D(ewper_src, lon_src,  lat_src,  data3d_src(:,:,jk), &
-               &              lon_trg, lat_trg, data3d_tmp(:,:,jk))
+            
+            IF( (jt == 1).AND.(jk == 1) ) THEN
+               CALL AKIMA_INIT( ewper_src )
+               !!
+               CALL AKIMA_2D( ewper_src,                     data3d_src(:,:,jk),  &
+                  &                      x_trg_2d, y_trg_2d, data3d_tmp(:,:,jk),  &
+                  &           l_only_mapping=.TRUE. )
+            END IF
+
+            CALL AKIMA_2D( ewper_src,                     data3d_src(:,:,jk),  &
+               &                      x_trg_2d, y_trg_2d, data3d_tmp(:,:,jk) )
+            
             IF( trim(ctype_z_src) == 'z' ) THEN
                !! we don't need horizontal interpolation, all levels are flat
                depth_src_trgt2d(:,:,jk) = depth_src(1,1,jk)
             ELSE
                !! input is sigma, layers are non-flat
-               CALL AKIMA_2D(ewper_src, lon_src,  lat_src, depth_src(:,:,jk),       &
-                  &              lon_trg, lat_trg,   depth_src_trgt2d(:,:,jk) )
+               CALL AKIMA_2D(ewper_src,              depth_src(:,:,jk),       &
+                  &              x_trg_2d, y_trg_2d,   depth_src_trgt2d(:,:,jk) )
             ENDIF
 
          CASE('bilin')

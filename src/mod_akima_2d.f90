@@ -66,24 +66,28 @@ CONTAINS
       !!
       WRITE(6,*) ''; WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
-      WRITE(6,*) '#                     AKIMA 2D INITIALIZATION'
+      WRITE(6,*) '#                     AKIMA INITIALIZATION'
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''
-      WRITE(6,'("   * Allocating array `map_akm`: ",i5," x ",i5)') ni_trg, nj_trg
+      WRITE(6,'("  * Allocating array `map_akm`: ",i4.4,"x",i4.4)') ni_trg, nj_trg
       ALLOCATE ( map_akm(ni_trg,nj_trg,2) )
       map_akm(:,:,:) = 0
       !ALLOCATE ( l_1st_call_akima(Nthrd) )
       l_1st_call_akima = .TRUE.
       !ALLOCATE( l_always_first_call(Nthrd) )
       l_always_first_call = .FALSE.
-      WRITE(6,*) ''
       !!
-      WRITE(6,*) '  * Allocating and filling space-extended coordinates', ni_src+np_ext, 'x', nj_src+np_ext
+      WRITE(6,'("  * Allocating space-extended source coordinates arrays: ",i4.4,"x",i4.4)')  ni_src+np_ext, nj_src+np_ext
       ALLOCATE( x_src_2d_ext(ni_src+np_ext,nj_src+np_ext) , y_src_2d_ext(ni_src+np_ext,nj_src+np_ext) )
+      !!
+      WRITE(6,'("  * Filling space-extended source coordinates arrays")')
+      
+      PRINT *, 'LOLO: shape of `x_src_2d` in AKIMA_INIT before calling `EXTEND_ARRAY_2D_COOR` ', SIZE(x_src_2d,1), SIZE(x_src_2d,2)
+      
       CALL EXTEND_ARRAY_2D_COOR( kewper, x_src_2d, y_src_2d, x_src_2d_ext, y_src_2d_ext, is_orca_grid=i_orca_src )
       WRITE(6,*) ''
       !!
-      WRITE(6,*) '  Initializations for AKIMA_2D done !'
+      WRITE(6,*) '  Initializations for AKIMA done !'
       WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''; WRITE(6,*) ''
@@ -92,15 +96,13 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_2D( k_ew_per, X1, Y1, Z1, X2, Y2, Z2,  icall, l_only_mapping )
+   SUBROUTINE AKIMA_2D( k_ew_per,    Z1, X2, Y2, Z2,  icall, l_only_mapping )
 
       !!================================================================
       !!
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             X1   : 2D source longitude array (ni*nj) (must be regular!)
-      !!             Y1   : 2D source latitude  array (ni*nj) (must be regular!)
       !!             Z1    : source field on source grid
       !!
       !!             X2   : 2D target longitude array (ni*nj) (can be irregular)
@@ -118,7 +120,6 @@ CONTAINS
 
       !! Input/Output arguments
       INTEGER,                   INTENT(in)    :: k_ew_per
-      REAL(8),   DIMENSION(:,:),   INTENT(in)  :: X1, Y1
       REAL(wpl), DIMENSION(:,:),   INTENT(in)  :: Z1
       REAL(8),   DIMENSION(:,:),   INTENT(in)  :: X2, Y2
       REAL(wpl), DIMENSION(:,:),   INTENT(out) :: Z2
@@ -180,8 +181,8 @@ CONTAINS
          !!    dimension This is really needed specially for preserving good east-west
          !!    perdiodicity...
 
-         nx1 = SIZE(X1,1) ; ny1 = SIZE(X1,2)
-         nx2 = SIZE(X2,1) ; ny2 = SIZE(X2,2)
+         nx1 = SIZE(Z1,1) ; ny1 = SIZE(Z1,2)
+         nx2 = SIZE(Z2,1) ; ny2 = SIZE(Z2,2)
          ni1 = nx1+np_ext ; nj1 = ny1+np_ext
 
          ALLOCATE ( Z_src_ext(ni1,nj1), poly(ni1-1,nj1-1,nsys), slpx(ni1,nj1), slpy(ni1,nj1), slpxy(ni1,nj1) )
