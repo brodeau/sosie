@@ -62,8 +62,8 @@ CONTAINS
       LOGICAL      :: L_InPoly
       !!
       REAL(4), DIMENSION(nvrtx+1) :: vertx, verty  ! 2dim. array of polygons and their X,Y  coordinates
-      REAL(4)                      :: rmaxx, rmaxy  ! max x,y of polygon coordinates
-      REAL(4)                      :: rminx, rminy  ! min x,y of polygon coordinates
+      REAL(4)                     :: rmaxx, rmaxy  ! max x,y of polygon coordinates
+      REAL(4)                     :: rminx, rminy  ! min x,y of polygon coordinates
       REAL(8), DIMENSION(nvrtx)   :: slope         ! slope of the sides of polygone
       REAL(8), DIMENSION(nvrtx)   :: ra, rb, rc    ! equation of side of polygon
       !!      

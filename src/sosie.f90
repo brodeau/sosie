@@ -74,7 +74,7 @@ PROGRAM SOSIE
 
 
    CALL DATE_AND_TIME(cldate,cltime,clzone,ivalue1)
-   WRITE(6,'(" ### staring at: ",8i4)') ivalue1(:)
+   WRITE(6,'(" ### Starts at: ",8i4)') ivalue1(:)
 
 
 
@@ -98,9 +98,7 @@ PROGRAM SOSIE
    CALL REMINDER()         ! MODULE mod_init
 
 
-   IF ( Ntr == 0 ) THEN
-      WRITE(6,*) 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
-   END IF
+   IF ( Ntr == 0 ) CALL STOP_THIS('[sosie.f90] => => Ntr = 0 !!!')
 
    IF ( .NOT. lmout) rfct_miss = 0.
 

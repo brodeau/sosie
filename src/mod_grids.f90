@@ -179,13 +179,13 @@ CONTAINS
          END IF
 
          max_lat_trg = maxval(lat_trg) ;   min_lat_trg = minval(lat_trg) ;
-         PRINT*,''
+         WRITE(6,*)''
          WRITE(6,*) 'Latitude max on source grid =', max_lat_src
          WRITE(6,*) 'Latitude max on target grid =', max_lat_trg
-         PRINT*,''
+         WRITE(6,*)''
          WRITE(6,*) 'Latitude min on source grid =', min_lat_src
          WRITE(6,*) 'Latitude min on target grid =', min_lat_trg
-         PRINT*,''
+         WRITE(6,*)''
 
          !! Building IGNORE mask:
          IGNORE = 1
@@ -342,16 +342,16 @@ CONTAINS
             ENDDO
             IF( l_save_drwn) CALL GETVAR_ATTRIBUTES(cf_z_src, cv_z_src,  nb_att_z_src, vatt_info_z_src)
          ELSE
-            PRINT*,''; WRITE(6,*) 'Not a valid source vertical coordinate' ; PRINT*,''
+            WRITE(6,*)''; WRITE(6,*) 'Not a valid source vertical coordinate' ; WRITE(6,*)''
          ENDIF
 
          IF( TRIM(ctype_z_src) == 'z' ) THEN
-            PRINT*,''; WRITE(6,*) 'Source has z coordinates and depth vector is:'; WRITE(6,*) depth_src(1,1,:); PRINT*,''
+            WRITE(6,*) ''; WRITE(6,*) 'Source has z coordinates and depth vector is:'; WRITE(6,*) depth_src(1,1,:); WRITE(6,*)''
          ELSEIF( TRIM(ctype_z_src) == 'sigma' ) THEN
-            PRINT*,''; WRITE(6,*) 'Source has sigma coordinates and depth range is ', MINVAL(depth_src), &
-               &                           ' to ', MAXVAL(depth_src) ; PRINT*,''
+            WRITE(6,*)''; WRITE(6,*) 'Source has sigma coordinates and depth range is ', MINVAL(depth_src), &
+               &                           ' to ', MAXVAL(depth_src) ; WRITE(6,*)''
          ELSE
-            PRINT*,''; WRITE(6,*) 'You should not see this' ; STOP
+            WRITE(6,*)''; WRITE(6,*) 'You should not see this' ; STOP
          ENDIF
       END IF
 
@@ -492,7 +492,7 @@ CONTAINS
             READ(cv_lon_trg,*) dx ; READ(cv_lat_trg,*) dy
             cv_lon_trg = 'lon'           ; cv_lat_trg = 'lat'
             WRITE(6,*) '  * dx, dy =', dx, dy
-            WRITE(6,*) '  * ni_trg, nj_trg =', ni_trg, nj_trg ;  PRINT*,''
+            WRITE(6,*) '  * ni_trg, nj_trg =', ni_trg, nj_trg ;  WRITE(6,*)''
             DO ji = 1, ni_trg
                lon_trg(ji,1) = dx/2.0 + dx*REAL(ji - 1 , 8)
             END DO
@@ -566,15 +566,15 @@ CONTAINS
             WRITE(6,*) ''; WRITE(6,*) 'Target Depths ='; WRITE(6,*) depth_trg(1,1,:) ; WRITE(6,*) ''
 
          ELSE
-            PRINT*,''; WRITE(6,*) 'Not a valid target vertical coordinate' ; STOP
+            WRITE(6,*)''; WRITE(6,*) 'Not a valid target vertical coordinate' ; STOP
             !!
          ENDIF
 
          !RD fix this
          !         IF(trim(ctype_z_trg) == 'z' ) THEN
-         !            PRINT*,''; WRITE(6,*) 'Target Depths ='; WRITE(6,*) depth_trg(1,1,:) ; PRINT*,''
+         !            WRITE(6,*)''; WRITE(6,*) 'Target Depths ='; WRITE(6,*) depth_trg(1,1,:) ; WRITE(6,*)''
          !         ELSEIF( trim(ctype_z_trg) == 'sigma' ) THEN
-         !            PRINT*,''; WRITE(6,*) 'Target on sigma coordinates' ; PRINT*,''
+         !            WRITE(6,*)''; WRITE(6,*) 'Target on sigma coordinates' ; WRITE(6,*)''
          !         ENDIF
 
       END IF
