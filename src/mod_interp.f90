@@ -77,18 +77,8 @@ CONTAINS
 
          !!---------------------------------------------------------------------------------------------
       CASE('akima')
-         !lilo
-         IF( jt == 1 ) THEN
-            
-            CALL AKIMA_INIT( ewper_src )
-            
-            CALL AKIMA_2D( ewper_src,                     data_src,  &
-               &                      x_trg_2d, y_trg_2d, data_trg,  &
-               &           l_only_mapping=.TRUE. )
-            
-         END IF
-
-         CALL AKIMA_2D( ewper_src,                     data_src,  &
+         
+         CALL AKIMA_2D( ewper_src, x_src_2d, y_src_2d, data_src,  &
             &                      x_trg_2d, y_trg_2d, data_trg )
          
          !!---------------------------------------------------------------------------------------------
@@ -342,16 +332,8 @@ CONTAINS
             
             
          CASE('akima')
-            
-            IF( (jt == 1).AND.(jk == 1) ) THEN
-               CALL AKIMA_INIT( ewper_src )
-               !!
-               CALL AKIMA_2D( ewper_src,                     data3d_src(:,:,jk),  &
-                  &                      x_trg_2d, y_trg_2d, data3d_tmp(:,:,jk),  &
-                  &           l_only_mapping=.TRUE. )
-            END IF
 
-            CALL AKIMA_2D( ewper_src,                     data3d_src(:,:,jk),  &
+            CALL AKIMA_2D( ewper_src, x_src_2d, y_src_2d, data3d_src(:,:,jk), &
                &                      x_trg_2d, y_trg_2d, data3d_tmp(:,:,jk) )
             
             IF( trim(ctype_z_src) == 'z' ) THEN
@@ -359,8 +341,8 @@ CONTAINS
                depth_src_trgt2d(:,:,jk) = depth_src(1,1,jk)
             ELSE
                !! input is sigma, layers are non-flat
-               CALL AKIMA_2D(ewper_src,              depth_src(:,:,jk),       &
-                  &              x_trg_2d, y_trg_2d,   depth_src_trgt2d(:,:,jk) )
+               CALL AKIMA_2D(ewper_src, x_src_2d, y_src_2d,        depth_src(:,:,jk), &
+                  &                     x_trg_2d, y_trg_2d, depth_src_trgt2d(:,:,jk) )
             ENDIF
 
          CASE('bilin')

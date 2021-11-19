@@ -27,10 +27,8 @@ MODULE MOD_AKIMA_2D
    !!            Contact: https://github.com/brodeau/sosie
    !!
    !!-----------------------------------------------------------------
-
    USE mod_conf
    USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA
-   USE mod_grids, ONLY: x_src_2d, y_src_2d
 
    IMPLICIT NONE
 
@@ -40,7 +38,7 @@ MODULE MOD_AKIMA_2D
 
    !! Mapping for Akima:
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE, PUBLIC, SAVE :: map_akm !: table storing source/target grids mapping for akima method !lolodbg => remove PUBLIC !!!
-   LOGICAL,                                        SAVE :: l_1st_call_akima
+   LOGICAL,                                        SAVE :: l_1st_call_akima=.true.
    LOGICAL,                                        SAVE :: l_always_first_call
 
    INTEGER, PARAMETER :: np_ext = 4    ! source grid extension
@@ -54,14 +52,13 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_INIT( kewper )
+   SUBROUTINE AKIMA_INIT( kewper, pX1, pY1 )
       !!==============================================================================
       !!  Input :
       !!             kewper: east-west periodicity
       !!==============================================================================
-      INTEGER, INTENT(in) :: kewper
-      !REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_src, py_src
-      !REAL(8),    DIMENSION(:,:),           INTENT(in) :: px_trg, py_trg
+      INTEGER,                 INTENT(in) :: kewper
+      REAL(8), DIMENSION(:,:), INTENT(in) :: pX1, pY1 ! source 2D arrays of longitude and latitude
       !!==============================================================================
       !!
       WRITE(6,*) ''; WRITE(6,*) ''
@@ -73,7 +70,7 @@ CONTAINS
       ALLOCATE ( map_akm(ni_trg,nj_trg,2) )
       map_akm(:,:,:) = 0
       !ALLOCATE ( l_1st_call_akima(Nthrd) )
-      l_1st_call_akima = .TRUE.
+      !l_1st_call_akima = .TRUE.
       !ALLOCATE( l_always_first_call(Nthrd) )
       l_always_first_call = .FALSE.
       !!
@@ -81,10 +78,10 @@ CONTAINS
       ALLOCATE( x_src_2d_ext(ni_src+np_ext,nj_src+np_ext) , y_src_2d_ext(ni_src+np_ext,nj_src+np_ext) )
       !!
       WRITE(6,'("  * Filling space-extended source coordinates arrays")')
-      
-      PRINT *, 'LOLO: shape of `x_src_2d` in AKIMA_INIT before calling `EXTEND_ARRAY_2D_COOR` ', SIZE(x_src_2d,1), SIZE(x_src_2d,2)
-      
-      CALL EXTEND_ARRAY_2D_COOR( kewper, x_src_2d, y_src_2d, x_src_2d_ext, y_src_2d_ext, is_orca_grid=i_orca_src )
+
+      !PRINT *, 'LOLO: shape of `pX1` in AKIMA_INIT before calling `EXTEND_ARRAY_2D_COOR` ', SIZE(pX1,1), SIZE(pX1,2)
+
+      CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_src_2d_ext, y_src_2d_ext, is_orca_grid=i_orca_src )
       WRITE(6,*) ''
       !!
       WRITE(6,*) '  Initializations for AKIMA done !'
@@ -96,46 +93,46 @@ CONTAINS
 
 
 
-   SUBROUTINE AKIMA_2D( k_ew_per,    Z1, X2, Y2, Z2,  icall, l_only_mapping )
+   SUBROUTINE AKIMA_2D( k_ew_per, pX1, pY1, pZ1, pX2, pY2, pZ2,  icall )
 
       !!================================================================
       !!
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             Z1    : source field on source grid
+      !!             pX1   : 2D source longitude array (ni*nj) (can be irregular)
+      !!             pY1   : 2D source latitude  array (ni*nj) (can be irregular)
+      !!             pZ1   : source field on source grid
       !!
-      !!             X2   : 2D target longitude array (ni*nj) (can be irregular)
-      !!             Y2   : 2D target latitude  array (ni*nj) (can be irregular)
+      !!             pX2   : 2D target longitude array (ni*nj) (can be irregular)
+      !!             pY2   : 2D target latitude  array (ni*nj) (can be irregular)
       !!
       !! OUTPUT :
-      !!             Z2    : input field on target grid
+      !!             pZ2    : input field on target grid
       !!
       !! input (optional)
       !!             icall : IF icall=1, will always force 'l_1st_call_akima' to .TRUE.
-      !!        l_only_mapping : only do the mapping, so only fill array 'map_akm' !
       !!
       !!================================================================
       !USE io_ezcdf,      ONLY: DUMP_FIELD ; !debug
 
       !! Input/Output arguments
-      INTEGER,                   INTENT(in)    :: k_ew_per
-      REAL(wpl), DIMENSION(:,:),   INTENT(in)  :: Z1
-      REAL(8),   DIMENSION(:,:),   INTENT(in)  :: X2, Y2
-      REAL(wpl), DIMENSION(:,:),   INTENT(out) :: Z2
-      INTEGER,       OPTIONAL,     INTENT(in)  :: icall
-      LOGICAL,       OPTIONAL,     INTENT(in)  :: l_only_mapping
+      INTEGER,                   INTENT(in)  :: k_ew_per
+      REAL(8),   DIMENSION(:,:), INTENT(in)  :: pX1, pY1
+      REAL(wpl), DIMENSION(:,:), INTENT(in)  :: pZ1
+      REAL(8),   DIMENSION(:,:), INTENT(in)  :: pX2, pY2
+      REAL(wpl), DIMENSION(:,:), INTENT(out) :: pZ2
+      INTEGER,       OPTIONAL,   INTENT(in)  :: icall
 
       !! Local variables
       INTEGER :: nx1, ny1, nx2, ny2, ni1, nj1, ji1, jj1, ji2, jj2
       REAL(8), DIMENSION(4)    :: xy_range_src
-      REAL(8), DIMENSION(nsys) ::  vpl
-      REAL(8), DIMENSION(:,:,:), ALLOCATABLE ::  poly
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: Z_src_ext, slpx, slpy, slpxy
+      REAL(8), DIMENSION(nsys) :: vpl
+      REAL(8), DIMENSION(:,:,:), ALLOCATABLE :: poly
+      REAL(8), DIMENSION(:,:),   ALLOCATABLE :: Z_src_ext, slpx, slpy, slpxy
       !!
-      REAL(8) :: px2, py2, min_lon1, max_lon1, min_lat1, max_lat1
+      REAL(8) :: zx2, zy2, zmin_x1, zmax_x1, zmin_y1, zmax_y1
       !!
-      LOGICAL :: l_map_only
       !CHARACTER(len=32) :: cf_tmp !debug
       !!================================================================
 
@@ -146,19 +143,19 @@ CONTAINS
          END IF
       END IF
 
-      l_map_only = .FALSE.
-      IF( PRESENT(l_only_mapping) ) l_map_only = l_only_mapping
-
-
+      !! Allocates and fills 2d extended arrays of lon and lat:
+      IF( l_1st_call_akima ) CALL AKIMA_INIT( k_ew_per, pX1, pY1 )
+      !! So from now on: pX1 -> x_src_2d_ext & pY1 -> y_src_2d_ext !
+      
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = MINVAL(x_src_2d_ext) ;  max_lon1 = MAXVAL(x_src_2d_ext)
-      min_lat1 = MINVAL(y_src_2d_ext) ;  max_lat1 = MAXVAL(y_src_2d_ext)
+      zmin_x1 = MINVAL(x_src_2d_ext) ;  zmax_x1 = MAXVAL(x_src_2d_ext)
+      zmin_y1 = MINVAL(y_src_2d_ext) ;  zmax_y1 = MAXVAL(y_src_2d_ext)
 
       !! Doing the mapping once for all and saving into map_akm:
       IF ( l_1st_call_akima ) THEN
-         xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
+         xy_range_src(:) = (/ zmin_x1,zmax_x1 , zmin_y1,zmax_y1 /)
          WRITE(6,*) '  ==> "find_nearest_akima" to fill "map_akm"!'
-         CALL find_nearest_akima( x_src_2d_ext, y_src_2d_ext, xy_range_src, X2, Y2, map_akm(:,:,:) )
+         CALL find_nearest_akima( x_src_2d_ext, y_src_2d_ext, xy_range_src, pX2, pY2, map_akm(:,:,:) )
          WRITE(6,*) ''
       ELSE
          IF(iverbose>1) WRITE(6,*) ' AKIMA_2D ==> SKIPPING MAPPING, relying on "map_akm(:,:,:)" !!!'
@@ -172,72 +169,69 @@ CONTAINS
       !debug.
 
 
-      IF( .NOT. l_map_only ) THEN
+      !!                       S T A R T
 
-         !!                       S T A R T
+      !! Extending the source 2D domain with a frame of 2 (np_ext/2) points:
+      !!    We extend initial 2D array with a frame, adding np_ext points in each
+      !!    dimension This is really needed specially for preserving good east-west
+      !!    perdiodicity...
 
-         !! Extending the source 2D domain with a frame of 2 (np_ext/2) points:
-         !!    We extend initial 2D array with a frame, adding np_ext points in each
-         !!    dimension This is really needed specially for preserving good east-west
-         !!    perdiodicity...
+      nx1 = SIZE(pZ1,1) ; ny1 = SIZE(pZ1,2)
+      nx2 = SIZE(pZ2,1) ; ny2 = SIZE(pZ2,2)
+      ni1 = nx1+np_ext ; nj1 = ny1+np_ext
 
-         nx1 = SIZE(Z1,1) ; ny1 = SIZE(Z1,2)
-         nx2 = SIZE(Z2,1) ; ny2 = SIZE(Z2,2)
-         ni1 = nx1+np_ext ; nj1 = ny1+np_ext
+      ALLOCATE ( Z_src_ext(ni1,nj1), poly(ni1-1,nj1-1,nsys), slpx(ni1,nj1), slpy(ni1,nj1), slpxy(ni1,nj1) )
 
-         ALLOCATE ( Z_src_ext(ni1,nj1), poly(ni1-1,nj1-1,nsys), slpx(ni1,nj1), slpy(ni1,nj1), slpxy(ni1,nj1) )
+      !! Filling extended data array:
+      CALL EXTEND_ARRAY_2D_DATA( k_ew_per, x_src_2d_ext, y_src_2d_ext,   REAL(pZ1,8), Z_src_ext,     is_orca_grid=i_orca_src )
+      !lolodbg:
+      !CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_new.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_new.nc', 'lat')
+      !CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_new.nc', 'Z')
+      !CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
+      !lolodbg.
 
-         !! Filling extended data array:
-         CALL EXTEND_ARRAY_2D_DATA( k_ew_per, x_src_2d_ext, y_src_2d_ext,   REAL(Z1,8), Z_src_ext,     is_orca_grid=i_orca_src )
-         !lolodbg:
-         !CALL DUMP_FIELD(REAL(x_src_2d_ext,4), 'x_src_2d_ext_new.nc', 'lon')
-         !CALL DUMP_FIELD(REAL(y_src_2d_ext,4), 'y_src_2d_ext_new.nc', 'lat')
-         !CALL DUMP_FIELD(REAL(Z_src_ext,4), 'Z_src_ext_new.nc', 'Z')
-         !CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
-         !lolodbg.
+      !! Computation of partial derivatives:
+      CALL slopes_akima(k_ew_per, x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy)
 
-         !! Computation of partial derivatives:
-         CALL slopes_akima(k_ew_per, x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy)
+      !! Polynome:
+      CALL build_pol(x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy, poly)
 
-         !! Polynome:
-         CALL build_pol(x_src_2d_ext, y_src_2d_ext, Z_src_ext, slpx, slpy, slpxy, poly)
+      DEALLOCATE ( slpx, slpy, slpxy )
 
-         DEALLOCATE ( slpx, slpy, slpxy )
+      !! Loop on target domain:
+      DO jj2 = 1, ny2
+         DO ji2 = 1, nx2
 
-         !! Loop on target domain:
-         DO jj2 = 1, ny2
-            DO ji2 = 1, nx2
+            !! The coordinates of current target point are (zx2,zy2) :
+            zx2 = pX2(ji2,jj2)
+            zy2 = pY2(ji2,jj2)
 
-               !! The coordinates of current target point are (px2,py2) :
-               px2 = X2(ji2,jj2)
-               py2 = Y2(ji2,jj2)
+            !! Checking if this belongs to source domain :
+            IF ( ((zx2>=zmin_x1).AND.(zx2<=zmax_x1)).AND.((zy2>=zmin_y1).AND.(zy2<=zmax_y1)) ) THEN
 
-               !! Checking if this belongs to source domain :
-               IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) ) THEN
+               !! We know the right location from time = 1 :
+               ji1 = map_akm(ji2,jj2,1)
+               jj1 = map_akm(ji2,jj2,2)
 
-                  !! We know the right location from time = 1 :
-                  ji1 = map_akm(ji2,jj2,1)
-                  jj1 = map_akm(ji2,jj2,2)
+               !! It's time to interpolate:
+               zx2 = zx2 - x_src_2d_ext(ji1,jj1)
+               zy2 = zy2 - y_src_2d_ext(ji1,jj1)
+               vpl = poly(ji1,jj1,:)
 
-                  !! It's time to interpolate:
-                  px2 = px2 - x_src_2d_ext(ji1,jj1)
-                  py2 = py2 - y_src_2d_ext(ji1,jj1)
-                  vpl = poly(ji1,jj1,:)
+               pZ2(ji2,jj2) = REAL( pol_val(zx2, zy2, vpl) , 4)  ! back to real(4)
 
-                  Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
+            ELSE
+               pZ2(ji2,jj2) = 0.  ! point is not on source domain!
 
-               ELSE
-                  Z2(ji2,jj2) = 0.  ! point is not on source domain!
+            END IF !IF ( ((zx2>=zmin_x1).AND.(zx2<=zmax_x1)).AND.((zy2>=zmin_y1).AND.(zy2<=zmax_y1)) )
 
-               END IF !IF ( ((px2>=min_lon1).AND.(px2<=max_lon1)).AND.((py2>=min_lat1).AND.(py2<=max_lat1)) )
+         END DO !DO ji2 = 1, nx2
+      END DO !DO jj2 = 1, ny2
 
-            END DO !DO ji2 = 1, nx2
-         END DO !DO jj2 = 1, ny2
+      !! Deallocation :
+      DEALLOCATE ( Z_src_ext, poly )
 
-         !! Deallocation :
-         DEALLOCATE ( Z_src_ext, poly )
-
-      END IF !IF( .NOT. l_map_only )
 
       l_1st_call_akima = .FALSE.
 

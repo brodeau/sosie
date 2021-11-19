@@ -1041,10 +1041,8 @@ CONTAINS
       PRINT *, ' Min. latitude on source & target domains =>', REAL(y_min_s,4), REAL(y_min_t,4)
       PRINT *, ' Max. latitude on source & target domains =>', REAL(y_max_s,4), REAL(y_max_t,4)
 
-      IF( (y_min_t>=y_max_s).OR.(y_max_t<=y_min_s) ) THEN
-         WRITE(6,*)' ERROR (FIND_NEAREST_TWISTED of mod_manip.f90): Target and source latitudes do not overlap!'
-         STOP
-      END IF
+      IF( (y_min_t>=y_max_s).OR.(y_max_t<=y_min_s) ) &
+         & CALL STOP_THIS( '`FIND_NEAREST_TWISTED@mod_manip.f90`: Target and source latitudes do not overlap!' )
       !! ---------------------------------------------------------------------------------------
       PRINT *, '       => going for advanced algorithm ! (thread #', ithrd, ')'
 
@@ -1212,7 +1210,6 @@ CONTAINS
                   Xdist = 1.E12
                   Xdist(i1s:i2s,j1s:j2s) = DISTANCE_2D(rlon, Xsrc(i1s:i2s,j1s:j2s), rlat, Ysrc(i1s:i2s,j1s:j2s))
                   !CALL DUMP_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
-                  !PRINT *, 'LOLO STOP! mod_manip.f90 !!!'; STOP
 
                   !! Nearest point is where distance is smallest:
                   ij_min_loc = MINLOC(Xdist(i1s:i2s,j1s:j2s))

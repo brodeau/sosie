@@ -250,11 +250,8 @@ CONTAINS
          WRITE(6,*)''
          WRITE(6,*)'Target grid: ', trim(cf_x_trg)
          !!
-         IF( (.NOT. l_reg_trg).and.(trim(cf_x_trg) == 'spheric') ) THEN
-            PRINT *, 'Problem! If you set "cf_x_trg" to "spheric", then set "l_reg_trg" to ".TRUE."'
-            PRINT *, ''
-            STOP
-         END IF
+         IF( (.NOT. l_reg_trg).AND.(TRIM(cf_x_trg) == 'spheric') ) &
+            CALL STOP_THIS('If `cf_x_trg" = "spheric"`, then set "l_reg_trg" to ".TRUE."')
          !!
          WRITE(6,*)''
          WRITE(6,*)'Longitude on target grid: ', trim(cv_lon_trg)
@@ -314,8 +311,7 @@ CONTAINS
             CASE(2)
                WRITE(6,*)' *** USING downward extrapolation into the bed-rock ! => using DROWN algo'
             CASE DEFAULT
-               WRITE(6,*)' ERROR: "ixtrpl_bot" can only be 0, 1, or 2 !'
-               STOP
+               CALL STOP_THIS('"ixtrpl_bot" can ONLY be 0, 1, or 2 !')
             END SELECT
             WRITE(6,*)''
          END IF
@@ -338,12 +334,10 @@ CONTAINS
 
 
          !! Checking for some "non-sense"
-         IF( (cmethod == 'akima').and.(.NOT. l_reg_src) ) THEN
-            PRINT *, 'The Akima method only supports regular source grids!'
-            PRINT *, '--> If the grid of the source domain is irregular, '
-            PRINT *, '    please change "cmethod" from akima to "bilin" into the namelist!'
-            STOP
-         END IF
+         IF( (cmethod == 'akima').AND.(.NOT. l_reg_src) ) &
+            CALL STOP_THIS( 'The Akima method only supports regular source grids!', &
+            & '--> If the grid of the source domain is irregular, ', &
+            & 'please change "cmethod" from akima to "bilin" into the namelist!' )
 
          WRITE(cpat,'(a,"-",a)') trim(csource), trim(ctarget)
          PRINT *, '';  PRINT *, 'Starting interpolation for config "',trim(cpat),'"...'
