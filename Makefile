@@ -71,7 +71,7 @@ MOD_INST= mod/io_ezcdf.mod \
 mod/mod_akima_2d.mod \
 mod/mod_bdrown.mod
 
-all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/ij_from_lon_lat.x
+all: bin/sosie3.x bin/corr_vect.x bin/mask_drown_field.x bin/ij_from_lon_lat.x bin/create_angle_file.x
 
 i2gt: bin/interp_to_ground_track.x
 i2hs: bin/interp_to_hydro_section.x
@@ -89,6 +89,9 @@ bin/sosie3.x: src/sosie.f90 $(LIB_SOSIE)
 
 bin/corr_vect.x: src/corr_vect.f90 $(LIB_SOSIE)
 	$(FC) $(FF_SAFE) src/corr_vect.f90 -o bin/corr_vect.x $(LD_ALL)
+
+bin/create_angle_file.x: src/create_angle_file.f90 $(LIB_SOSIE)
+	$(FC) $(FF_SAFE) src/create_angle_file.f90 -o bin/create_angle_file.x $(LD_ALL)
 
 bin/test_stuffs.x: src/test_stuffs.f90 $(LIB_SOSIE)
 	$(FC) $(FF_SAFE) src/test_stuffs.f90 -o bin/test_stuffs.x $(LD_ALL)
