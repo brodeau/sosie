@@ -38,7 +38,7 @@ PROGRAM CORR_VECT
    CHARACTER(len=3)    :: cdum
    CHARACTER(len=3)    :: cgrid_trg='T'
    CHARACTER(len=80)   :: cv_time_0 = 'none'
-   CHARACTER(len=800)  :: cr, cf_mm, cnmlst_x, cnmlst_y
+   CHARACTER(len=800)  :: cr, cf_mm, cf_ang, cnmlst_x, cnmlst_y
 
    CHARACTER(len=80) :: &
       &    cv_u_in='0', cv_v_in='0', &
@@ -90,14 +90,15 @@ PROGRAM CORR_VECT
    INTEGER :: jt, jk
 
    LOGICAL :: &
+      &    l_read_angles = .FALSE., &
       &    l_inv    = .FALSE., &
       &    l_anlt   = .FALSE., & !: analytic input field (U=1, V=0) DEBUG...
       &    l_3d_inv = .FALSE., & !: will treat 3d files in inverse mode...
       &    lmout_x, lmout_y,   &
       &    lexist
 
-   CHARACTER(LEN=2), DIMENSION(10), PARAMETER :: &
-      &            clist_opt = (/ '-I','-h','-m','-G','-p','-f','-i','-v','-t','-1' /)
+   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
+      &            clist_opt = (/ '-I','-h','-m','-A','-G','-p','-f','-i','-v','-t','-1' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -152,6 +153,20 @@ PROGRAM CORR_VECT
                call usage_corr_vect()
             ELSE
                cf_mm = trim(cr)
+            END IF
+         END IF
+         !!
+      CASE('-A')
+         IF ( jarg + 1 > iargc() ) THEN ! checking that there is at least an other argument following
+            PRINT *,'ERROR: Missing angle file name!' ; call usage_corr_vect()
+         ELSE
+            jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+            IF ( ANY(clist_opt == trim(cr)) ) THEN
+               PRINT *,'ERROR: ', trim(cr), ' is definitively not the name of the angle file!'
+               call usage_corr_vect()
+            ELSE
+               cf_ang = TRIM(cr)
+               l_read_angles = .TRUE.
             END IF
          END IF
          !!
@@ -280,6 +295,15 @@ PROGRAM CORR_VECT
       END IF
 
 
+      IF( l_read_angles ) THEN
+         INQUIRE(FILE=TRIM(cf_ang), EXIST=lexist )
+         IF ( .NOT. lexist ) THEN
+            WRITE(*,'("The mesh_mask file ",a," file was not found!")') TRIM(cf_ang)
+            CALL usage_corr_vect()
+         END IF
+      END IF
+
+
       !! Namelist of X component:
       INQUIRE(FILE=TRIM(cnmlst_x), EXIST=lexist )
       IF ( .NOT. lexist ) THEN
@@ -347,8 +371,11 @@ PROGRAM CORR_VECT
       PRINT *, trim(cf_raw_U)
       PRINT *, trim(cf_raw_V) ; PRINT *,''
       PRINT *,'File containing grid :'
-      PRINT *, trim(cf_mm) ; PRINT *,''
-
+      PRINT *, TRIM(cf_mm) ; PRINT *,''
+      IF( l_read_angles ) THEN
+         PRINT *,'File containing ang;es :'
+         PRINT *, TRIM(cf_ang) ; PRINT *,''
+      END IF
 
       !! Geting array dimension and testing...
       !! -------------------------------------
@@ -369,8 +396,16 @@ PROGRAM CORR_VECT
       END IF
 
       ni = ni1 ; nj = nj1
+      
+      IF( l_read_angles ) THEN
+         CALL DIMS(cf_ang, cv_glamt, ni_g, nj_g, nk_g, Ntr)
+         IF ( (nj /= nj_g).OR.(ni /= ni_g) ) THEN
+            PRINT *,'Dimension Error! : `Angle file` does not agree in shape with setup!'; STOP
+         END IF
+      END IF
+      
 
-
+      
       !! testing nk agreement :
       IF ( nk1 /= nk2 ) THEN
          PRINT *,'Dimension Error! : u and v files dont agree for z length.'
@@ -452,10 +487,17 @@ PROGRAM CORR_VECT
       IF ( iorca == 6 ) PRINT *,' Grid is an ORCA grid with north-pole F-point folding!'
       PRINT *,''
 
+      IF( l_read_angles ) THEN
+         CALL GETVAR_2D(i0, j0, cf_ang, 'cost', 1, 1, 1, XCOST8)
 
-      !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
-      CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
-         &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
+         STOP'LOLO angles!!!'
+      ELSE
+
+         !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
+         CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+            &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
+         
+      END IF
 
       IF ( ldebug ) THEN
          CALL DUMP_FIELD(REAL(XCOST8,4), 'cost_angle.nc', 'cost')
@@ -895,6 +937,8 @@ CONTAINS
       PRINT *,'  *** MANDATORY for both normal and inverse mode:'
       PRINT *,''
       PRINT *,' -m  <mesh_mask_file> => Specify which mesh_mask file to use'
+      PRINT *,''
+      PRINT *,' -A  <angle_file> => if file name provide, will read sin,cos of angle rather than compute them!'
       PRINT *,''
       PRINT *,''
       PRINT *,'  ***  MANDATORY for normal mode (no -I switch) :'
