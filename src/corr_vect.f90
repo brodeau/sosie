@@ -373,7 +373,7 @@ PROGRAM CORR_VECT
       PRINT *,'File containing grid :'
       PRINT *, TRIM(cf_mm) ; PRINT *,''
       IF( l_read_angles ) THEN
-         PRINT *,'File containing ang;es :'
+         PRINT *,'File containing angles :'
          PRINT *, TRIM(cf_ang) ; PRINT *,''
       END IF
 
@@ -387,28 +387,29 @@ PROGRAM CORR_VECT
 
       !! testing ni agreement :
       IF ( (ni1 /= ni2).or.(ni1 /= ni_g).or.(ni2 /= ni_g) ) THEN
-         PRINT *,'Dimension Error! : the 3 files dont agree for x length.' ; STOP
+         PRINT *,'SHAPE CONSISTENCY ERROR:! : the 3 files dont agree for x length.' ; STOP
       END IF
 
       !! testing nj agreement :
       IF ( (nj1 /= nj2).or.(nj1 /= nj_g).or.(nj2 /= nj_g) ) THEN
-         PRINT *,'Dimension Error! : the 3 files dont agree for y length.'; STOP
+         PRINT *,'SHAPE CONSISTENCY ERROR:! : the 3 files dont agree for y length.'; STOP
       END IF
 
       ni = ni1 ; nj = nj1
-      
+
       IF( l_read_angles ) THEN
-         CALL DIMS(cf_ang, cv_glamt, ni_g, nj_g, nk_g, Ntr)
+         CALL DIMS(cf_ang, 'cost', ni_g, nj_g, nk_g, Ntr)
+         PRINT *, 'ni, nj, ni_g, nj_g', ni, nj, ni_g, nj_g
          IF ( (nj /= nj_g).OR.(ni /= ni_g) ) THEN
-            PRINT *,'Dimension Error! : `Angle file` does not agree in shape with setup!'; STOP
+            PRINT *,'SHAPE CONSISTENCY ERROR:! : `Angle file` does not agree in shape with setup!'; STOP
          END IF
       END IF
-      
 
-      
+
+
       !! testing nk agreement :
       IF ( nk1 /= nk2 ) THEN
-         PRINT *,'Dimension Error! : u and v files dont agree for z length.'
+         PRINT *,'SHAPE CONSISTENCY ERROR:! : u and v files dont agree for z length.'
          STOP
       END IF
 
@@ -417,7 +418,7 @@ PROGRAM CORR_VECT
 
       !! testing nt agreement :
       IF ( Ntr1 /= Ntr2 ) THEN
-         PRINT *,'Dimension Error! : u and v files dont agree for time length.'
+         PRINT *,'SHAPE CONSISTENCY ERROR:! : u and v files dont agree for time length.'
          STOP
       END IF
 
@@ -487,17 +488,26 @@ PROGRAM CORR_VECT
       IF ( iorca == 6 ) PRINT *,' Grid is an ORCA grid with north-pole F-point folding!'
       PRINT *,''
 
+      WRITE(6,*)''
       IF( l_read_angles ) THEN
+         WRITE(6,*)' *** Reading COS and SIN of rotation angles at t,u,v,f points'
+         WRITE(6,*)'     => in file "',TRIM(cf_ang),'"'
          CALL GETVAR_2D(i0, j0, cf_ang, 'cost', 1, 1, 1, XCOST8)
-
-         STOP'LOLO angles!!!'
+         CALL GETVAR_2D(i0, j0, cf_ang, 'sint', 1, 1, 1, XSINT8)
+         CALL GETVAR_2D(i0, j0, cf_ang, 'cosu', 1, 1, 1, XCOSU8)
+         CALL GETVAR_2D(i0, j0, cf_ang, 'sinu', 1, 1, 1, XSINU8)
+         CALL GETVAR_2D(i0, j0, cf_ang, 'cosv', 1, 1, 1, XCOSV8)
+         CALL GETVAR_2D(i0, j0, cf_ang, 'sinv', 1, 1, 1, XSINV8)
+         CALL GETVAR_2D(i0, j0, cf_ang, 'cosf', 1, 1, 1, XCOSF8)
+         CALL GETVAR_2D(i0, j0, cf_ang, 'sinf', 1, 1, 1, XSINF8)
+         WRITE(6,*)''; WRITE(6,*)' *** Done reading!'
       ELSE
-
          !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
+         WRITE(6,*)' *** Computing COS and SIN of rotation angles at t,u,v,f points with `ANGLE()`'
          CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
             &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
-         
       END IF
+      WRITE(6,*)''; WRITE(6,*)''
 
       IF ( ldebug ) THEN
          CALL DUMP_FIELD(REAL(XCOST8,4), 'cost_angle.nc', 'cost')
@@ -535,7 +545,7 @@ PROGRAM CORR_VECT
          DO jk = 1, nk
 
             IF ( l_anlt ) THEN
-               !lolo: analytical field for debugging purposes...
+               ! Analytical field for debugging purposes...
                U_r8 = 1.
                V_r8 = 0.
             ELSE
@@ -739,13 +749,13 @@ PROGRAM CORR_VECT
 
       !! testing ni agreement :
       IF ( (ni1 /= ni2).or.(ni1 /= ni_g).or.(ni2 /= ni_g) ) THEN
-         PRINT *,'Dimension Error! : the 3 files dont agree for x length.'
+         PRINT *,'SHAPE CONSISTENCY ERROR:! : the 3 files dont agree for x length.'
          STOP
       END IF
 
       !! testing nj agreement :
       IF ( (nj1 /= nj2).or.(nj1 /= nj_g).or.(nj2 /= nj_g) ) THEN
-         PRINT *,'Dimension Error! : the 3 files dont agree for y length.'
+         PRINT *,'SHAPE CONSISTENCY ERROR:! : the 3 files dont agree for y length.'
          STOP
       END IF
 
@@ -755,7 +765,7 @@ PROGRAM CORR_VECT
       !! testing 3D and nk agreement :
 
       IF ( (nk1 /= nk2) ) THEN
-         PRINT *,'Dimension Error! : the 2 files dont agree for number of levels.'; STOP
+         PRINT *,'SHAPE CONSISTENCY ERROR:! : the 2 files dont agree for number of levels.'; STOP
       END IF
 
 
@@ -769,7 +779,7 @@ PROGRAM CORR_VECT
 
       !! testing nt agreement :
       IF ( Ntr1 /= Ntr2 ) THEN
-         PRINT *,'Dimension Error! : u and v files dont agree for time length.'
+         PRINT *,'CONSISTENCY ERROR: u and v files dont agree for time length.'
          STOP
       END IF
 
@@ -836,7 +846,7 @@ PROGRAM CORR_VECT
 
       ELSE                  ! we use time from input file
          CALL GETVAR_1D(cufilin, cv_time_0, vtime)
-         CALL GETVAR_ATTRIBUTES(cufilin, cv_time_0, nb_att_t, vatt_info_t) ; !lolo
+         CALL GETVAR_ATTRIBUTES(cufilin, cv_time_0, nb_att_t, vatt_info_t)
       END IF
 
 

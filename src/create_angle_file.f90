@@ -5,6 +5,9 @@ PROGRAM CREATE_ANGLE_FILE
    !! 2/ Compute all the rotation angles (actually their sin() and cos())
    !! 3/ Save them into a file..
 
+   !! ==> use `examples/vector_correction/do_mono_angle.sh` to generate a monlithic file from
+   !!     all the cos/sin files created by this program...
+
 
    USE mod_conf
    USE mod_init
@@ -63,7 +66,7 @@ PROGRAM CREATE_ANGLE_FILE
    TYPE(grid_type) :: gt_orca
 
    INTEGER      :: &
-                                   &    jarg, &
+      &    jarg, &
       &    iorca=0,      &
                                 !   &    nlext=3, &
       &    i0, j0, &
@@ -94,10 +97,10 @@ PROGRAM CREATE_ANGLE_FILE
    !INTEGER :: jt, jk
 
    LOGICAL :: &
-   !   &    l_inv    = .FALSE., &
-   !   &    l_anlt   = .FALSE., & !: analytic input field (U=1, V=0) DEBUG...
-   !   &    l_3d_inv = .FALSE., & !: will treat 3d files in inverse mode...
-   !   &    lmout_x, lmout_y,   &
+                                !   &    l_inv    = .FALSE., &
+                                !   &    l_anlt   = .FALSE., & !: analytic input field (U=1, V=0) DEBUG...
+                                !   &    l_3d_inv = .FALSE., & !: will treat 3d files in inverse mode...
+                                !   &    lmout_x, lmout_y,   &
       &    lexist
 
    CHARACTER(LEN=2), DIMENSION(2), PARAMETER :: &
@@ -188,12 +191,12 @@ PROGRAM CREATE_ANGLE_FILE
 
    PRINT *,''
 
-     !! Is this a known ORCA grid (just for info now, not used!):
-      gt_orca = IS_ORCA_NORTH_FOLD( xlat_t )
-      iorca = gt_orca%ifld_nord
-      IF ( iorca == 4 ) PRINT *,' Grid is an ORCA grid with north-pole T-point folding!'
-      IF ( iorca == 6 ) PRINT *,' Grid is an ORCA grid with north-pole F-point folding!'
-      PRINT *,''
+   !! Is this a known ORCA grid (just for info now, not used!):
+   gt_orca = IS_ORCA_NORTH_FOLD( xlat_t )
+   iorca = gt_orca%ifld_nord
+   IF ( iorca == 4 ) PRINT *,' Grid is an ORCA grid with north-pole T-point folding!'
+   IF ( iorca == 6 ) PRINT *,' Grid is an ORCA grid with north-pole F-point folding!'
+   PRINT *,''
 
 
    !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
@@ -228,7 +231,7 @@ PROGRAM CREATE_ANGLE_FILE
    !      &    cf_out_V, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
    !      &    rmiss_val, attr_t=vatt_info_t)
    !END IF
-   
+
 
 CONTAINS
 
