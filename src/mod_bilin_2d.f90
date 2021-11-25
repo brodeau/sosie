@@ -121,14 +121,16 @@ CONTAINS
    END SUBROUTINE BILIN_2D_INIT
 
 
-   SUBROUTINE BILIN_2D_WRITE_MAPPING( )
+   SUBROUTINE BILIN_2D_WRITE_MAPPING( pX2, pY2 )
+      !!
+      REAL(8),   DIMENSION(:,:), INTENT(in)  :: pX2, pY2
       !!
       WRITE(6,*) ''
       IF ( l_skip_bilin_mapping ) THEN
          WRITE(6,*) '  ==> NOT writing bilin mapping file because it was found...'
       ELSE
          WRITE(6,*) '  ==> writing bilin mapping into "', TRIM(cf_wght_bilin),'" !'
-         CALL P2D_MAPPING_AB( cf_wght_bilin, lon_trg, lat_trg, bilin_map, rmissval )
+         CALL P2D_MAPPING_AB( cf_wght_bilin, pX2, pY2, bilin_map, rmissval )
       END IF
       !!
       IF (l_save_distance_to_np) DEALLOCATE( distance_to_np )
@@ -180,19 +182,13 @@ CONTAINS
       PRINT *, 'LOLOdbg: BILIN_2D() => shape of pX1 =', SIZE(pX1,1), SIZE(pX1,2)
 
       IF( l_1st_call_bilin ) THEN
-
-         CALL BILIN_2D_INIT( )
-         
+         CALL BILIN_2D_INIT( )         
          IF( .NOT. l_skip_bilin_mapping ) THEN
-            CALL MAPPING_BL( ewper_src, pX1, pY1, pX2, pY2,  pmsk_dom_trg=mask_ignore_trg )
-            PRINT *, 'mod_bilin_2d.f90 => MAPPING_BL() finished!'; STOP
-            !CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...!
-         END IF
-         
+            CALL MAPPING_BL( k_ew_per, pX1, pY1, pX2, pY2,  pmsk_dom_trg=mask_ignore_trg )
+            CALL BILIN_2D_WRITE_MAPPING( pX2, pY2 )  ! Saving mapping into netCDF file if relevant...!
+            !PRINT *, 'mod_bilin_2d.f90 => MAPPING_BL() finished!'; STOP
+         END IF         
       END IF
-
-      
-
       
       !IF ( l_1st_call_bilin(ithrd) ) l_last_y_row_missing = .FALSE.      
       pZ2(:,:) = rmissval ! Flagging non-interpolated output points

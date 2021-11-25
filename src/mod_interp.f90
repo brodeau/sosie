@@ -74,13 +74,12 @@ CONTAINS
       !! ------------------------------
 
       SELECT CASE(cmethod)
-
+         
          !!---------------------------------------------------------------------------------------------
       CASE('akima')
          
          CALL AKIMA_2D( ewper_src, x_src_2d, y_src_2d, data_src,  &
             &                      x_trg_2d, y_trg_2d, data_trg )
-         
          !!---------------------------------------------------------------------------------------------
          
          !!---------------------------------------------------------------------------------------------
@@ -89,32 +88,17 @@ CONTAINS
          CALL BILIN_2D( ewper_src, x_src_2d, y_src_2d, data_src, &
             &                      x_trg_2d, y_trg_2d, data_trg, &
             &           mask_domain_trg=IGNORE(:,:)                )
-         
-         STOP'LOLO:mod_interp!'
-         
-         !IF( jt == 1 ) THEN            
-         !   CALL BILIN_2D_INIT()
-         !   !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !            
-         !   IF( .NOT. l_skip_bilin_mapping ) THEN
-         !      CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...!
-         !
-         !   ELSE
-         !      PRINT *, ' *_* / Skip the building of the mapping!'
-         !   END IF !IF( .NOT. l_skip_bilin_mapping )
-         !
-         !END IF
-         
          !!---------------------------------------------------------------------------------------------
          
          !!---------------------------------------------------------------------------------------------
       CASE('no_xy')
          CALL STOP_THIS( '[mod_interp.f90] => method "no_xy" makes no sense for 2D interp!' )
-
+         
          !!---------------------------------------------------------------------------------------------
       CASE DEFAULT
          CALL STOP_THIS( '[mod_interp.f90] => interpolation method ', cmethod, ' is unknown!!!' )
       END SELECT
-
+      
 
       !! If target grid extends too much in latitude compared to source grid, need to
       !! extrapolate a bit at bottom and top of the domain :
