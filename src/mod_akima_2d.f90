@@ -34,7 +34,7 @@ MODULE MOD_AKIMA_2D
 
    PRIVATE
 
-   PUBLIC :: AKIMA_INIT, AKIMA_2D
+   PUBLIC :: AKIMA_2D
 
    !! Mapping for Akima:
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE, PUBLIC, SAVE :: map_akm !: table storing source/target grids mapping for akima method !lolodbg => remove PUBLIC !!!
@@ -49,7 +49,6 @@ MODULE MOD_AKIMA_2D
    INTEGER, PARAMETER  :: nsys = 16 !: Dimmension of the linear sytem to solve
 
 CONTAINS
-
 
 
    SUBROUTINE AKIMA_INIT( kewper, pX1, pY1 )
@@ -94,21 +93,20 @@ CONTAINS
 
 
    SUBROUTINE AKIMA_2D( k_ew_per, pX1, pY1, pZ1, pX2, pY2, pZ2,  icall )
-
       !!================================================================
       !!
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             pX1   : 2D source longitude array (ni*nj) (can be irregular)
-      !!             pY1   : 2D source latitude  array (ni*nj) (can be irregular)
-      !!             pZ1   : source field on source grid
+      !!             pX1  : 2D source longitude array of shape (ni,nj)
+      !!             pY1  : 2D source latitude  array of shape (ni,nj)
+      !!             pZ1  : source field on source grid  "    "
       !!
-      !!             pX2   : 2D target longitude array (ni*nj) (can be irregular)
-      !!             pY2   : 2D target latitude  array (ni*nj) (can be irregular)
+      !!             pX2  : 2D target longitude array (ni,nj) or (ni,1)
+      !!             pY2  : 2D target latitude  array (ni,nj) or (nj,1)
       !!
       !! OUTPUT :
-      !!             pZ2    : input field on target grid
+      !!             pZ2    : field extrapolated from source to target grid
       !!
       !! input (optional)
       !!             icall : IF icall=1, will always force 'l_1st_call_akima' to .TRUE.

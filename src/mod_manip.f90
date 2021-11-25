@@ -741,7 +741,7 @@ CONTAINS
 
 
 
-   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  ithread, pmsk_dom_trg)
+   SUBROUTINE FIND_NEAREST_POINT(Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp,  pmsk_dom_trg)
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -759,10 +759,10 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIp, JJp  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER,    OPTIONAL,       INTENT(in)  :: ithread
+      !INTEGER,    OPTIONAL,       INTENT(in)  :: ithread
       INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: pmsk_dom_trg
 
-      INTEGER :: ithrd, jj, nx_s, ny_s, nx_t, ny_t, j_strt_t, j_stop_t, jlat_icr
+      INTEGER :: jj, nx_s, ny_s, nx_t, ny_t, j_strt_t, j_stop_t, jlat_icr
       REAL(8) :: y_max_s, y_min_s, rmin_dlat_dj, rtmp
       INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_t
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
@@ -770,8 +770,8 @@ CONTAINS
       LOGICAL :: l_is_reg_s, l_is_reg_t
       CHARACTER(len=128) :: cmsg
 
-      ithrd = 0 ! no OpenMP !
-      IF( PRESENT(ithread) ) ithrd = ithread
+      !ithrd = 1 ! no OpenMP !
+      !IF( PRESENT(ithread) ) ithrd = ithread
 
       nx_s  = SIZE(Xsrc,1)
       ny_s  = SIZE(Xsrc,2)
@@ -853,11 +853,11 @@ CONTAINS
       IF( l_is_reg_s .AND. (.NOT. l_force_use_of_twisted) ) THEN
          PRINT *, '                 => going for simple FIND_NEAREST algorithm !'; PRINT *, ''
          CALL FIND_NEAREST_EASY(    Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_t, &
-            &                       j_strt_t, j_stop_t, jlat_icr, ithrd )
+            &                       j_strt_t, j_stop_t, jlat_icr )
       ELSE
          PRINT *, '                  => going for advanced FIND_NEAREST algorithm !'; PRINT *, ''
          CALL FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIp, JJp, mask_ignore_t, &
-            &                       j_strt_t, j_stop_t, jlat_icr, ithrd )
+            &                       j_strt_t, j_stop_t, jlat_icr )
       END IF
       PRINT *, ''
 
@@ -873,7 +873,7 @@ CONTAINS
 
 
    SUBROUTINE FIND_NEAREST_EASY( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_t, &
-      &                          j_strt_t, j_stop_t, jlat_icr, ithrd )
+      &                          j_strt_t, j_stop_t, jlat_icr )
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_EASY  ***
       !!
@@ -891,7 +891,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
       INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_t
-      INTEGER,                    INTENT(in)  :: j_strt_t, j_stop_t, jlat_icr, ithrd
+      INTEGER,                    INTENT(in)  :: j_strt_t, j_stop_t, jlat_icr
 
       !! Important parameters:
       INTEGER, PARAMETER :: nframe_scan = 4  ! domain to scan for nearest point in simple algo => domain of 9x9
@@ -928,7 +928,7 @@ CONTAINS
             IF( mask_t(ji_t,jj_t) == 1 ) THEN
 
                IF( (ji_t==1) .AND. MOD(jj_t,10)==0 ) &
-                  &  WRITE(6,'(" *** Treated j-point of target domain = ",i4.4," (thread # ",i2.2,")")') jj_t, ithrd
+                  &  WRITE(6,'(" *** Treated j-point of target domain = ",i4.4," (thread # ",i2.2,")")') jj_t, 0
 
                rlon = Xtrg(ji_t,jj_t)
                rlat = Ytrg(ji_t,jj_t)
@@ -980,7 +980,7 @@ CONTAINS
 
 
    SUBROUTINE FIND_NEAREST_TWISTED( Xtrg, Ytrg, Xsrc, Ysrc, JIpos, JJpos, mask_t, &
-      &                             j_strt_t, j_stop_t, jlat_icr, ithrd )
+      &                             j_strt_t, j_stop_t, jlat_icr )
       !!---------------------------------------------------------------
       !!            ***  SUBROUTINE FIND_NEAREST_POINT  ***
       !!
@@ -998,7 +998,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out)   :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
       INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask_t
-      INTEGER, INTENT(in)                       :: j_strt_t, j_stop_t, jlat_icr, ithrd
+      INTEGER, INTENT(in)                       :: j_strt_t, j_stop_t, jlat_icr
       !!
       !! Important parameters:
       INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
@@ -1044,7 +1044,7 @@ CONTAINS
       IF( (y_min_t>=y_max_s).OR.(y_max_t<=y_min_s) ) &
          & CALL STOP_THIS( '`FIND_NEAREST_TWISTED@mod_manip.f90`: Target and source latitudes do not overlap!' )
       !! ---------------------------------------------------------------------------------------
-      PRINT *, '       => going for advanced algorithm ! (thread #', ithrd, ')'
+      PRINT *, '       => going for advanced algorithm !' ;! (thread #', ithrd, ')'
 
       JIpos(:,:) = -1
       JJpos(:,:) = -1

@@ -86,28 +86,24 @@ CONTAINS
          !!---------------------------------------------------------------------------------------------
       CASE('bilin')
          
-         IF( jt == 1 ) THEN
-            
-            CALL BILIN_2D_INIT()
-            !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !
-            
-            IF( .NOT. l_skip_bilin_mapping ) THEN
-               
-               CALL MAPPING_BL( ewper_src, x_src_2d, y_src_2d, &
-                  &                        x_trg_2d, y_trg_2d, &
-                  &             pmsk_dom_trg=mask_ignore_trg     )
-               
-               CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...
-
-            ELSE
-               PRINT *, ' *_* / Skip the building of the mapping!'
-            END IF !IF( .NOT. l_skip_bilin_mapping )
-
-         END IF
-         
          CALL BILIN_2D( ewper_src, x_src_2d, y_src_2d, data_src, &
             &                      x_trg_2d, y_trg_2d, data_trg, &
             &           mask_domain_trg=IGNORE(:,:)                )
+         
+         STOP'LOLO:mod_interp!'
+         
+         !IF( jt == 1 ) THEN            
+         !   CALL BILIN_2D_INIT()
+         !   !! => among other things this allocated+filled x_src_2d, y_src_2d, x_trg_2d, y_trg_2d, and mask_ignore_trg !            
+         !   IF( .NOT. l_skip_bilin_mapping ) THEN
+         !      CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...!
+         !
+         !   ELSE
+         !      PRINT *, ' *_* / Skip the building of the mapping!'
+         !   END IF !IF( .NOT. l_skip_bilin_mapping )
+         !
+         !END IF
+         
          !!---------------------------------------------------------------------------------------------
          
          !!---------------------------------------------------------------------------------------------

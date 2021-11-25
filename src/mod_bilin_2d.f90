@@ -23,6 +23,10 @@ MODULE MOD_BILIN_2D
 
    PRIVATE
 
+   !PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
+   PUBLIC :: BILIN_2D
+	
+
    INTEGER, PARAMETER :: &
                                 !! Only active if iverbose==2:
       &   idb = 0, & ! i-index of point to debug on target domain
@@ -40,7 +44,7 @@ MODULE MOD_BILIN_2D
 
    TYPE(bln_map), DIMENSION(:,:), ALLOCATABLE, PUBLIC, SAVE :: bilin_map
    REAL(4),       DIMENSION(:,:), ALLOCATABLE, SAVE :: distance_to_np
-   LOGICAL,                                    SAVE :: l_1st_call_bilin
+   LOGICAL,                                    SAVE :: l_1st_call_bilin=.true.
    !--------
 
 
@@ -53,14 +57,16 @@ MODULE MOD_BILIN_2D
 
    !! PUBLIC:
 
-   LOGICAL,                                 PUBLIC, SAVE :: l_skip_bilin_mapping
+   LOGICAL,                                 PUBLIC, SAVE :: l_skip_bilin_mapping=.false.
 
-   PUBLIC :: BILIN_2D_INIT, BILIN_2D_WRITE_MAPPING, BILIN_2D, MAPPING_BL, INTERP_BL
 
 CONTAINS
 
 
    SUBROUTINE BILIN_2D_INIT()
+      !!==============================================================================
+      !!  Input :
+      !!             kewper: east-west periodicity
       !!==============================================================================
       !!
       USE io_ezcdf, ONLY : TEST_XYZ  ! , DUMP_2D_FIELD
@@ -77,18 +83,15 @@ CONTAINS
       WRITE(6,*) '#                  BILINEAR 2D INITIALIZATION'
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''
-      WRITE(6,'("   * Allocating array bilin_map: ",i5," x ",i5)') ni_trg, nj_trg
+      WRITE(6,'("   * Allocating array `bilin_map`: ",i4," x ",i4)') ni_trg, nj_trg
       ALLOCATE ( bilin_map(ni_trg,nj_trg) )
-
-      IF (l_save_distance_to_np) ALLOCATE ( distance_to_np(ni_trg,nj_trg) )
-
-      !ALLOCATE ( l_1st_call_bilin(Nthrd) )
-      l_1st_call_bilin     = .TRUE.
-
+      IF (l_save_distance_to_np) THEN
+         WRITE(6,'("   * Allocating array `distance_to_np`: ",i4," x ",i4)') ni_trg, nj_trg
+         ALLOCATE ( distance_to_np(ni_trg,nj_trg) )
+      END IF
       WRITE(6,*) '  * Allocations done...'
       WRITE(6,*) ''
       WRITE(cf_wght_bilin,'("sosie_mapping_",a,".nc")') TRIM(cpat)
-
       WRITE(6,*) '  * Mapping file is "',TRIM(cf_wght_bilin),'" !'
 
       INQUIRE(FILE=cf_wght_bilin, EXIST=lefw )
@@ -109,8 +112,8 @@ CONTAINS
          WRITE(6,*) '         interpolations using the same "source-target" setup...'
          l_skip_bilin_mapping = .FALSE.
       END IF
-
-      WRITE(6,*) '  Initializations for BILIN_2D done !'
+      WRITE(6,*) ''
+      WRITE(6,*) '  *** Initializations for BILIN_2D done ! ***' 
       WRITE(6,*) ''
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''; WRITE(6,*) ''
@@ -141,9 +144,9 @@ CONTAINS
       !! INPUT :     k_ew_per : east-west periodicity
       !!                        k_ew_per = -1  --> no periodicity
       !!                        k_ew_per >= 0  --> periodicity with overlap of k_ew_per points
-      !!             pX1   : 2D source longitude array of shape (ni,nj)
-      !!             pY1   : 2D source latitude  array of shape (ni,nj)
-      !!             pZ1   : source field on source grid  "    "
+      !!             pX1  : 2D source longitude array of shape (ni,nj)
+      !!             pY1  : 2D source latitude  array of shape (ni,nj)
+      !!             pZ1  : source field on source grid  "    "
       !!
       !!             pX2  : 2D target longitude array (ni,nj) or (ni,1)
       !!             pY2  : 2D target latitude  array (ni,nj) or (nj,1)
@@ -156,13 +159,14 @@ CONTAINS
       !!      * mask_domain_trg: ignore (dont't treat) regions of the target domain where mask_domain_trg==0 !
       !!
       !!================================================================
-      !!
+      !USE io_ezcdf,      ONLY: DUMP_FIELD ; !debug
+
       !! Input/Output arguments
-      INTEGER,                 INTENT(in)  :: k_ew_per
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: pX1, pY1
-      REAL(4), DIMENSION(:,:), INTENT(in)  :: pZ1
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: pX2, pY2
-      REAL(4), DIMENSION(:,:), INTENT(out) :: pZ2
+      INTEGER,                   INTENT(in)  :: k_ew_per
+      REAL(8),   DIMENSION(:,:), INTENT(in)  :: pX1, pY1
+      REAL(wpl), DIMENSION(:,:), INTENT(in)  :: pZ1
+      REAL(8),   DIMENSION(:,:), INTENT(in)  :: pX2, pY2
+      REAL(wpl), DIMENSION(:,:), INTENT(out) :: pZ2
       !INTEGER,                 INTENT(in)  :: ithrd ! # OMP thread
       INTEGER(1), OPTIONAL, DIMENSION(:,:), INTENT(in) :: mask_domain_trg
       !! Local variables
@@ -175,8 +179,22 @@ CONTAINS
 
       PRINT *, 'LOLOdbg: BILIN_2D() => shape of pX1 =', SIZE(pX1,1), SIZE(pX1,2)
 
-      !IF ( l_1st_call_bilin(ithrd) ) l_last_y_row_missing = .FALSE.
+      IF( l_1st_call_bilin ) THEN
 
+         CALL BILIN_2D_INIT( )
+         
+         IF( .NOT. l_skip_bilin_mapping ) THEN
+            CALL MAPPING_BL( ewper_src, pX1, pY1, pX2, pY2,  pmsk_dom_trg=mask_ignore_trg )
+            PRINT *, 'mod_bilin_2d.f90 => MAPPING_BL() finished!'; STOP
+            !CALL BILIN_2D_WRITE_MAPPING()  ! Saving mapping into netCDF file if relevant...!
+         END IF
+         
+      END IF
+
+      
+
+      
+      !IF ( l_1st_call_bilin(ithrd) ) l_last_y_row_missing = .FALSE.      
       pZ2(:,:) = rmissval ! Flagging non-interpolated output points
 
       PRINT *, 'LOLODBG bilin_2d, shape bilin_map =', SIZE(bilin_map,1), SIZE(bilin_map,2), '#', 1
@@ -362,7 +380,7 @@ CONTAINS
 
 
 
-   SUBROUTINE MAPPING_BL(k_ew_per, plon_src, plat_src, plon_trg, plat_trg,  ithread, pmsk_dom_trg)
+   SUBROUTINE MAPPING_BL(k_ew_per, plon_src, plat_src, plon_trg, plat_trg,  pmsk_dom_trg)
 
       !!----------------------------------------------------------------------------
       !!            ***  SUBROUTINE MAPPING_BL  ***
@@ -378,7 +396,6 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in) :: plon_src, plat_src
       REAL(8), DIMENSION(:,:), INTENT(in) :: plon_trg, plat_trg
       !!
-      INTEGER,    OPTIONAL,                 INTENT(in) :: ithread
       INTEGER(1), OPTIONAL, DIMENSION(:,:), INTENT(in) :: pmsk_dom_trg
 
       INTEGER :: &
@@ -419,7 +436,7 @@ CONTAINS
       !!----------------------------------------------------------------------------
 
       ithrd = 1 ! no OpenMP !
-      IF( PRESENT(ithread) ) ithrd = ithread
+      !IF( PRESENT(ithread) ) ithrd = ithread
 
       nxi = SIZE(plon_src,1)
       nyi = SIZE(plon_src,2)
@@ -431,7 +448,7 @@ CONTAINS
       nxo = SIZE(plon_trg,1)
       nyo = SIZE(plon_trg,2)
 
-      WRITE(6,'("LOLOdbg/MAPPING_BL: size of target domain for thread #",i1,": ",i4.4,"x",i4.4)') ithrd, nxo, nyo
+      WRITE(6,'("LOLOdbg/MAPPING_BL: size of target domain for thread #",i1,": ",i4.4,"x",i4.4)') 0, nxo, nyo
 
 
       ALLOCATE ( zbln_map(nxo,nyo), kmsk_ignr_trg(nxo,nyo), ki_nrst(nxo,nyo), kj_nrst(nxo,nyo) )
@@ -449,26 +466,28 @@ CONTAINS
       IF ( PRESENT(pmsk_dom_trg) ) kmsk_ignr_trg(:,:) = pmsk_dom_trg(:,:)
 
       !! DEBUG: checking input fields for each different thread:
-      WRITE(cf_tmp,'("in_mbl_lon_src_",i2.2,".nc")') ithrd
+      WRITE(cf_tmp,'("in_mbl_lon_src_",i2.2,".nc")') 0
       CALL DUMP_FIELD(REAL(plon_src(:,:),4), cf_tmp, 'lon')
-      WRITE(cf_tmp,'("in_mbl_lat_src_",i2.2,".nc")') ithrd
+      WRITE(cf_tmp,'("in_mbl_lat_src_",i2.2,".nc")') 0
       CALL DUMP_FIELD(REAL(plat_src(:,:),4), cf_tmp, 'lat')
       !!
-      WRITE(cf_tmp,'("in_mbl_lon_trg_",i2.2,".nc")') ithrd
+      WRITE(cf_tmp,'("in_mbl_lon_trg_",i2.2,".nc")') 0
       CALL DUMP_FIELD(REAL(plon_trg,4), cf_tmp, 'lon')
-      WRITE(cf_tmp,'("in_mbl_lat_trg_",i2.2,".nc")') ithrd
+      WRITE(cf_tmp,'("in_mbl_lat_trg_",i2.2,".nc")') 0
       CALL DUMP_FIELD(REAL(plat_trg,4), cf_tmp, 'lat')
       !STOP
 
       CALL FIND_NEAREST_POINT( plon_trg, plat_trg, plon_src, plat_src, ki_nrst, kj_nrst,  &
-         &                     ithread=ithrd, pmsk_dom_trg=kmsk_ignr_trg )
+         &                     pmsk_dom_trg=kmsk_ignr_trg )
 
       !lolodbg:
-      WRITE(cf_tmp,'("in_mbl_nrst_ji",i2.2,".nc")') ithread
+      !WRITE(cf_tmp,'("in_mbl_nrst_ji",i2.2,".nc")') ithread
+      WRITE(cf_tmp,'("in_mbl_nrst_ji",i2.2,".nc")') 0
       PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
       CALL DUMP_FIELD(REAL(ki_nrst,4), cf_tmp, 'ji')
       !
-      WRITE(cf_tmp,'("in_mbl_nrst_jj",i2.2,".nc")') ithread
+      !WRITE(cf_tmp,'("in_mbl_nrst_jj",i2.2,".nc")') ithread
+      WRITE(cf_tmp,'("in_mbl_nrst_jj",i2.2,".nc")') 0
       PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
       CALL DUMP_FIELD(REAL(kj_nrst,4), cf_tmp, 'jj')
       !lolodbg.
@@ -690,20 +709,16 @@ CONTAINS
 
 
       !lolodbg:
-      WRITE(cf_tmp,'("in_mbl_alfa_thread",i2.2,".nc")') ithread
-      PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      CALL DUMP_FIELD(REAL(zbln_map(:,:)%ralfa,4), cf_tmp, 'alfa')
+      !WRITE(cf_tmp,'("in_mbl_alfa_thread",i2.2,".nc")') 0
+      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
+      !CALL DUMP_FIELD(REAL(zbln_map(:,:)%ralfa,4), cf_tmp, 'alfa')
       !!
-      WRITE(cf_tmp,'("in_mbl_beta_thread",i2.2,".nc")') ithread
-      PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
-      CALL DUMP_FIELD(REAL(zbln_map(:,:)%rbeta,4), cf_tmp, 'beta')
+      !WRITE(cf_tmp,'("in_mbl_beta_thread",i2.2,".nc")') 0
+      !PRINT *, 'LOLOdbg/MAPPING_BL: saving '//TRIM(cf_tmp)//' !!!'
+      !CALL DUMP_FIELD(REAL(zbln_map(:,:)%rbeta,4), cf_tmp, 'beta')
       !lolodbg.
-
-
       !$OMP BARRIER
-      STOP'mod_bilin_2d.f90:MAPPING_BL()=>lilo2'
-
-
+      
       bilin_map(:,:) = zbln_map(:,:)
 
       DEALLOCATE ( zbln_map, kmsk_ignr_trg, ki_nrst, kj_nrst )
@@ -713,7 +728,7 @@ CONTAINS
 
 
 
-   SUBROUTINE LOCAL_COORD(xlam, xphi, pa, pb, ipb)
+   SUBROUTINE LOCAL_COORD(pxlam, pxphi, pa, pb, ipb)
 
       !!----------------------------------------------------------
       !!           ***  SUBROUTINE  local_coord    ***
@@ -728,7 +743,7 @@ CONTAINS
       !!----------------------------------------------------------
 
       !! * Arguments
-      REAL(8), DIMENSION(0:4), INTENT(in)  :: xlam, xphi
+      REAL(8), DIMENSION(0:4), INTENT(in)  :: pxlam, pxphi
       REAL(8)                , INTENT(out) :: pa, pb
       INTEGER                , INTENT(out) :: ipb  !: 0 if everything went fine, > 0 otherwize!
 
@@ -746,7 +761,7 @@ CONTAINS
 
       ipb = 0
 
-      zxlam = xlam       !: save input longitude in workinh array
+      zxlam(:) = pxlam(:)       !: save input longitude in workinh array
 
       ! when near the 0 deg line and we must work in the frame -180 180
       IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
@@ -764,8 +779,8 @@ CONTAINS
          za(1,1) =  z1 + (z2 + z3 )*zbeta
          za(1,2) = -z2 + (z2 + z3 )*zalpha
 
-         za(2,1) = xphi(2) - xphi(1) + (xphi(1) - xphi(4) + xphi(3) - xphi(2))*zbeta
-         za(2,2) = xphi(4) - xphi(1) + (xphi(1) - xphi(4) + xphi(3) - xphi(2))*zalpha
+         za(2,1) = pxphi(2) - pxphi(1) + (pxphi(1) - pxphi(4) + pxphi(3) - pxphi(2))*zbeta
+         za(2,2) = pxphi(4) - pxphi(1) + (pxphi(1) - pxphi(4) + pxphi(3) - pxphi(2))*zalpha
 
          ! Determinant
          zdeta = det(za(1,1), za(1,2), za(2,1), za(2,2) )
@@ -777,8 +792,8 @@ CONTAINS
 
          zdeta = ( SIGN(1._8,zdeta)*MAX(ABS(zdeta), repsilon) )  ! just to avoid FPE division by zero sometimes...
 
-         zdalp = det(zdlam,  za(1,2) , zdphi, za(2,2)  ) / zdeta
-         zdbet = det(za(1,1)  , zdlam, za(2,1)   ,zdphi) / zdeta
+         zdalp = DET(  zdlam , za(1,2), zdphi  , za(2,2) ) / zdeta
+         zdbet = DET( za(1,1), zdlam  , za(2,1), zdphi   ) / zdeta
 
          !! Compute residual ( loop criteria)
          zres = sqrt(zdalp*zdalp + zdbet*zdbet )
@@ -790,8 +805,8 @@ CONTAINS
          !! Compute corresponding lon/lat for this alpha, beta
          zdlam = zxlam(0) - ((1.-zalpha)*(1-zbeta)*zxlam(1) + zalpha*(1-zbeta)*zxlam(2)  &
             &                    +  zalpha*zbeta*zxlam(3) + (1-zalpha)*zbeta*zxlam(4))
-         zdphi = xphi(0)  - ((1.-zalpha)*(1-zbeta)*xphi(1)  + zalpha*(1-zbeta)*xphi(2)   &
-            &                    +  zalpha*zbeta*xphi(3)  + (1-zalpha)*zbeta*xphi(4))
+         zdphi = pxphi(0)  - ((1.-zalpha)*(1-zbeta)*pxphi(1)  + zalpha*(1-zbeta)*pxphi(2)   &
+            &                    +  zalpha*zbeta*pxphi(3)  + (1-zalpha)*zbeta*pxphi(4))
 
          niter = niter + 1  ! increment iteration counter
 
@@ -807,28 +822,28 @@ CONTAINS
       pb = zbeta
 
       !! Problem if the 4 latitudes surrounding 'lati' are equal!
-      IF ( (xphi(1)==xphi(2)).AND.(xphi(2)==xphi(3)).AND.(xphi(3)==xphi(4)) ) THEN
+      IF ( (pxphi(1)==pxphi(2)).AND.(pxphi(2)==pxphi(3)).AND.(pxphi(3)==pxphi(4)) ) THEN
          pa  = 0.5
          pb  = 0.5
          ipb = 12
       END IF
-
+      
    END SUBROUTINE LOCAL_COORD
 
 
-   FUNCTION det(p1, p2, p3, p4)
+   FUNCTION DET(p1, p2, p3, p4)
       !!----------------------------------------------------------
       !!          ***  FUNCTION DET   ***
       !!
       !!    ** Purpose : compute determinant
       !!
       !! * history:
-      !!     J.M. Molines may 2007
+      !!     J.M. Molines, may 2007
       !!----------------------------------------------------------
       REAL(8),INTENT(in) :: p1, p2, p3, p4
-      REAL(8) :: det
-      det = p1*p4 - p2*p3
-   END FUNCTION det
+      REAL(8)            :: DET
+      DET = p1*p4 - p2*p3
+   END FUNCTION DET
 
 
    FUNCTION heading(plona, plonb, plata, platb)
