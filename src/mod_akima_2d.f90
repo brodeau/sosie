@@ -99,7 +99,7 @@ CONTAINS
       !PRINT *, 'LOLO: shape of `pX1` in AKIMA_INIT before calling `EXTEND_ARRAY_2D_COOR` ', SIZE(pX1,1), SIZE(pX1,2)
 
       CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_src_2d_e, y_src_2d_e, is_orca_grid=i_orca_src )
-
+      
       !! Max spatial extension of source grid:
       rlon_src_min = MINVAL(x_src_2d_e) ;  rlon_src_max = MAXVAL(x_src_2d_e)
       rlat_src_min = MINVAL(y_src_2d_e) ;  rlat_src_max = MAXVAL(y_src_2d_e)
@@ -140,7 +140,7 @@ CONTAINS
       !!             icall : IF icall=1, will always force 'l_1st_call_akima' to .TRUE.
       !!
       !!================================================================
-      !USE io_ezcdf,      ONLY: DUMP_FIELD ; !debug
+      USE io_ezcdf,      ONLY: DUMP_FIELD ; !debug
 
       !! Input/Output arguments
       INTEGER,                   INTENT(in)  :: k_ew_per
