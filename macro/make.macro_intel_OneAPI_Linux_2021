@@ -20,9 +20,9 @@ L_NCDF = -lnetcdff
 # -- Common:
 FF_BASE = -i4 -xHOST -I mod/ -module mod/
 # -- Production:
-#FF = -O3 $(FF_BASE)
+FF = -O3 $(FF_BASE)
 # -- Debugging:
-FF =  -O0 -fpe0 -g -check all -warn all -traceback -debug extended -C $(FF_BASE)
+#FF =  -O0 -fpe0 -g -check all -warn all -traceback -debug extended -C $(FF_BASE)
 
 ## For io_ezcdf.f90 (netCDF bug => "-fpe0" cannot be used here:
 FF_SAFE = -O2 $(FF_BASE)
