@@ -41,7 +41,7 @@ MODULE MOD_MANIP
       &      distance, distance_2d, &
       &      find_nearest_point, &
       &      shrink_vector, to_degE, degE_to_degWE, &
-      &      ext_north_to_90_regg
+      &      ext_beyond_90_reg, l_ext2np_reg
 
    LOGICAL, PARAMETER :: l_force_use_of_twisted = .FALSE.
 
@@ -192,6 +192,7 @@ CONTAINS
       !!
       INTEGER :: nx, ny, nxx, nyx
       INTEGER :: ji, jj, iorca
+      REAL(8), DIMENSION(:,:), ALLOCATABLE  :: ztmp
       !!============================================================================
       iorca = 0
       IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
@@ -249,12 +250,26 @@ CONTAINS
          pFx(nxx-1:nxx-nxx/2+1:-1,nyx)   = pFx(2:nxx/2               ,nyx-5)
          !!
       CASE DEFAULT
-         DO ji = 1, nxx
-            CALL extra_2_east(pYx(ji,nyx-4),pYx(ji,nyx-3),pYx(ji,nyx-2),       &
-               &              pYx(ji,nyx-1),pYx(ji,nyx),                        &
-               &              pFx(ji,nyx-4),pFx(ji,nyx-3),pFx(ji,nyx-2), &
-               &              pFx(ji,nyx-1),pFx(ji,nyx) )
-         END DO
+
+         !! Before defaulting to extrapolations, there is the case when a regular source grid ends at the North-Pole:
+         IF( L_EXT2NP_REG(pXx(3:nxx-2,3:nyx-2), pYx(3:nxx-2,3:nyx-2)) ) THEN
+            IF(iverbose>0) PRINT *, 'Going for smart `EXT_BEYOND_90_REG` NorthPole extrapolation!'
+            ALLOCATE( ztmp(nxx,ny+2) )
+            ztmp(:,:) = pFx(:,:nyx-2)
+            CALL EXT_BEYOND_90_REG( pXx(:,:nyx-2), pYx(:,:nyx-2), ztmp(:,:), pFx(:,:) )
+            DEALLOCATE( ztmp )
+            !!
+         ELSE
+            !! Defaulting to extrapolation:
+            IF(iverbose>0) PRINT *, 'Going for default NorthPole extrapolation!'
+            DO ji = 1, nxx
+               CALL extra_2_east(pYx(ji,nyx-4),pYx(ji,nyx-3),pYx(ji,nyx-2),       &
+                  &              pYx(ji,nyx-1),pYx(ji,nyx),                        &
+                  &              pFx(ji,nyx-4),pFx(ji,nyx-3),pFx(ji,nyx-2), &
+                  &              pFx(ji,nyx-1),pFx(ji,nyx) )
+            END DO
+         END IF
+         
       END SELECT
       !!
       !! Bottom:
@@ -266,7 +281,7 @@ CONTAINS
       END DO
       !!
    END SUBROUTINE EXTEND_ARRAY_2D_DATA
-
+   
 
 
 
@@ -1548,77 +1563,76 @@ CONTAINS
 
    FUNCTION degE_to_degWE_2d( xlong )
       !! From longitude in 0 -- 360 frame to -180 -- +180 frame...
-      REAL(8), DIMENSION(:,:) :: xlong
+      REAL(8), DIMENSION(:,:) :: xlong !
       REAL(8), DIMENSION(SIZE(xlong,1),SIZE(xlong,2)) :: degE_to_degWE_2d
       degE_to_degWE_2d(:,:) = SIGN(1._8,180._8-xlong(:,:))*MIN(xlong(:,:), ABS(xlong(:,:)-360._8))
    END FUNCTION degE_to_degWE_2d
 
 
 
-
-   SUBROUTINE EXT_NORTH_TO_90_REGG( pX, YY, pF,  XP, YP, FP )
+   
+   !SUBROUTINE EXT_BEYOND_90_REG( pX, pY, pF,  pXe, pYe, pFe )
+   SUBROUTINE EXT_BEYOND_90_REG( pX, pY, pF, pFe )
       !!============================================================================
       !! We accept only regular lat-lon grid (supposed to include the north
       !! pole)!
       !!
-      !! pX, YY is a 2D regular lon-lat grid which is supposed to include the
-      !! northpole but for which the highest latitude (at j=Nj) is less than
-      !! 90. We're going to use "across-North-Pole" continuity to fill the
-      !! last upper row where latitude = 90 !
-      !!
-      !! => XP, YP is the same grid with an extra upper row where latitude = 90
-      !!     => Last upper row of FP (on XP,YP) contains interpolated values of
-      !!        the field
+      !! pX, pY is a 2D regular lon-lat grid which is supposed to include the
+      !! northpole but for which the highest latitude (at j=Nj) is less than or EQUAL to
+      !! 90. We're going to use "across-North-Pole" continuity to fill these 2
+      !! extra upper rows!
       !!============================================================================
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: pX, YY
-      REAL(4), DIMENSION(:,:), INTENT(in)  :: pF
-      REAL(8), DIMENSION(:,:), INTENT(out) :: XP, YP
-      REAL(4), DIMENSION(:,:), INTENT(out) :: FP
-
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: pX, pY
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: pF
+      !REAL(8), DIMENSION(:,:), INTENT(out) :: pXe, pYe
+      REAL(8), DIMENSION(:,:), INTENT(out) :: pFe
+      
       !! Local
-      REAL(8) :: rr, zlon, zlon_m
-      INTEGER :: nx, ny, nyp1, nyp2
-      INTEGER :: ji, ji_m
+      REAL(8) :: zr, zlon, zlon_m
+      INTEGER :: nx, ny, nyp1, nyp2, ji, ji_m
 
-      nx = SIZE(pX,1)
-      ny = SIZE(pX,2)
 
-      nyp2 = SIZE(XP,2)
-      IF( nyp2 /= ny + 2 ) CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => target y dim is not nj+2!!!')
-
-      IF( (nx /= SIZE(YY,1)).OR.(ny /= SIZE(YY,2)).OR. &
-         & (nx /= SIZE(pF,1)).OR.(ny /= SIZE(pF,2))) THEN
-         CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => size of input coor. and data do not match!!!')
+      !CALL DUMP_FIELD(REAL(pX,4), 'pX_for_EXT_BEYOND_90_REG.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(pY,4), 'pY_for_EXT_BEYOND_90_REG.nc', 'lat')
+      !CALL DUMP_FIELD(REAL(pF,4), 'pF_1_EXT_BEYOND_90_REG.nc', 'pf')
+      
+      nx = SIZE(pF,1)
+      ny = SIZE(pF,2)
+      
+      nyp2 = SIZE(pFe,2)
+      IF( nyp2 /= ny + 2 ) CALL STOP_THIS('[EXT_BEYOND_90_REG] => target y dim is not nj+2!!!')
+      
+      IF( (nx /= SIZE(pY,1)).OR.(ny /= SIZE(pY,2)) ) THEN
+         CALL STOP_THIS('[EXT_BEYOND_90_REG] => size of input coor. and data do not match!!!')
       END IF
-      IF( (SIZE(XP,1) /= SIZE(YP,1)).OR.(SIZE(XP,2) /= SIZE(YP,2)).OR. &
-         & (SIZE(XP,1) /= SIZE(FP,1)).OR.(SIZE(XP,2) /= SIZE(FP,2))) THEN
-         CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => size of output coor. and data do not match!!!')
-      END IF
+      !IF( (SIZE(pXe,1) /= SIZE(pYe,1)).OR.(SIZE(pXe,2) /= SIZE(pYe,2)).OR. &
+      !   & (SIZE(pXe,1) /= SIZE(pFe,1)).OR.(SIZE(pXe,2) /= SIZE(pFe,2))) THEN
+      !   CALL STOP_THIS('[EXT_BEYOND_90_REG] => size of output coor. and data do not match!!!')
+      !END IF
 
       nyp1 = ny + 1
 
-      XP = 0.
-      YP = 0.
-      FP = 0.
+      !pXe = 0.
+      !pYe = 0.
+      pFe = 0.
 
       !! Filling center of domain:
-      XP(:, 1:ny) = pX(:,:)
-      YP(:, 1:ny) = YY(:,:)
-      FP(:, 1:ny) = pF(:,:)
-
+      !pXe(:, 1:ny) = pX(:,:)
+      !pYe(:, 1:ny) = pY(:,:)
+      pFe(:, 1:ny) = pF(:,:)
+      
       !! Testing if the grid is of the type of what we expect:
-      rr = YY(nx/2,ny) ! highest latitude
-      IF( rr == 90.0 ) CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => mhh well you shouldnt be here I guess, 90 exists!...')
-      IF( SUM( (YY(:,ny) - rr)**2 ) > 1.E-12 ) &
-         &  CALL STOP_THIS('[EXT_NORTH_TO_90_REGG] => mhh well you shouldnt be here I guess, grid not regular!')
-
+      zr = pY(nx/2,ny) ! highest latitude
+      !IF(    zr == 90.0     )                  CALL STOP_THIS('[EXT_BEYOND_90_REG] => you shouldnt be here: 90 exists !')
+      IF( SUM( (pY(:,ny) - zr)**2 ) > 1.E-12 ) CALL STOP_THIS('[EXT_BEYOND_90_REG] => you shouldnt be here: grid is not regular!')
+      
       !! Longitude points for the extra upper row are just the same!
-      XP(:,nyp1) = pX(:,ny)
-      XP(:,nyp2) = pX(:,ny)
+      !pXe(:,nyp1) = pX(:,ny)
+      !pXe(:,nyp2) = pX(:,ny)
 
       !! For latitude it's easy:
-      YP(:,nyp1) = 90.0
-      YP(:,nyp2) = 90.0 + (YY(nx/2,ny) - YY(nx/2,ny-1)) ! 90. + dlon ! lolo bad???
+      !pYe(:,nyp1) = 90.0
+      !pYe(:,nyp2) = 90.0 + (pY(nx/2,ny) - pY(nx/2,ny-1)) ! 90. + dlon
 
       DO ji=1, nx
          zlon = pX(ji,ny) ! ji => zlon
@@ -1628,19 +1642,41 @@ CONTAINS
          ji_m = MINLOC(ABS(pX(:,ny)-zlon_m), dim=1)
          !PRINT *, '  ji_m =', ji_m
          !PRINT *, 'pX(ji_m,ny) =', pX(ji_m,ny)
-         !! Well so the northpole is righ in between so:
-         FP(ji,nyp1) = 0.5*(pF(ji,ny) + pF(ji_m,ny)) ! lolo fix!
-         FP(ji,nyp2) =  pF(ji_m,ny-1) ! lolo bad???
+         pFe(ji,nyp1) =  pF(ji_m,ny  )
+         pFe(ji,nyp2) =  pF(ji_m,ny-1)
       END DO
 
-      !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: YP =', YP(nx/2,:)
-      !PRINT *, ''
-      !PRINT *, 'LOLO EXT_NORTH_TO_90_REGG: FP =', FP(nx/2,:)
+   END SUBROUTINE EXT_BEYOND_90_REG
+   
+   
+   FUNCTION L_EXT2NP_REG( pX, pY )
+      !!
+      !! Tells if a grid is regular and stops at the North Pole (without necessarily reaching 90N)
+      !! 
+      REAL(8), DIMENSION(:,:), INTENT(in) :: pX, pY
+      LOGICAL                             :: L_EXT2NP_REG
+      !!
+      INTEGER :: nx, ny
+      REAL(8) :: zlat_max, zlat_mm1
+      
+      nx = SIZE(pY,1)
+      ny = SIZE(pY,2)
 
-   END SUBROUTINE EXT_NORTH_TO_90_REGG
+      L_EXT2NP_REG = .FALSE.
 
-
-
-
+      !CALL DUMP_FIELD(REAL(pX,4), 'pX_for_L_EXT2NP_REG.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(pY,4), 'pY_for_L_EXT2NP_REG.nc', 'lat')
+      
+      !! 1st, make sure it's a a map not a trajectory or something else:
+      IF( (nx>20).AND.(ny>20) ) THEN
+         !! 2nd, it must be regular:      
+         IF( L_IS_GRID_REGULAR( pX, pY ) ) THEN
+            !! 3rd, it must "stop" at the North Pole:
+            zlat_max = pY(nx/2,ny)
+            zlat_mm1 = pY(nx/2,ny-1)
+            IF ( (zlat_max <= 90.) .AND. ( 2.*zlat_max - zlat_mm1   >= 90. ) )  L_EXT2NP_REG = .TRUE.
+         END IF
+      END IF
+   END FUNCTION L_EXT2NP_REG
 
 END MODULE MOD_MANIP

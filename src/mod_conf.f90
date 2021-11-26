@@ -8,7 +8,7 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
-   INTEGER, SAVE :: iverbose=0 ! level of verbose: 0 to 2...                                                              
+   INTEGER, SAVE :: iverbose=1 ! level of verbose: 0 to 2...                                                              
 
    !! Some constants:
    REAL(8), PARAMETER :: rpi0   = ACOS(-1._8), &

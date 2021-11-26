@@ -13,7 +13,7 @@ MODULE MOD_BILIN_2D
    !!-----------------------------------------------------------------
 
    USE mod_conf
-   USE mod_manip, ONLY: EXT_NORTH_TO_90_REGG, DEGE_TO_DEGWE, FIND_NEAREST_POINT, DISTANCE
+   USE mod_manip, ONLY: DEGE_TO_DEGWE, FIND_NEAREST_POINT, DISTANCE
    USE mod_poly
    USE mod_grids, ONLY: mask_ignore_trg
 
