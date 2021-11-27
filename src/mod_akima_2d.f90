@@ -37,18 +37,18 @@ MODULE MOD_AKIMA_2D
 
    INTEGER, PARAMETER  :: np_e = 4  !: Source grid spatial extension (4 => extra frame of 2 points)
    INTEGER, PARAMETER  :: Nsys = 16 !: Dimmension of the linear sytem to solve
-   
+
    !! Mapping for Akima:
    INTEGER, DIMENSION(:,:,:), ALLOCATABLE, SAVE :: MAP_AKM !: table storing source/target grids mapping for akima method
    LOGICAL,                                SAVE :: l_1st_call_akima=.true.
    LOGICAL,                                SAVE :: l_always_first_call
- 
+
    INTEGER,                                SAVE :: ni_src_e, nj_src_e ! shape of extended source arrays
    REAL(8), DIMENSION(:,:),   ALLOCATABLE, SAVE :: x_src_2d_e , y_src_2d_e, Z_src_2d_e ! extended coordinates
-   
+
    REAL(8),               SAVE :: rlon_src_min, rlon_src_max, rlat_src_min, rlat_src_max
    REAL(8), DIMENSION(4), SAVE :: range_lonlat_src
-   
+
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
 
@@ -74,10 +74,10 @@ CONTAINS
       WRITE(6,*) '#                     AKIMA INITIALIZATION'
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''
-      
+
       IF( (SIZE(pX2,1)/=ni_trg).OR.(SIZE(pX2,2)/=nj_trg) ) &
          & CALL STOP_THIS( '[AKIMA_INIT()] => shape inconsistency on target domain!' )
-      
+
       WRITE(6,'("  * Allocating array `MAP_AKM`: ",i4.4,"x",i4.4)') ni_trg, nj_trg
       ALLOCATE ( MAP_AKM(ni_trg,nj_trg,2) )
       MAP_AKM(:,:,:) = 0
@@ -88,7 +88,7 @@ CONTAINS
 
       ni_src_e = ni_src+np_e
       nj_src_e = nj_src+np_e
-      
+
       WRITE(6,'("  * Allocating space-extended source coordinates arrays: ",i4.4,"x",i4.4)')  ni_src_e, nj_src_e
       ALLOCATE( x_src_2d_e(ni_src_e,nj_src_e) , y_src_2d_e(ni_src_e,nj_src_e) )
       WRITE(6,'("  * Allocating space-extended source field array: ",i4.4,"x",i4.4)')  ni_src_e, nj_src_e
@@ -99,16 +99,16 @@ CONTAINS
       !PRINT *, 'LOLO: shape of `pX1` in AKIMA_INIT before calling `EXTEND_ARRAY_2D_COOR` ', SIZE(pX1,1), SIZE(pX1,2)
 
       CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_src_2d_e, y_src_2d_e, is_orca_grid=i_orca_src )
-      
+
       !! Max spatial extension of source grid:
       rlon_src_min = MINVAL(x_src_2d_e) ;  rlon_src_max = MAXVAL(x_src_2d_e)
       rlat_src_min = MINVAL(y_src_2d_e) ;  rlat_src_max = MAXVAL(y_src_2d_e)
       range_lonlat_src(:) = (/ rlon_src_min,rlon_src_max , rlat_src_min,rlat_src_max /)
-      
+
       !! Doing the mapping once for all and saving into MAP_AKM:
       WRITE(6,*) '  * Calling `FIND_NEAREST_AKIMA()` to fill mapping `MAP_AKM`!'
       CALL FIND_NEAREST_AKIMA( x_src_2d_e, y_src_2d_e, range_lonlat_src, pX2, pY2, MAP_AKM(:,:,:) )
-      WRITE(6,*) ''      
+      WRITE(6,*) ''
       WRITE(6,*) ''
       !!
       WRITE(6,*) '  Initializations for AKIMA done !'
@@ -160,14 +160,14 @@ CONTAINS
       !!
       !CHARACTER(len=32) :: cf_tmp !debug
       !!================================================================
-      
+
       IF ( PRESENT(icall) ) THEN
          IF ( icall == 1 ) THEN
             l_1st_call_akima     = .TRUE.
             l_always_first_call  = .TRUE.
          END IF
       END IF
-      
+
       IF( l_1st_call_akima )  CALL AKIMA_INIT( k_ew_per, pX1, pY1, pX2, pY2 )
 
       ALLOCATE ( poly(ni_src_e-1,nj_src_e-1,Nsys) )
@@ -183,7 +183,7 @@ CONTAINS
       !lolodbg.
 
       !! Computation of partial derivatives:
-      CALL slopes_akima(k_ew_per, x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy)
+      CALL SLOPES_AKIMA(k_ew_per, x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy)
 
       !! Polynome:
       CALL build_pol(x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy, poly)
@@ -221,7 +221,7 @@ CONTAINS
       END DO !DO jj2 = 1, nj_trg
 
       DEALLOCATE ( poly )
-      
+
       l_1st_call_akima = .FALSE.
 
       IF ( l_always_first_call ) THEN
@@ -473,7 +473,7 @@ CONTAINS
    END FUNCTION pol_val
 
 
-   SUBROUTINE slopes_akima(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
+   SUBROUTINE SLOPES_AKIMA(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
 
       !! Slopes ~ partial derivatives of a field ZF according to Akima method
       !! given on a regular gird !!
@@ -490,7 +490,8 @@ CONTAINS
 
       !! Local variables :
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: ZX, ZY, ZF
-      INTEGER :: nx, ny, ji, jj, ip1, ip2, jp1, jp2
+      INTEGER :: nx, ji, ic, im2, im1, ip1, ip2
+      INTEGER :: ny, jj, jc, jm2, jm1, jp1, jp2
       REAL(8) :: m1, m2, m3, m4, rx
       REAL(8) :: Wx2, Wx3, Wy2, Wy3
       REAL(8) :: d22, e22, d23, e23, d42, e32, d43, e33
@@ -504,42 +505,78 @@ CONTAINS
 
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
+      !CALL EXTEND_ARRAY_2D_COOR( k_ew, XX, XY, ZX, ZY,  is_orca_grid=i_orca_src )
+      !CALL EXTEND_ARRAY_2D_DATA( k_ew, ZX, ZY, XF, ZF,  is_orca_grid=i_orca_src, l_smart_NP=.false. )
+      ! We don't want any smart extrapolation because it has already be done...
+      !! => so should what the first 2p-frame extension means in terms of a new k_ew here!!!
+      CALL EXTEND_ARRAY_2D_COOR( -1, XX, XY, ZX, ZY,  is_orca_grid=0 )
+      CALL EXTEND_ARRAY_2D_DATA( -1, ZX, ZY, XF, ZF,  is_orca_grid=0, l_smart_NP=.FALSE. )
 
-      CALL EXTEND_ARRAY_2D_COOR( k_ew, XX, XY, ZX, ZY,  is_orca_grid=i_orca_src )
-      CALL EXTEND_ARRAY_2D_DATA( k_ew, ZX, ZY, XF, ZF,  is_orca_grid=i_orca_src )
+      
+      !! No 2p-frame (same shape!):
+      !ALLOCATE ( ZX(nx,ny), ZY(nx,ny), ZF(nx,ny) )
+      !ZX(:,:) = XX(:,:)
+      !ZY(:,:) = XY(:,:)
+      !ZF(:,:) = XF(:,:)
 
       !! Treating middle of array ( at least 2 points away from the bordures ) :
       !!------------------------------------------------------------------------
 
+      !! In case of 2P-extended frame:
       DO jj=1, ny
          DO ji=1, nx
+            !!
+            im2  = ji
+            jm2  = jj
+            !!
+            im1  = ji+1
+            ic   = ji+2
+            ip1  = ji+3
+            ip2  = ji+4
+            !!
+            jm1  = jj+1
+            jc   = jj+2
+            jp1  = jj+3
+            jp2  = jj+4
 
-            ! Initialisation MB Problem when they are close to zero but not zero
+            !! Normal case, no frame extension
+            !DO jj=3, ny-2
+            !   DO ji=3, nx-2
+            !      !!
+            !      im2  = ji-2
+            !      jm2  = jj-2
+            !      !!
+            !      im1 = ji-1
+            !      ic  = ji
+            !      ip1 = ji+1
+            !      ip2 = ji+2
+            !      !!
+            !      jm1 = jj-1
+            !      jc  = jj
+            !      jp1 = jj+1
+            !      jp2 = jj+2
+
             m1=0. ; m2=0. ; m3=0. ; m4=0. ; Wx2=0. ; Wx3=0. ; Wy2=0. ; Wy3=0.
 
-            ip1 = ji+1
-            ip2 = ji+2
-            jp1 = jj+1
-            jp2 = jj+2
 
             !!   SLOPE / X :
             !!   ***********
 
-            rx = ZX(ip1,jp2) - ZX(ji,  jp2)
+            rx = ZX(im1,jc) - ZX(im2,  jc)
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (ZF(ip1,jp2) - ZF(ji,  jp2)) / m1
+            m1 = (ZF(im1,jc) - ZF(im2,  jc)) / m1
 
-            rx = ZX(ip2,jp2) - ZX(ip1,jp2)
+            rx = ZX(ic,jc) - ZX(im1,jc)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (ZF(ip2,jp2) - ZF(ip1,jp2)) / m2
+            m2 = (ZF(ic,jc) - ZF(im1,jc)) / m2
 
-            rx = ZX(ji+3,jp2) - ZX(ip2,jp2)
+            rx = ZX(ip1,jc) - ZX(ic,jc)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (ZF(ji+3,jp2) - ZF(ip2,jp2)) / m3
+            m3 = (ZF(ip1,jc) - ZF(ic,jc)) / m3
 
-            rx = ZX(ji+4,jp2) - ZX(ji+3,jp2)
+            rx = ZX(ip2,jc) - ZX(ip1,jc)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (ZF(ji+4,jp2) - ZF(ji+3,jp2)) / m4
+            m4 = (ZF(ip2,jc) - ZF(ip1,jc)) / m4
 
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
                dFdX(ji,jj) = 0.5*(m2 + m3)
@@ -551,21 +588,21 @@ CONTAINS
 
             !!   SLOPE / Y :
             !!   ***********
-            rx = ZY(ip2,jp1) - ZY(ip2,jj  )
+            rx = ZY(ic,jm1) - ZY(ic,jm2  )
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (ZF(ip2,jp1) - ZF(ip2,jj  )) / m1
+            m1 = (ZF(ic,jm1) - ZF(ic,jm2  )) / m1
 
-            rx = ZY(ip2,jp2) - ZY(ip2,jp1)
+            rx = ZY(ic,jc) - ZY(ic,jm1)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (ZF(ip2,jp2) - ZF(ip2,jp1)) / m2
+            m2 = (ZF(ic,jc) - ZF(ic,jm1)) / m2
 
-            rx = ZY(ip2,jj+3) - ZY(ip2,jp2)
+            rx = ZY(ic,jp1) - ZY(ic,jc)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (ZF(ip2,jj+3) - ZF(ip2,jp2)) / m3
+            m3 = (ZF(ic,jp1) - ZF(ic,jc)) / m3
 
-            rx = ZY(ip2,jj+4) - ZY(ip2,jj+3)
+            rx = ZY(ic,jp2) - ZY(ic,jp1)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (ZF(ip2,jj+4) - ZF(ip2,jj+3)) / m4
+            m4 = (ZF(ic,jp2) - ZF(ic,jp1)) / m4
 
 
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
@@ -580,43 +617,43 @@ CONTAINS
             !!   CROSS DERIVATIVE /XY :
             !!   **********************
             !! d22 = d(i-1,j-1) = [ z(i-1,j)-z(i-1,j-1) ] / [ y(j) - y(j-1) ]
-            rx  = ZY(ip1,jp2) - ZY(ip1,jp1)
+            rx  = ZY(im1,jc) - ZY(im1,jm1)
             d22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d22 = (ZF(ip1,jp2) - ZF(ip1,jp1)) / d22
+            d22 = (ZF(im1,jc) - ZF(im1,jm1)) / d22
 
             !! d23 = d(i-1 , j) = [ z(i-1,j+1)-z(i-1,j) ] / [ y(j+1) - y(j) ]
-            rx  = ZY(ip1,jj+3) - ZY(ip1,jp2)
+            rx  = ZY(im1,jp1) - ZY(im1,jc)
             d23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d23 = (ZF(ip1,jj+3) - ZF(ip1,jp2)) / d23
+            d23 = (ZF(im1,jp1) - ZF(im1,jc)) / d23
 
             !! d42 = d(i+1 , j-1) = [ z(i+1 , j) - z(i+1 , j-1) ] / [ y(j) - y(j-1) ]
-            rx  = ZY(ji+3,jp2) - ZY(ji+3,jp1)
+            rx  = ZY(ip1,jc) - ZY(ip1,jm1)
             d42 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d42 = (ZF(ji+3,jp2) - ZF(ji+3,jp1)) / d42
+            d42 = (ZF(ip1,jc) - ZF(ip1,jm1)) / d42
 
             !! d43 = d(i+1 , j) = [ z(i+1 , j+1)-z(i+1 , j) ] / [ y(j+1) - y(j) ]
-            rx = ZY(ji+3,jj+3) - ZY(ji+3,jp2)
+            rx = ZY(ip1,jp1) - ZY(ip1,jc)
             d43 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d43 = (ZF(ji+3,jj+3) - ZF(ji+3,jp2)) / d43
+            d43 = (ZF(ip1,jp1) - ZF(ip1,jc)) / d43
 
 
             !! e22  = [ m2 - d22 ] / [ x(i) - x(i-1) ]
-            rx  = ZX(ip2,jp1) - ZX(ip1,jp1)
+            rx  = ZX(ic,jm1) - ZX(im1,jm1)
             e22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e22 = ( m2 - d22 ) / e22
 
             !! e23  = [ m3 - d23 ] / [ x(i) - x(i-1) ]
-            rx  = ZX(ip2,jp2) - ZX(ip1,jp2)
+            rx  = ZX(ic,jc) - ZX(im1,jc)
             e23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e23 = ( m3 - d23 ) / e23
 
             !! e32  = [ d42 - m2 ] / [ x(i+1) - x(i) ]
-            rx  = ZX(ji+3,jp2) - ZX(ip2,jp2)
+            rx  = ZX(ip1,jc) - ZX(ic,jc)
             e32 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e32 = ( d42 - m2 ) / e32
 
             !! e33  = [ d43 - m3 ] / [ x(i+1) - x(i) ]
-            rx  = ZX(ji+3,jp2) - ZX(ip2,jp2)
+            rx  = ZX(ip1,jc) - ZX(ic,jc)
             e33 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e33 = ( d43 - m3 ) / e33
 
@@ -640,7 +677,7 @@ CONTAINS
 
       DEALLOCATE ( ZX, ZY, ZF )
 
-   END SUBROUTINE slopes_akima
+   END SUBROUTINE SLOPES_AKIMA
 
 
 

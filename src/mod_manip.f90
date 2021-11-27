@@ -71,9 +71,8 @@ CONTAINS
       INTEGER ,      OPTIONAL, INTENT(in)  :: is_orca_grid
       !!
       INTEGER :: nx, ny, nxx, nyx
-      INTEGER :: iorca
+      INTEGER :: iorca=0
       !!============================================================================
-      iorca = 0
       IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
 
       nx = SIZE(pX ,1)
@@ -167,7 +166,7 @@ CONTAINS
    END SUBROUTINE EXTEND_ARRAY_2D_COOR
    
    
-   SUBROUTINE EXTEND_ARRAY_2D_DATA(k_ew, pXx, pYx, pF, pFx,  is_orca_grid)
+   SUBROUTINE EXTEND_ARRAY_2D_DATA( k_ew, pXx, pYx, pF, pFx,  is_orca_grid, l_smart_NP )
       !!============================================================================
       !! Extending input arrays with an extraband of two points at north,south,east
       !! and west boundaries.
@@ -188,15 +187,19 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in)  :: pXx, pYx ! extended coordinates !
       REAL(8), DIMENSION(:,:), INTENT(in)  :: pF
       REAL(8), DIMENSION(:,:), INTENT(out) :: pFx
-      INTEGER ,      OPTIONAL, INTENT(in)  :: is_orca_grid
+      INTEGER,       OPTIONAL, INTENT(in)  :: is_orca_grid
+      LOGICAL,       OPTIONAL, INTENT(in)  :: l_smart_NP
       !!
       INTEGER :: nx, ny, nxx, nyx
-      INTEGER :: ji, jj, iorca, iext_np
+      INTEGER :: ji, jj, iext_np
+      INTEGER :: iorca=0
+      INTEGER :: lsNoP=.false.
       REAL(8), DIMENSION(:,:), ALLOCATABLE  :: ztmp
       !!============================================================================
-      iorca = 0
+      
       IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
-
+      IF( PRESENT( l_smart_NP)  ) lsNoP = l_smart_NP
+            
       nx  = SIZE(pF ,1) ; ny  = SIZE(pF ,2)
       nxx = SIZE(pFx,1) ; nyx = SIZE(pFx,2)
 
@@ -253,7 +256,7 @@ CONTAINS
 
          !! Before defaulting to extrapolations, there is the case when a regular source grid ends at the North-Pole:
          iext_np = I_EXT2NP_REG(pXx(3:nxx-2,3:nyx-2),pYx(3:nxx-2,3:nyx-2))
-         IF( iext_np > 0 ) THEN
+         IF( (lsNoP).AND.(iext_np>0) ) THEN
             IF(iverbose>0) PRINT *, 'Going for smart `EXT_BEYOND_90_REG` NorthPole extrapolation!'
             ALLOCATE( ztmp(nxx,ny+2) )
             ztmp(:,:) = pFx(:,:nyx-2)
@@ -262,7 +265,7 @@ CONTAINS
             !!
          ELSE
             !! Defaulting to extrapolation:
-            IF(iverbose>0) PRINT *, 'Going for default NorthPole extrapolation!'
+            IF(iverbose>0) PRINT *, 'Going for default dumb NorthPole extrapolation!'
             DO ji = 1, nxx
                CALL extra_2_east(pYx(ji,nyx-4),pYx(ji,nyx-3),pYx(ji,nyx-2),       &
                   &              pYx(ji,nyx-1),pYx(ji,nyx),                        &
