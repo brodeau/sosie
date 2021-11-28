@@ -28,7 +28,7 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
    USE mod_conf
    USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA
-   USE io_ezcdf,  ONLY: DUMP_FIELD ; !debug
+   !USE io_ezcdf,  ONLY: DUMP_FIELD ; !debug
    
    IMPLICIT NONE
 
@@ -97,8 +97,6 @@ CONTAINS
       !!
       WRITE(6,'("  * Filling space-extended source coordinates arrays")')
 
-      !PRINT *, 'LOLO: shape of `pX1` in AKIMA_INIT before calling `EXTEND_ARRAY_2D_COOR` ', SIZE(pX1,1), SIZE(pX1,2)
-
       CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_src_2d_e, y_src_2d_e, is_orca_grid=i_orca_src )
 
       !! Max spatial extension of source grid:
@@ -157,8 +155,6 @@ CONTAINS
       REAL(8), DIMENSION(:,:),   ALLOCATABLE :: slpx, slpy, slpxy
       !!
       REAL(8) :: zx2, zy2
-      !!
-      !CHARACTER(len=32) :: cf_tmp !debug
       !!================================================================
 
       IF ( PRESENT(icall) ) THEN
@@ -682,9 +678,9 @@ CONTAINS
       DEALLOCATE ( ZX, ZY, ZF )
 
       !debug:
-      !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX.nc', 'dFdX') !lolo: bug corners!!!
-      !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY.nc', 'dFdX') !lolo: bug corners!!!
-      !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY.nc', 'd2FdXdY') !lolo: bug corners!!!
+      !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY.nc', 'd2FdXdY')
       !STOP'SLOPES_AKIMA'
       !debug.
       
