@@ -28,7 +28,8 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
    USE mod_conf
    USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA
-
+   USE io_ezcdf,  ONLY: DUMP_FIELD ; !debug
+   
    IMPLICIT NONE
 
    PRIVATE
@@ -140,7 +141,6 @@ CONTAINS
       !!             icall : IF icall=1, will always force 'l_1st_call_akima' to .TRUE.
       !!
       !!================================================================
-      USE io_ezcdf,      ONLY: DUMP_FIELD ; !debug
 
       !! Input/Output arguments
       INTEGER,                   INTENT(in)  :: k_ew_per
@@ -151,7 +151,7 @@ CONTAINS
       INTEGER,       OPTIONAL,   INTENT(in)  :: icall
 
       !! Local variables
-      INTEGER :: ji1, jj1, ji2, jj2
+      INTEGER :: ji1, jj1, ji2, jj2, kewp
       REAL(8), DIMENSION(Nsys) :: vpl
       REAL(8), DIMENSION(:,:,:), ALLOCATABLE :: poly
       REAL(8), DIMENSION(:,:),   ALLOCATABLE :: slpx, slpy, slpxy
@@ -175,15 +175,18 @@ CONTAINS
 
       !! Filling extended data array:
       CALL EXTEND_ARRAY_2D_DATA( k_ew_per, x_src_2d_e, y_src_2d_e,   REAL(pZ1,8), Z_src_2d_e,     is_orca_grid=i_orca_src )
-      !lolodbg:
+      !debug:
       !CALL DUMP_FIELD(REAL(x_src_2d_e,4), 'x_src_2d_e_new.nc', 'lon')
       !CALL DUMP_FIELD(REAL(y_src_2d_e,4), 'y_src_2d_e_new.nc', 'lat')
       !CALL DUMP_FIELD(REAL(Z_src_2d_e,4), 'Z_src_2d_e_new.nc', 'Z')
       !CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
-      !lolodbg.
+      !debug.
 
       !! Computation of partial derivatives:
-      CALL SLOPES_AKIMA(k_ew_per, x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy)
+      !! * since we use extended arrays (2-point wide frame) we need to adapt E-W periodicity
+      kewp = -1
+      IF( k_ew_per > -1 ) kewp = k_ew_per + 4
+      CALL SLOPES_AKIMA(kewp, x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy)
 
       !! Polynome:
       CALL build_pol(x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy, poly)
@@ -502,16 +505,19 @@ CONTAINS
 
       nx = SIZE(XF,1)
       ny = SIZE(XF,2)
-
+      
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
-      !CALL EXTEND_ARRAY_2D_COOR( k_ew, XX, XY, ZX, ZY,  is_orca_grid=i_orca_src )
-      !CALL EXTEND_ARRAY_2D_DATA( k_ew, ZX, ZY, XF, ZF,  is_orca_grid=i_orca_src, l_smart_NP=.false. )
-      ! We don't want any smart extrapolation because it has already be done...
-      !! => so should what the first 2p-frame extension means in terms of a new k_ew here!!!
-      CALL EXTEND_ARRAY_2D_COOR( -1, XX, XY, ZX, ZY,  is_orca_grid=0 )
-      CALL EXTEND_ARRAY_2D_DATA( -1, ZX, ZY, XF, ZF,  is_orca_grid=0, l_smart_NP=.FALSE. )
-
+      ! We don't want any smart extrapolation in the north because it has already be done...
+      ! (and `k_ew` should take into account that we are dealing with arrays extended with 2-point frame)
+      CALL EXTEND_ARRAY_2D_COOR( k_ew, XX, XY, ZX, ZY,  is_orca_grid=0 )
+      CALL EXTEND_ARRAY_2D_DATA( k_ew, ZX, ZY, XF, ZF,  is_orca_grid=0, l_smart_NP=.FALSE. )
+      !debug:
+      !CALL DUMP_FIELD(REAL(ZX,4), 'slopes_akima_extended_LON.nc', 'lon') !lolo: bug corners!!!
+      !CALL DUMP_FIELD(REAL(ZY,4), 'slopes_akima_extended_LAT.nc', 'lat')
+      !CALL DUMP_FIELD(REAL(ZF,4), 'slopes_akima_extended_FLD.nc', 'field')
+      !STOP'SLOPES_AKIMA'
+      !debug.
       
       !! No 2p-frame (same shape!):
       !ALLOCATE ( ZX(nx,ny), ZY(nx,ny), ZF(nx,ny) )
@@ -526,14 +532,13 @@ CONTAINS
       DO jj=1, ny
          DO ji=1, nx
             !!
-            im2  = ji
-            jm2  = jj
-            !!
+            im2  = ji            
             im1  = ji+1
             ic   = ji+2
             ip1  = ji+3
             ip2  = ji+4
             !!
+            jm2  = jj
             jm1  = jj+1
             jc   = jj+2
             jp1  = jj+3
@@ -543,14 +548,13 @@ CONTAINS
             !DO jj=3, ny-2
             !   DO ji=3, nx-2
             !      !!
-            !      im2  = ji-2
-            !      jm2  = jj-2
-            !      !!
+            !      im2 = ji-2
             !      im1 = ji-1
             !      ic  = ji
             !      ip1 = ji+1
             !      ip2 = ji+2
             !      !!
+            !      jm2 = jj-2
             !      jm1 = jj-1
             !      jc  = jj
             !      jp1 = jj+1
@@ -677,6 +681,13 @@ CONTAINS
 
       DEALLOCATE ( ZX, ZY, ZF )
 
+      !debug:
+      !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX.nc', 'dFdX') !lolo: bug corners!!!
+      !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY.nc', 'dFdX') !lolo: bug corners!!!
+      !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY.nc', 'd2FdXdY') !lolo: bug corners!!!
+      !STOP'SLOPES_AKIMA'
+      !debug.
+      
    END SUBROUTINE SLOPES_AKIMA
 
 
