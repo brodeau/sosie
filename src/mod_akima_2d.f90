@@ -88,7 +88,7 @@ CONTAINS
 
 
       !! Local variables
-      INTEGER :: nx1, ny1, nx2, ny2, ji, jj
+      INTEGER :: nx1, ny1, nx2, ny2, ji, jj, kewp
 
       INTEGER, PARAMETER :: n_extd = 4    ! source grid extension
 
@@ -102,7 +102,7 @@ CONTAINS
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: &
          &    X1, Y1, X2, Y2,   &
-         &    Z_src , lon_src , lat_src
+         &    zFs , zXs , zYs
 
       REAL(8), DIMENSION(:,:), ALLOCATABLE :: slpx, slpy, slpxy
 
@@ -161,27 +161,30 @@ CONTAINS
 
       ni1 = nx1 + n_extd  ;   nj1 = ny1 + n_extd
 
-      ALLOCATE ( Z_src(ni1,nj1), lon_src(ni1,nj1), lat_src(ni1,nj1), &
+      ALLOCATE ( zFs(ni1,nj1), zXs(ni1,nj1), zYs(ni1,nj1), &
          &       slpx(ni1,nj1),   slpy(ni1,nj1),  slpxy(ni1,nj1), &
          &       poly(ni1-1,nj1-1,nsys)    )
 
-      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), lon_src, lat_src, Z_src,  is_orca_grid=i_orca_src)
+      CALL FILL_EXTRA_BANDS(k_ew_per, X1, Y1, REAL(Z1,8), zXs, zYs, zFs,  is_orca_grid=i_orca_src)
 
       DEALLOCATE (X1, Y1)
 
 
 
       !! Computation of partial derivatives:
-      CALL slopes_akima(k_ew_per, lon_src, lat_src, Z_src, slpx, slpy, slpxy)
+      !! * since we use extended arrays (2-point wide frame) we need to adapt E-W periodicity
+      kewp = -1
+      IF( k_ew_per > -1 ) kewp = k_ew_per + 4
+      CALL SLOPES_AKIMA(kewp, zXs, zYs, zFs, slpx, slpy, slpxy)
 
       !! Polynome:
-      CALL build_pol(lon_src, lat_src, Z_src, slpx, slpy, slpxy, poly)
+      CALL build_pol(zXs, zYs, zFs, slpx, slpy, slpxy, poly)
 
       DEALLOCATE ( slpx, slpy, slpxy )
 
       !! Checking if the target grid does not overlap source grid :
-      min_lon1 = minval(lon_src) ;  max_lon1 = maxval(lon_src)
-      min_lat1 = minval(lat_src) ;  max_lat1 = maxval(lat_src)
+      min_lon1 = minval(zXs) ;  max_lon1 = maxval(zXs)
+      min_lat1 = minval(zYs) ;  max_lat1 = maxval(zYs)
       xy_range_src(:) = (/ min_lon1,max_lon1 , min_lat1,max_lat1 /)
 
       min_lon2 = MINVAL(X2)     ;  max_lon2 = MAXVAL(X2)
@@ -191,7 +194,7 @@ CONTAINS
       IF ( l_first_call_interp_routine ) THEN
          ALLOCATE ( ixy_pos(nx2, ny2, 2) )
          ixy_pos(:,:,:) = 0
-         CALL find_nearest_akima( lon_src, lat_src, xy_range_src, X2, Y2, ixy_pos )
+         CALL find_nearest_akima( zXs, zYs, xy_range_src, X2, Y2, ixy_pos )
       END IF
 
 
@@ -210,8 +213,8 @@ CONTAINS
                jj1 = ixy_pos(ji2,jj2,2)
 
                !! It's time to interpolate:
-               px2 = px2 - lon_src(ji1,jj1)
-               py2 = py2 - lat_src(ji1,jj1)
+               px2 = px2 - zXs(ji1,jj1)
+               py2 = py2 - zYs(ji1,jj1)
                vpl = poly(ji1,jj1,:)
 
                Z2(ji2,jj2) = REAL( pol_val(px2, py2, vpl) , 4)  ! back to real(4)
@@ -224,7 +227,7 @@ CONTAINS
       END DO
 
       !! Deallocation :
-      DEALLOCATE ( Z_src , lon_src , lat_src, poly, X2, Y2 )
+      DEALLOCATE ( zFs , zXs , zYs, poly, X2, Y2 )
 
       l_first_call_interp_routine = .FALSE.
 
@@ -477,7 +480,7 @@ CONTAINS
    END FUNCTION pol_val
 
 
-   SUBROUTINE slopes_akima(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
+   SUBROUTINE SLOPES_AKIMA(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
 
       !! Slopes ~ partial derivatives of a field ZF according to Akima method
       !! given on a regular gird !!
@@ -503,12 +506,20 @@ CONTAINS
       dFdY    = 0.
       d2FdXdY = 0.
 
-      nx = SIZE(XF,1) ; ny = SIZE(XF,2)
+      nx = SIZE(XF,1)
+      ny = SIZE(XF,2)
 
       !! Extended arrays with a frame of 2 points...
       ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
-
-      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF,  is_orca_grid=i_orca_src)
+      ! We don't want any smart extrapolation in the north because it has already be done...
+      ! (and `k_ew` should take into account that we are dealing with arrays extended with 2-point frame)
+      CALL FILL_EXTRA_BANDS(k_ew, XX, XY, XF, ZX, ZY, ZF,  is_orca_grid=0)
+      !debug:
+      !CALL DUMP_FIELD(REAL(ZX,4), 'slopes_akima_extended_LON.nc', 'lon') !lolo: bug corners!!!
+      !CALL DUMP_FIELD(REAL(ZY,4), 'slopes_akima_extended_LAT.nc', 'lat')
+      !CALL DUMP_FIELD(REAL(ZF,4), 'slopes_akima_extended_FLD.nc', 'field')
+      !STOP'SLOPES_AKIMA'
+      !debug.
 
 
       !! Treating middle of array ( at least 2 points away from the bordures ) :
@@ -643,7 +654,14 @@ CONTAINS
 
       DEALLOCATE ( ZX, ZY, ZF )
 
-   END SUBROUTINE slopes_akima
+      !debug:
+      !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY.nc', 'd2FdXdY')
+      !STOP'SLOPES_AKIMA'
+      !debug.
+
+   END SUBROUTINE SLOPES_AKIMA
 
 
 
