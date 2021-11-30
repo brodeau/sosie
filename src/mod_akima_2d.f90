@@ -28,8 +28,8 @@ MODULE MOD_AKIMA_2D
    !!-----------------------------------------------------------------
    USE mod_conf
    USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA
-   !USE io_ezcdf,  ONLY: DUMP_FIELD ; !debug
-   
+   USE io_ezcdf,  ONLY: DUMP_FIELD ; !debug
+
    IMPLICIT NONE
 
    PRIVATE
@@ -181,7 +181,7 @@ CONTAINS
       !! Computation of partial derivatives:
       !! * since we use extended arrays (2-point wide frame) we need to adapt E-W periodicity
       kewp = -1
-      IF( k_ew_per > -1 ) kewp = k_ew_per + 4
+      IF( k_ew_per >= 0 ) kewp = k_ew_per + 4
       CALL SLOPES_AKIMA(kewp, x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy)
 
       !! Polynome:
@@ -488,12 +488,13 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(out) :: dFdX, dFdY, d2FdXdY
 
       !! Local variables :
-      REAL(8), DIMENSION(:,:), ALLOCATABLE :: ZX, ZY, ZF
+      !REAL(8), DIMENSION(:,:), ALLOCATABLE :: ZX, ZY, ZF
       INTEGER :: nx, ji, ic, im2, im1, ip1, ip2
       INTEGER :: ny, jj, jc, jm2, jm1, jp1, jp2
       REAL(8) :: m1, m2, m3, m4, rx
       REAL(8) :: Wx2, Wx3, Wy2, Wy3
       REAL(8) :: d22, e22, d23, e23, d42, e32, d43, e33
+      INTEGER :: kk
 
       dFdX    = 0.
       dFdY    = 0.
@@ -501,20 +502,20 @@ CONTAINS
 
       nx = SIZE(XF,1)
       ny = SIZE(XF,2)
-      
+
       !! Extended arrays with a frame of 2 points...
-      ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
+      !ALLOCATE ( ZX(nx+4,ny+4), ZY(nx+4,ny+4), ZF(nx+4,ny+4) )
       ! We don't want any smart extrapolation in the north because it has already be done...
       ! (and `k_ew` should take into account that we are dealing with arrays extended with 2-point frame)
-      CALL EXTEND_ARRAY_2D_COOR( k_ew, XX, XY, ZX, ZY,  is_orca_grid=0 )
-      CALL EXTEND_ARRAY_2D_DATA( k_ew, ZX, ZY, XF, ZF,  is_orca_grid=0, l_smart_NP=.FALSE. )
+      !CALL EXTEND_ARRAY_2D_COOR( k_ew, XX, XY, ZX, ZY,  is_orca_grid=0 )
+      !CALL EXTEND_ARRAY_2D_DATA( k_ew, ZX, ZY, XF, ZF,  is_orca_grid=0, l_smart_NP=.FALSE. )
       !debug:
       !CALL DUMP_FIELD(REAL(ZX,4), 'slopes_akima_extended_LON.nc', 'lon') !lolo: bug corners!!!
       !CALL DUMP_FIELD(REAL(ZY,4), 'slopes_akima_extended_LAT.nc', 'lat')
       !CALL DUMP_FIELD(REAL(ZF,4), 'slopes_akima_extended_FLD.nc', 'field')
       !STOP'SLOPES_AKIMA'
       !debug.
-      
+
       !! No 2p-frame (same shape!):
       !ALLOCATE ( ZX(nx,ny), ZY(nx,ny), ZF(nx,ny) )
       !ZX(:,:) = XX(:,:)
@@ -525,36 +526,36 @@ CONTAINS
       !!------------------------------------------------------------------------
 
       !! In case of 2P-extended frame:
-      DO jj=1, ny
-         DO ji=1, nx
-            !!
-            im2  = ji            
-            im1  = ji+1
-            ic   = ji+2
-            ip1  = ji+3
-            ip2  = ji+4
-            !!
-            jm2  = jj
-            jm1  = jj+1
-            jc   = jj+2
-            jp1  = jj+3
-            jp2  = jj+4
+      !DO jj=1, ny
+      !   DO ji=1, nx
+      !      !!
+      !      im2  = ji
+      !      im1  = ji+1
+      !      ic   = ji+2
+      !      ip1  = ji+3
+      !      ip2  = ji+4
+      !      !!
+      !      jm2  = jj
+      !      jm1  = jj+1
+      !      jc   = jj+2
+      !      jp1  = jj+3
+      !      jp2  = jj+4
 
-            !! Normal case, no frame extension
-            !DO jj=3, ny-2
-            !   DO ji=3, nx-2
-            !      !!
-            !      im2 = ji-2
-            !      im1 = ji-1
-            !      ic  = ji
-            !      ip1 = ji+1
-            !      ip2 = ji+2
-            !      !!
-            !      jm2 = jj-2
-            !      jm1 = jj-1
-            !      jc  = jj
-            !      jp1 = jj+1
-            !      jp2 = jj+2
+      !! Normal case, no frame extension
+      DO jj=3, ny-2
+         DO ji=3, nx-2
+            !!
+            im2 = ji-2
+            im1 = ji-1
+            ic  = ji
+            ip1 = ji+1
+            ip2 = ji+2
+            !!
+            jm2 = jj-2
+            jm1 = jj-1
+            jc  = jj
+            jp1 = jj+1
+            jp2 = jj+2
 
             m1=0. ; m2=0. ; m3=0. ; m4=0. ; Wx2=0. ; Wx3=0. ; Wy2=0. ; Wy3=0.
 
@@ -562,21 +563,21 @@ CONTAINS
             !!   SLOPE / X :
             !!   ***********
 
-            rx = ZX(im1,jc) - ZX(im2,  jc)
+            rx = XX(im1,jc) - XX(im2,  jc)
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (ZF(im1,jc) - ZF(im2,  jc)) / m1
+            m1 = (XF(im1,jc) - XF(im2,  jc)) / m1
 
-            rx = ZX(ic,jc) - ZX(im1,jc)
+            rx = XX(ic,jc) - XX(im1,jc)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (ZF(ic,jc) - ZF(im1,jc)) / m2
+            m2 = (XF(ic,jc) - XF(im1,jc)) / m2
 
-            rx = ZX(ip1,jc) - ZX(ic,jc)
+            rx = XX(ip1,jc) - XX(ic,jc)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (ZF(ip1,jc) - ZF(ic,jc)) / m3
+            m3 = (XF(ip1,jc) - XF(ic,jc)) / m3
 
-            rx = ZX(ip2,jc) - ZX(ip1,jc)
+            rx = XX(ip2,jc) - XX(ip1,jc)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (ZF(ip2,jc) - ZF(ip1,jc)) / m4
+            m4 = (XF(ip2,jc) - XF(ip1,jc)) / m4
 
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
                dFdX(ji,jj) = 0.5*(m2 + m3)
@@ -588,21 +589,21 @@ CONTAINS
 
             !!   SLOPE / Y :
             !!   ***********
-            rx = ZY(ic,jm1) - ZY(ic,jm2  )
+            rx = XY(ic,jm1) - XY(ic,jm2  )
             m1 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m1 = (ZF(ic,jm1) - ZF(ic,jm2  )) / m1
+            m1 = (XF(ic,jm1) - XF(ic,jm2  )) / m1
 
-            rx = ZY(ic,jc) - ZY(ic,jm1)
+            rx = XY(ic,jc) - XY(ic,jm1)
             m2 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m2 = (ZF(ic,jc) - ZF(ic,jm1)) / m2
+            m2 = (XF(ic,jc) - XF(ic,jm1)) / m2
 
-            rx = ZY(ic,jp1) - ZY(ic,jc)
+            rx = XY(ic,jp1) - XY(ic,jc)
             m3 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m3 = (ZF(ic,jp1) - ZF(ic,jc)) / m3
+            m3 = (XF(ic,jp1) - XF(ic,jc)) / m3
 
-            rx = ZY(ic,jp2) - ZY(ic,jp1)
+            rx = XY(ic,jp2) - XY(ic,jp1)
             m4 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            m4 = (ZF(ic,jp2) - ZF(ic,jp1)) / m4
+            m4 = (XF(ic,jp2) - XF(ic,jp1)) / m4
 
 
             IF ( (m1 == m2).and.(m3 == m4) ) THEN
@@ -617,43 +618,43 @@ CONTAINS
             !!   CROSS DERIVATIVE /XY :
             !!   **********************
             !! d22 = d(i-1,j-1) = [ z(i-1,j)-z(i-1,j-1) ] / [ y(j) - y(j-1) ]
-            rx  = ZY(im1,jc) - ZY(im1,jm1)
+            rx  = XY(im1,jc) - XY(im1,jm1)
             d22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d22 = (ZF(im1,jc) - ZF(im1,jm1)) / d22
+            d22 = (XF(im1,jc) - XF(im1,jm1)) / d22
 
             !! d23 = d(i-1 , j) = [ z(i-1,j+1)-z(i-1,j) ] / [ y(j+1) - y(j) ]
-            rx  = ZY(im1,jp1) - ZY(im1,jc)
+            rx  = XY(im1,jp1) - XY(im1,jc)
             d23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d23 = (ZF(im1,jp1) - ZF(im1,jc)) / d23
+            d23 = (XF(im1,jp1) - XF(im1,jc)) / d23
 
             !! d42 = d(i+1 , j-1) = [ z(i+1 , j) - z(i+1 , j-1) ] / [ y(j) - y(j-1) ]
-            rx  = ZY(ip1,jc) - ZY(ip1,jm1)
+            rx  = XY(ip1,jc) - XY(ip1,jm1)
             d42 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d42 = (ZF(ip1,jc) - ZF(ip1,jm1)) / d42
+            d42 = (XF(ip1,jc) - XF(ip1,jm1)) / d42
 
             !! d43 = d(i+1 , j) = [ z(i+1 , j+1)-z(i+1 , j) ] / [ y(j+1) - y(j) ]
-            rx = ZY(ip1,jp1) - ZY(ip1,jc)
+            rx = XY(ip1,jp1) - XY(ip1,jc)
             d43 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
-            d43 = (ZF(ip1,jp1) - ZF(ip1,jc)) / d43
+            d43 = (XF(ip1,jp1) - XF(ip1,jc)) / d43
 
 
             !! e22  = [ m2 - d22 ] / [ x(i) - x(i-1) ]
-            rx  = ZX(ic,jm1) - ZX(im1,jm1)
+            rx  = XX(ic,jm1) - XX(im1,jm1)
             e22 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e22 = ( m2 - d22 ) / e22
 
             !! e23  = [ m3 - d23 ] / [ x(i) - x(i-1) ]
-            rx  = ZX(ic,jc) - ZX(im1,jc)
+            rx  = XX(ic,jc) - XX(im1,jc)
             e23 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e23 = ( m3 - d23 ) / e23
 
             !! e32  = [ d42 - m2 ] / [ x(i+1) - x(i) ]
-            rx  = ZX(ip1,jc) - ZX(ic,jc)
+            rx  = XX(ip1,jc) - XX(ic,jc)
             e32 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e32 = ( d42 - m2 ) / e32
 
             !! e33  = [ d43 - m3 ] / [ x(i+1) - x(i) ]
-            rx  = ZX(ip1,jc) - ZX(ic,jc)
+            rx  = XX(ip1,jc) - XX(ic,jc)
             e33 = SIGN(1.d0 , rx) * MAX(ABS(rx),repsilon)
             e33 = ( d43 - m3 ) / e33
 
@@ -674,8 +675,21 @@ CONTAINS
 
          END DO
       END DO
+      
+      !DEALLOCATE ( ZX, ZY, ZF )
 
-      DEALLOCATE ( ZX, ZY, ZF )
+      !! East-West frames:  lilo
+      IF( k_ew >= 0 ) THEN
+         DO kk = 0, 1
+            dFdX(    1+kk,:) = dFdX(   nx-(k_ew-1-kk),:)
+            dFdY(    1+kk,:) = dFdY(   nx-(k_ew-1-kk),:)
+            d2FdXdY( 1+kk,:) = d2FdXdY(nx-(k_ew-1-kk),:)
+            !!
+            dFdX(   nx-kk,:) = dFdX(    1+(k_ew-1-kk),:)
+            dFdY(   nx-kk,:) = dFdY(    1+(k_ew-1-kk),:)
+            d2FdXdY(nx-kk,:) = d2FdXdY( 1+(k_ew-1-kk),:)
+         END DO
+      END IF
 
       !debug:
       !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX.nc', 'dFdX')
@@ -683,7 +697,7 @@ CONTAINS
       !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY.nc', 'd2FdXdY')
       !STOP'SLOPES_AKIMA'
       !debug.
-      
+
    END SUBROUTINE SLOPES_AKIMA
 
 
