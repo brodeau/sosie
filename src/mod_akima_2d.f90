@@ -27,8 +27,8 @@ MODULE MOD_AKIMA_2D
    !!
    !!-----------------------------------------------------------------
    USE mod_conf
-   USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA
-   USE io_ezcdf,  ONLY: DUMP_FIELD ; !debug
+   USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA, APPLY_EW_PRDCT
+   !USE io_ezcdf,  ONLY: DUMP_FIELD ; !debug
 
    IMPLICIT NONE
 
@@ -180,8 +180,10 @@ CONTAINS
 
       !! Computation of partial derivatives:
       !! * since we use extended arrays (2-point wide frame) we need to adapt E-W periodicity
-      kewp = -1
-      IF( k_ew_per >= 0 ) kewp = k_ew_per + 4
+      !lilo
+      !kewp = -1
+      !IF( k_ew_per >= 0 ) kewp = k_ew_per + 4
+      kewp = k_ew_per
       CALL SLOPES_AKIMA(kewp, x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy)
 
       !! Polynome:
@@ -675,33 +677,29 @@ CONTAINS
 
          END DO
       END DO
-      
+
       !DEALLOCATE ( ZX, ZY, ZF )
 
-      !! East-West frames:  lilo
+      !debug:
+      !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX_before.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY_before.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY_before.nc', 'd2FdXdY')
+      !debug.
+      
+      !! East-West frames:
       IF( k_ew >= 0 ) THEN
-         DO kk = 0, 1
-            dFdX(    1+kk,:) = dFdX(   nx-(k_ew-1-kk),:)
-            dFdY(    1+kk,:) = dFdY(   nx-(k_ew-1-kk),:)
-            d2FdXdY( 1+kk,:) = d2FdXdY(nx-(k_ew-1-kk),:)
-            !!
-            dFdX(   nx-kk,:) = dFdX(    1+(k_ew-1-kk),:)
-            dFdY(   nx-kk,:) = dFdY(    1+(k_ew-1-kk),:)
-            d2FdXdY(nx-kk,:) = d2FdXdY( 1+(k_ew-1-kk),:)
-         END DO
+         CALL APPLY_EW_PRDCT( k_ew, 2, dFdX )
+         CALL APPLY_EW_PRDCT( k_ew, 2, dFdY )
+         CALL APPLY_EW_PRDCT( k_ew, 2, d2FdXdY )
       END IF
 
       !debug:
-      !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX.nc', 'dFdX')
-      !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY.nc', 'dFdX')
-      !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY.nc', 'd2FdXdY')
-      !STOP'SLOPES_AKIMA'
+      !CALL DUMP_FIELD(REAL(dFdX,4), 'slopes_akima_extended_dFdX_after.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY_after.nc', 'dFdX')
+      !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY_after.nc', 'd2FdXdY')
       !debug.
 
    END SUBROUTINE SLOPES_AKIMA
-
-
-
 
 
    SUBROUTINE FIND_NEAREST_AKIMA( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )

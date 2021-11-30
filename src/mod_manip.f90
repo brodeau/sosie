@@ -36,12 +36,15 @@ MODULE MOD_MANIP
       MODULE PROCEDURE long_reorg_3d_i1
    END INTERFACE long_reorg_3d
 
-   PUBLIC :: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
+   PUBLIC :: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA, fill_extra_north_south, &
+      &      extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
       &      find_nearest_point, &
-      &      shrink_vector, to_degE, degE_to_degWE
-!      &      ext_beyond_90_reg, l_ext2np_reg
+      &      shrink_vector, to_degE, degE_to_degWE, &
+      &      APPLY_EW_PRDCT
+   
+   !      &      ext_beyond_90_reg, l_ext2np_reg
 
    LOGICAL, PARAMETER :: l_force_use_of_twisted = .FALSE.
 
@@ -138,17 +141,8 @@ CONTAINS
 
       !! Western/Easten Extensions
       IF(k_ew > -1) THEN   ! we can use east-west periodicity of input file to
-         !!                   ! fill extra bands :
-         pXx( 1    , 3:nyx-2) = pX(nx - 1 - k_ew , :) - 360.   ! lolo: use or not the 360 stuff???
-         pXx( 2    , 3:nyx-2) = pX(nx - k_ew     , :) - 360.
-         pYx( 1     , :) = pYx(nx - 1 - k_ew + 2, :)
-         pYx( 2     , :) = pYx(nx - k_ew     + 2, :)
-         !!
-         pXx(nxx   , 3:nyx-2) = pX( 2 + k_ew     , :) + 360.
-         pXx(nxx-1 , 3:nyx-2) = pX( 1 + k_ew     , :) + 360.
-         pYx(nxx   , :) = pYx( 2 + k_ew     + 2, :)
-         pYx(nxx-1 , :) = pYx( 1 + k_ew     + 2, :)
-         !!
+         CALL APPLY_EW_PRDCT( k_ew, 2, pXx(:,3:nyx-2), l_is_longitude=.TRUE. )
+         CALL APPLY_EW_PRDCT( k_ew, 2, pYx(:,:) )
       ELSE
          !!
          pXx(2, 3:nyx-2) = pX(2,:) - (pX(3,:) - pX(1,:))
@@ -159,13 +153,13 @@ CONTAINS
          pXx(nxx-1, 3:nyx-2) = pX(nx-1,:) + pX(nx,:) - pX(nx-2,:)
          pXx(nxx  , 3:nyx-2) = pX(nx,:)   + pX(nx,:) - pX(nx-2,:)
          pYx(nxx-1,:) = pYx(nxx-3,:) + pYx(nxx-2, :) - pYx(nxx-4, :)
-         pYx(nxx,:)   = pYx(nxx-2,:) + pYx(nxx-2,:)  - pYx(nxx-4, :)         
+         pYx(nxx,:)   = pYx(nxx-2,:) + pYx(nxx-2,:)  - pYx(nxx-4, :)
          !!
       END IF !IF(k_ew > -1)
 
    END SUBROUTINE EXTEND_ARRAY_2D_COOR
-   
-   
+
+
    SUBROUTINE EXTEND_ARRAY_2D_DATA( k_ew, pXx, pYx, pF, pFx,  is_orca_grid, l_smart_NP )
       !!============================================================================
       !! Extending input arrays with an extraband of two points at north,south,east
@@ -196,10 +190,10 @@ CONTAINS
       INTEGER :: lsNoP=.false.
       REAL(8), DIMENSION(:,:), ALLOCATABLE  :: ztmp
       !!============================================================================
-      
+
       IF( PRESENT(is_orca_grid) ) iorca = is_orca_grid
       IF( PRESENT( l_smart_NP)  ) lsNoP = l_smart_NP
-            
+
       nx  = SIZE(pF ,1) ; ny  = SIZE(pF ,2)
       nxx = SIZE(pFx,1) ; nyx = SIZE(pFx,2)
 
@@ -215,10 +209,7 @@ CONTAINS
       pFx(3:nxx-2, 3:nyx-2)             = pF(:,:)
 
       IF(k_ew > -1) THEN
-         pFx( 1     , 3:nyx-2) = pF(nx - 1 - k_ew , :)
-         pFx( 2     , 3:nyx-2) = pF(nx - k_ew     , :)
-         pFx(nxx   , 3:nyx-2) = pF( 2 + k_ew     , :)
-         pFx(nxx-1 , 3:nyx-2) = pF( 1 + k_ew     , :)
+         CALL APPLY_EW_PRDCT( k_ew, 2, pFx(:,3:nyx-2) )
       ELSE
          !! East:
          DO jj = 3, nyx-2
@@ -273,7 +264,7 @@ CONTAINS
                   &              pFx(ji,nyx-1),pFx(ji,nyx) )
             END DO
          END IF
-         
+
       END SELECT
       !!
       !! Bottom:
@@ -285,7 +276,7 @@ CONTAINS
       END DO
       !!
    END SUBROUTINE EXTEND_ARRAY_2D_DATA
-   
+
 
 
 
@@ -573,7 +564,7 @@ CONTAINS
    END SUBROUTINE extra_2_west_r4
 
 
-   
+
    SUBROUTINE PARTIAL_DERIV(k_ew, pX, pY, pF, dFdX, dFdY, d2FdXdY)
 
       !! Partial derivatives of a field ZF given on a regular gird !!!
@@ -1580,7 +1571,7 @@ CONTAINS
       !! 90. We're going to use "across-North-Pole" continuity to fill these 2
       !! extra upper rows!
       !!============================================================================
-      INTEGER,                 INTENT(in)  :: kr90 ! 1 -> longitude does not reach 90N, 2 -> it does! 
+      INTEGER,                 INTENT(in)  :: kr90 ! 1 -> longitude does not reach 90N, 2 -> it does!
       REAL(8), DIMENSION(:,:), INTENT(in)  :: pX, pY
       REAL(8), DIMENSION(:,:), INTENT(in)  :: pF
       REAL(8), DIMENSION(:,:), INTENT(out) :: pFe
@@ -1592,7 +1583,7 @@ CONTAINS
       ny = SIZE(pF,2)
 
       IF( (kr90<1).OR.(kr90>2) ) CALL STOP_THIS('[EXT_BEYOND_90_REG] => wrong value for kr90!')
-      
+
       nyp2 = SIZE(pFe,2)
       IF( nyp2 /= ny + 2 ) CALL STOP_THIS('[EXT_BEYOND_90_REG] => target y dim is not nj+2!!!')
       IF( (nx /= SIZE(pY,1)).OR.(ny /= SIZE(pY,2)) ) THEN
@@ -1600,35 +1591,35 @@ CONTAINS
       END IF
 
       nyp1 = ny + 1
-      
+
       pFe(:,:)    = 0.
       pFe(:,1:ny) = pF(:,:) ! filling center of the domain
-      
+
       DO ji=1, nx
          zlon = pX(ji,ny) ! ji => zlon
          !! at what ji do we arrive when crossing the northpole => ji_m!
          zlon_m = MOD(zlon+180.,360.)
          ji_m = MINLOC(ABS(pX(:,ny)-zlon_m), dim=1)  ! corresponding i index
          !!                                doesn't reach 90 | reaches 90
-         pFe(ji,nyp1) =  pF(ji_m,ny-kr90+1)  !     ny       |   ny-1   
+         pFe(ji,nyp1) =  pF(ji_m,ny-kr90+1)  !     ny       |   ny-1
          pFe(ji,nyp2) =  pF(ji_m,ny-kr90  )  !    ny-1      |   ny-2
       END DO
    END SUBROUTINE EXT_BEYOND_90_REG
-   
-   
+
+
    FUNCTION I_EXT2NP_REG( pX, pY )
       !!
       !! Tells if a grid is regular and stops at the North Pole by returning:
       !!  * 0 => no
       !!  * 1 => yes, doesn't reach longitude = 90N
       !!  * 2 => yes, and reaches longitude = 90N
-      !! 
+      !!
       REAL(8), DIMENSION(:,:), INTENT(in) :: pX, pY
       INTEGER                             :: I_EXT2NP_REG
       !!
       INTEGER :: nx, ny
       REAL(8) :: zlat_max, zlat_mm1
-      
+
       nx = SIZE(pY,1)
       ny = SIZE(pY,2)
 
@@ -1636,7 +1627,7 @@ CONTAINS
 
       !! 1st, make sure it's a a map not a trajectory or something else:
       IF( (nx>20).AND.(ny>20) ) THEN
-         !! 2nd, it must be regular:      
+         !! 2nd, it must be regular:
          IF( L_IS_GRID_REGULAR( pX, pY ) ) THEN
             !! 3rd, it must "stop" at the North Pole:
             zlat_max = pY(nx/2,ny)
@@ -1647,5 +1638,39 @@ CONTAINS
       END IF
    END FUNCTION I_EXT2NP_REG
 
+
    
+   SUBROUTINE APPLY_EW_PRDCT( kewp, nbp, pX,  l_is_longitude )
+      !!=====================================================================================
+      !! Fills the `nbp` first and `nbp` last columns of an array taking
+      !! advantage of East-West periodicity with an overlap of `kewp` points
+      !!=====================================================================================
+      INTEGER,                 INTENT(in)    :: kewp, nbp
+      REAL(8), DIMENSION(:,:), INTENT(inout) :: pX
+      LOGICAL, OPTIONAL,       INTENT(in)    :: l_is_longitude ! is this a longitude array?
+      INTEGER :: nx, ny, kk
+      REAL(8) :: zcorr
+      !!=====================================================================================
+      IF( nbp < 1 ) CALL STOP_THIS( '`APPLY_EW_PRDCT@mod_manip` => `nbp` cannot be < 1 !')
+      !!
+      zcorr = 0._8
+      IF( PRESENT(l_is_longitude) ) THEN
+         IF( l_is_longitude ) zcorr = 360._8
+      END IF
+      !!
+      IF( kewp >= 0 ) THEN
+         nx = SIZE(pX,1)
+         ny = SIZE(pX,2)
+         IF( nbp > nx/2 ) CALL STOP_THIS( '`APPLY_EW_PRDCT@mod_manip` => `nbp` too big!')
+         !!
+         DO kk = 0, nbp-1
+            !pX( 1+kk,:) = pX(nx-(kewp-1-kk),:) - zcorr
+            !pX(nx-kk,:) = pX( 1+(kewp-1-kk),:) + zcorr
+            pX( 1+kk,:) = pX(nx-(kewp+nbp+1-kk),:) - zcorr
+            pX(nx-kk,:) = pX( 1+(kewp+nbp+1-kk),:) + zcorr            
+         END DO
+      END IF
+   END SUBROUTINE APPLY_EW_PRDCT
+
+
 END MODULE MOD_MANIP
