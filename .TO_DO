@@ -1,5 +1,3 @@
-* Is the call to `EXTEND_ARRAY_2D_*` into `slopes_akima` justified!!!
-
 * What is the difference between `slopes_akima`@akima_2d and `partial_derivatives@manip` ???
 
 * SMOOTHER() not reliable when mask point exclusion, fucks up the field!

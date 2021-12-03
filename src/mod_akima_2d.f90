@@ -25,6 +25,12 @@ MODULE MOD_AKIMA_2D
    !!
    !!            Contact: https://github.com/brodeau/sosie
    !!
+   !!
+   !!   Naming conventions of variables and arrays in this module:
+   !!   `_s` : "s" for "source domain" (global: `_src`)
+   !!   `_t` : "t" for "target domain" (global: `_trg`)
+   !!   `_e` : "e" for "extended in space" (frame extension of 2 points)
+   !!
    !!-----------------------------------------------------------------
    USE mod_conf
    USE mod_manip, ONLY: EXTEND_ARRAY_2D_COOR, EXTEND_ARRAY_2D_DATA, APPLY_EW_PRDCT
@@ -44,11 +50,11 @@ MODULE MOD_AKIMA_2D
    LOGICAL,                                SAVE :: l_1st_call_akima=.true.
    LOGICAL,                                SAVE :: l_always_first_call
 
-   INTEGER,                                SAVE :: ni_src_e, nj_src_e ! shape of extended source arrays
-   REAL(8), DIMENSION(:,:),   ALLOCATABLE, SAVE :: x_src_2d_e , y_src_2d_e, Z_src_2d_e ! extended coordinates
+   INTEGER,                                SAVE :: ni_s_e, nj_s_e ! shape of extended source arrays
+   REAL(8), DIMENSION(:,:),   ALLOCATABLE, SAVE :: x_s_2d_e , y_s_2d_e, Z_s_2d_e ! extended coordinates
 
-   REAL(8),               SAVE :: rlon_src_min, rlon_src_max, rlat_src_min, rlat_src_max
-   REAL(8), DIMENSION(4), SAVE :: range_lonlat_src
+   REAL(8),               SAVE :: rlon_s_min, rlon_s_max, rlat_s_min, rlat_s_max
+   REAL(8), DIMENSION(4), SAVE :: range_lonlat_s
 
    REAL(8), PARAMETER :: repsilon = 1.E-9
 
@@ -56,7 +62,7 @@ MODULE MOD_AKIMA_2D
 CONTAINS
 
 
-   SUBROUTINE AKIMA_INIT( kewper, pX1, pY1, pX2, pY2 )
+   SUBROUTINE AKIMA_2D_INIT( kewper, pX1, pY1, pX2, pY2 )
       !!==============================================================================
       !!  Input :
       !!             kewper : east-west periodicity
@@ -77,7 +83,7 @@ CONTAINS
       WRITE(6,*) ''
 
       IF( (SIZE(pX2,1)/=ni_trg).OR.(SIZE(pX2,2)/=nj_trg) ) &
-         & CALL STOP_THIS( '[AKIMA_INIT()] => shape inconsistency on target domain!' )
+         & CALL STOP_THIS( '[AKIMA_2D_INIT()] => shape inconsistency on target domain!' )
 
       WRITE(6,'("  * Allocating array `MAP_AKM`: ",i4.4,"x",i4.4)') ni_trg, nj_trg
       ALLOCATE ( MAP_AKM(ni_trg,nj_trg,2) )
@@ -87,27 +93,26 @@ CONTAINS
       !ALLOCATE( l_always_first_call(Nthrd) )
       l_always_first_call = .FALSE.
 
-      ni_src_e = ni_src+np_e
-      nj_src_e = nj_src+np_e
+      ni_s_e = ni_src+np_e
+      nj_s_e = nj_src+np_e
 
-      WRITE(6,'("  * Allocating space-extended source coordinates arrays: ",i4.4,"x",i4.4)')  ni_src_e, nj_src_e
-      ALLOCATE( x_src_2d_e(ni_src_e,nj_src_e) , y_src_2d_e(ni_src_e,nj_src_e) )
-      WRITE(6,'("  * Allocating space-extended source field array: ",i4.4,"x",i4.4)')  ni_src_e, nj_src_e
-      ALLOCATE( Z_src_2d_e(ni_src_e,nj_src_e) )
+      WRITE(6,'("  * Allocating space-extended source coordinates arrays: ",i4.4,"x",i4.4)')  ni_s_e, nj_s_e
+      ALLOCATE( x_s_2d_e(ni_s_e,nj_s_e) , y_s_2d_e(ni_s_e,nj_s_e) )
+      WRITE(6,'("  * Allocating space-extended source field array: ",i4.4,"x",i4.4)')  ni_s_e, nj_s_e
+      ALLOCATE( Z_s_2d_e(ni_s_e,nj_s_e) )
       !!
       WRITE(6,'("  * Filling space-extended source coordinates arrays")')
 
-      CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_src_2d_e, y_src_2d_e, is_orca_grid=i_orca_src )
+      CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_s_2d_e, y_s_2d_e, is_orca_grid=i_orca_src )
 
       !! Max spatial extension of source grid:
-      rlon_src_min = MINVAL(x_src_2d_e) ;  rlon_src_max = MAXVAL(x_src_2d_e)
-      rlat_src_min = MINVAL(y_src_2d_e) ;  rlat_src_max = MAXVAL(y_src_2d_e)
-      range_lonlat_src(:) = (/ rlon_src_min,rlon_src_max , rlat_src_min,rlat_src_max /)
+      rlon_s_min = MINVAL(x_s_2d_e) ;  rlon_s_max = MAXVAL(x_s_2d_e)
+      rlat_s_min = MINVAL(y_s_2d_e) ;  rlat_s_max = MAXVAL(y_s_2d_e)
+      range_lonlat_s(:) = (/ rlon_s_min,rlon_s_max , rlat_s_min,rlat_s_max /)
 
       !! Doing the mapping once for all and saving into MAP_AKM:
-      WRITE(6,*) '  * Calling `FIND_NEAREST_AKIMA()` to fill mapping `MAP_AKM`!'
-      CALL FIND_NEAREST_AKIMA( x_src_2d_e, y_src_2d_e, range_lonlat_src, pX2, pY2, MAP_AKM(:,:,:) )
-      WRITE(6,*) ''
+      WRITE(6,*) '  * Calling `FIND_NEAREST_AKIMA()` to fill mapping `MAP_AKM` once for all!'
+      CALL FIND_NEAREST_AKIMA( x_s_2d_e, y_s_2d_e, range_lonlat_s, pX2, pY2, MAP_AKM(:,:,:) )
       WRITE(6,*) ''
       !!
       WRITE(6,*) '  Initializations for AKIMA done !'
@@ -115,7 +120,7 @@ CONTAINS
       WRITE(6,*) '###################################################################'
       WRITE(6,*) ''; WRITE(6,*) ''
       !!
-   END SUBROUTINE AKIMA_INIT
+   END SUBROUTINE AKIMA_2D_INIT
 
 
 
@@ -164,17 +169,19 @@ CONTAINS
          END IF
       END IF
 
-      IF( l_1st_call_akima )  CALL AKIMA_INIT( k_ew_per, pX1, pY1, pX2, pY2 )
-
-      ALLOCATE ( poly(ni_src_e-1,nj_src_e-1,Nsys) )
-      ALLOCATE ( slpx(ni_src_e,nj_src_e), slpy(ni_src_e,nj_src_e), slpxy(ni_src_e,nj_src_e) )
+      IF( l_1st_call_akima )  CALL AKIMA_2D_INIT( k_ew_per, pX1, pY1, pX2, pY2 )
+      
+      ALLOCATE ( poly(ni_s_e-1,nj_s_e-1,Nsys) )
+      ALLOCATE ( slpx(ni_s_e,nj_s_e), slpy(ni_s_e,nj_s_e), slpxy(ni_s_e,nj_s_e) )
 
       !! Filling extended data array:
-      CALL EXTEND_ARRAY_2D_DATA( k_ew_per, x_src_2d_e, y_src_2d_e,   REAL(pZ1,8), Z_src_2d_e,     is_orca_grid=i_orca_src )
+      CALL EXTEND_ARRAY_2D_DATA( k_ew_per, x_s_2d_e, y_s_2d_e,   REAL(pZ1,8), Z_s_2d_e,     is_orca_grid=i_orca_src )
+      !! => from now on, `x_s_2d_e,y_s_2d_e,Z_s_2d_e` should be used instead of `pX1,pY1,pZ1` !
+      
       !debug:
-      !CALL DUMP_FIELD(REAL(x_src_2d_e,4), 'x_src_2d_e_new.nc', 'lon')
-      !CALL DUMP_FIELD(REAL(y_src_2d_e,4), 'y_src_2d_e_new.nc', 'lat')
-      !CALL DUMP_FIELD(REAL(Z_src_2d_e,4), 'Z_src_2d_e_new.nc', 'Z')
+      !CALL DUMP_FIELD(REAL(x_s_2d_e,4), 'x_s_2d_e_new.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(y_s_2d_e,4), 'y_s_2d_e_new.nc', 'lat')
+      !CALL DUMP_FIELD(REAL(Z_s_2d_e,4), 'Z_s_2d_e_new.nc', 'Z')
       !CALL STOP_THIS( ' after EXTEND_2D_ARRAYS to check extensions...')
       !debug.
 
@@ -184,10 +191,10 @@ CONTAINS
       !kewp = -1
       !IF( k_ew_per >= 0 ) kewp = k_ew_per + 4
       kewp = k_ew_per
-      CALL SLOPES_AKIMA(kewp, x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy)
+      CALL SLOPES_AKIMA(kewp, x_s_2d_e, y_s_2d_e, Z_s_2d_e, slpx, slpy, slpxy)
 
       !! Polynome:
-      CALL build_pol(x_src_2d_e, y_src_2d_e, Z_src_2d_e, slpx, slpy, slpxy, poly)
+      CALL BUILD_POL(x_s_2d_e, y_s_2d_e, Z_s_2d_e, slpx, slpy, slpxy, poly)
 
       DEALLOCATE ( slpx, slpy, slpxy )
 
@@ -200,23 +207,23 @@ CONTAINS
             zy2 = pY2(ji2,jj2)
 
             !! Checking if this belongs to source domain :
-            IF ( ((zx2>=rlon_src_min).AND.(zx2<=rlon_src_max)).AND.((zy2>=rlat_src_min).AND.(zy2<=rlat_src_max)) ) THEN
+            IF ( ((zx2>=rlon_s_min).AND.(zx2<=rlon_s_max)).AND.((zy2>=rlat_s_min).AND.(zy2<=rlat_s_max)) ) THEN
 
                !! We know the right location from time = 1 :
                ji1 = MAP_AKM(ji2,jj2,1)
                jj1 = MAP_AKM(ji2,jj2,2)
 
                !! It's time to interpolate:
-               zx2 = zx2 - x_src_2d_e(ji1,jj1)
-               zy2 = zy2 - y_src_2d_e(ji1,jj1)
+               zx2 = zx2 - x_s_2d_e(ji1,jj1)
+               zy2 = zy2 - y_s_2d_e(ji1,jj1)
                vpl = poly(ji1,jj1,:)
 
-               pZ2(ji2,jj2) = REAL( pol_val(zx2, zy2, vpl) , 4)  ! back to real(4)
+               pZ2(ji2,jj2) = REAL( POL_VAL(zx2, zy2, vpl) , 4)  ! back to real(4)
 
             ELSE
                pZ2(ji2,jj2) = 0.  ! point is not on source domain!
 
-            END IF !IF ( ((zx2>=rlon_src_min).AND.(zx2<=rlon_src_max)).AND.((zy2>=rlat_src_min).AND.(zy2<=rlat_src_max)) )
+            END IF !IF ( ((zx2>=rlon_s_min).AND.(zx2<=rlon_s_max)).AND.((zy2>=rlat_s_min).AND.(zy2<=rlat_s_max)) )
 
          END DO !DO ji2 = 1, ni_trg
       END DO !DO jj2 = 1, nj_trg
@@ -240,7 +247,7 @@ CONTAINS
    !! ########################
 
 
-   SUBROUTINE build_pol(ZX, ZY, ZF, sx, sy, sxy, XPLNM)
+   SUBROUTINE BUILD_POL(ZX, ZY, ZF, sx, sy, sxy, XPLNM)
 
       !!==================================================================
       !!
@@ -432,15 +439,15 @@ CONTAINS
 
       DEALLOCATE( VX )
 
-   END SUBROUTINE build_pol
+   END SUBROUTINE BUILD_POL
 
 
 
-   FUNCTION pol_val(x, y, V)
+   FUNCTION POL_VAL(x, y, V)
 
       !!======================================================
       !!
-      !! Give value of polynome pol_val(x,y), polynome coefficients
+      !! Give value of polynome POL_VAL(x,y), polynome coefficients
       !! are stored in to vector V
       !!
       !! Optimizing by using Horner's scheme (http://en.wikipedia.org/wiki/Horner_scheme)
@@ -459,7 +466,7 @@ CONTAINS
       !!
       !!=====================================================================
 
-      REAL(8)                              :: pol_val
+      REAL(8)                              :: POL_VAL
       REAL(8), INTENT(in)                  :: x, y
       REAL(8), DIMENSION(Nsys), INTENT(in) :: V
 
@@ -469,9 +476,9 @@ CONTAINS
       p2      = ( ( V(5)  * y + V(6)  ) * y + V(7)  ) * y + V(8)
       p3      = ( ( V(9)  * y + V(10) ) * y + V(11) ) * y + V(12)
       p4      = ( ( V(13) * y + V(14) ) * y + V(15) ) * y + V(16)
-      pol_val = ( ( p1    * x + p2    ) * x + p3    ) * x + p4
+      POL_VAL = ( ( p1    * x + p2    ) * x + p3    ) * x + p4
 
-   END FUNCTION pol_val
+   END FUNCTION POL_VAL
 
 
    SUBROUTINE SLOPES_AKIMA(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
@@ -702,23 +709,23 @@ CONTAINS
    END SUBROUTINE SLOPES_AKIMA
 
 
-   SUBROUTINE FIND_NEAREST_AKIMA( plon_src, plat_src, pxyr_src, plon_trg, plat_trg, ixyp_trg )
+   SUBROUTINE FIND_NEAREST_AKIMA( plon_s, plat_s, pxyr_s, plon_t, plat_t, ixyp_t )
       !!---------------------------------------------------------------------------------------
       !! Laboriuously scanning the entire source grid to find location of treated point
       !!---------------------------------------------------------------------------------------
-      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_src, plat_src
-      REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_src       ! (/ lon_min,lon_max, lat_min,lat_max /)
-      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_trg, plat_trg
-      INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_trg
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_s, plat_s
+      REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_s       ! (/ lon_min,lon_max, lat_min,lat_max /)
+      REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_t, plat_t
+      INTEGER, DIMENSION(:,:,:), INTENT(out) :: ixyp_t
 
       INTEGER :: jis, jjs, jit, jjt, nxs, nys, nxt, nyt
       REAL(8) :: pxt, pyt
       LOGICAL :: l_x_found, l_y_found
 
-      nxs = SIZE(plon_src,1)
-      nys = SIZE(plon_src,2)
-      nxt = SIZE(plon_trg,1)
-      nyt = SIZE(plon_trg,2)
+      nxs = SIZE(plon_s,1)
+      nys = SIZE(plon_s,2)
+      nxt = SIZE(plon_t,1)
+      nyt = SIZE(plon_t,2)
 
       !! Loop on target domain:
       DO jjt = 1, nyt
@@ -730,18 +737,18 @@ CONTAINS
             l_x_found = .FALSE.
             l_y_found = .FALSE.
 
-            pxt = plon_trg(jit,jjt)
-            pyt = plat_trg(jit,jjt)
+            pxt = plon_t(jit,jjt)
+            pyt = plat_t(jit,jjt)
 
             !! Only searching if inside source domain:
-            IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) ) THEN
+            IF ( ((pxt>=pxyr_s(1)).AND.(pxt<=pxyr_s(2))).AND.((pyt>=pxyr_s(3)).AND.(pyt<=pxyr_s(4))) ) THEN
 
                DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
 
                   l_x_found = .FALSE.
                   DO WHILE ( .NOT. l_x_found )
                      IF (jis < nxs) THEN
-                        IF ((plon_src(jis,jjs) <= pxt).AND.(plon_src(jis+1,jjs) > pxt)) THEN
+                        IF ((plon_s(jis,jjs) <= pxt).AND.(plon_s(jis+1,jjs) > pxt)) THEN
                            l_x_found = .TRUE.
                         ELSE
                            jis = jis+1
@@ -755,7 +762,7 @@ CONTAINS
                   l_y_found = .FALSE.
                   DO WHILE ( .NOT. l_y_found )
                      IF ( jjs < nys ) THEN
-                        IF ((plat_src(jis,jjs) <= pyt).and.(plat_src(jis,jjs+1) > pyt)) THEN
+                        IF ((plat_s(jis,jjs) <= pyt).and.(plat_s(jis,jjs+1) > pyt)) THEN
                            l_y_found = .TRUE.
                         ELSE
                            jjs = jjs + 1
@@ -770,9 +777,9 @@ CONTAINS
 
                END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
 
-               ixyp_trg(jit,jjt,:) = (/ jis, jjs /)
+               ixyp_t(jit,jjt,:) = (/ jis, jjs /)
 
-            END IF !IF ( ((pxt>=pxyr_src(1)).AND.(pxt<=pxyr_src(2))).AND.((pyt>=pxyr_src(3)).AND.(pyt<=pxyr_src(4))) )
+            END IF !IF ( ((pxt>=pxyr_s(1)).AND.(pxt<=pxyr_s(2))).AND.((pyt>=pxyr_s(3)).AND.(pyt<=pxyr_s(4))) )
 
          END DO !DO jit = 1, nxt
       END DO !DO jjt = 1, nyt
