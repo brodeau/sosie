@@ -421,7 +421,7 @@ CONTAINS
       INTEGER(1),    DIMENSION(:,:), ALLOCATABLE :: kmsk_ignr_trg
       !!
       REAL(8) :: zalfa, zbeta
-      LOGICAL :: l_ok, lagain, lpdebug
+      LOGICAL :: l_ok, lagain, lPdbg
       INTEGER :: icpt, ithrd
       !!
       !!DEBUG:
@@ -503,10 +503,10 @@ CONTAINS
       DO jj = 1, ny_t
          DO ji = 1, nx_t
 
-            lpdebug = ( (iverbose>0).AND.(ji==idb).AND.(jj==jdb) )
+            lPdbg = ( (iverbose>0).AND.(ji==idb).AND.(jj==jdb) )
 
-            IF( lpdebug ) WRITE(6,*) '#DEBUG:'
-            IF( lpdebug ) WRITE(6,*) '#DEBUG: WILL DEBUG for target point ji, jj =', idb, jdb
+            IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL):'
+            IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): WILL DEBUG for target point ji, jj =', idb, jdb
 
             
             IF ( kmsk_ignr_trg(ji,jj)==1 ) THEN
@@ -521,15 +521,27 @@ CONTAINS
                iP = ki_nrst(ji,jj)
                jP = kj_nrst(ji,jj)
                
-               IF(lpdebug) WRITE(6,*) '#DEBUG: Target point coord => xP, yP =', REAL(xP,4), REAL(yP,4)
-               IF(lpdebug) WRITE(6,*) '#DEBUG: Nearest src pt indexes + src shape => iP, jP, nx_s,ny_s =', INT(iP,2), INT(jP,2), INT(nx_s,2), INT(ny_s,2)
+               
+               IF( (iP==-1).OR.(jP==-1).OR.(jP>=ny_s) ) THEN
+                  
+                  !! => Nearest point was not found!
+                  IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): Nearest point was not found or `(jP>=ny_s)`!'
 
-               IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<ny_s) ) THEN
+               ELSE
 
+                  !! Normally we have taken the necessary step for the following not to happen:
+                  IF( (k_ew_per>=0).AND.((iP<2).OR.(iP>nx_s-1)) ) CALL STOP_THIS('[MAPPING_BL()] => `(iP<2).OR.(iP>nxs-1)` !')
+
+                  
+                  IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): Target point coord => xP, yP =', REAL(xP,4), REAL(yP,4)
+                  IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): Nearest src pt indexes + src shape => iP, jP, nx_s,ny_s =', INT(iP,2), INT(jP,2), INT(nx_s,2), INT(ny_s,2)
+                  
                   CALL GIVE_NGHBR_POINTS_SRC( k_ew_per, iP, jP, nx_s, ny_s, plon_s, plat_s,  &
                      &                        l_skip_P, iPm1, iPp1, jPm1, jPp1, lonP, latP,    &
                      &                        lonN, latN, lonE, latE, lonS, latS, lonW, latW )
 
+                  IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): l_skip_P=',l_skip_P
+                  
                   IF ( .NOT. l_skip_P ) THEN
 
                      !! Restore target point longitude between 0 and 360
@@ -574,7 +586,7 @@ CONTAINS
 
                      iqd0    = iqd
                      iqd_old = iqd
-                     IF(lpdebug) WRITE(6,*) '#DEBUG: first find of iqd =', iqd0
+                     IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): first find of iqd =', iqd0
 
                      zmsh_x(0) = xP ;    zmsh_y(0) = yP      ! fill zmsh_x, zmsh_y for 0 = target point
                      zmsh_x(1) = lonP ;  zmsh_y(1) = latP    !                     1 = nearest point
@@ -611,8 +623,8 @@ CONTAINS
 
                         !! The tests!!!
                         l_ok = L_InPoly ( zmsh_x(1:4), zmsh_y(1:4), xP, yP )    ! $$
-                        IF(lpdebug) WRITE(6,*) '#DEBUG: l_ok =', l_ok
-
+                        IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): l_ok =', l_ok
+                        !!
                         IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
                            !! Mhhh... Seems like the "heading()" approach
                            !! screwed up... i.e the point xP,yP is not into the
@@ -625,14 +637,15 @@ CONTAINS
                            !! Everything okay! Point is inside the the mesh
                            !! corresponding to current iquadran ! :D
                            lagain = .FALSE.
-                           IF ( (icpt>0).AND.(lpdebug) ) WRITE(6,*) '#DEBUG: iquadran corrected thanks to iterative test (old,new) =>', iqd_old, iqd
+                           IF ( (icpt>0).AND.(lPdbg) ) WRITE(6,*)'#DBG(MAPPING_BL): iquadran corrected thanks to iterative test (old,new) =>', iqd_old, iqd
                         END IF
                         IF ( icpt == 5 ) THEN
+                           IF(lPdbg) WRITE(6,*)'#DBG(MAPPING_BL): GIVING UP LOOKING FOR `iquadran` !!!'
                            lagain = .FALSE. ! simply give up
                            iqd = iqd0 ! Giving what first method gave
                         END IF
                      END DO !DO WHILE ( lagain )
-
+                     
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(zmsh_x, zmsh_y, zalfa, zbeta, iproblem)
@@ -641,31 +654,32 @@ CONTAINS
                      !LOLO: mark this in ID_problem => case when iqd = iqd0 ( IF ( icpt == 5 ) ) above!!!
                      IF ( icpt == 5 ) pbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
 
-                     IF (lpdebug) THEN
-                        WRITE(6,*) '#DEBUG :' !lilo
-                        WRITE(6,*) '#DEBUG ==>Nearest point + hP, hPp :', REAL(lonP,4),  REAL(latP,4), '+',  REAL(hP,4), REAL(hPp,4)
-                        WRITE(6,*) '#DEBUG ==>North point :',  REAL(lonN,4), REAL(latN,4), REAL(hN,4)
-                        WRITE(6,*) '#DEBUG ==>East  point :',  REAL(lonE,4), REAL(latE,4), REAL(hE,4)
-                        WRITE(6,*) '#DEBUG ==>South point :',  REAL(lonS,4), REAL(latS,4), REAL(hS,4)
-                        WRITE(6,*) '#DEBUG ==>West  point :',  REAL(lonW,4), REAL(latW,4), REAL(hW,4)
-                        WRITE(6,*) '#DEBUG ==>iqd =',iqd
-                        WRITE(6,*) '#DEBUG ==>'
-                        WRITE(6,*) '#DEBUG ==> Nearest 4 points :'
-                        WRITE(6,*) '#DEBUG ==>Pt 1 :',REAL(zmsh_x(1),4), REAL(zmsh_y(1),4)
-                        WRITE(6,*) '#DEBUG ==>Pt 2 :',REAL(zmsh_x(2),4), REAL(zmsh_y(2),4)
-                        WRITE(6,*) '#DEBUG ==>Pt 3 :',REAL(zmsh_x(3),4), REAL(zmsh_y(3),4)
-                        WRITE(6,*) '#DEBUG ==>Pt 4 :',REAL(zmsh_x(4),4), REAL(zmsh_y(4),4)
-                        WRITE(6,*) '#DEBUG ==>'
+                     IF (lPdbg) THEN
+                        WRITE(6,*)'#DBG(MAPPING_BL) :' !lilo
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>Nearest point + hP, hPp :', REAL(lonP,4),  REAL(latP,4), '+',  REAL(hP,4), REAL(hPp,4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>North point :',  REAL(lonN,4), REAL(latN,4), REAL(hN,4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>East  point :',  REAL(lonE,4), REAL(latE,4), REAL(hE,4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>South point :',  REAL(lonS,4), REAL(latS,4), REAL(hS,4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>West  point :',  REAL(lonW,4), REAL(latW,4), REAL(hW,4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>iqd =',iqd
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>'
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==> Nearest 4 points :'
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>Pt 1 :',REAL(zmsh_x(1),4), REAL(zmsh_y(1),4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>Pt 2 :',REAL(zmsh_x(2),4), REAL(zmsh_y(2),4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>Pt 3 :',REAL(zmsh_x(3),4), REAL(zmsh_y(3),4)
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==>Pt 4 :',REAL(zmsh_x(4),4), REAL(zmsh_y(4),4)
+                        WRITE(6,*)'#DBG(MAPPING_BL)'
                      END IF
-
+                     IF ((lPdbg).AND.(icpt==5)) CALL STOP_THIS('[MAPPING_BL] => we stop because `lPdbg` and we did not find `iquadran`!')
+                     
                      !! Saving into arrays to be written at the end:
                      pbln_map(ji,jj)%iqdrn = iqd
                      pbln_map(ji,jj)%ralfa = zalfa
                      pbln_map(ji,jj)%rbeta = zbeta
                      pbln_map(ji,jj)%ipb   = 0
 
-                  END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nx_s))
-               END IF ! IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<ny_s) )
+                  END IF ! IF ( .NOT. l_skip_P )
+               END IF ! IF( (iP==-1).OR.(jP==-1).OR.(jP>=ny_s) )
             END IF ! IF ( kmsk_ignr_trg(ji,jj)==1 )
             
          ENDDO !DO ji = 1, nx_t
@@ -1021,7 +1035,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GIVE_NGHBR_POINTS_SRC( kewp, iX, jX, nxs, nys, xlon_src, xlat_src,  &
+   SUBROUTINE GIVE_NGHBR_POINTS_SRC( kewp, iX, jX, nxs, nys, pXs, pYs,  &
       &                              lskip, iXm1, iXp1, jXm1, jXp1, plonX, platX, &
       &                              plonN, platN, plonE, platE, plonS, platS, plonW, platW )
       !!==============================================================================
@@ -1031,8 +1045,8 @@ CONTAINS
       !!   * iX   : i-index of nearest point on source grid
       !!   * jX   : j-index of nearest point on source grid
       !!   * nxs, nys : shape of input array GLOBAL ???
-      !!   * xlon_src : 2D array of source longitude
-      !!   * xlat_src : 2D array of source latitude
+      !!   * pXs : 2D array of source longitude
+      !!   * pYs : 2D array of source latitude
       !!
       !! OUTPUT:
       !!   * lskip : if TRUE, skip this point...
@@ -1041,22 +1055,16 @@ CONTAINS
       !!
       !!==========================================================================================================
       INTEGER,                 INTENT(in)  :: kewp, iX, jX, nxs, nys
-      REAL(8), DIMENSION(:,:), INTENT(in)  :: xlon_src, xlat_src
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: pXs, pYs
       LOGICAL,                 INTENT(out) :: lskip
       INTEGER,                 INTENT(out) :: iXm1, iXp1, jXm1, jXp1
       REAL(8),                 INTENT(out) :: plonX, platX, plonN, platN, plonE, platE, plonS, platS, plonW, platW
-      !!
-      !INTEGER :: nxs, nys
       !!==========================================================================================================
-      !nxs = SIZE(xlon_src,1)
-      !nys = SIZE(xlon_src,2)
-      !
-      ! jX<ny1 < last upper row was an extrapolation!
       iXm1 = iX-1
       iXp1 = iX+1
       jXm1 = jX-1
       jXp1 = jX+1
-
+      !!
       plonX = 0.
       platX = 0.
       plonN = 0.
@@ -1068,34 +1076,33 @@ CONTAINS
       plonW = 0.
       platW = 0.
 
-      !! LOLO: remove from now, it's problematic in OMP with x-decomposition !!!!
-      !!      => all EWP shit should be done before OMP???
-      !IF ( iXm1 == 0 ) THEN
-      !   !! We are in the extended case !!!
-      !   IF ( kewp>=0 ) iXm1 = nxs - kewp
-      !END IF
-      !IF ( iXp1 == nxs+1 ) THEN
-      !   IF ( kewp>=0 ) iXp1 = 1   + kewp
-      !END IF
+      IF ( iXm1 <  1  ) THEN
+         PRINT *, ' ========> iXm1 = ', iXm1
+         CALL STOP_THIS( '[GIVE_NGHBR_POINTS_SRC()] => `iXm1 < 1` !')
+      END IF
+      IF ( iXp1 > nxs ) THEN
+         PRINT *, ' ========> iXp1 = ', iXp1
+         CALL STOP_THIS( '[GIVE_NGHBR_POINTS_SRC()] => `iXp1 > nxx` !')
+      END IF
 
       lskip = ((iXm1 < 1).OR.(jXm1 < 1).OR.(iXp1 > nxs).OR.(jXp1 > nys))
 
       IF ( .NOT. lskip) THEN
 
-         plonX = MOD(xlon_src(iX,jX)  , 360._8)
-         plonN = MOD(xlon_src(iX,jXp1), 360._8)
-         plonE = MOD(xlon_src(iXp1,jX), 360._8)
-         plonS = MOD(xlon_src(iX,jXm1), 360._8)
-         plonW = MOD(xlon_src(iXm1,jX), 360._8)
+         plonX = MOD(pXs(iX,jX)  , 360._8)
+         plonN = MOD(pXs(iX,jXp1), 360._8)
+         plonE = MOD(pXs(iXp1,jX), 360._8)
+         plonS = MOD(pXs(iX,jXm1), 360._8)
+         plonW = MOD(pXs(iXm1,jX), 360._8)
 
-         platX = xlat_src(iX,jX)   ! nearest point
-         platN = xlat_src(iX,jXp1) ! N (grid)
-         platE = xlat_src(iXp1,jX) ! E (grid)
-         platS = xlat_src(iX,jXm1) ! S (grid)
-         platW = xlat_src(iXm1,jX) ! W (grid)
+         platX = pYs(iX,jX)   ! nearest point
+         platN = pYs(iX,jXp1) ! N (grid)
+         platE = pYs(iXp1,jX) ! E (grid)
+         platS = pYs(iX,jXm1) ! S (grid)
+         platW = pYs(iXm1,jX) ! W (grid)
 
       ELSE
-         IF(iverbose>1) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ', xlon_src(iX,jX), xlat_src(iX,jX),nxs,nys,iX,jX
+         IF(iverbose>1) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ', pXs(iX,jX), pYs(iX,jX),nxs,nys,iX,jX
          IF(iverbose>1) WRITE(6,*) '          iXm1, iXp1, nxs =', iXm1, iXp1, nxs
          IF(iverbose>1) WRITE(6,*) '          jXm1, jXp1, nys =', jXm1, jXp1, nys
          !IF(iverbose>1) WRITE(6,*) '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
