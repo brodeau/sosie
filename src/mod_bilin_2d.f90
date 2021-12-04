@@ -30,8 +30,8 @@ MODULE MOD_BILIN_2D
    INTEGER, PARAMETER  :: np_e = 4  !: Source grid spatial extension (4 => extra frame of 2 points)
    INTEGER, PARAMETER :: &
                                 !! Only active if iverbose==2:
-      &   idb = 0, & ! i-index of point to debug on target domain
-      &   jdb = 0    ! j-index of point to debug on target domain
+      &   idb = 291, & ! i-index of point to debug on target domain
+      &   jdb = 50     ! j-index of point to debug on target domain
 
    !! Mapping for bilin:
    TYPE :: bln_map
@@ -139,6 +139,7 @@ CONTAINS
          !LOLO:CALL MAPPING_BL( kewper, x_s_2d_e, y_s_2d_e, pX2, pY2, BILIN_MAP,  pmsk_dom_trg=mask_ignore_trg )
          CALL MAPPING_BL( kewper, x_s_2d_e, y_s_2d_e, pX2, pY2, BILIN_MAP )
          CALL SAVE_BL_2D_MP( pX2, pY2, BILIN_MAP )  ! Saving mapping into netCDF file if relevant...!
+         CALL STOP_THIS("STOP LOLO: BILIN_2D_INIT() debug")
       END IF
       WRITE(6,*) ''
       !!
@@ -229,42 +230,14 @@ CONTAINS
                pZ2(ji,jj) = Z_s_2d_e(iP,jP)
             ELSE
                !! INTERPOLATION:
-               !pZ2(ji,jj) = INTERP_BL(k_ew_per, iP, jP, iqd, alpha, beta, Z_s_2d_e)
-               !pZ2(ji,jj) = INTERP_BL(k_ew_per, ithrd, ji, jj, Z_s_2d_e)
-
                CALL INTERP_BL( k_ew_per, ji, jj, Z_s_2d_e, pZ2(ji,jj) )
-
+               !!
             END IF
          END DO
       END DO
 
-      pZ2(:,:) = pZ2(:,:)*REAL(mask_ignore_trg(:,:), 4) + REAL(1-mask_ignore_trg(:,:), 4)*(-9995.) ! masking problem points as in mask_ignore_trg
-
-
-      !IF ( l_1st_call_bilin(ithrd) ) THEN
-      !   !! Is the very last Y row fully masked! lolo and on a ORCA grid!!!
-      !   IF ( i_orca_trg >= 4 ) THEN
-      !      PRINT *, i_orca_trg, 'LOLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO'
-      !      rmeanv = SUM(pZ2(:,ny2))/nx2
-      !      l_last_y_row_missing(ithrd) = ( (rmeanv < rmissval + 0.1).AND.(rmeanv > rmissval - 0.1) )
-      !   END IF
-      !END IF
-
-      !WRITE(6,*) ' l_last_y_row_missing =>', l_last_y_row_missing
-      !IF ( i_orca_trg == 4 ) WRITE(6,*) ' Target grid is an ORCA grid with north-pole T-point folding!'
-      !IF ( i_orca_trg == 6 ) WRITE(6,*) ' Target grid is an ORCA grid with north-pole F-point folding!'
-
-      !! Correcting last missing band if relevant: LOLO: should use lbc_lnk no ????
-      !IF ( l_last_y_row_missing(ithrd) ) THEN
-      !   IF ( i_orca_trg == 4 ) THEN
-      !      pZ2(2:nx2/2           ,ny2)   = pZ2(nx2:nx2-nx2/2-2:-1,ny2-2)
-      !      pZ2(nx2:nx2-nx2/2-2:-1,ny2)   = pZ2(2:nx2/2           ,ny2-2)
-      !   END IF
-      !   IF ( i_orca_trg == 6 ) THEN
-      !      pZ2(2:nx2/2             ,ny2) = pZ2(nx2-1:nx2-nx2/2+1:-1,ny2-1)
-      !      pZ2(nx2-1:nx2-nx2/2+1:-1,ny2) = pZ2(2:nx2/2             ,ny2-1)
-      !   END IF
-      !END IF
+      ! masking problem points as in mask_ignore_trg:
+      pZ2(:,:) = pZ2(:,:)*REAL(mask_ignore_trg(:,:), 4) + REAL(1-mask_ignore_trg(:,:), 4)*(-9995.) 
 
       l_1st_call_bilin = .FALSE.
 
@@ -441,9 +414,8 @@ CONTAINS
          &  lonW, latW, hW, & !: grid point West of NP, true heding from NP
          &  hP                !: true heading of target point from NP
 
-      REAL(8), DIMENSION(0:4) :: &
-         &    loni, lati    !: the 4 grid points around target (1-4) + the target (0)
-
+      REAL(8), DIMENSION(0:4) :: zmsh_x, zmsh_y    !: the 4 grid points around target (1-4) + the target (0)
+      
       !! To save in the netcdf file:
       INTEGER(4),    DIMENSION(:,:), ALLOCATABLE :: ki_nrst, kj_nrst
       INTEGER(1),    DIMENSION(:,:), ALLOCATABLE :: kmsk_ignr_trg
@@ -531,8 +503,12 @@ CONTAINS
       DO jj = 1, ny_t
          DO ji = 1, nx_t
 
-            lpdebug = ( (iverbose==2).AND.(ji==idb).AND.(jj==jdb) )
+            lpdebug = ( (iverbose>0).AND.(ji==idb).AND.(jj==jdb) )
 
+            IF( lpdebug ) WRITE(6,*) '#DEBUG:'
+            IF( lpdebug ) WRITE(6,*) '#DEBUG: WILL DEBUG for target point ji, jj =', idb, jdb
+
+            
             IF ( kmsk_ignr_trg(ji,jj)==1 ) THEN
                !! => exclude regions that do not exist on source domain (kmsk_ignr_trg==0) and
                !! points for which the nearest point was not found (kmsk_ignr_trg==-1 or -2)
@@ -545,8 +521,8 @@ CONTAINS
                iP = ki_nrst(ji,jj)
                jP = kj_nrst(ji,jj)
                
-               IF(lpdebug) WRITE(6,*) ' *** #DEBUG: xP, yP =', xP, yP
-               IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iP, jP, nx_s, ny_s =', iP, jP, nx_s, ny_s
+               IF(lpdebug) WRITE(6,*) '#DEBUG: Target point coord => xP, yP =', REAL(xP,4), REAL(yP,4)
+               IF(lpdebug) WRITE(6,*) '#DEBUG: Nearest src pt indexes + src shape => iP, jP, nx_s,ny_s =', INT(iP,2), INT(jP,2), INT(nx_s,2), INT(ny_s,2)
 
                IF ( (iP/=INT(rmissval)).AND.(jP/=INT(rmissval)).AND.(jP<ny_s) ) THEN
 
@@ -598,10 +574,10 @@ CONTAINS
 
                      iqd0    = iqd
                      iqd_old = iqd
-                     !IF(lpdebug) WRITE(6,*) ' *** #DEBUG: first find of iqd =', iqd0
+                     IF(lpdebug) WRITE(6,*) '#DEBUG: first find of iqd =', iqd0
 
-                     loni(0) = xP ;    lati(0) = yP      ! fill loni, lati for 0 = target point
-                     loni(1) = lonP ;  lati(1) = latP    !                     1 = nearest point
+                     zmsh_x(0) = xP ;    zmsh_y(0) = yP      ! fill zmsh_x, zmsh_y for 0 = target point
+                     zmsh_x(1) = lonP ;  zmsh_y(1) = latP    !                     1 = nearest point
 
                      IF (l_save_distance_to_np) distance_to_np(ji,jj) = DISTANCE(xP, lonP, yP, latP)
 
@@ -614,28 +590,28 @@ CONTAINS
 
                         SELECT CASE ( iqd ) ! point 2 3 4 are counter clockwise in the respective sector
                         CASE ( 1 )
-                           loni(2) = lonE ; lati(2) = latE
-                           loni(3) = MOD(plon_s(iPp1,jPp1), 360._8) ; lati(3) = plat_s(iPp1,jPp1)
-                           loni(4) = lonN ; lati(4) = latN
+                           zmsh_x(2) = lonE ; zmsh_y(2) = latE
+                           zmsh_x(3) = MOD(plon_s(iPp1,jPp1), 360._8) ; zmsh_y(3) = plat_s(iPp1,jPp1)
+                           zmsh_x(4) = lonN ; zmsh_y(4) = latN
                         CASE ( 2 )
-                           loni(2) = lonS ; lati(2) = latS
-                           loni(3) = MOD(plon_s(iPp1,jPm1), 360._8) ; lati(3) = plat_s(iPp1,jPm1)
-                           loni(4) = lonE ; lati(4) = latE
+                           zmsh_x(2) = lonS ; zmsh_y(2) = latS
+                           zmsh_x(3) = MOD(plon_s(iPp1,jPm1), 360._8) ; zmsh_y(3) = plat_s(iPp1,jPm1)
+                           zmsh_x(4) = lonE ; zmsh_y(4) = latE
                         CASE ( 3 )
-                           loni(2) = lonW ; lati(2) = latW
-                           loni(3) = MOD(plon_s(iPm1,jPm1), 360._8) ; lati(3) = plat_s(iPm1,jPm1)
-                           loni(4) = lonS ; lati(4) = latS
+                           zmsh_x(2) = lonW ; zmsh_y(2) = latW
+                           zmsh_x(3) = MOD(plon_s(iPm1,jPm1), 360._8) ; zmsh_y(3) = plat_s(iPm1,jPm1)
+                           zmsh_x(4) = lonS ; zmsh_y(4) = latS
                         CASE ( 4 )
-                           loni(2) = lonN ; lati(2) = latN
-                           loni(3) = MOD(plon_s(iPm1,jPp1), 360._8) ; lati(3) = plat_s(iPm1,jPp1)
-                           loni(4) = lonW ; lati(4) = latW
+                           zmsh_x(2) = lonN ; zmsh_y(2) = latN
+                           zmsh_x(3) = MOD(plon_s(iPm1,jPp1), 360._8) ; zmsh_y(3) = plat_s(iPm1,jPp1)
+                           zmsh_x(4) = lonW ; zmsh_y(4) = latW
                         END SELECT
 
-                        WHERE ( loni <= 0.0 )  loni = loni + 360._8  ! P. Mathiot: Some bug with ERA40 grid
+                        WHERE ( zmsh_x <= 0.0 )  zmsh_x = zmsh_x + 360._8  ! P. Mathiot: Some bug with ERA40 grid
 
                         !! The tests!!!
-                        l_ok = L_InPoly ( loni(1:4), lati(1:4), xP, yP )    ! $$
-                        IF(lpdebug) WRITE(6,*) ' *** #DEBUG: l_ok =', l_ok
+                        l_ok = L_InPoly ( zmsh_x(1:4), zmsh_y(1:4), xP, yP )    ! $$
+                        IF(lpdebug) WRITE(6,*) '#DEBUG: l_ok =', l_ok
 
                         IF ( (.NOT. l_ok).AND.(yP < 88.) ) THEN
                            !! Mhhh... Seems like the "heading()" approach
@@ -643,13 +619,13 @@ CONTAINS
                            !! mesh corresponding to current iquadran, trying all
                            !! other adjacent meshes to find if it belongs to one
                            !! of them...
-                           icpt  = icpt + 1
-                           iqd = icpt
+                           icpt = icpt + 1
+                           iqd  = icpt
                         ELSE
                            !! Everything okay! Point is inside the the mesh
                            !! corresponding to current iquadran ! :D
                            lagain = .FALSE.
-                           IF ( (icpt>0).AND.(lpdebug) ) WRITE(6,*) ' --- iquadran corrected thanks to iterative test (old,new) =>', iqd_old, iqd
+                           IF ( (icpt>0).AND.(lpdebug) ) WRITE(6,*) '#DEBUG: iquadran corrected thanks to iterative test (old,new) =>', iqd_old, iqd
                         END IF
                         IF ( icpt == 5 ) THEN
                            lagain = .FALSE. ! simply give up
@@ -659,27 +635,27 @@ CONTAINS
 
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
-                     CALL LOCAL_COORD(loni, lati, zalfa, zbeta, iproblem)
+                     CALL LOCAL_COORD(zmsh_x, zmsh_y, zalfa, zbeta, iproblem)
                      pbln_map(ji,jj)%ipb = iproblem
 
                      !LOLO: mark this in ID_problem => case when iqd = iqd0 ( IF ( icpt == 5 ) ) above!!!
                      IF ( icpt == 5 ) pbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
 
                      IF (lpdebug) THEN
-                        WRITE(6,*) ' *** #DEBUG :'
-                        WRITE(6,*) 'Nearest point :',lonP,  latP,  hP, hPp
-                        WRITE(6,*) 'North point :',  lonN , latN , hN
-                        WRITE(6,*) 'East  point :',  lonE , latE , hE
-                        WRITE(6,*) 'South point :',  lonS , latS , hS
-                        WRITE(6,*) 'West  point :',  lonW , latW , hW
-                        WRITE(6,*) 'iqd =',iqd
-                        WRITE(6,*) ''
-                        WRITE(6,*) ' Nearest 4 points :'
-                        WRITE(6,*) 'Pt 1 :',loni(1), lati(1)
-                        WRITE(6,*) 'Pt 2 :',loni(2), lati(2)
-                        WRITE(6,*) 'Pt 3 :',loni(3), lati(3)
-                        WRITE(6,*) 'Pt 4 :',loni(4), lati(4)
-                        WRITE(6,*) ''
+                        WRITE(6,*) '#DEBUG :' !lilo
+                        WRITE(6,*) '#DEBUG ==>Nearest point + hP, hPp :', REAL(lonP,4),  REAL(latP,4), '+',  REAL(hP,4), REAL(hPp,4)
+                        WRITE(6,*) '#DEBUG ==>North point :',  REAL(lonN,4), REAL(latN,4), REAL(hN,4)
+                        WRITE(6,*) '#DEBUG ==>East  point :',  REAL(lonE,4), REAL(latE,4), REAL(hE,4)
+                        WRITE(6,*) '#DEBUG ==>South point :',  REAL(lonS,4), REAL(latS,4), REAL(hS,4)
+                        WRITE(6,*) '#DEBUG ==>West  point :',  REAL(lonW,4), REAL(latW,4), REAL(hW,4)
+                        WRITE(6,*) '#DEBUG ==>iqd =',iqd
+                        WRITE(6,*) '#DEBUG ==>'
+                        WRITE(6,*) '#DEBUG ==> Nearest 4 points :'
+                        WRITE(6,*) '#DEBUG ==>Pt 1 :',REAL(zmsh_x(1),4), REAL(zmsh_y(1),4)
+                        WRITE(6,*) '#DEBUG ==>Pt 2 :',REAL(zmsh_x(2),4), REAL(zmsh_y(2),4)
+                        WRITE(6,*) '#DEBUG ==>Pt 3 :',REAL(zmsh_x(3),4), REAL(zmsh_y(3),4)
+                        WRITE(6,*) '#DEBUG ==>Pt 4 :',REAL(zmsh_x(4),4), REAL(zmsh_y(4),4)
+                        WRITE(6,*) '#DEBUG ==>'
                      END IF
 
                      !! Saving into arrays to be written at the end:
@@ -699,7 +675,8 @@ CONTAINS
       pbln_map(:,:)%jip = ki_nrst(:,:)
       pbln_map(:,:)%jjp = kj_nrst(:,:)
 
-      !CALL DUMP_FIELD(REAL(pbln_map(:,:)%ralfa,4), 'alpha_trg.nc', 'alpha'); STOP'alpha_trg.nc'
+      CALL DUMP_FIELD(REAL(pbln_map(:,:)%ralfa,4), 'alfa_trg.nc', 'alfa'); !STOP'alfa_trg.nc'
+      CALL DUMP_FIELD(REAL(pbln_map(:,:)%rbeta,4), 'beta_trg.nc', 'beta'); STOP'beta_trg.nc'
       
       WHERE ( (ki_nrst == INT(rmissval)).OR.(kj_nrst == INT(rmissval)) )
          pbln_map(:,:)%ralfa  = rmissval
@@ -800,7 +777,7 @@ CONTAINS
       IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
          &                            .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) &
          &  zxlam = degE_to_degWE(zxlam)
-
+      
       zres=1000. ; zdlam=0.5 ;  zdphi=0.5 ;  zalpha=0. ;  zbeta=0. ;  niter=0
 
       DO WHILE ( (zres > zresmax).AND.(niter < itermax) )
@@ -854,7 +831,7 @@ CONTAINS
       pa = zalpha
       pb = zbeta
 
-      !! Problem if the 4 latitudes surrounding 'lati' are equal!
+      !! Problem if the 4 latitudes surrounding 'zmsh_y' are equal!
       IF ( (pxphi(1)==pxphi(2)).AND.(pxphi(2)==pxphi(3)).AND.(pxphi(3)==pxphi(4)) ) THEN
          pa  = 0.5
          pb  = 0.5
@@ -1100,8 +1077,6 @@ CONTAINS
       !IF ( iXp1 == nxs+1 ) THEN
       !   IF ( kewp>=0 ) iXp1 = 1   + kewp
       !END IF
-      !IF(lpdebug) WRITE(6,*) ' *** #DEBUG: iXm1, iXp1 =', iXm1, iXp1
-      !IF(lpdebug) WRITE(6,*) ' *** #DEBUG: jXm1, jXp1 =', jXm1, jXp1
 
       lskip = ((iXm1 < 1).OR.(jXm1 < 1).OR.(iXp1 > nxs).OR.(jXp1 > nys))
 
@@ -1120,11 +1095,11 @@ CONTAINS
          platW = xlat_src(iXm1,jX) ! W (grid)
 
       ELSE
-         IF(iverbose>0) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ',xlon_src(iX,jX),xlon_src(iX,jX),nxs,nys,iX,jX
-         IF(iverbose>0) WRITE(6,*) '          iXm1, iXp1, nxs =', iXm1, iXp1, nxs
-         IF(iverbose>0) WRITE(6,*) '          jXm1, jXp1, nys =', jXm1, jXp1, nys
-         !IF(iverbose>0) WRITE(6,*) '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
-         IF(iverbose>0) WRITE(6,*) ''
+         IF(iverbose>1) WRITE(6,*) 'WARNING: mod_bilin_2d.f90 => bound problem => ', xlon_src(iX,jX), xlat_src(iX,jX),nxs,nys,iX,jX
+         IF(iverbose>1) WRITE(6,*) '          iXm1, iXp1, nxs =', iXm1, iXp1, nxs
+         IF(iverbose>1) WRITE(6,*) '          jXm1, jXp1, nys =', jXm1, jXp1, nys
+         !IF(iverbose>1) WRITE(6,*) '         => ignoring current nearest point for i,j =', ji, jj, '(of target domain)'
+         IF(iverbose>1) WRITE(6,*) ''
       END IF
 
    END SUBROUTINE GIVE_NGHBR_POINTS_SRC
