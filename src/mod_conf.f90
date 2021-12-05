@@ -8,7 +8,7 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
-   INTEGER, SAVE :: iverbose=1 ! level of verbose: 0 to 2...                                                              
+   INTEGER, SAVE :: iverbose=1 ! level of verbose: 0 to 2...
 
    !! Some constants:
    REAL(8), PARAMETER :: rpi0   = ACOS(-1._8), &
@@ -243,9 +243,17 @@ MODULE MOD_CONF
       &   lon_trg_b, & !  //   backup
       &   lat_trg      ! latitude array on target grid
 
-
+   !! DEBUG
+   INTEGER, PARAMETER :: & !! Only active if iverbose>0:
+      &   idb = 0, & ! i-index of point to debug on target domain
+      &   jdb = 0     ! j-index of point to debug on target domain
+   !&   idb = 288, & ! i-index of point to debug on target domain
+   !&   jdb = 147     ! j-index of point to debug on target domain
+   !&   idb = 291, & ! i-index of point to debug on target domain
+   !&   jdb = 50     ! j-index of point to debug on target domain
+      
 CONTAINS
-   
+
    SUBROUTINE STOP_THIS( cmsg1,  cmsg2, cmsg3 )
       CHARACTER(len=*),           INTENT(in) :: cmsg1
       CHARACTER(len=*), OPTIONAL, INTENT(in) :: cmsg2, cmsg3
@@ -257,5 +265,5 @@ CONTAINS
       WRITE(6,*) ''
       STOP
    END SUBROUTINE STOP_THIS
-   
+
 END MODULE MOD_CONF

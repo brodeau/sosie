@@ -5,7 +5,7 @@ MODULE MOD_MANIP
    !! Author: L. Brodeau
 
    USE io_ezcdf, ONLY: DUMP_FIELD  ! debug
-   USE mod_conf, ONLY: STOP_THIS, iverbose, rd2rad, rradE, rmissval
+   USE mod_conf, ONLY: STOP_THIS, iverbose, rd2rad, rradE, rmissval, l_reg_src, l_reg_trg, idb, jdb
 
    IMPLICIT NONE
 
@@ -43,7 +43,7 @@ MODULE MOD_MANIP
       &      find_nearest_point, &
       &      shrink_vector, to_degE, degE_to_degWE, &
       &      APPLY_EW_PRDCT
-   
+
    !      &      ext_beyond_90_reg, l_ext2np_reg
 
    LOGICAL, PARAMETER :: l_force_use_of_twisted = .FALSE.
@@ -141,10 +141,11 @@ CONTAINS
 
       !! Western/Easten Extensions
       IF(k_ew > -1) THEN   ! we can use east-west periodicity of input file to
-         CALL APPLY_EW_PRDCT( k_ew, 2, pXx(:,3:nyx-2), l_is_longitude=.TRUE. )
+         CALL APPLY_EW_PRDCT( k_ew, 2, pXx(:,:), l_is_longitude=.TRUE. )
          CALL APPLY_EW_PRDCT( k_ew, 2, pYx(:,:) )
       ELSE
          !!
+         !!LOLO: in the fowlowing the 4 corners are not treated?
          pXx(2, 3:nyx-2) = pX(2,:) - (pX(3,:) - pX(1,:))
          pXx(1, 3:nyx-2) = pX(1,:) - (pX(3,:) - pX(1,:))
          pYx(2, :) = pYx(4,:) - (pYx(5,:) - pYx(3,:))
@@ -793,12 +794,14 @@ CONTAINS
       !!  points...
       l_is_reg_s = L_IS_GRID_REGULAR( Xsrc , Ysrc )
       PRINT *, ' *** FIND_NEAREST_POINT => Is source grid regular ??? =>', l_is_reg_s
+      IF( l_reg_src .AND. (.NOT. l_is_reg_s) )  CALL STOP_THIS( ' ==> BUT namelist says `l_reg_src=T`!')
 
       !! Checking if target domain is regular or not.  => will allow later to
       !!  decide the level of complexity of the algorithm that find nearest
       !!  points...
       l_is_reg_t = L_IS_GRID_REGULAR( Xtrg , Ytrg )
       PRINT *, ' *** FIND_NEAREST_POINT => Is target grid regular ??? =>', l_is_reg_t
+      IF( l_reg_trg .AND. (.NOT. l_is_reg_t) )  CALL STOP_THIS( ' ==> BUT namelist says `l_reg_trg=T`!')
 
       ALLOCATE ( mask_ignore_t(nx_t,ny_t) , i1dum(nx_t) )
       mask_ignore_t(:,:) = 1
@@ -1002,7 +1005,7 @@ CONTAINS
       !!
       !! Important parameters:
       INTEGER, PARAMETER :: Nlat_split = 40   ! number of latitude bands to split the search work (for 180. degree south->north)
-      REAL(8), PARAMETER :: frac_emax = 0.51   ! fraction of emax to test if found!
+      REAL(8), PARAMETER :: frac_emax = 0.51  ! fraction of emax to test if found!
       !!                                        => 0.5 seems to be too small, for example on ORCA1 grid at around 20 deg N... ???
       INTEGER :: &
          &    nx_s, ny_s, nx_t, ny_t, &
@@ -1021,7 +1024,7 @@ CONTAINS
 
       INTEGER, DIMENSION(2) :: ij_min_loc
 
-      LOGICAL :: lagain
+      LOGICAL :: lagain, lPdbg
 
 
       nx_s  = SIZE(Xsrc,1)
@@ -1065,10 +1068,8 @@ CONTAINS
       END DO
       IF(nx_s>1) e1_s(nx_s,:) = e1_s(nx_s-1,:)
       IF(ny_s>1) e2_s(:,ny_s) = e2_s(:,ny_s-1)
-      !IF(iverbose==2) THEN
-      !   CALL DUMP_FIELD(REAL(e1_s,4), 'e1_s.nc', 'e1')
-      !   CALL DUMP_FIELD(REAL(e2_s,4), 'e2_s.nc', 'e2')
-      !END IF
+      !CALL DUMP_FIELD(REAL(e1_s,4), 'e1_s.nc', 'e1')
+      !CALL DUMP_FIELD(REAL(e2_s,4), 'e2_s.nc', 'e2')
 
       !! Min and Max latitude to use for binning :
       PRINT *, ''
@@ -1161,8 +1162,15 @@ CONTAINS
          DO ji_t = 1, nx_t
             IF( mask_t(ji_t,jj_t) == 1 ) THEN
 
+               lPdbg = ( (iverbose>0).AND.(ji_t==idb).AND.(jj_t==jdb) )
+               !lilo
+               IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED):'
+               IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): WILL DEBUG for target point ji, jj =', idb, jdb
+
                rlon = Xtrg(ji_t,jj_t)
                rlat = Ytrg(ji_t,jj_t)
+
+               IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): Target lon,lat =', REAL(rlon,4), REAL(rlat,4)
 
                !! Display progression in stdout:
                IF( (ji_t == nx_t/2).AND.(jj_t /= jj_t_old) ) THEN
@@ -1213,6 +1221,7 @@ CONTAINS
 
                   !! Nearest point is where distance is smallest:
                   ij_min_loc = MINLOC(Xdist(i1s:i2s,j1s:j2s))
+                  IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): `ij_min_loc` = ', ij_min_loc
                   ji_s = ij_min_loc(1) + i1s - 1
                   jj_s = ij_min_loc(2) + j1s - 1
 
@@ -1225,22 +1234,24 @@ CONTAINS
                      STOP
                   END IF
 
-                  emax = MAX(e1_s(ji_s,jj_s),e2_s(ji_s,jj_s))/1000.*SQRT(2.)
-
-                  IF( Xdist(ji_s,jj_s) <= frac_emax*emax) THEN
+                  emax = MAX( e1_s(ji_s,jj_s),e2_s(ji_s,jj_s) )/1000.*SQRT(2.)
+                  IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): `emax` = ', emax, ' km'
+                  
+                  IF( (Xdist(ji_s,jj_s) <= frac_emax*emax).AND.(ji_s<nx_s) ) THEN
+                     !!LOLO: the `.AND.(ji_s<nx_s)` has been the miracle fix :)                     
+                     IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): FOUND THE EASY WAY!!!'
+                     IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): Distance =', REAL(Xdist(ji_s,jj_s),4), ' km'
                      !! Found !
                      lagain = .FALSE.
                      JIpos(ji_t,jj_t) = ji_s
                      JJpos(ji_t,jj_t) = jj_s
-                     IF(iverbose==2) THEN
-                        IF( niter == -1 ) THEN
-                           PRINT *, '    --- F O U N D  with bluff !!! ---'
-                        ELSE
-                           PRINT *, '    --- F O U N D --- niter =', niter
-                        END IF
-                     END IF
-                     !! Found .
+                     !!
+                     IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): ji_s, jj_s =', ji_s, jj_s
+                     IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): nx_s, ny_s =', nx_s, ny_s
+                     !IF(lPdbg) STOP'LOLOX'
+                     !!
                   ELSE
+                     IF(lPdbg) WRITE(6,*)'#DBG(FIND_NEAREST_TWISTED): GOING FOR REFINED SEARCHING!'
                      !! Not found yet...
                      IF(niter == 0) THEN
                         !! After all the lon,lat couple we are looking for is maybe not part of source domain
@@ -1290,7 +1301,7 @@ CONTAINS
       !!           ***  FUNCTION  DIST  ***
       !!
       !!  ** Purpose : Compute the distance (km) between
-      !!          point A (lona, lata) and B(lonb,latb)
+      !!          point A (lona, lata) and B (lonb,latb)
       !!
       !!  ** Method : Compute the distance along the orthodromy
       !!
@@ -1639,7 +1650,7 @@ CONTAINS
    END FUNCTION I_EXT2NP_REG
 
 
-   
+
    SUBROUTINE APPLY_EW_PRDCT( kewp, nbp, pX,  l_is_longitude )
       !!=====================================================================================
       !! Fills the `nbp` first and `nbp` last columns of an array taking
@@ -1667,7 +1678,7 @@ CONTAINS
             !pX( 1+kk,:) = pX(nx-(kewp-1-kk),:) - zcorr
             !pX(nx-kk,:) = pX( 1+(kewp-1-kk),:) + zcorr
             pX( 1+kk,:) = pX(nx-(kewp+nbp+1-kk),:) - zcorr
-            pX(nx-kk,:) = pX( 1+(kewp+nbp+1-kk),:) + zcorr            
+            pX(nx-kk,:) = pX( 1+(kewp+nbp+1-kk),:) + zcorr
          END DO
       END IF
    END SUBROUTINE APPLY_EW_PRDCT

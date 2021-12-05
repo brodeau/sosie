@@ -28,10 +28,6 @@ MODULE MOD_BILIN_2D
    PUBLIC :: BILIN_2D
 
    INTEGER, PARAMETER  :: np_e = 4  !: Source grid spatial extension (4 => extra frame of 2 points)
-   INTEGER, PARAMETER :: &
-                                !! Only active if iverbose==2:
-      &   idb = 291, & ! i-index of point to debug on target domain
-      &   jdb = 50     ! j-index of point to debug on target domain
 
    !! Mapping for bilin:
    TYPE :: bln_map
@@ -115,6 +111,8 @@ CONTAINS
 
       PRINT *, 'lolo: i_orca_src =', i_orca_src
       CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_s_2d_e, y_s_2d_e, is_orca_grid=i_orca_src )
+      !CALL DUMP_FIELD(REAL(x_s_2d_e,4), 'extended_lon.nc', 'lon')
+      !CALL DUMP_FIELD(REAL(y_s_2d_e,4), 'extended_lat.nc', 'lat')
       
       INQUIRE(FILE=cf_wght_bilin, EXIST=lefw )
       IF ( lefw ) THEN
@@ -139,7 +137,7 @@ CONTAINS
          !LOLO:CALL MAPPING_BL( kewper, x_s_2d_e, y_s_2d_e, pX2, pY2, BILIN_MAP,  pmsk_dom_trg=mask_ignore_trg )
          CALL MAPPING_BL( kewper, x_s_2d_e, y_s_2d_e, pX2, pY2, BILIN_MAP )
          CALL SAVE_BL_2D_MP( pX2, pY2, BILIN_MAP )  ! Saving mapping into netCDF file if relevant...!
-         CALL STOP_THIS("STOP LOLO: BILIN_2D_INIT() debug")
+         !CALL STOP_THIS("STOP LOLO: BILIN_2D_INIT() debug")
       END IF
       WRITE(6,*) ''
       !!
@@ -470,6 +468,8 @@ CONTAINS
       
       CALL FIND_NEAREST_POINT( plon_t, plat_t, plon_s, plat_s, ki_nrst, kj_nrst ) !,  &
       !LOLO:&                     pmsk_dom_trg=kmsk_ignr_trg )
+      !lilo: STOP'LOLO:[mod_bilin_2d() after FIND_NEAREST_POINT!'
+
       
       !!LOLO: ok since we work with extended arrays points i=1 and i=nx_s can be avoided:
       IF( k_ew_per>=0 ) THEN
@@ -648,19 +648,26 @@ CONTAINS
                      
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
-                     CALL LOCAL_COORD(zmsh_x, zmsh_y, zalfa, zbeta, iproblem)
+                     CALL LOCAL_COORD(zmsh_x, zmsh_y, zalfa, zbeta, iproblem,  ldebug=lPdbg)
                      pbln_map(ji,jj)%ipb = iproblem
 
                      !LOLO: mark this in ID_problem => case when iqd = iqd0 ( IF ( icpt == 5 ) ) above!!!
                      IF ( icpt == 5 ) pbln_map(ji,jj)%ipb = 2 ! IDing the screw-up from above...
 
                      IF (lPdbg) THEN
-                        WRITE(6,*)'#DBG(MAPPING_BL) :' !lilo
+                        WRITE(6,*)'#DBG(MAPPING_BL) :'
                         WRITE(6,*)'#DBG(MAPPING_BL) ==>Nearest point + hP, hPp :', REAL(lonP,4),  REAL(latP,4), '+',  REAL(hP,4), REAL(hPp,4)
                         WRITE(6,*)'#DBG(MAPPING_BL) ==>North point :',  REAL(lonN,4), REAL(latN,4), REAL(hN,4)
                         WRITE(6,*)'#DBG(MAPPING_BL) ==>East  point :',  REAL(lonE,4), REAL(latE,4), REAL(hE,4)
                         WRITE(6,*)'#DBG(MAPPING_BL) ==>South point :',  REAL(lonS,4), REAL(latS,4), REAL(hS,4)
                         WRITE(6,*)'#DBG(MAPPING_BL) ==>West  point :',  REAL(lonW,4), REAL(latW,4), REAL(hW,4)
+                        !!
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==> dist. trg point - nrst  point:',  REAL(DISTANCE(xP,lonP, yP,latP)),' km'
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==> dist. trg point - North point:', REAL(DISTANCE(xP,lonN, yP,latN)),' km'
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==> dist. trg point - East  point:', REAL(DISTANCE(xP,lonE, yP,latE)),' km'
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==> dist. trg point - South point:', REAL(DISTANCE(xP,lonS, yP,latS)),' km'
+                        WRITE(6,*)'#DBG(MAPPING_BL) ==> dist. trg point - West  point:', REAL(DISTANCE(xP,lonW, yP,latW)),' km'
+                        !!
                         WRITE(6,*)'#DBG(MAPPING_BL) ==>iqd =',iqd
                         WRITE(6,*)'#DBG(MAPPING_BL) ==>'
                         WRITE(6,*)'#DBG(MAPPING_BL) ==> Nearest 4 points :'
@@ -689,8 +696,8 @@ CONTAINS
       pbln_map(:,:)%jip = ki_nrst(:,:)
       pbln_map(:,:)%jjp = kj_nrst(:,:)
 
-      CALL DUMP_FIELD(REAL(pbln_map(:,:)%ralfa,4), 'alfa_trg.nc', 'alfa'); !STOP'alfa_trg.nc'
-      CALL DUMP_FIELD(REAL(pbln_map(:,:)%rbeta,4), 'beta_trg.nc', 'beta'); STOP'beta_trg.nc'
+      !CALL DUMP_FIELD(REAL(pbln_map(:,:)%ralfa,4), 'alfa_trg.nc', 'alfa'); !STOP'alfa_trg.nc'
+      !CALL DUMP_FIELD(REAL(pbln_map(:,:)%rbeta,4), 'beta_trg.nc', 'beta'); STOP'beta_trg.nc'
       
       WHERE ( (ki_nrst == INT(rmissval)).OR.(kj_nrst == INT(rmissval)) )
          pbln_map(:,:)%ralfa  = rmissval
@@ -752,7 +759,7 @@ CONTAINS
 
 
 
-   SUBROUTINE LOCAL_COORD(pxlam, pxphi, pa, pb, ipb)
+   SUBROUTINE LOCAL_COORD(pxlam, pxphi, pa, pb, ipb,  ldebug)
 
       !!----------------------------------------------------------
       !!           ***  SUBROUTINE  local_coord    ***
@@ -770,6 +777,7 @@ CONTAINS
       REAL(8), DIMENSION(0:4), INTENT(in)  :: pxlam, pxphi
       REAL(8)                , INTENT(out) :: pa, pb
       INTEGER                , INTENT(out) :: ipb  !: 0 if everything went fine, > 0 otherwize!
+      LOGICAL, OPTIONAL      , INTENT(in)  :: ldebug
 
       !! * Local variables
       REAL(8) :: &
@@ -778,19 +786,31 @@ CONTAINS
 
       REAL(8), DIMENSION(2,2):: za
       REAL(8), DIMENSION(0:4):: zxlam
-
       INTEGER :: niter=0
-
       INTEGER, PARAMETER :: itermax=200 !: maximum of iteration
+      !!
+      INTEGER :: ii
+      LOGICAL :: lPdbg=.FALSE.
 
+      IF(PRESENT(ldebug)) lPdbg=ldebug
+      
       ipb = 0
 
       zxlam(:) = pxlam(:)       !: save input longitude in workinh array
 
       ! when near the 0 deg line and we must work in the frame -180 180
-      IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
-         &                            .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) &
-         &  zxlam = degE_to_degWE(zxlam)
+      IF (     (ABS(zxlam(1)-zxlam(4)) >= 180.) &
+         & .OR.(ABS(zxlam(1)-zxlam(2)) >= 180.) &
+         & .OR.(ABS(zxlam(1)-zxlam(3)) >= 180.) ) THEN
+         IF(lPdbg) WRITE(6,*) '#DBG(LOCAL_COORD): changing Longitude range => -180 / +180 !'
+         zxlam = degE_to_degWE(zxlam)
+      END IF
+
+      IF(lPdbg) THEN
+         DO ii=0, 4
+            WRITE(6,'("#DBG(LOCAL_COORD): coord(",i1,") = ",f9.4,", ",f9.4)'), ii, zxlam(ii), pxphi(ii)
+         END DO
+      END IF
       
       zres=1000. ; zdlam=0.5 ;  zdphi=0.5 ;  zalpha=0. ;  zbeta=0. ;  niter=0
 
@@ -837,6 +857,7 @@ CONTAINS
       END DO   ! loop until zres small enough (or itermax reach )
 
       IF ( niter >= itermax )   THEN
+         IF(lPdbg) WRITE(6,*) '#DBG(LOCAL_COORD): BEYOND `itermax`!!!'
          zalpha = 0.5
          zbeta  = 0.5
          ipb    = 11
@@ -847,10 +868,14 @@ CONTAINS
 
       !! Problem if the 4 latitudes surrounding 'zmsh_y' are equal!
       IF ( (pxphi(1)==pxphi(2)).AND.(pxphi(2)==pxphi(3)).AND.(pxphi(3)==pxphi(4)) ) THEN
+         IF(lPdbg) WRITE(6,*) '#DBG(LOCAL_COORD): SINGULARITY !!!'
          pa  = 0.5
          pb  = 0.5
          ipb = 12
       END IF
+
+      IF(lPdbg) WRITE(6,*) '#DBG(LOCAL_COORD): `alfa` =', pa
+      IF(lPdbg) WRITE(6,*) '#DBG(LOCAL_COORD): `beta` =', pb
       
    END SUBROUTINE LOCAL_COORD
 
