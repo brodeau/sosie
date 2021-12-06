@@ -17,6 +17,8 @@ MODULE MOD_CONF
 
    REAL(4), PARAMETER :: rmissval = -9999.
 
+   INTEGER, PARAMETER  :: np_e = 4  !: Source grid spatial extension (4 => extra frame of 2 points)
+   
    LOGICAL, SAVE :: &
       &             l_drown_src, & ! DROWN source field
       &             l_glob_lon_wize, l_glob_lat_wize, &

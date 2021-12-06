@@ -42,7 +42,6 @@ MODULE MOD_AKIMA_2D
 
    PUBLIC :: AKIMA_2D
 
-   INTEGER, PARAMETER  :: np_e = 4  !: Source grid spatial extension (4 => extra frame of 2 points)
    INTEGER, PARAMETER  :: Nsys = 16 !: Dimmension of the linear sytem to solve
 
    !! Mapping for Akima:
@@ -112,7 +111,12 @@ CONTAINS
 
       !! Doing the mapping once for all and saving into MAP_AKM:
       WRITE(6,*) '  * Calling `FIND_NEAREST_AKIMA()` to fill mapping `MAP_AKM` once for all!'
-      CALL FIND_NEAREST_AKIMA( x_s_2d_e, y_s_2d_e, range_lonlat_s, pX2, pY2, MAP_AKM(:,:,:) )
+      CALL FIND_NEAREST_AKIMA( ewper_src, x_s_2d_e, y_s_2d_e, range_lonlat_s, pX2, pY2, MAP_AKM(:,:,:) )
+      !!
+      !CALL DUMP_FIELD(REAL(MAP_AKM(:,:,1),4), 'ji_map_akima.nc', 'ji')
+      !CALL DUMP_FIELD(REAL(MAP_AKM(:,:,2),4), 'jj_map_akima.nc', 'jj')
+      !STOP'LOLO:mod_akima_2d.f90'
+      !!
       WRITE(6,*) ''
       !!
       WRITE(6,*) '  Initializations for AKIMA done !'
@@ -170,14 +174,14 @@ CONTAINS
       END IF
 
       IF( l_1st_call_akima )  CALL AKIMA_2D_INIT( k_ew_per, pX1, pY1, pX2, pY2 )
-      
+
       ALLOCATE ( poly(ni_s_e-1,nj_s_e-1,Nsys) )
       ALLOCATE ( slpx(ni_s_e,nj_s_e), slpy(ni_s_e,nj_s_e), slpxy(ni_s_e,nj_s_e) )
 
       !! Filling extended data array:
       CALL EXTEND_ARRAY_2D_DATA( k_ew_per, x_s_2d_e, y_s_2d_e,   REAL(pZ1,8), Z_s_2d_e,     is_orca_grid=i_orca_src )
       !! => from now on, `x_s_2d_e,y_s_2d_e,Z_s_2d_e` should be used instead of `pX1,pY1,pZ1` !
-      
+
       !debug:
       !CALL DUMP_FIELD(REAL(x_s_2d_e,4), 'x_s_2d_e_new.nc', 'lon')
       !CALL DUMP_FIELD(REAL(y_s_2d_e,4), 'y_s_2d_e_new.nc', 'lat')
@@ -209,9 +213,13 @@ CONTAINS
             !! Checking if this belongs to source domain :
             IF ( ((zx2>=rlon_s_min).AND.(zx2<=rlon_s_max)).AND.((zy2>=rlat_s_min).AND.(zy2<=rlat_s_max)) ) THEN
 
-               !! We know the right location from time = 1 :
+               !! We know the right location from initialization time:
                ji1 = MAP_AKM(ji2,jj2,1)
                jj1 = MAP_AKM(ji2,jj2,2)
+               IF( (ji1 < 2).OR.(ji1 > ni_src+np_e-1) ) THEN
+                  WRITE(6,*) ' ==> ji1, ni_src+np_e-2 =', ji1, ni_src+np_e-2
+                  CALL STOP_THIS('[AKIMA_2D()@mod_akima_2d.f90] => you should not have `ji1<3` or `ji1>ni_src+np_e-2`')
+               END IF
 
                !! It's time to interpolate:
                zx2 = zx2 - x_s_2d_e(ji1,jj1)
@@ -692,7 +700,7 @@ CONTAINS
       !CALL DUMP_FIELD(REAL(dFdY,4), 'slopes_akima_extended_dFdY_before.nc', 'dFdX')
       !CALL DUMP_FIELD(REAL(d2FdXdY,4), 'slopes_akima_extended_d2FdXdY_before.nc', 'd2FdXdY')
       !debug.
-      
+
       !! East-West frames:
       IF( k_ew >= 0 ) THEN
          CALL APPLY_EW_PRDCT( k_ew, 2, dFdX )
@@ -709,10 +717,11 @@ CONTAINS
    END SUBROUTINE SLOPES_AKIMA
 
 
-   SUBROUTINE FIND_NEAREST_AKIMA( plon_s, plat_s, pxyr_s, plon_t, plat_t, ixyp_t )
+   SUBROUTINE FIND_NEAREST_AKIMA( kewp_s, plon_s, plat_s, pxyr_s, plon_t, plat_t, ixyp_t )
       !!---------------------------------------------------------------------------------------
       !! Laboriuously scanning the entire source grid to find location of treated point
       !!---------------------------------------------------------------------------------------
+      INTEGER,                   INTENT(in)  :: kewp_s
       REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_s, plat_s
       REAL(8), DIMENSION(4)    , INTENT(in)  :: pxyr_s       ! (/ lon_min,lon_max, lat_min,lat_max /)
       REAL(8), DIMENSION(:,:)  , INTENT(in)  :: plon_t, plat_t
@@ -776,6 +785,12 @@ CONTAINS
                   END DO
 
                END DO !DO WHILE ( .NOT. (l_x_found .AND. l_y_found) )
+
+               !! Since we work with extended arrays points jis=1 and jis=nxs can be avoided:
+               IF( kewp_s>=0 ) THEN
+                  IF( jis == 1     ) jis = nxs - (np_e - 1 + kewp_s)
+                  IF( jis == nxs   ) jis =  1  + (np_e - 1 + kewp_s)
+               END IF
 
                ixyp_t(jit,jjt,:) = (/ jis, jjs /)
 

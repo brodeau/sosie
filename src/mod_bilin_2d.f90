@@ -27,8 +27,6 @@ MODULE MOD_BILIN_2D
 
    PUBLIC :: BILIN_2D
 
-   INTEGER, PARAMETER  :: np_e = 4  !: Source grid spatial extension (4 => extra frame of 2 points)
-
    !! Mapping for bilin:
    TYPE :: bln_map
       REAL(8)          :: ralfa
