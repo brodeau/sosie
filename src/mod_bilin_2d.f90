@@ -111,6 +111,8 @@ CONTAINS
       CALL EXTEND_ARRAY_2D_COOR( kewper, pX1, pY1, x_s_2d_e, y_s_2d_e, is_orca_grid=i_orca_src )
       !CALL DUMP_FIELD(REAL(x_s_2d_e,4), 'extended_lon.nc', 'lon')
       !CALL DUMP_FIELD(REAL(y_s_2d_e,4), 'extended_lat.nc', 'lat')
+      !STOP'LOLO: after `EXTEND_ARRAY_2D_COOR` of `BILIN_2D_INIT`!'
+
       
       INQUIRE(FILE=cf_wght_bilin, EXIST=lefw )
       IF ( lefw ) THEN
@@ -466,17 +468,11 @@ CONTAINS
       
       CALL FIND_NEAREST_POINT( plon_t, plat_t, plon_s, plat_s, ki_nrst, kj_nrst ) !,  &
       !LOLO:&                     pmsk_dom_trg=kmsk_ignr_trg )
-      !lilo: STOP'LOLO:[mod_bilin_2d() after FIND_NEAREST_POINT!'
-
       
-      !!LOLO: ok since we work with extended arrays points i=1 and i=nx_s can be avoided:
+      !! Since we work with extended arrays points i=1 and i=nx_s can be avoided:
       IF( k_ew_per>=0 ) THEN
          WHERE( ki_nrst(:,:)==1    ) ki_nrst(:,:) = nx_s - (np_e - 1 + k_ew_per)
          WHERE( ki_nrst(:,:)==nx_s ) ki_nrst(:,:) =   1  + (np_e - 1 + k_ew_per)         
-         !IF( iP==1      ) iP = nx_s - (np_e - 1 + k_ew_per) !3 lilo still have to use ewper (here it's 0! in the example I'm running!)
-         !IF( iP==2      ) iP = nx_s - (np_e - 2 + k_ew_per) !2 lilo
-         !IF( iP==nx_s   ) iP =   1  + (np_e - 1 + k_ew_per) !3
-         !IF( iP==nx_s-1 ) iP =   1  + (np_e - 2 + k_ew_per) !2
       END IF
       
       !debug:

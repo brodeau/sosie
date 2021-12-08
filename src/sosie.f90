@@ -62,7 +62,7 @@ PROGRAM SOSIE
    CHARACTER(LEN=5)      :: clzone
    INTEGER, DIMENSION(8), SAVE :: ivalue1, ivalue2
 
-   !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
+   OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
