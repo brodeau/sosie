@@ -30,7 +30,7 @@ PROGRAM CREATE_ANGLE_FILE
    LOGICAL, PARAMETER :: ldebug = .true.
 
    !! Grid :
-   CHARACTER(len=80), PARAMETER   :: &
+   CHARACTER(len=6), PARAMETER   :: &
       &    cv_glamt     = 'glamt',   &   ! input grid longitude name, T-points
       &    cv_gphit     = 'gphit',   &   ! input grid latitude name,  T-points
       &    cv_glamu     = 'glamu',   &   ! input grid longitude name, U-points
@@ -41,27 +41,7 @@ PROGRAM CREATE_ANGLE_FILE
       &    cv_gphif     = 'gphif',   &   ! input grid latitude name,  F-points
       &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
-   !CHARACTER(LEN=400)  :: cn_xtr_x, cn_xtr_y, cextra_x, cextra_y
-
-   !CHARACTER(len=3)    :: cdum
-   !CHARACTER(len=3)    :: cgrid_trg='T'
-   !CHARACTER(len=80)   :: cv_time_0 = 'none'
    CHARACTER(len=800)  :: cr, cf_mm
-
-   !CHARACTER(len=80) :: &
-   !   &    cv_u_in='0', cv_v_in='0', &
-   !   &    cv_out_U    = 'uraw',     &   ! raw U name
-   !   &    cv_out_V    = 'vraw'          ! raw V name
-
-   !CHARACTER(len=800)  :: &
-   !   &    cf_raw_U,    &  ! file containing u_raw
-   !   &    cf_raw_V,    &  ! file containing v_raw
-   !   &    cf_out_U, cf_out_V,    &
-   !   &    cufilin = 'none',  cvfilin = 'none'
-
-   !CHARACTER(len=80)  ::  &
-   !   &    cv_rot_U ,  &  ! output name for U corrected
-   !   &    cv_rot_V       ! output name for V corrected
 
    TYPE(grid_type) :: gt_orca
 
@@ -71,40 +51,15 @@ PROGRAM CREATE_ANGLE_FILE
                                 !   &    nlext=3, &
       &    i0, j0, &
       &    ni, nj, nk
-   !   &    ni1, nj1, Ntr1,       &
-   !   &    ni2, nj2, Ntr2,       &
-   !   &    ni_g, nj_g, nk_g,    &
-   !   &    iargc,         &
-   !   &    idf_u, idv_u, idf_v, idv_v, &
-   !   &    id_f1, id_v1, &
-   !   &    id_f2, id_v2
-
-   !INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
-
-   !REAL(4), DIMENSION(:,:), ALLOCATABLE :: ztmp4
-
-
-   !REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: U_c, V_c
 
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::      &
       &    XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8, &
       &    U_r8, V_r8,  ztmp8, Xdum8, Ydum8, &
       &    xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f
 
-   !REAL(8), DIMENSION(:), ALLOCATABLE ::   vtime, vdepth
+   LOGICAL :: lexist
 
-
-   !INTEGER :: jt, jk
-
-   LOGICAL :: &
-                                !   &    l_inv    = .FALSE., &
-                                !   &    l_anlt   = .FALSE., & !: analytic input field (U=1, V=0) DEBUG...
-                                !   &    l_3d_inv = .FALSE., & !: will treat 3d files in inverse mode...
-                                !   &    lmout_x, lmout_y,   &
-      &    lexist
-
-   CHARACTER(LEN=2), DIMENSION(2), PARAMETER :: &
-      &            clist_opt = (/ '-h','-m' /)
+   CHARACTER(LEN=2), DIMENSION(2), PARAMETER :: clist_opt = (/ '-h','-m' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -203,39 +158,17 @@ PROGRAM CREATE_ANGLE_FILE
    CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
       &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
-   IF ( ldebug ) THEN
-      CALL DUMP_FIELD(REAL(XCOST8,4), 'cost_angle.nc', 'cost')
-      CALL DUMP_FIELD(REAL(XSINT8,4), 'sint_angle.nc', 'sint')
-      CALL DUMP_FIELD(REAL(XCOSU8,4), 'cosu_angle.nc', 'cosu')
-      CALL DUMP_FIELD(REAL(XSINU8,4), 'sinu_angle.nc', 'sinu')
-      CALL DUMP_FIELD(REAL(XCOSV8,4), 'cosv_angle.nc', 'cosv')
-      CALL DUMP_FIELD(REAL(XSINV8,4), 'sinv_angle.nc', 'sinv')
-      CALL DUMP_FIELD(REAL(XCOSF8,4), 'cosf_angle.nc', 'cosf')
-      CALL DUMP_FIELD(REAL(XSINF8,4), 'sinf_angle.nc', 'sinf')
-   END IF
-
-
-   !! 2D:
-   !IF ( cgrid_trg == 'U,V' ) THEN
-   !   CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u,         vtime, U_c(:,:,1), &
-   !      &    cf_out_U, 'nav_lon_u', 'nav_lat_u', cv_t_out, cv_rot_U,       &
-   !      &    rmiss_val, attr_t=vatt_info_t)
-   !   CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v,         vtime, V_c(:,:,1), &
-   !      &    cf_out_V, 'nav_lon_v', 'nav_lat_v', cv_t_out, cv_rot_V,   &
-   !      &    rmiss_val, attr_t=vatt_info_t)
-   !ELSE
-   !   CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_t, xlat_t,         vtime, U_c(:,:,1), &
-   !      &    cf_out_U, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_U,       &
-   !      &    rmiss_val, attr_t=vatt_info_t)
-   !   CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_t, xlat_t,         vtime, V_c(:,:,1), &
-   !      &    cf_out_V, 'nav_lon', 'nav_lat', cv_t_out, cv_rot_V,   &
-   !      &    rmiss_val, attr_t=vatt_info_t)
-   !END IF
+   CALL DUMP_FIELD( XCOST8, 'cost_angle.nc', 'cost')
+   CALL DUMP_FIELD( XSINT8, 'sint_angle.nc', 'sint')
+   CALL DUMP_FIELD( XCOSU8, 'cosu_angle.nc', 'cosu')
+   CALL DUMP_FIELD( XSINU8, 'sinu_angle.nc', 'sinu')
+   CALL DUMP_FIELD( XCOSV8, 'cosv_angle.nc', 'cosv')
+   CALL DUMP_FIELD( XSINV8, 'sinv_angle.nc', 'sinv')
+   CALL DUMP_FIELD( XCOSF8, 'cosf_angle.nc', 'cosf')
+   CALL DUMP_FIELD( XSINF8, 'sinf_angle.nc', 'sinf')
 
 
 CONTAINS
-
-
 
 
    SUBROUTINE usage_caf()
