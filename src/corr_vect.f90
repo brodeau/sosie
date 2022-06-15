@@ -39,6 +39,7 @@ PROGRAM CORR_VECT
    CHARACTER(len=3)    :: cgrid_trg='T'
    CHARACTER(len=80)   :: cv_time_0 = 'none'
    CHARACTER(len=800)  :: cr, cf_mm, cf_ang, cnmlst_x, cnmlst_y
+   CHARACTER(len=64)   :: cNP_fckp  = '1,1,2'
 
    CHARACTER(len=80) :: &
       &    cv_u_in='0', cv_v_in='0', &
@@ -72,6 +73,8 @@ PROGRAM CORR_VECT
       &    id_f1, id_v1, &
       &    id_f2, id_v2
 
+   INTEGER :: ipb, ipc, jiNP0, jjNP1, jjNP2
+   
    INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: ztmp4
@@ -95,10 +98,11 @@ PROGRAM CORR_VECT
       &    l_anlt   = .FALSE., & !: analytic input field (U=1, V=0) DEBUG...
       &    l_3d_inv = .FALSE., & !: will treat 3d files in inverse mode...
       &    lmout_x, lmout_y,   &
-      &    lexist
+      &    lexist,             &
+      &    l_NP_fckp = .FALSE.
 
-   CHARACTER(LEN=2), DIMENSION(11), PARAMETER :: &
-      &            clist_opt = (/ '-I','-h','-m','-A','-G','-p','-f','-i','-v','-t','-1' /)
+   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
+      &            clist_opt = (/ '-I','-h','-m','-A','-G','-p','-f','-i','-v','-t','-1','-Z' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -234,12 +238,24 @@ PROGRAM CORR_VECT
       CASE('-1')
          l_anlt = .TRUE.
          !!
+      CASE('-Z')
+         IF ( jarg + 1 > iargc() ) THEN
+            PRINT *,'ERROR: Missing couple of NP points to fix => -Z i0,j1,j2 !!' ; CALL usage_corr_vect()
+         ELSE
+            jarg = jarg + 1 ;  CALL getarg(jarg,cr)
+            IF ( ANY(clist_opt == TRIM(cr)) ) THEN
+               PRINT *,'ERROR: Missing couple of NP points to fix => -Z i0,j1,j2 !!'; CALL usage_corr_vect()
+            ELSE
+               l_NP_fckp = .TRUE.
+               cNP_fckp  = TRIM(cr)
+            END IF
+         END IF
+         !!
       CASE DEFAULT
-         PRINT *,'Unknown option: ', trim(cr) ; PRINT *,''
+         PRINT *,'Unknown option: ', TRIM(cr) ; PRINT *,''
          CALL usage_corr_vect()
          !!
       END SELECT
-      !!
       !!
    END DO
 
@@ -377,6 +393,33 @@ PROGRAM CORR_VECT
          PRINT *, TRIM(cf_ang) ; PRINT *,''
       END IF
 
+      !! North Pole fix?
+      !l_NP_fckp = .TRUE.
+      !cNP_fckp  = TRIM(cr)
+      IF(l_NP_fckp) THEN
+         PRINT *, ' *** We are going to correct the 2 NP points...'
+         !
+         ipc = INDEX(TRIM(cNP_fckp),',') !,BACK=.TRUE.)
+         cr = cNP_fckp(1:ipc-1)
+         READ(cr,'(i)') jiNP0
+         ipb = ipc
+         !
+         ipc = INDEX(TRIM(cNP_fckp(ipb+1:)),',') + ipb
+         cr = cNP_fckp(ipb+1:ipc-1)
+         READ(cr,'(i)') jjNP1
+         !
+         cr = TRIM(cNP_fckp(ipc+1:))
+         READ(cr,'(i)') jjNP2
+         !
+         PRINT *, ' ==> ji0, jj1, jj2 =', jiNP0, jjNP1, jjNP2
+
+         IF ( jjNP2 < jjNP1 ) THEN
+            PRINT *,'ERROR: (North Pole fix) => jjNP2 must be >= jjNP1 !!!'
+            STOP
+         END IF
+
+      END IF
+      
       !! Geting array dimension and testing...
       !! -------------------------------------
 
@@ -589,6 +632,14 @@ PROGRAM CORR_VECT
             END IF
 
 
+            IF(l_NP_fckp) THEN
+               !! North Pole fix: jiNP0, jjNP1, jjNP2
+               U_c(jiNP0,jjNP1,jk) = 0.5 * ( U_c(jiNP0-1,jjNP1,jk)  + U_c(jiNP0+1,jjNP1,jk) )
+               U_c(jiNP0,jjNP2,jk) = 0.5 * ( U_c(jiNP0-1,jjNP2,jk)  + U_c(jiNP0+1,jjNP2,jk) )
+               V_c(jiNP0,jjNP1,jk) = 0.5 * ( V_c(jiNP0-1,jjNP1,jk)  + V_c(jiNP0+1,jjNP1,jk) )
+               V_c(jiNP0,jjNP2,jk) = 0.5 * ( V_c(jiNP0-1,jjNP2,jk)  + V_c(jiNP0+1,jjNP2,jk) )               
+            END IF
+            
          END DO ! jk
 
 
@@ -603,7 +654,7 @@ PROGRAM CORR_VECT
          ELSE
             rmiss_val = 0.
          END IF
-
+                 
 
          IF ( i3d == 1 ) THEN
 
@@ -989,6 +1040,11 @@ CONTAINS
       PRINT *,' -G  <T/U,V>          => Specify grid points where to save the (un)rotated vector'
       PRINT *,'                       ==>    T    points "-G T" DEFAULT !'
       PRINT *,'                       ==> U and V points "-G U,V"'
+      PRINT *,''
+      PRINT *,'  *** Misc "ad-hoc" fix options:'
+      PRINT *,''
+      PRINT *,' -Z <i0_np,j1_np,j2_np> => corrupt North-Pole couple of points to fix in Arctic conf'
+      PRINT *,''
       PRINT *,''
       PRINT *,' -h                   => Show this message'
       PRINT *,''
