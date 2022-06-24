@@ -39,8 +39,9 @@ MODULE mod_nemotools
 
 
    REAL(8), PARAMETER, PUBLIC :: &
-      &       rpi = 3.141592653,     &
-      &       rad = rpi/180.0
+      &       rpi = 3.141592653, &
+      &       rad = rpi/180.0,   &
+      &       rtiny8 = 1.E-8
 
    !TYPE arrayptr
    !   REAL , DIMENSION (:,:),  POINTER :: pt2d
@@ -564,19 +565,19 @@ CONTAINS
 
       DO jj = 2, ny-1
          DO ji = 2, nx
-            IF( MOD( ABS( plamv(ji,jj) - plamv(ji,jj-1) ), 360. ) < 1.e-8 ) THEN
+            IF( MOD( ABS( plamv(ji,jj) - plamv(ji,jj-1) ), 360. ) < rtiny8 ) THEN
                gsint(ji,jj) = 0.
                gcost(ji,jj) = 1.
             ENDIF
-            IF( MOD( ABS( plamf(ji,jj) - plamf(ji,jj-1) ), 360. ) < 1.e-8 ) THEN
+            IF( MOD( ABS( plamf(ji,jj) - plamf(ji,jj-1) ), 360. ) < rtiny8 ) THEN
                gsinu(ji,jj) = 0.
                gcosu(ji,jj) = 1.
             ENDIF
-            IF(      ABS( pphif(ji,jj) - pphif(ji-1,jj) )         < 1.e-8 ) THEN
+            IF(      ABS( pphif(ji,jj) - pphif(ji-1,jj) )         < rtiny8 ) THEN
                gsinv(ji,jj) = 0.
                gcosv(ji,jj) = 1.
             ENDIF
-            IF( MOD( ABS( plamu(ji,jj) - plamu(ji,jj+1) ), 360. ) < 1.e-8 ) THEN
+            IF( MOD( ABS( plamu(ji,jj) - plamu(ji,jj+1) ), 360. ) < rtiny8 ) THEN
                gsinf(ji,jj) = 0.
                gcosf(ji,jj) = 1.
             ENDIF
