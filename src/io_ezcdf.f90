@@ -155,7 +155,7 @@ CONTAINS
       CHARACTER(len=80), PARAMETER :: crtn = 'DIMS'
 
       Ni = -1 ; Nj = -1 ; Nk = -1 ; Nt = -1
-
+      
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in)
 
       ! Get ID of unlimited dimension
@@ -841,16 +841,18 @@ CONTAINS
       Ni = size(IX,1)
       Nj = size(IX,2)
 
-      icz = 1 ! getting mask at level 1 for default
-
-      IF( present(jlev) ) THEN
+      icz = 1 ! getting mask at level 1 for default      
+      IF( PRESENT(jlev) ) THEN
          IF( jlev > 0 ) THEN
-            icz = jlev ; WRITE(6,*) 'Getting mask at level', icz
+            icz = jlev
          ELSE
             CALL print_err(crtn, 'you cannot specify a level jlev <= 0')
          END IF
       END IF
-
+      
+      WRITE(6,*) 'Will get mask "',TRIM(cv_in),'" at level:', INT(icz,2)
+      WRITE(6,*) '  --> in ', TRIM(cf_in)
+      
       CALL DIMS(cf_in, cv_in, nx, ny, nz, nt)
 
       IF( (nx /= Ni).OR.(ny /= Nj) ) CALL print_err(crtn, 'data and mask file dont have same horizontal dimensions')
@@ -902,7 +904,7 @@ CONTAINS
       END IF
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
-
+      WRITE(6,*) ''
    END SUBROUTINE GETMASK_2D
 
 
@@ -1492,7 +1494,7 @@ CONTAINS
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
       LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
 
-      INTEGER  :: ji, jj, jk
+      INTEGER  :: ji, jj
       INTEGER  :: id_x, id_y, id_t
       INTEGER  :: id_lo, id_la
       INTEGER  :: id_tim
@@ -2475,7 +2477,6 @@ CONTAINS
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_tim
       LOGICAL, OPTIONAL, INTENT(in)             :: l_add_valid_min_max
 
-      INTEGER :: ji, jj, jk
       LOGICAL ::  &
          &       lcopy_att_lon = .FALSE., &
          &       lcopy_att_lat = .FALSE., &

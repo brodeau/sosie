@@ -54,7 +54,7 @@ PROGRAM CREATE_ANGLE_FILE
 
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::      &
       &    XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8, &
-      &    U_r8, V_r8,  ztmp8, Xdum8, Ydum8, &
+      &    ztmp8, &
       &    xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f
 
    LOGICAL :: lexist

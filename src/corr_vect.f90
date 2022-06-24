@@ -497,17 +497,17 @@ PROGRAM CORR_VECT
          ALLOCATE ( vdepth(nk) )
          CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
          IF ( cgrid_trg == 'U,V' ) THEN
-            CALL GETMASK_3D(cf_lsm_trg, 'umask', mask_u(:,:,:))
-            CALL GETMASK_3D(cf_lsm_trg, 'vmask', mask_v(:,:,:))
+            CALL GETMASK_3D(cf_mm, 'umask', mask_u(:,:,:))
+            CALL GETMASK_3D(cf_mm, 'vmask', mask_v(:,:,:))
          ELSE
-            CALL GETMASK_3D(cf_lsm_trg, 'tmask', mask_t(:,:,:))
+            CALL GETMASK_3D(cf_mm, 'tmask', mask_t(:,:,:))
          END IF
       ELSE
          IF ( cgrid_trg == 'U,V' ) THEN
-            CALL GETMASK_2D(cf_lsm_trg, 'umask', mask_u(:,:,1), jlev=1)
-            CALL GETMASK_2D(cf_lsm_trg, 'vmask', mask_v(:,:,1), jlev=1)
+            CALL GETMASK_2D(cf_mm, 'umask', mask_u(:,:,1), jlev=1)
+            CALL GETMASK_2D(cf_mm, 'vmask', mask_v(:,:,1), jlev=1)
          ELSE
-            CALL GETMASK_2D(cf_lsm_trg, 'tmask', mask_t(:,:,1), jlev=1)
+            CALL GETMASK_2D(cf_mm, 'tmask', mask_t(:,:,1), jlev=1)
          END IF
       END IF
 
