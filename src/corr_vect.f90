@@ -643,8 +643,8 @@ PROGRAM CORR_VECT
             END IF
 
             IF( lNPfix ) THEN
-               CALL BDROWN( ewper_trg, U_c(:,:,jk), mask_np(:,:), nb_inc=100, nb_smooth=0 )
-               CALL BDROWN( ewper_trg, V_c(:,:,jk), mask_np(:,:), nb_inc=100, nb_smooth=0 )
+               CALL BDROWN( ewper_trg, U_c(:,:,jk), mask_np(:,:), nb_inc=100, nb_smooth=4 )
+               CALL BDROWN( ewper_trg, V_c(:,:,jk), mask_np(:,:), nb_inc=100, nb_smooth=4 )
             END IF
             
          END DO ! jk
