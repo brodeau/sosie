@@ -11,7 +11,7 @@ MODULE io_ezcdf
 
    INTEGER, PARAMETER, PUBLIC :: &
       &             idflt  = 5 , &  ! level of deflation for NETCDF-4 [0 to 9]
-                 nbatt_max = 20
+      &          nbatt_max = 20
 
    TYPE, PUBLIC :: var_attr
       CHARACTER(LEN=128) :: cname
@@ -57,6 +57,10 @@ MODULE io_ezcdf
    INTERFACE GETVAR_3D
       MODULE PROCEDURE GETVAR_3D_R8, GETVAR_3D_R4
    END INTERFACE GETVAR_3D
+
+   INTERFACE GETMASK_2D
+      MODULE PROCEDURE GETMASK_2D_BYTE, GETMASK_2D_INT
+   END INTERFACE GETMASK_2D
 
    INTERFACE DUMP_FIELD
       MODULE PROCEDURE DUMP_2D_FIELD, DUMP_3D_FIELD, DUMP_2D_FIELD_R8
@@ -155,7 +159,7 @@ CONTAINS
       CHARACTER(len=80), PARAMETER :: crtn = 'DIMS'
 
       Ni = -1 ; Nj = -1 ; Nk = -1 ; Nt = -1
-      
+
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),  crtn,cf_in,cv_in)
 
       ! Get ID of unlimited dimension
@@ -538,7 +542,7 @@ CONTAINS
             END IF
          END IF
       END DO
-      
+
       IF(ierr1 == NF90_NOERR) THEN
          IF(kt == its) PRINT *, ' --- GETVAR_2D: applying scale-factor to '//TRIM(cv_in)//' !'
          X = rsf*X
@@ -638,7 +642,7 @@ CONTAINS
          IF(kt == its) PRINT *, ' --- GETVAR_2D: applying add-offset to '//TRIM(cv_in)//' !'
          X = X + rao
       END IF
-      
+
       IF( ( (kt == ite ).OR.(kt == 0) ).AND.( (jlev == kz_stop).OR.(kz_stop == 0) ) )  THEN
          PRINT *, ' --- GETVAR_2D: closing file '//TRIM(cf_in)//' !'
          CALL sherr( NF90_CLOSE(idx_f),  crtn,cf_in,cv_in)
@@ -807,8 +811,7 @@ CONTAINS
 
 
 
-   SUBROUTINE GETMASK_2D(cf_in, cv_in, IX, jlev)
-
+   SUBROUTINE GETMASK_2D_BYTE(cf_in, cv_in, IX, jlev)
       !!-----------------------------------------------------------------------
       !!  Get mask (variable 'cv_in') from a netcdf file.
       !! - mask is stored in integer array IX
@@ -836,12 +839,12 @@ CONTAINS
 
       INTEGER :: nx, ny, nz, nt, icz
 
-      CHARACTER(len=80), PARAMETER :: crtn = 'GETMASK_2D'
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETMASK_2D_BYTE'
 
       Ni = size(IX,1)
       Nj = size(IX,2)
 
-      icz = 1 ! getting mask at level 1 for default      
+      icz = 1 ! getting mask at level 1 for default
       IF( PRESENT(jlev) ) THEN
          IF( jlev > 0 ) THEN
             icz = jlev
@@ -849,10 +852,10 @@ CONTAINS
             CALL print_err(crtn, 'you cannot specify a level jlev <= 0')
          END IF
       END IF
-      
+
       WRITE(6,*) 'Will get mask "',TRIM(cv_in),'" at level:', INT(icz,2)
       WRITE(6,*) '  --> in ', TRIM(cf_in)
-      
+
       CALL DIMS(cf_in, cv_in, nx, ny, nz, nt)
 
       IF( (nx /= Ni).OR.(ny /= Nj) ) CALL print_err(crtn, 'data and mask file dont have same horizontal dimensions')
@@ -905,10 +908,86 @@ CONTAINS
 
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
       WRITE(6,*) ''
-   END SUBROUTINE GETMASK_2D
+   END SUBROUTINE GETMASK_2D_BYTE
 
+   SUBROUTINE GETMASK_2D_INT(cf_in, cv_in, IX, jlev)
+      !!-----------------------------------------------------------------------
+      !!  Get mask (variable 'cv_in') from a netcdf file.
+      !! - mask is stored in integer array IX
+      !!
+      !! INPUT :
+      !! -------
+      !!          * cf_in      : name of the input file          (character)
+      !!          * cv_in      : name of mask variable           (character)
+      !!
+      !!          * jlev      : level to get (0 if no levels) |OPTIONAL|     (integer)
+      !!
+      !! OUTPUT :
+      !! --------
+      !!          * IX        :  2D array contening mask       (integer)
+      !!
+      !!------------------------------------------------------------------------
+      INTEGER                              :: id_f, id_v
+      CHARACTER(len=*),        INTENT(in)  :: cf_in, cv_in
+      INTEGER, OPTIONAL,       INTENT(in)  :: jlev
+      INTEGER, DIMENSION(:,:), INTENT(out) :: IX
+      !!
+      INTEGER :: &
+         & Ni, &    ! x dimension of the mask
+         & Nj       ! y dimension of the mask
+      INTEGER :: nx, ny, nz, nt, icz
+      CHARACTER(len=80), PARAMETER :: crtn = 'GETMASK_2D_INT'
+      !!------------------------------------------------------------
+      Ni = size(IX,1)
+      Nj = size(IX,2)
+      icz = 1 ! getting mask at level 1 for default
+      IF( PRESENT(jlev) ) THEN
+         IF( jlev > 0 ) THEN
+            icz = jlev
+         ELSE
+            CALL print_err(crtn, 'you cannot specify a level jlev <= 0')
+         END IF
+      END IF
+      WRITE(6,*) 'Will get mask "',TRIM(cv_in),'" at level:', INT(icz,2)
+      WRITE(6,*) '  --> in ', TRIM(cf_in)
+      CALL DIMS(cf_in, cv_in, nx, ny, nz, nt)
+      IF( (nx /= Ni).OR.(ny /= Nj) ) CALL print_err(crtn, 'data and mask file dont have same horizontal dimensions')
 
-
+      !!    Opening MASK netcdf file
+      CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE,    id_f),  crtn,cf_in,cv_in)
+      CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
+      !!
+      IF( nz > 0 ) THEN
+         !! Mask is 3D
+         !! ~~~~~~~~~~
+         IF( .NOT. present(jlev) ) THEN
+            WRITE(6,*) TRIM(crtn)//': WARNING => mask is 3D! what level to read? => taking level #1 !'
+         END IF
+         !!  3D+T
+         IF( nt > 0 ) THEN
+            CALL sherr( NF90_GET_VAR(id_f, id_v, IX, start=(/1,1,icz,1/), count=(/nx,ny,1,1/)),  &
+               &      crtn,cf_in,cv_in)
+         ELSE
+            !! 3D
+            CALL sherr( NF90_GET_VAR(id_f, id_v, IX, start=(/1,1,icz/), count=(/nx,ny,1/)), &
+               &      crtn,cf_in,cv_in)
+         END IF
+      ELSE
+         !! Mask is 2D
+         IF( present(jlev) ) THEN
+            IF(jlev > 1) CALL print_err(crtn, 'you want mask at a given level (jlev > 1) but mask is 2D!!!')
+         END IF
+         IF( nt > 0 ) THEN
+            !!  2D+T
+            CALL sherr( NF90_GET_VAR(id_f, id_v, IX, start=(/1,1,1/), count=(/nx,ny,1/)), crtn,cf_in,cv_in)
+         ELSE
+            !! 2D
+            CALL sherr( NF90_GET_VAR(id_f, id_v, IX),  crtn,cf_in,cv_in)
+         END IF
+      END IF
+      CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
+      WRITE(6,*) ''
+   END SUBROUTINE GETMASK_2D_INT
 
 
    SUBROUTINE GETMASK_3D(cf_in, cv_in, IX, jz1, jz2)
@@ -1504,7 +1583,7 @@ CONTAINS
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim
       REAL(8), DIMENSION(3,2) :: vextrema
       CHARACTER(len=2) :: cdt  ! '1d' or '2d'
-      
+
       CHARACTER(len=80), PARAMETER :: crtn = 'P2D_T'
 
       IF( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
@@ -1660,9 +1739,9 @@ CONTAINS
       INTEGER, DIMENSION(:), ALLOCATABLE :: vidim, ichksz
       REAL(8), DIMENSION(3,2) :: vextrema
       CHARACTER(len=2) :: cdt  ! '1d' or '2d'
-      
+
       CHARACTER(len=80), PARAMETER :: crtn = 'P3D_T'
-      
+
       IF( PRESENT(attr_z) ) lcopy_att_z = .TRUE.
       IF( PRESENT(attr_F) ) lcopy_att_F = .TRUE.
 
@@ -1709,12 +1788,12 @@ CONTAINS
          ELSE
             CALL sherr( NF90_DEF_DIM(idx_f, 'z', Nk, id_z),  crtn,cf_in,cv_in)
          END IF
-         
+
          CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_dpth), NF90_DOUBLE, id_z,id_dpt, deflate_level=idflt),  crtn,cf_in,cv_in)
          IF( lcopy_att_z )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, id_dpt, attr_z, crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_min', MINVAL(vdpth)),  crtn,cf_in,cv_in)
          CALL sherr( NF90_PUT_ATT(idx_f, id_dpt, 'valid_max', MAXVAL(vdpth)),  crtn,cf_in,cv_in)
-         
+
          !! Variable
          IF( TRIM(cv_t) /= '' ) THEN
             ALLOCATE (vidim(4),ichksz(4) )
@@ -1729,9 +1808,9 @@ CONTAINS
          !! #LB: this "chunksizes=ichksz" doesn't work !!!!
          !CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, chunksizes=ichksz, deflate_level=idflt), &
          CALL sherr( NF90_DEF_VAR(idx_f, TRIM(cv_in), NF90_FLOAT, vidim, idx_v, deflate_level=idflt), crtn,cf_in,cv_in)
-         
+
          DEALLOCATE ( vidim, ichksz )
-         
+
          !!  VARIABLE ATTRIBUTES
          IF( lcopy_att_F )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes:
@@ -1925,7 +2004,7 @@ CONTAINS
       LOGICAL :: l_zcoord, l_mask
       REAL(8), DIMENSION(3,2) :: vextrema
       CHARACTER(len=2) :: cdt  ! '1d' or '2d'
-      
+
       CHARACTER(len=80), PARAMETER :: crtn = 'DUMP_2D_FIELD'
       !!
       Ni = size(xfld,1) ; Nj = size(xfld,2)
@@ -1977,7 +2056,7 @@ CONTAINS
       LOGICAL :: l_zcoord, l_mask
       REAL(8), DIMENSION(3,2) :: vextrema
       CHARACTER(len=2) :: cdt  ! '1d' or '2d'
-      
+
       CHARACTER(len=80), PARAMETER :: crtn = 'DUMP_3D_FIELD'
       !! LOLO: should add levels!!!!
       !!
@@ -2049,7 +2128,7 @@ CONTAINS
       LOGICAL :: l_zcoord, l_mask
       REAL(8), DIMENSION(3,2) :: vextrema
       CHARACTER(len=2) :: cdt  ! '1d' or '2d'
-      
+
       CHARACTER(len=80), PARAMETER :: crtn = 'DUMP_2D_FIELD_R8'
       !!
       Ni = size(xfld,1) ; Nj = size(xfld,2)
@@ -2087,7 +2166,7 @@ CONTAINS
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
    END SUBROUTINE DUMP_2D_FIELD_R8
 
-   
+
    SUBROUTINE P2D_MAPPING_AB(cf_out, xlon, xlat, imtrcs, ralfbet, vflag, id_pb,  d2np)
       INTEGER                               :: id_f, id_x, id_y, id_lo, id_la
       CHARACTER(len=*),             INTENT(in) :: cf_out
@@ -2633,11 +2712,7 @@ CONTAINS
    FUNCTION L_IS_LEAP_YEAR( iyear )
       LOGICAL :: L_IS_LEAP_YEAR
       INTEGER, INTENT(in) :: iyear
-      L_IS_LEAP_YEAR = .FALSE.
-      !IF( MOD(iyear,4)==0 )     L_IS_LEAP_YEAR = .TRUE.
-      !IF( MOD(iyear,100)==0 )   L_IS_LEAP_YEAR = .FALSE.
-      !IF( MOD(iyear,400)==0 )   L_IS_LEAP_YEAR = .TRUE.
-      IF( (MOD(iyear,4)==0).AND.(.NOT.((MOD(iyear,100)==0).AND.(MOD(iyear,400)/=0)) ) )  L_IS_LEAP_YEAR = .TRUE.
+      L_IS_LEAP_YEAR = ( (MOD(iyear,4)==0).AND.(.NOT.((MOD(iyear,100)==0).AND.(MOD(iyear,400)/=0)) ) )
    END FUNCTION L_IS_LEAP_YEAR
 
 
