@@ -898,8 +898,8 @@ PROGRAM CORR_VECT
 
       !!  Getting cos and sin of the grid distorsion angle:
       !! --------------------------------------------------
-      CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
-         &        XCOS_t, XSIN_t, XCOS_u, XSIN_u, XCOS_v, XSIN_v, XCOS_f, XSIN_f )
+      CALL ANGLE2( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+         &         XCOS_t, XSIN_t, XCOS_u, XSIN_u, XCOS_v, XSIN_v, XCOS_f, XSIN_f )
 
 
 
