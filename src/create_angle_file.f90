@@ -155,8 +155,8 @@ PROGRAM CREATE_ANGLE_FILE
 
 
    !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
-   CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
-      &        XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
+   CALL ANGLE2( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+      &         XCOST8, XSINT8, XCOSU8, XSINU8, XCOSV8, XSINV8, XCOSF8, XSINF8 )
 
    CALL DUMP_FIELD( XCOST8, 'cost_angle.nc', 'cost')
    CALL DUMP_FIELD( XSINT8, 'sint_angle.nc', 'sint')

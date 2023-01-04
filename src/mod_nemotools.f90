@@ -34,7 +34,7 @@ MODULE mod_nemotools
 
 
 
-   PUBLIC   lbc_lnk, angle, angle2
+   PUBLIC   lbc_lnk, angle2
 
 
 
@@ -659,6 +659,9 @@ CONTAINS
       
       l_cut_180 = (      (MAXVAL(plamt)<= 180.).AND.(MAXVAL(plamt)> 175.) &
          &          .AND.(MINVAL(plamt)>=-180.).AND.(MINVAL(plamt)<-175.) )
+
+
+      PRINT *, 'LOLO AAA: l_cut_180 =', l_cut_180
       
       ! ============================= !
       ! Compute the cosinus and sinus !
@@ -763,32 +766,7 @@ CONTAINS
             !
             gsinv(ji,jj) = ( zxnpv*zxffv + zynpv*zyffv ) / znffv
             gcosv(ji,jj) =-( zxnpv*zyffv - zynpv*zxffv ) / znffv     ! (caution, rotation of 90 degres)
-            !
-         END DO
-      END DO
-
-      ! =============== !
-      ! Geographic mesh !
-      ! =============== !
-
-      DO jj = 2, ny-1
-         DO ji = 2, nx
-            IF( MOD( ABS( plamv(ji,jj) - plamv(ji,jj-1) ), 360. ) < rtiny8 ) THEN
-               gsint(ji,jj) = 0.
-               gcost(ji,jj) = 1.
-            ENDIF
-            IF( MOD( ABS( plamf(ji,jj) - plamf(ji,jj-1) ), 360. ) < rtiny8 ) THEN
-               gsinu(ji,jj) = 0.
-               gcosu(ji,jj) = 1.
-            ENDIF
-            IF(      ABS( pphif(ji,jj) - pphif(ji-1,jj) )         < rtiny8 ) THEN
-               gsinv(ji,jj) = 0.
-               gcosv(ji,jj) = 1.
-            ENDIF
-            IF( MOD( ABS( plamu(ji,jj) - plamu(ji,jj+1) ), 360. ) < rtiny8 ) THEN
-               gsinf(ji,jj) = 0.
-               gcosf(ji,jj) = 1.
-            ENDIF
+            
          END DO
       END DO
 
