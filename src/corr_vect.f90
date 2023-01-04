@@ -549,8 +549,8 @@ PROGRAM CORR_VECT
          WRITE(6,*)''; WRITE(6,*)' *** Done reading!'
       ELSE
          !!  Getting cosine and sine corresponding to the angle of the local distorsion of the grid:
-         WRITE(6,*)' *** Computing COS and SIN of rotation angles at t,u,v,f points with `ANGLE()`'
-         CALL ANGLE( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
+         WRITE(6,*)' *** Computing COS and SIN of rotation angles at t,u,v,f points with `ANGLE2()`'
+         CALL ANGLE2( iorca, xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f, &
             &        XCOS_t, XSIN_t, XCOS_u, XSIN_u, XCOS_v, XSIN_v, XCOS_f, XSIN_f )
       END IF
       WRITE(6,*)''; WRITE(6,*)''

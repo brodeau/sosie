@@ -734,7 +734,7 @@ CONTAINS
 
       ! when near the 0 deg line and we must work in the frame -180 180
       IF ((ABS(zxlam(1)-zxlam(4))>=180.).OR.(ABS(zxlam(1)-zxlam(2))) >= 180.  &
-         &                            .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) &
+         &                              .OR.(ABS(zxlam(1)-zxlam(3))  >= 180. )) &
          &  zxlam = degE_to_degWE(zxlam)
 
       zres=1000. ; zdlam=0.5 ;  zdphi=0.5 ;  zalpha=0. ;  zbeta=0. ;  niter=0
