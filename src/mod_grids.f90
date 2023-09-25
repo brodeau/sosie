@@ -1148,16 +1148,14 @@ CONTAINS
 
 
    FUNCTION IS_ORCA_NORTH_FOLD( Xtest, cname_long )
-
       !!----------------------------------------------------------
-      !! Tell if there is a a 2/point band overlaping folding att the north pole
-      !! typical of the ORCA grid
+      !! Tell if there is a periodic orca-like overlaping folding
+      !! band att the north lateral boundary of the domain.
       !!
       !!  0 => not an orca grid (or unknown one)
       !!  4 => North fold T-point pivot (ex: ORCA2)
       !!  6 => North fold F-point pivot (ex: ORCA1)
       !!----------------------------------------------------------
-
       IMPLICIT NONE
       ! Argument
       REAL(8), DIMENSION(:,:), INTENT(in)    :: Xtest
@@ -1195,7 +1193,7 @@ CONTAINS
          !---
          IF( SUM( Xtest(2:nx/2,ny) - Xtest(nx-1:nx-nx/2+1:-1,ny-2) ) == 0. ) THEN
             IF(TRIM(cnlon)=='glamu') THEN
-               IS_ORCA_NORTH_FOLD%ifld_nord = 4 ! T-pivot, grid_T
+               IS_ORCA_NORTH_FOLD%ifld_nord = 4 ! T-pivot, grid_U
                IS_ORCA_NORTH_FOLD%cgrd_type = 'U'
             END IF
             !! LOLO: PROBLEM == 6, V !!!
