@@ -15,7 +15,7 @@ MODULE MOD_BDROWN
 
 CONTAINS
 
-   SUBROUTINE BDROWN(k_ew, X, mask,   nb_inc, nb_smooth)
+   SUBROUTINE BDROWN(k_ew, X, mask,   nb_inc, nb_smooth, pmin, pmax )
 
       !!#############################################################################
       !!
@@ -49,8 +49,9 @@ CONTAINS
       INTEGER(1), DIMENSION(:,:),    INTENT(in)    :: mask
 
       INTEGER,    OPTIONAL,          INTENT(in)    :: nb_inc, nb_smooth
-
+      REAL(4),    OPTIONAL,          INTENT(in)    :: pmin, pmax
       !! Local :
+      REAL(4)                                 :: zmin = -1.E24, zmax = 1.E24
       INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: dold, xtmp
 
@@ -66,15 +67,16 @@ CONTAINS
 
       INTEGER, PARAMETER :: jinc_debg = 2
 
-
       X = X * mask  ! we rather have 0s on continents than some fucked up high values...
 
       ninc_max = 200   ! will stop before when all land points have been treated!!!
-      IF ( present(nb_inc) ) ninc_max = nb_inc
+      IF ( PRESENT(nb_inc) ) ninc_max = nb_inc
 
       nsmooth_max = 10
-      IF ( present(nb_smooth) ) nsmooth_max = nb_smooth
+      IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
+      IF( PRESENT(pmin) ) zmin = pmin
+      IF( PRESENT(pmin) ) zmax = pmax
 
       IF ( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
          PRINT *, 'ERROR, mod_bdrown.F90 => BDROWN : size of data and mask do not match!!!'; STOP
@@ -399,18 +401,22 @@ CONTAINS
          !   CALL DUMP_2D_FIELD(X, 'data_X_after.nc', 'lsm')
          !   STOP 'after lolo'
          !END IF
+         
+         X = MAX( X, zmin )
+         X = MIN( X, zmax )
+         
+      END DO !DO jinc = 1, ninc_max
 
-
-      END DO
 
       !! Time to smooth over land! (what's been drowned):
+      !PRINT *, '    *** lolo: smoothing nb of time:',nsmooth_max
+      !CALL DUMP_FIELD(X, 'drowned_1_before_smooth.nc', 'lsm')
       mtmp = 1 - mask ! 1 over continents, 0 over seas!
       CALL SMOOTHER(k_ew, X,  nb_smooth=nsmooth_max, msk=mtmp)
       !! *** l_exclude_mask_points=.true. would be stupid here,
       !!       it's actually good if sea values are used and are
       !!       propagating inland in the present CASE
-
-      !CALL DUMP_2D_FIELD(X, 'drowned_final.nc', 'lsm') ;     !     STOP 'lolo'
+      !CALL DUMP_FIELD(X, 'drowned_2_after_smooth.nc', 'lsm')
 
       DEALLOCATE ( maskv, mtmp, xtmp, dold, mask_coast )
 
