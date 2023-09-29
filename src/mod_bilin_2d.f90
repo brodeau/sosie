@@ -210,9 +210,8 @@ CONTAINS
       icpt = 0
 
       mask_ignore_trg(:,:) = 1
-      WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_trg = 0
-      WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_trg = 0
-
+      !WHERE ( (IMETRICS(:,:,1) < 1) ) mask_ignore_trg = 0
+      !WHERE ( (IMETRICS(:,:,2) < 1) ) mask_ignore_trg = 0
       !WHERE ( (IMETRICS(:,:,3 < 1) ) mask_ignore_trg = 0 ; ! iqdrn => problem in interp ORCA2->ORCA1 linked to iqdrn < 1 !!! LOLO
 
       IMETRICS(:,:,1:2) = MAX( IMETRICS(:,:,1:2) , 1 )  ! so no i or j <= 0
