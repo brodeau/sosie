@@ -1113,92 +1113,87 @@ CONTAINS
       !! => latitude will increase as j increases until we pass the NP,
       !!    it will then decrease
       CALL IS_POLAR_PROJ(Xtrg, Ytrg, lNPt, jNPt)
-      IF( lNPt ) THEN
-         PRINT *, ' *** The target grid seems to be a polar projection with a North Pole in the inside of the domain...'
-         PRINT *, '     => the `j` cut is at j=',jNPt
-         PRINT *, ''
-         y_min_t_1 = MINVAL(Ytrg(:,:jNPt))
-         y_min_t_2 = MINVAL(Ytrg(:,jNPt:))
-         PRINT *, '  ==> y_min_t_1, y_min_t_2 =',y_min_t_1, y_min_t_2
-         y_min_t = y_min_t_1
-      END IF
+      !IF( lNPt ) THEN
+      !   PRINT *, ' *** The target grid seems to be a polar projection with a North Pole in the inside of the domain...'
+      !   PRINT *, '     => the `j` cut is at j=',jNPt
+      !   PRINT *, ''
+      !   y_min_t_1 = MINVAL(Ytrg(:,:jNPt))
+      !   y_min_t_2 = MINVAL(Ytrg(:,jNPt:))
+      !   PRINT *, '  ==> y_min_t_1, y_min_t_2 =',y_min_t_1, y_min_t_2
+      !   y_min_t = y_min_t_1
+      !END IF
 
       lStupido = ( lNPs .OR. lNPt )
 
-      !!  Now, all longitudes must exist around this pole
-
-      !! 1/ Attempt to find a nearest point for NP on target grid: lili
-
-
-      !! Min and Max latitude to use for binning :
       PRINT *, ''
-      PRINT *, '    *** Latitude binning for more efficient localization *** '
-      y_max_bnd = MIN( y_max_t , y_max_s )  !lolo: why MIN() ??? I don't remember why
-      y_max_bnd0 = y_max_bnd
-      y_min_bnd = MAX( y_min_t , y_min_s )  !lolo: same, MAX()???
-      y_min_bnd0 = y_min_bnd
-      !PRINT *, 'LOLO y_max_bnd #1 => ', y_max_bnd ; PRINT *, ' y_min_bnd #1 => ', y_min_bnd
-      y_max_bnd = MIN( REAL(INT(y_max_bnd+2.),8) ,  90.)
-      y_min_bnd = MAX( REAL(INT(y_min_bnd-2.),8) , -90.)
-      !PRINT *, 'LOLO y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd
-      !! Multiple of 0.5:
-      y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
-      y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
-      !PRINT *, 'LOLO y_max_bnd #3 => ', y_max_bnd ; PRINT *, ' y_min_bnd #3 => ', y_min_bnd
+      
+      IF( lStupido ) THEN
+         IF( lNPs ) PRINT *, ' *** Source grid IDed as a polar projection, with `j` of NP at:', INT(jNPs,2)
+         IF( lNPt ) PRINT *, ' *** Target grid IDed as a polar projection, with `j` of NP at:', INT(jNPt,2)
+         PRINT *, '   ==> SORRY but we have to go for the stupid scanning...'
+         PRINT *, ''
+      ELSE
+         !!
+         !! Min and Max latitude to use for binning :
+         PRINT *, '    *** Latitude binning for more efficient localization *** '
+         y_max_bnd = MIN( y_max_t , y_max_s )  !lolo: why MIN() ??? I don't remember why
+         y_max_bnd0 = y_max_bnd
+         y_min_bnd = MAX( y_min_t , y_min_s )  !lolo: same, MAX()???
+         y_min_bnd0 = y_min_bnd
+         !PRINT *, 'LOLO y_max_bnd #1 => ', y_max_bnd ; PRINT *, ' y_min_bnd #1 => ', y_min_bnd
+         y_max_bnd = MIN( REAL(INT(y_max_bnd+2.),8) ,  90.)
+         y_min_bnd = MAX( REAL(INT(y_min_bnd-2.),8) , -90.)
+         !PRINT *, 'LOLO y_max_bnd #2 => ', y_max_bnd ; PRINT *, ' y_min_bnd #2 => ', y_min_bnd
+         !! Multiple of 0.5:
+         y_max_bnd = MIN( NINT(y_max_bnd/0.5)*0.5    ,  90.)
+         y_min_bnd = MAX( NINT(y_min_bnd/0.5)*0.5    , -90.)
+         !PRINT *, 'LOLO y_max_bnd #3 => ', y_max_bnd ; PRINT *, ' y_min_bnd #3 => ', y_min_bnd
 
-      !lolo: WHY????
-      y_max_bnd = MAX( y_max_bnd , y_max_bnd0)
-      y_min_bnd = MIN( y_min_bnd , y_min_bnd0)
-      !lolo.
+         y_max_bnd = MAX( y_max_bnd , y_max_bnd0)
+         y_min_bnd = MIN( y_min_bnd , y_min_bnd0)
 
+         !IF( lNPt ) THEN
+         !   y_min_bnd_2  = MAX( y_min_t_2 , y_min_s )
+         !   y_min_bnd0_2 = y_min_bnd_2
+         !   y_min_bnd_2 = MAX( REAL(INT(y_min_bnd_2+2.),8) , -90.)
+         !   y_min_bnd_2 = MAX( NINT(y_min_bnd_2/0.5)*0.5    , -90.)
+         !   y_min_bnd_2 = MAX( y_min_bnd_2 , y_min_bnd0_2)
+         !   PRINT *, '   => binning from ', y_min_bnd, ' via ', y_max_bnd, ' to ', y_min_bnd_2
+         !   ns1 = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd  )/180. ) , 1)
+         !   ns2 = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd_2)/180. ) , 1)
+         !   nsplit = ns1+ns2
+         !ELSE
+         !! Regular case:
+         PRINT *, '   => binning from ', y_min_bnd, ' to ', y_max_bnd
+         nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
+         !END IF
+         !!
+         ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), J_VLAT_S(nsplit,2) )
+         !IF( lNPt ) THEN
+         !   dy = (y_max_bnd - y_min_bnd)/REAL(ns1)
+         !   DO jlat=1,ns1+1
+         !      VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
+         !   END DO
+         !   DO jlat=ns1+2,nsplit+1
+         !      VLAT_SPLIT_BOUNDS(jlat) = VLAT_SPLIT_BOUNDS(ns1+1) - REAL(jlat-ns1-1)*dy
+         !   END DO
+         !ELSE
+         !! Regular case:
+         dy = (y_max_bnd - y_min_bnd)/REAL(nsplit)
+         DO jlat=1,nsplit+1
+            VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
+         END DO
+         !END IF
+         !!
+         IF ( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
+            PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Bounds for latitude for VLAT_SPLIT_BOUNDS are bad!'
+            PRINT *, ' y_min_bnd, y_max_bnd =', y_min_bnd, y_max_bnd !
+            PRINT *, ' y_min_bnd0, y_max_bnd0 =', y_min_bnd0, y_max_bnd0
+            STOP
+         END IF
 
-      !IF( lNPt ) THEN
-      !   y_min_bnd_2  = MAX( y_min_t_2 , y_min_s )
-      !   y_min_bnd0_2 = y_min_bnd_2
-      !   y_min_bnd_2 = MAX( REAL(INT(y_min_bnd_2+2.),8) , -90.)
-      !   y_min_bnd_2 = MAX( NINT(y_min_bnd_2/0.5)*0.5    , -90.)
-      !   y_min_bnd_2 = MAX( y_min_bnd_2 , y_min_bnd0_2)
-      !   PRINT *, '   => binning from ', y_min_bnd, ' via ', y_max_bnd, ' to ', y_min_bnd_2
-      !   ns1 = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd  )/180. ) , 1)
-      !   ns2 = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd_2)/180. ) , 1)
-      !   nsplit = ns1+ns2
-      !ELSE
-      !! Regular case:
-      PRINT *, '   => binning from ', y_min_bnd, ' to ', y_max_bnd
-      nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
-      !END IF
-      !!
-      ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), J_VLAT_S(nsplit,2) )
-      !IF( lNPt ) THEN
-      !   dy = (y_max_bnd - y_min_bnd)/REAL(ns1)
-      !   DO jlat=1,ns1+1
-      !      VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
-      !   END DO
-      !   DO jlat=ns1+2,nsplit+1
-      !      VLAT_SPLIT_BOUNDS(jlat) = VLAT_SPLIT_BOUNDS(ns1+1) - REAL(jlat-ns1-1)*dy
-      !   END DO
-      !ELSE
-      !! Regular case:
-      dy = (y_max_bnd - y_min_bnd)/REAL(nsplit)
-      DO jlat=1,nsplit+1
-         VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
-      END DO
-      !END IF
-      !!
-
-      IF ( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
-         PRINT *, ' ERROR (FIND_NEAREST_POINT of mod_manip.f90): Bounds for latitude for VLAT_SPLIT_BOUNDS are bad!'
-         PRINT *, ' y_min_bnd, y_max_bnd =', y_min_bnd, y_max_bnd !
-         PRINT *, ' y_min_bnd0, y_max_bnd0 =', y_min_bnd0, y_max_bnd0
-         STOP
-      END IF
-
-      !STOP'LOLOgd'
-
-
-      IF(.NOT. lStupido) THEN
          J_VLAT_S = 0
-
+         
          DO jlat = 1, nsplit
             rlat_1 = VLAT_SPLIT_BOUNDS(jlat)
             rlat_2 = VLAT_SPLIT_BOUNDS(jlat+1)
@@ -1241,7 +1236,8 @@ CONTAINS
             END IF
          END DO
 
-      ENDIF
+      ENDIF !IF(lStupido)
+      
 
       rlat_old = rmissval
       jj_t_old = -10
@@ -1262,24 +1258,25 @@ CONTAINS
                   & WRITE(*,'("*** Treated point of target domain = ",i7," (ouf of ",i7,")")') jj_t, ABS(j_stop_t-j_strt_t+1) ! in case of trajectory/ephem stuff
 
                !! Need to find which jlat of our latitude bins rlat is located in!
-               IF ( rlat /= rlat_old ) THEN
-                  DO jlat=1,nsplit
-                     IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
-                     IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
-                  END DO
-                  !!
-               END IF
+               IF(.NOT. lStupido) THEN
+                  IF ( rlat /= rlat_old ) THEN
+                     DO jlat=1, nsplit
+                        IF (  rlat ==VLAT_SPLIT_BOUNDS(jlat)) EXIT
+                        IF ( (rlat > VLAT_SPLIT_BOUNDS(jlat)).AND.(rlat <= VLAT_SPLIT_BOUNDS(jlat+1)) ) EXIT
+                     END DO
+                  END IF
+               ENDIF
 
                lagain    = .TRUE.
-               niter     = -1  ! -1 because first pass is for bluff, we want niter=0 for the first use of latitude binning...
-               IF ( rlat > 60. ) niter = 0 ! we skip the bluff part because the grid might be too close to NP boundary cut!
+               niter     = -1  ! -1 because first pass is for luck, we want niter=0 for the first use of latitude binning...
+               IF ( rlat > 60. ) niter = 0 ! we skip the luck part because the grid might be too close to NP boundary cut!
 
                DO WHILE ( lagain )
 
                   IF ( niter == -1 ) THEN
-                     !! Bluff !
+                     !! Are we lucky?
                      !! It's not stupid to assume that the next point to locate is
-                     !! pretty near the previously found point (ji_s,jj_s):
+                     !! pretty near the previously located point (ji_s,jj_s):
                      i1s = MAX(ji_s - 5 , 1)
                      i2s = MIN(ji_s + 5 , nx_s)
                      j1s = MAX(jj_s - 5 , 1)
@@ -1288,29 +1285,28 @@ CONTAINS
                      i1s = 1
                      i2s = nx_s
                      IF(lStupido) THEN
+                        !! It says "stupido", here's why, the lazy option...
                         j1s = 1
                         j2s = ny_s
                      ELSE
-                        j1s = J_VLAT_S(MAX(jlat-niter,1)     , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
-                        j2s = J_VLAT_S(MIN(jlat+niter,nsplit), 2)  !! MB Comment: Force to ny_s if necessary when nearest point not found whereas it exist really
-                     END IF
-                     IF ( ldebug ) THEN
-                        PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter, jlat
-                        PRINT *, '     => bin #', jlat
-                        PRINT *, '       => jmin & jmax on source domain =', j1s, j2s
+                        j1s = J_VLAT_S(MAX(jlat-niter,1)     , 1)
+                        j2s = J_VLAT_S(MIN(jlat+niter,nsplit), 2)
+                        IF ( ldebug ) THEN
+                           PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter, jlat
+                           PRINT *, '     => bin #', jlat
+                           PRINT *, '       => jmin & jmax on source domain =', j1s, j2s
+                        END IF
                      END IF
                   END IF
 
                   Xdist = 1.E12
                   Xdist(i1s:i2s,j1s:j2s) = DISTANCE_2D(rlon, Xsrc(i1s:i2s,j1s:j2s), rlat, Ysrc(i1s:i2s,j1s:j2s))
-                  !CALL DUMP_FIELD(REAL(Xdist,4), 'distance_last.nc', 'dist')
-                  !PRINT *, 'LOLO STOP! mod_manip.f90 !!!'; STOP
-
+                  
                   !! Nearest point is where distance is smallest:
                   ij_min_loc = MINLOC(Xdist(i1s:i2s,j1s:j2s))
                   ji_s = ij_min_loc(1) + i1s - 1
                   jj_s = ij_min_loc(2) + j1s - 1
-
+                  
                   IF ((ji_s==0).OR.(jj_s==0)) THEN
                      PRINT *, ''
                      PRINT *, ' W E I R D  !!!'
@@ -1329,7 +1325,7 @@ CONTAINS
                      JJpos(ji_t,jj_t) = jj_s
                      IF ( ldebug ) THEN
                         IF ( niter == -1 ) THEN
-                           PRINT *, '    --- F O U N D  with bluff !!! ---'
+                           PRINT *, '    --- F O U N D  with luck !!! ---'
                         ELSE
                            PRINT *, '    --- F O U N D --- niter =', niter
                         END IF
@@ -1372,8 +1368,9 @@ CONTAINS
       WHERE ( JIpos == -1 ) mask_t = -1
       WHERE ( JJpos == -1 ) mask_t = -2
 
-      DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_S, e1_s, e2_s, mspot_lon , mspot_lat , Xdist, i1dum)
-
+      DEALLOCATE ( e1_s, e2_s, mspot_lon , mspot_lat , Xdist, i1dum)
+      IF( .NOT. lStupido ) DEALLOCATE ( VLAT_SPLIT_BOUNDS, J_VLAT_S )
+      
    END SUBROUTINE FIND_NEAREST_TWISTED
 
 
