@@ -360,9 +360,9 @@ CONTAINS
       WRITE(6,*) '====================================================='
       WRITE(6,*) '                    Current config:'
       WRITE(6,*) '                    ---------------'  !
-      WRITE(6,'(" Source domain dimension          : ",i5,"  x",i5,"  x",i4)') &
+      WRITE(6,'(" Source domain dimension         : ",i5,"  x",i5,"  x",i4)') &
          &        ni_src , nj_src, nk_src
-      WRITE(6,'(" Output domain dimension         : ",i5,"  x",i5,"  x",i4)') &
+      WRITE(6,'(" Target domain dimension         : ",i5,"  x",i5,"  x",i4)') &
          &        ni_trg, nj_trg, nk_trg
       WRITE(6,'(" Number of time steps to proceed : ",i5)') Ntr
       IF(l_itrp_3d) THEN

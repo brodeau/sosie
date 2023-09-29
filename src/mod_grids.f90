@@ -281,7 +281,7 @@ CONTAINS
          DO jj=(nlat_icr_trg + 1)/2+(1 - nlat_icr_trg)/2*nj_trg,jj_ex_btm,nlat_icr_trg
             mask_trg(:,jj,:) = 0
          END DO
-         !debug: CALL DUMP_2D_FIELD(REAL(mask_trg(:,:,1),4), 'mask_trg.nc', 'lsm')
+         !debug: CALL DUMP_FIELD(REAL(mask_trg(:,:,1),4), 'mask_trg.nc', 'lsm')
       END IF
 
       ! Type of target grid (only matters if ORCA grid...)

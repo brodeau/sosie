@@ -1033,11 +1033,12 @@ CONTAINS
          &    nx_s, ny_s, nx_t, ny_t, &
          &    jlat, ji_t, jj_t, ji_s, jj_s, jj_t_old, &
          &    j1s, j2s, i1s, i2s, niter, &
-         &    nsplit, jmax_band, jmin_band
+         &    nsplit, ns1, ns2, jmax_band, jmin_band, &
+         &    jNPs, jNPt
 
-      REAL(8) :: emax, rlat_low, rlat_hgh, rlon, rlat, rlat_old
+      REAL(8) :: emax, rlat_1, rlat_2, rlon, rlat, rlat_old
       REAL(8) :: y_max_t, y_min_t, y_max_bnd, y_min_bnd, y_max_bnd0, y_min_bnd0, dy, &
-         &       y_max_s, y_min_s
+         &       y_max_s, y_min_s, y_min_t_1, y_min_t_2, y_min_bnd_2, y_min_bnd0_2
       REAL(8),    DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_s, e2_s    !: grid layout and metrics
       INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_S
@@ -1046,7 +1047,10 @@ CONTAINS
 
       INTEGER, DIMENSION(2) :: ij_min_loc
 
-      LOGICAL :: lagain
+      LOGICAL :: lagain, lNPs=.FALSE., lNPt=.FALSE., lStupido=.FALSE.
+
+
+
 
 
       nx_s  = SIZE(Xsrc,1)
@@ -1056,8 +1060,8 @@ CONTAINS
 
       ALLOCATE ( Xdist(nx_s,ny_s) , mspot_lon(nx_s,ny_s) , mspot_lat(nx_s,ny_s) , i1dum(nx_s) )
 
-      y_min_s  = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
-      y_max_s  = MAXVAL(Ysrc)
+      y_min_s = MINVAL(Ysrc) ; ! Min and Max latitude of source domain
+      y_max_s = MAXVAL(Ysrc)
       y_min_t = MINVAL(Ytrg) ; ! Min and Max latitude of target domain
       y_max_t = MAXVAL(Ytrg)
 
@@ -1093,9 +1097,38 @@ CONTAINS
       IF (nx_s>1) e1_s(nx_s,:) = e1_s(nx_s-1,:)
       IF (ny_s>1) e2_s(:,ny_s) = e2_s(:,ny_s-1)
       !IF (ldebug) THEN
-      !   CALL DUMP_FIELD(REAL(e1_s,4), 'e1_s.nc', 'e1')
-      !   CALL DUMP_FIELD(REAL(e2_s,4), 'e2_s.nc', 'e2')
+      !CALL DUMP_FIELD(REAL(e1_s,4), 'e1_s.nc', 'e1')
+      !CALL DUMP_FIELD(REAL(e2_s,4), 'e2_s.nc', 'e2')
       !END IF
+
+
+      CALL IS_POLAR_PROJ(Xsrc, Ysrc, lNPs, jNPs)
+      IF( lNPs ) THEN
+         PRINT *, ' *** The source grid seems to be a polar projection with a North Pole in the inside of the domain...'
+         PRINT *, '     => the `j` cut is at j=',jNPs
+         PRINT *, ''
+      END IF
+
+      !! Do we have a target setup that resembles a polar projection?
+      !! => latitude will increase as j increases until we pass the NP,
+      !!    it will then decrease
+      CALL IS_POLAR_PROJ(Xtrg, Ytrg, lNPt, jNPt)
+      IF( lNPt ) THEN
+         PRINT *, ' *** The target grid seems to be a polar projection with a North Pole in the inside of the domain...'
+         PRINT *, '     => the `j` cut is at j=',jNPt
+         PRINT *, ''
+         y_min_t_1 = MINVAL(Ytrg(:,:jNPt))
+         y_min_t_2 = MINVAL(Ytrg(:,jNPt:))
+         PRINT *, '  ==> y_min_t_1, y_min_t_2 =',y_min_t_1, y_min_t_2
+         y_min_t = y_min_t_1
+      END IF
+
+      lStupido = ( lNPs .OR. lNPt )
+
+      !!  Now, all longitudes must exist around this pole
+
+      !! 1/ Attempt to find a nearest point for NP on target grid: lili
+
 
       !! Min and Max latitude to use for binning :
       PRINT *, ''
@@ -1118,15 +1151,39 @@ CONTAINS
       y_min_bnd = MIN( y_min_bnd , y_min_bnd0)
       !lolo.
 
+
+      !IF( lNPt ) THEN
+      !   y_min_bnd_2  = MAX( y_min_t_2 , y_min_s )
+      !   y_min_bnd0_2 = y_min_bnd_2
+      !   y_min_bnd_2 = MAX( REAL(INT(y_min_bnd_2+2.),8) , -90.)
+      !   y_min_bnd_2 = MAX( NINT(y_min_bnd_2/0.5)*0.5    , -90.)
+      !   y_min_bnd_2 = MAX( y_min_bnd_2 , y_min_bnd0_2)
+      !   PRINT *, '   => binning from ', y_min_bnd, ' via ', y_max_bnd, ' to ', y_min_bnd_2
+      !   ns1 = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd  )/180. ) , 1)
+      !   ns2 = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd_2)/180. ) , 1)
+      !   nsplit = ns1+ns2
+      !ELSE
+      !! Regular case:
       PRINT *, '   => binning from ', y_min_bnd, ' to ', y_max_bnd
-      !!
       nsplit = MAX( INT( REAL(Nlat_split) * (y_max_bnd - y_min_bnd)/180. ) , 1)
+      !END IF
       !!
       ALLOCATE ( VLAT_SPLIT_BOUNDS(nsplit+1), J_VLAT_S(nsplit,2) )
+      !IF( lNPt ) THEN
+      !   dy = (y_max_bnd - y_min_bnd)/REAL(ns1)
+      !   DO jlat=1,ns1+1
+      !      VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
+      !   END DO
+      !   DO jlat=ns1+2,nsplit+1
+      !      VLAT_SPLIT_BOUNDS(jlat) = VLAT_SPLIT_BOUNDS(ns1+1) - REAL(jlat-ns1-1)*dy
+      !   END DO
+      !ELSE
+      !! Regular case:
       dy = (y_max_bnd - y_min_bnd)/REAL(nsplit)
       DO jlat=1,nsplit+1
          VLAT_SPLIT_BOUNDS(jlat) = y_min_bnd + REAL(jlat-1)*dy
       END DO
+      !END IF
       !!
 
       IF ( (y_min_bnd > y_min_bnd0).OR.(y_max_bnd < y_max_bnd0) ) THEN
@@ -1136,49 +1193,55 @@ CONTAINS
          STOP
       END IF
 
-      J_VLAT_S = 0
+      !STOP'LOLOgd'
 
-      DO jlat = 1, nsplit
-         rlat_low = VLAT_SPLIT_BOUNDS(jlat)
-         rlat_hgh = VLAT_SPLIT_BOUNDS(jlat+1)
-         !! @mbalaro Comment: The two line below can lead to error when working on on small domain ...
-         !ij_max_loc = MAXLOC(Ysrc, mask=(Ysrc<=rlat_hgh)) ; jmax_band = ij_max_loc(2)
-         !ij_min_loc = MINLOC(Ysrc, mask=(Ysrc>=rlat_low)) ; jmin_band = ij_min_loc(2)
-         !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_low:rlat_hgh]
-         !! Largest ever possible j index of the highest latitude in region where Ysrc<=rlat_hgh
-         jmax_band = MAXVAL(MAXLOC(Ysrc, mask=(Ysrc<=rlat_hgh), dim=2))  ! MAXLOC(Ysrc, ..., dim=2) returns ni_s values (the max in each column)
-         !! Smalles ever possible j index of the smallest latitude in region where Ysrc>=rlat_low
-         i1dum = MINLOC(Ysrc, mask=(Ysrc .GT. rlat_low), dim=2)
-         jmin_band = MINVAL(i1dum, mask=(i1dum>0))
-         !!
-         !! To be sure to include everything, adding 1 extra points below and above:
-         J_VLAT_S(jlat,1) = MAX(jmin_band - 1,   1  )
-         J_VLAT_S(jlat,2) = MIN(jmax_band + 1, ny_s)
-         !!
-         IF ( ldebug ) THEN
-            PRINT *, ' Latitude bin #', jlat
-            PRINT *, '     => lat_low, lat_high:', REAL(rlat_low,4), REAL(rlat_hgh,4)
-            PRINT *, '     => JJ min and max on input domain =>', J_VLAT_S(jlat,1), J_VLAT_S(jlat,2)
-         END IF
-         !!
-      END DO
 
-      PRINT *, ''
-      PRINT *, '     => VLAT_SPLIT_BOUNDS ='
-      PRINT *, VLAT_SPLIT_BOUNDS
-      PRINT *, '     => corresponding start values for j_s ='
-      PRINT *, J_VLAT_S(:,1)
-      PRINT *, '     => corresponding stop values for j_s ='
-      PRINT *, J_VLAT_S(:,2)
-      PRINT *, ''
+      IF(.NOT. lStupido) THEN
+         J_VLAT_S = 0
 
-      DO jlat = 1, nsplit
-         IF ( J_VLAT_S(jlat,2) <= J_VLAT_S(jlat,1) ) THEN
-            PRINT *, ' ERROR: jj_stop > jj_start ! ', J_VLAT_S(jlat,2), J_VLAT_S(jlat,1)
-            PRINT *, '   => for latitude bin #', jlat
-            STOP
-         END IF
-      END DO
+         DO jlat = 1, nsplit
+            rlat_1 = VLAT_SPLIT_BOUNDS(jlat)
+            rlat_2 = VLAT_SPLIT_BOUNDS(jlat+1)
+            !! @mbalaro Comment: The two line below can lead to error when working on on small domain ...
+            !ij_max_loc = MAXLOC(Ysrc, mask=(Ysrc<=rlat_2)) ; jmax_band = ij_max_loc(2)
+            !ij_min_loc = MINLOC(Ysrc, mask=(Ysrc>=rlat_1)) ; jmin_band = ij_min_loc(2)
+            !! ... it is preferable to look at the min and max value of the ensemble of jj within the range [rlat_1:rlat_2]
+            !! Largest ever possible j index of the highest latitude in region where Ysrc<=rlat_2
+            jmax_band = MAXVAL(MAXLOC(Ysrc, mask=(Ysrc<=rlat_2), dim=2))  ! MAXLOC(Ysrc, ..., dim=2) returns ni_s values (the max in each column)
+            !! Smalles ever possible j index of the smallest latitude in region where Ysrc>=rlat_1
+            i1dum = MINLOC(Ysrc, mask=(Ysrc .GT. rlat_1), dim=2)
+            jmin_band = MINVAL(i1dum, mask=(i1dum>0))
+            !!
+            !! To be sure to include everything, adding 1 extra points below and above:
+            J_VLAT_S(jlat,1) = MAX(jmin_band - 1,   1  )
+            J_VLAT_S(jlat,2) = MIN(jmax_band + 1, ny_s)
+            !!
+            IF ( ldebug ) THEN
+               PRINT *, ' Latitude bin #', jlat
+               PRINT *, '     => lat_low, lat_high:', REAL(rlat_1,4), REAL(rlat_2,4)
+               PRINT *, '     => JJ min and max on input domain =>', J_VLAT_S(jlat,1), J_VLAT_S(jlat,2)
+            END IF
+            !!
+         END DO
+
+         PRINT *, ''
+         PRINT *, '     => VLAT_SPLIT_BOUNDS ='
+         PRINT *, VLAT_SPLIT_BOUNDS
+         PRINT *, '     => corresponding start values for j_s ='
+         PRINT *, J_VLAT_S(:,1)
+         PRINT *, '     => corresponding stop values for j_s ='
+         PRINT *, J_VLAT_S(:,2)
+         PRINT *, ''
+
+         DO jlat = 1, nsplit
+            IF ( J_VLAT_S(jlat,2) <= J_VLAT_S(jlat,1) ) THEN
+               PRINT *, ' ERROR: jj_stop > jj_start ! ', J_VLAT_S(jlat,2), J_VLAT_S(jlat,1)
+               PRINT *, '   => for latitude bin #', jlat
+               STOP
+            END IF
+         END DO
+
+      ENDIF
 
       rlat_old = rmissval
       jj_t_old = -10
@@ -1192,7 +1255,7 @@ CONTAINS
 
                !! Display progression in stdout:
                IF ( (ji_t == nx_t/2).AND.(jj_t /= jj_t_old) ) THEN
-                  WRITE(*,'("*** Treated latitude of target domain = ",f9.4," (jj_t = ",i5.5,")")') REAL(rlat,4), jj_t
+                  WRITE(*,'("*** Target latitude = ",f9.4," (jj_t = ",i5.5,"/",i5.5,")")') REAL(rlat,4), jj_t,j_stop_t
                   jj_t_old = jj_t
                END IF
                IF ( (nx_t == 1).AND.(MOD(jj_t,10)==0) ) &
@@ -1224,8 +1287,13 @@ CONTAINS
                   ELSE
                      i1s = 1
                      i2s = nx_s
-                     j1s = J_VLAT_S(MAX(jlat-niter,1)     , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
-                     j2s = J_VLAT_S(MIN(jlat+niter,nsplit), 2)  !! MB Comment: Force to ny_s if necessary when nearest point not found whereas it exist really
+                     IF(lStupido) THEN
+                        j1s = 1
+                        j2s = ny_s
+                     ELSE
+                        j1s = J_VLAT_S(MAX(jlat-niter,1)     , 1)  !! MB Comment: Force to 1 if necessary when nearest point not found whereas it exist really
+                        j2s = J_VLAT_S(MIN(jlat+niter,nsplit), 2)  !! MB Comment: Force to ny_s if necessary when nearest point not found whereas it exist really
+                     END IF
                      IF ( ldebug ) THEN
                         PRINT *, ' *** Treated latitude of target domain =', REAL(rlat,4), ' iter:', niter, jlat
                         PRINT *, '     => bin #', jlat
@@ -1707,6 +1775,45 @@ CONTAINS
 
    END SUBROUTINE EXT_NORTH_TO_90_REGG
 
+
+
+   SUBROUTINE IS_POLAR_PROJ(XX, YY, lPP, jjNP)
+      !!
+      REAL(8), DIMENSION(:,:), INTENT(in)  :: XX, YY
+      LOGICAL                , INTENT(out) :: lPP  ! Is it???
+      INTEGER                , INTENT(out) :: jjNP  ! j-location of the NP or cut
+      !!
+      LOGICAL :: lipp=.FALSE.
+      INTEGER, DIMENSION(2) :: ij_NP
+      INTEGER :: iNP, jNp
+
+      jjNP = -1
+
+      lipp = ANY( YY > 88. )
+      !PRINT *, ' lipp =', lipp
+      IF( lipp ) THEN
+         !! => there is potentially a NP...
+         !! => will find its location and check if
+         !!    a) latitude starts to decrease once we pass it
+         !!    b) longitude switches by close to 180 degrees once we pass it
+         ij_NP = MINLOC( ABS(YY - 90.) )
+         !PRINT *,' *** NP near ', ij_NP
+         iNP = ij_NP(1)
+         jNP = ij_NP(2)
+         !PRINT *, '    => j of NP =', jNP
+         !PRINT *, '   =>', YY(iNP,jNP)
+         !PRINT *, ' lat accross  =>', YY(iNP,jNP-3), YY(iNP,jNP), YY(iNP,jNP+3)
+         !PRINT *, ' lon accross  =>', XX(iNP,jNP-3), XX(iNP,jNP), XX(iNP,jNP+3)
+         lipp = ( ( YY(iNP,jNP-3)<YY(iNP,jNP) ).AND.( YY(iNP,jNP+3)<YY(iNP,jNP) ) )
+         !PRINT *, ' Test on lat switch =>', lipp
+         IF( lipp ) lipp = ( (ABS(XX(iNP,jNP-3)-XX(iNP,jNP+3))>100.).AND.(ABS(XX(iNP,jNP-3)-XX(iNP,jNP+3))<220.) )
+         !PRINT *, ' Final, arctic proj:', lipp
+      END IF
+
+      lPP = lipp
+      IF(lipp) jjNP = jNP
+
+   END SUBROUTINE IS_POLAR_PROJ
 
 
 
