@@ -20,7 +20,7 @@ L_NCDF = -lnetcdff
 # -- Common:
 FF_BASE = -i4 -xHOST -I mod/ -module mod/
 # -- Production:
-FF = -O3 -init=zero -init=arrays -fp-model strict $(FF_BASE)
+FF = -O2 -init=zero -init=arrays -fp-model strict $(FF_BASE)
 # -- Debugging:
 #FF =  -O0 -fpe0 -g -check all -warn all -traceback -debug extended -C $(FF_BASE)
 

@@ -108,7 +108,7 @@ PROGRAM SOSIE
 
    jj = SCAN(TRIM(cf_src), '.', BACK=.TRUE.) - 1
    ji = SCAN(TRIM(cf_src), '/', BACK=.TRUE.) + 1
-   cf_drwn = TRIM(cf_src(ji:jj))//'_DROWNED.nc'
+   cf_drwn = TRIM(cf_src(ji:jj))//'_'//TRIM(cv_src)//'_DROWNED.nc'
    
 
 
@@ -162,6 +162,7 @@ PROGRAM SOSIE
             &      cextrainfo=cextinf)
 
          IF ( l_save_drwn ) THEN
+            WRITE(6,*)'  *** saving drowned fields in: '//TRIM(cf_drwn)//' !'
             CALL P2D_T(idf_id, idv_id, Ntr, jt,    &
                &       lon_src, lat_src, vt, data_src_drowned(:,:,1),    &
                &       TRIM(cf_drwn), cv_lon_src, cv_lat_src, cv_t_src,    &

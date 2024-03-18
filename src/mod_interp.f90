@@ -89,8 +89,10 @@ CONTAINS
 
       !! Applying bound corrections
       !! LOLO should update mask_trg accordingly !!!?
-      WHERE ( data_trg > vmax )  data_trg = rmiss_val
-      WHERE ( data_trg < vmin )  data_trg = rmiss_val
+      !WHERE ( data_trg > vmax )  data_trg = rmiss_val
+      !WHERE ( data_trg < vmin )  data_trg = rmiss_val
+      data_trg = MAX( data_trg, vmin )
+      data_trg = MIN( data_trg, vmax )      
 
       !lolo:
       !! If overshoot of latitudes between target and source domain (target has higher values than source):
