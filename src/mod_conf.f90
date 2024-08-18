@@ -124,6 +124,7 @@ MODULE MOD_CONF
       INTEGER :: np_penetr
       INTEGER :: nt_smooth
       LOGICAL :: l_msk_chg  ! mask is changing with time
+      REAL(4) :: rval_land
    END TYPE idrown_info
    TYPE(idrown_info) ::  idrown    ! number of pixels to propagate sea-values onto land (DROWN), by default, no DROWN = 0!
    !                               ! and how many times to smooth the drowned area

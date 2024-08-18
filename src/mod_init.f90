@@ -111,7 +111,8 @@ CONTAINS
 
       idrown%np_penetr = 0 ! defaults
       idrown%nt_smooth = 5
-      idrown%l_msk_chg = .false.
+      idrown%l_msk_chg = .FALSE.
+      idrown%rval_land = -9998.0
 
       ixtrpl_bot = 0
       
@@ -258,6 +259,7 @@ CONTAINS
             WRITE(6,*)'    -> continental penetration in # of pixels:', idrown%np_penetr
             WRITE(6,*)'    -> # of time to apply a smoothing on continents after DROWN:', idrown%nt_smooth
             WRITE(6,*)'    -> is the mask on the source field is changing with time :', idrown%l_msk_chg
+            WRITE(6,*)'    -> remainingng untreated center of continents will be filled with:', idrown%rval_land
             WRITE(6,*)''
          END IF
 

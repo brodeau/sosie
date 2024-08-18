@@ -15,7 +15,7 @@ MODULE MOD_BDROWN
 
 CONTAINS
 
-   SUBROUTINE BDROWN(k_ew, X, mask,   nb_inc, nb_smooth, pmin, pmax )
+   SUBROUTINE BDROWN(k_ew, X, mask,   nb_inc, nb_smooth, pmin, pmax, pval_land )
 
       !!#############################################################################
       !!
@@ -38,6 +38,7 @@ CONTAINS
       !!  * nb_smooth : number of times the smoother is applied on masked region (mask=0)
       !!                => default: nb_smooth = 10
       !!
+      !!  * pval_land (optional) : value to put on untreated land values, i.e. beyond the `nb_inc` points....
       !!
       !!                       Author : Laurent BRODEAU, 2014
       !!
@@ -47,11 +48,12 @@ CONTAINS
       INTEGER,                       INTENT(in)    :: k_ew
       REAL(4),    DIMENSION(:,:),    INTENT(inout) :: X
       INTEGER(1), DIMENSION(:,:),    INTENT(in)    :: mask
-
       INTEGER,    OPTIONAL,          INTENT(in)    :: nb_inc, nb_smooth
       REAL(4),    OPTIONAL,          INTENT(in)    :: pmin, pmax
+      REAL(4),    OPTIONAL,          INTENT(in)    :: pval_land
+      
       !! Local :
-      REAL(4)                                 :: zmin = -1.E24, zmax = 1.E24
+      REAL(4)                                 :: zmin=-1.E24, zmax=1.E24, zval_land=0.
       INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: dold, xtmp
 
@@ -75,8 +77,9 @@ CONTAINS
       nsmooth_max = 10
       IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
 
-      IF( PRESENT(pmin) ) zmin = pmin
-      IF( PRESENT(pmin) ) zmax = pmax
+      IF( PRESENT(pmin)      ) zmin      = pmin
+      IF( PRESENT(pmax)      ) zmax      = pmax
+      IF( PRESENT(pval_land) ) zval_land = pval_land
 
       IF ( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
          PRINT *, 'ERROR, mod_bdrown.F90 => BDROWN : size of data and mask do not match!!!'; STOP
@@ -85,17 +88,10 @@ CONTAINS
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
-
-
-
-
       !! Backing up original mask into mask2(:,:)
       ALLOCATE ( maskv(ni,nj), dold(ni,nj), xtmp(ni,nj), mask_coast(ni,nj), mtmp(ni,nj) )
 
-
-
       ivi = (/ 1 , ni /)
-
 
       IF (k_ew >= 0) THEN
          vim_per = (/ ni-k_ew ,  ni-1  /)
@@ -205,8 +201,8 @@ CONTAINS
 
 
 
-         !! mask_coast done, time to fill the coastline points with values from the nearest se points
-         !! -----------------------------------------------------------------------------------------
+         !! mask_coast done, time to fill the coastline points with values from the nearest sea points
+         !! ------------------------------------------------------------------------------------------
 
          !! Center of the domain:
          DO jj = 2, nj-1
@@ -388,11 +384,8 @@ CONTAINS
          END DO
 
 
-
-
-
-         !! Loosing land for the next iteration:
-         !! -----------------------------------
+         !! Loosing land for the next iteration (i.e.lateral erosion by 1 mesh point of the LSM)
+         !! ------------------------------------------------------------------------------------
          maskv = maskv + mask_coast
          !! -----------------------------------
 
@@ -418,6 +411,11 @@ CONTAINS
       !!       propagating inland in the present CASE
       !CALL DUMP_FIELD(X, 'drowned_2_after_smooth.nc', 'lsm')
 
+      
+      IF( ABS(zval_land) > 1.e-12 ) THEN
+         WHERE( maskv==0 ) X = zval_land ; ! the remaining center of continents where sea values have not been propagated (if they exist)
+      ENDIF
+      
       DEALLOCATE ( maskv, mtmp, xtmp, dold, mask_coast )
 
       IF ( ldebug ) PRINT *, 'BDROWN: jinc =', jinc
