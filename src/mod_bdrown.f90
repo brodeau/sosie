@@ -1,6 +1,6 @@
 MODULE MOD_BDROWN
 
-   !USE io_ezcdf !LOLO
+   USE io_ezcdf !LOLO
    !USE mod_manip
 
    IMPLICIT none
@@ -36,7 +36,7 @@ CONTAINS
       !!                     (will normally stop before 400 iterations, when all land points have been treated!!!)
       !!
       !!  * nb_smooth : number of times the smoother is applied on masked region (mask=0)
-      !!                => default: nb_smooth = 10
+      !!                => default: nb_smooth = 0
       !!
       !!  * pval_land (optional) : value to put on untreated land values, i.e. beyond the `nb_inc` points....
       !!
@@ -54,42 +54,44 @@ CONTAINS
       
       !! Local :
       REAL(4)                                 :: zmin=-1.E24, zmax=1.E24, zval_land=0.
+      REAL(4)                                 :: zmv
       INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
+      INTEGER,    ALLOCATABLE, DIMENSION(:)   :: kmji
+      REAL(4),    ALLOCATABLE, DIMENSION(:)   :: zvji
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: dold, xtmp
 
       INTEGER :: &
          &      ninc_max,      &
-         &      nsmooth_max,          &
+         &      nsmooth,          &
          &      ni, nj,        &
          &      jinc,          &
          &      ji, jj, jci,   &
-         &      jim, jip
+         &      jim, jip,      &
+         &      nbp
 
       INTEGER, DIMENSION(2) :: ivi, vim_per, vip_per
 
       INTEGER, PARAMETER :: jinc_debg = 2
-
-      X = X * mask  ! we rather have 0s on continents than some fucked up high values...
-
+     
       ninc_max = 200   ! will stop before when all land points have been treated!!!
       IF ( PRESENT(nb_inc) ) ninc_max = nb_inc
 
-      nsmooth_max = 10
-      IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
+      nsmooth = 0
+      IF ( PRESENT(nb_smooth) ) nsmooth = nb_smooth
 
       IF( PRESENT(pmin)      ) zmin      = pmin
       IF( PRESENT(pmax)      ) zmax      = pmax
       IF( PRESENT(pval_land) ) zval_land = pval_land
 
-      IF ( (size(X,1) /= size(mask,1)).OR.(size(X,2) /= size(mask,2)) ) THEN
-         PRINT *, 'ERROR, mod_bdrown.F90 => BDROWN : size of data and mask do not match!!!'; STOP
+      IF ( (SIZE(X,1)/=SIZE(mask,1)) .OR. (SIZE(X,2)/=SIZE(mask,2)) ) THEN
+         PRINT *, 'ERROR, mod_bdrown.F90 => `BDROWN()` : data and mask arrays have different shapes !!!'; STOP
       END IF
 
       ni = SIZE(X,1)
       nj = SIZE(X,2)
 
       !! Backing up original mask into mask2(:,:)
-      ALLOCATE ( maskv(ni,nj), dold(ni,nj), xtmp(ni,nj), mask_coast(ni,nj), mtmp(ni,nj) )
+      ALLOCATE ( kmji(ni), zvji(ni), maskv(ni,nj), dold(ni,nj), xtmp(ni,nj), mask_coast(ni,nj), mtmp(ni,nj) )
 
       ivi = (/ 1 , ni /)
 
@@ -101,8 +103,22 @@ CONTAINS
       jinc = 0
       maskv(:,:) = mask(:,:)
 
-
-
+      !! Filling land regions with a very ad-hoc kind of zonal average:
+      !CALL DUMP_FIELD( X,            'field.nc', 'field' )
+      !CALL DUMP_FIELD( REAL(mask,4), 'mask.nc', 'mask' )      
+      DO jj=1, nj
+         kmji(:) = INT(mask(:,jj))
+         nbp = SUM(kmji)
+         !PRINT *, ' LOLO: row jj=',jj
+         !PRINT *, ' LOLO: row jj=',jj,', nb ocean point =', nbp         
+         IF(nbp>0) THEN                                              
+            zvji(:) = X(:,jj)*REAL(kmji(:),4)
+            zmv = SUM( zvji ) / nbp
+            !PRINT *, 'LOLO: zmv =', zmv, ',jj=',jj,', nbp=',nbp
+            WHERE(mask(:,jj)==0) X(:,jj) = zmv
+         END IF                     
+      END DO
+      
       DO jinc = 1, ninc_max
 
          !! Quiting if no land point left:
@@ -400,23 +416,23 @@ CONTAINS
          
       END DO !DO jinc = 1, ninc_max
 
-
-      !! Time to smooth over land! (what's been drowned):
-      !PRINT *, '    *** lolo: smoothing nb of time:',nsmooth_max
-      !CALL DUMP_FIELD(X, 'drowned_1_before_smooth.nc', 'lsm')
-      mtmp = 1 - mask ! 1 over continents, 0 over seas!
-      CALL SMOOTHER(k_ew, X,  nb_smooth=nsmooth_max, msk=mtmp)
-      !! *** l_exclude_mask_points=.true. would be stupid here,
-      !!       it's actually good if sea values are used and are
-      !!       propagating inland in the present CASE
-      !CALL DUMP_FIELD(X, 'drowned_2_after_smooth.nc', 'lsm')
-
+      IF( nsmooth>0 ) THEN
+         !! Time to smooth over land! (what's been drowned):
+         !PRINT *, '    *** lolo: smoothing nb of time:',nsmooth
+         !CALL DUMP_FIELD(X, 'drowned_1_before_smooth.nc', 'lsm')
+         mtmp = 1 - mask ! 1 over continents, 0 over seas!
+         CALL SMOOTHER(k_ew, X,  nb_smooth=nsmooth, msk=mtmp)
+         !! *** l_exclude_mask_points=.true. would be stupid here,
+         !!       it's actually good if sea values are used and are
+         !!       propagating inland in the present CASE
+         !CALL DUMP_FIELD(X, 'drowned_2_after_smooth.nc', 'lsm')
+      ENDIF
       
       IF( ABS(zval_land) > 1.e-12 ) THEN
          WHERE( maskv==0 ) X = zval_land ; ! the remaining center of continents where sea values have not been propagated (if they exist)
       ENDIF
       
-      DEALLOCATE ( maskv, mtmp, xtmp, dold, mask_coast )
+      DEALLOCATE ( kmji, zvji, maskv, mtmp, xtmp, dold, mask_coast )
 
       IF ( ldebug ) PRINT *, 'BDROWN: jinc =', jinc
 
@@ -463,7 +479,7 @@ CONTAINS
       LOGICAL :: l_mask, l_emp
 
       INTEGER :: &
-         &      nsmooth_max,          &
+         &      nsmooth,          &
          &      ni, nj,        &
          &      ji, jci,   &
          &      jim, jip, js
@@ -472,8 +488,8 @@ CONTAINS
          &  w0 = 0.35   ! weight given to the point i,j in the boxcar process
 
 
-      nsmooth_max = 10
-      IF ( PRESENT(nb_smooth) ) nsmooth_max = nb_smooth
+      nsmooth = 10
+      IF ( PRESENT(nb_smooth) ) nsmooth = nb_smooth
 
       l_mask = PRESENT(msk)
 
@@ -510,7 +526,7 @@ CONTAINS
       END IF
 
 
-      DO js = 1, nsmooth_max
+      DO js = 1, nsmooth
 
          xtmp(:,:) = X(:,:)
 
