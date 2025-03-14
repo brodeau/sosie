@@ -262,16 +262,23 @@ CONTAINS
       TYPE(var_attr), DIMENSION(nbatt_max), INTENT(out) :: v_att_list
       !!
       !Local:
-      INTEGER :: id_f, id_v
+      INTEGER :: id_f, id_v, ivalue
       CHARACTER(len=256) :: cname, cvalue
+      CHARACTER(len=1) :: cval1
       REAL, DIMENSION(:), ALLOCATABLE :: rvalue ! will store attribute with numeric values
       INTEGER :: ierr, jatt, iwhat, ilg
       !!
       CHARACTER(len=80), PARAMETER :: crtn = 'GETVAR_ATTRIBUTES'
 
+      PRINT *, ' LOLO getting attributes for var: ', TRIM(cv_in)
+      
+      
       CALL sherr( NF90_OPEN(cf_in, NF90_NOWRITE, id_f),     crtn,cf_in,cv_in)
       CALL sherr( NF90_INQ_VARID(id_f, trim(cv_in), id_v),  crtn,cf_in,cv_in)
 
+
+      PRINT *, 'lolo1'
+      
       v_att_list(:)%cname    = 'null'
       v_att_list(:)%val_char = 'null'
 
@@ -280,14 +287,28 @@ CONTAINS
          IF( ierr == 0 ) THEN
             v_att_list(jatt)%cname = cname
 
+            PRINT *, 'lolo1 att = ',TRIM(cname)
+            
             CALL sherr( NF90_INQUIRE_ATTRIBUTE(id_f, id_v, TRIM(cname), xtype=iwhat, len=ilg),  crtn,cf_in,cv_in)
 
+            PRINT *, 'lolo1  iwhat, length ==> ', iwhat, ilg
+
+            
             v_att_list(jatt)%itype   = iwhat
             !v_att_list(jatt)%ctype   = vtypes_def(iwhat)
             v_att_list(jatt)%ilength = ilg
-            !! Getting value of attribute, depending on type!
+            
+            !! Getting value of attribute, depending on type!            
             IF( iwhat == 2 ) THEN
                CALL sherr( NF90_GET_ATT(id_f, id_v, cname, cvalue),  crtn,cf_in,cv_in)
+               v_att_list(jatt)%val_char = TRIM(cvalue)
+            ELSEIF( iwhat == 12 ) THEN
+               STOP' xtype is 12 => not supported by NF90! => get rid of attributes!'
+               ! nf90_string
+               PRINT *, 'lolo2'
+               CALL sherr( NF90_GET_ATT(id_f, id_v, cname, cval1),  crtn,cf_in,cv_in)
+               !CALL sherr( NF90_GET_ATT(id_f, id_v, cname, cvalue),  crtn,cf_in,cv_in)
+               PRINT *, 'lolo3, ivalue =', ivalue
                v_att_list(jatt)%val_char = TRIM(cvalue)
             ELSE
                ALLOCATE ( rvalue(ilg) )
@@ -301,6 +322,10 @@ CONTAINS
       END DO
       Nb_att = jatt-1
       CALL sherr( NF90_CLOSE(id_f),  crtn,cf_in,cv_in)
+
+      PRINT *, ' LOLO DONE attributes for var: ', TRIM(cv_in)
+      PRINT *, ''
+      
    END SUBROUTINE GETVAR_ATTRIBUTES
 
 
