@@ -31,7 +31,8 @@ PROGRAM CORR_VECT
       &    cv_gphiv     = 'gphiv',   &   ! input grid latitude name,  V-points
       &    cv_glamf     = 'glamf',   &   ! input grid longitude name, F-points
       &    cv_gphif     = 'gphif',   &   ! input grid latitude name,  F-points
-      &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
+      &    cv_depth     = 'gdept_1d'     !  depth at T-points (U-points and V-points too)      
+!      &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
 
    CHARACTER(LEN=400)  :: cn_xtr_x, cn_xtr_y, cextra_x, cextra_y

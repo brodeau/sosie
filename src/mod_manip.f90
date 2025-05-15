@@ -24,10 +24,18 @@ MODULE MOD_MANIP
       MODULE PROCEDURE degE_to_degWE_scal, degE_to_degWE_1d, degE_to_degWE_2d
    END INTERFACE degE_to_degWE
 
+   INTERFACE extra_1_east
+      MODULE PROCEDURE extra_1_east_r8
+   END INTERFACE extra_1_east
+
+   INTERFACE extra_1_west
+      MODULE PROCEDURE extra_1_west_r8
+   END INTERFACE extra_1_west
+
    INTERFACE extra_2_east
       MODULE PROCEDURE extra_2_east_r4, extra_2_east_r8
    END INTERFACE extra_2_east
-
+   
    INTERFACE extra_2_west
       MODULE PROCEDURE extra_2_west_r4, extra_2_west_r8
    END INTERFACE extra_2_west
@@ -37,7 +45,8 @@ MODULE MOD_MANIP
    END INTERFACE long_reorg_3d
 
 
-   PUBLIC :: fill_extra_bands, fill_extra_north_south, extra_2_east, extra_2_west, partial_deriv, &
+   PUBLIC :: fill_extra_bands, fill_extra_north_south, &
+      &      extra_1_east, extra_1_west, extra_2_east, extra_2_west, partial_deriv, &
       &      flip_ud, long_reorg_2d, long_reorg_3d, &
       &      distance, distance_2d, &
       &      find_nearest_point, &
@@ -453,14 +462,67 @@ CONTAINS
 
 
 
+   SUBROUTINE extra_1_east_r8(x1, x2, x3, x4, y1, y2, y3,  y4)
+      !!
+      !!============================================================================
+      !!
+      !! Extrapolates 2 extra east (or north) points of a curve with Akima's 1D method
+      !!
+      !! Input  : x1, x2, x3, x4, y1, y2, y3
+      !! Output : y4
+      !!
+      !!                       Author : Laurent BRODEAU, 2007
+      !!============================================================================
+      REAL(8), INTENT(in)  :: x1, x2, x3, x4, y1, y2, y3
+      REAL(8), INTENT(out) :: y4
+      REAL(8) :: A, B, C, ALF, BET
+      !!
+      A    = x2 - x1
+      B    = x3 - x2
+      C    = x4 - x3
+      !!
+      ALF  = y2 - y1
+      BET  = y3 - y2
+      !!
+      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+         y4 = y3
+      ELSE
+         y4   = C*(2*BET/B - ALF/A) + y3
+      END IF
+   END SUBROUTINE extra_1_east_r8
 
-
-
-
-
-
-
-
+   SUBROUTINE extra_1_west_r8(x5, x4, x3, x2, y5, y4, y3,  y2)
+      !!
+      !!============================================================================
+      !!
+      !! Extrapolates 2 extra west (or south) points of a curve with Akima's 1D method
+      !!
+      !! Input  : x2, x3, x4, x5, y2, y3
+      !! Output : y4, y5
+      !!
+      !!                       Author : Laurent BRODEAU, 2007
+      !!============================================================================
+      REAL(8), INTENT(in)  :: x2, x3, x4, x5, y5, y4, y3
+      REAL(8), INTENT(out) :: y2
+      REAL(8) :: A, B, C, D, ALF, BET
+      !!
+      !! x2 -> x4
+      !! x3 -> x3
+      !! x4 -> x2
+      !!
+      A    = x4 - x5
+      B    = x3 - x4
+      C    = x2 - x3
+      !!
+      ALF  = y4 - y5
+      BET  = y3 - y4
+      !!
+      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+         y2 = y3
+      ELSE
+         y2 = C*(2*BET/B - ALF/A) + y3
+      END IF
+   END SUBROUTINE extra_1_west_r8
 
 
 
@@ -588,6 +650,10 @@ CONTAINS
 
 
 
+
+
+
+   
 
    SUBROUTINE PARTIAL_DERIV(k_ew, XX, XY, XF, dFdX, dFdY, d2FdXdY)
 

@@ -22,7 +22,8 @@ MODULE mod_nemotools
    !USE dom_oce         ! ocean space and time domain
    !USE in_out_manager  ! I/O manager
    !USE lbcnfd          ! north fold
-
+   USE mod_manip, ONLY : extra_1_east, extra_1_west
+   
    IMPLICIT NONE
    PRIVATE
 
@@ -783,11 +784,94 @@ CONTAINS
          CALL lbc_lnk( nperio, gcosu, 'U', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinu, 'U', -1.0_8 )
          CALL lbc_lnk( nperio, gcosv, 'V', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinv, 'V', -1.0_8 )
          CALL lbc_lnk( nperio, gcosf, 'F', -1.0_8 )   ;   CALL lbc_lnk( nperio, gsinf, 'F', -1.0_8 )
-      END IF
 
+      ELSE
+
+         !DO jj = 2, ny-1
+
+         ! Northernmost row:
+         DO ji = 1, nx
+            CALL extra_1_east(pphit(ji,ny-3), pphit(ji,ny-2), pphit(ji,ny-1), pphit(ji,ny), gcost(ji,ny-3), gcost(ji,ny-2), gcost(ji,ny-1),  gcost(ji,ny))
+            CALL extra_1_east(pphit(ji,ny-3), pphit(ji,ny-2), pphit(ji,ny-1), pphit(ji,ny), gsint(ji,ny-3), gsint(ji,ny-2), gsint(ji,ny-1),  gsint(ji,ny))
+            CALL extra_1_east(pphiu(ji,ny-3), pphiu(ji,ny-2), pphiu(ji,ny-1), pphiu(ji,ny), gcosu(ji,ny-3), gcosu(ji,ny-2), gcosu(ji,ny-1),  gcosu(ji,ny))
+            CALL extra_1_east(pphiu(ji,ny-3), pphiu(ji,ny-2), pphiu(ji,ny-1), pphiu(ji,ny), gsinu(ji,ny-3), gsinu(ji,ny-2), gsinu(ji,ny-1),  gsinu(ji,ny))
+            CALL extra_1_east(pphiv(ji,ny-3), pphiv(ji,ny-2), pphiv(ji,ny-1), pphiv(ji,ny), gcosv(ji,ny-3), gcosv(ji,ny-2), gcosv(ji,ny-1),  gcosv(ji,ny))
+            CALL extra_1_east(pphiv(ji,ny-3), pphiv(ji,ny-2), pphiv(ji,ny-1), pphiv(ji,ny), gsinv(ji,ny-3), gsinv(ji,ny-2), gsinv(ji,ny-1),  gsinv(ji,ny))
+            CALL extra_1_east(pphif(ji,ny-3), pphif(ji,ny-2), pphif(ji,ny-1), pphif(ji,ny), gcosf(ji,ny-3), gcosf(ji,ny-2), gcosf(ji,ny-1),  gcosf(ji,ny))
+            CALL extra_1_east(pphif(ji,ny-3), pphif(ji,ny-2), pphif(ji,ny-1), pphif(ji,ny), gsinf(ji,ny-3), gsinf(ji,ny-2), gsinf(ji,ny-1),  gsinf(ji,ny))
+         END DO         
+         
+         ! Souhernmost row:
+         DO ji = 1, nx
+            CALL extra_1_west(pphit(ji,4), pphit(ji,3), pphit(ji,2), pphit(ji,1), gcost(ji,4), gcost(ji,3), gcost(ji,2),  gcost(ji,1))
+            CALL extra_1_west(pphit(ji,4), pphit(ji,3), pphit(ji,2), pphit(ji,1), gsint(ji,4), gsint(ji,3), gsint(ji,2),  gsint(ji,1)) 
+            CALL extra_1_west(pphiu(ji,4), pphiu(ji,3), pphiu(ji,2), pphiu(ji,1), gcosu(ji,4), gcosu(ji,3), gcosu(ji,2),  gcosu(ji,1))
+            CALL extra_1_west(pphiu(ji,4), pphiu(ji,3), pphiu(ji,2), pphiu(ji,1), gsinu(ji,4), gsinu(ji,3), gsinu(ji,2),  gsinu(ji,1)) 
+            CALL extra_1_west(pphiv(ji,4), pphiv(ji,3), pphiv(ji,2), pphiv(ji,1), gcosv(ji,4), gcosv(ji,3), gcosv(ji,2),  gcosv(ji,1))
+            CALL extra_1_west(pphiv(ji,4), pphiv(ji,3), pphiv(ji,2), pphiv(ji,1), gsinv(ji,4), gsinv(ji,3), gsinv(ji,2),  gsinv(ji,1)) 
+            CALL extra_1_west(pphif(ji,4), pphif(ji,3), pphif(ji,2), pphif(ji,1), gcosf(ji,4), gcosf(ji,3), gcosf(ji,2),  gcosf(ji,1))
+            CALL extra_1_west(pphif(ji,4), pphif(ji,3), pphif(ji,2), pphif(ji,1), gsinf(ji,4), gsinf(ji,3), gsinf(ji,2),  gsinf(ji,1)) 
+         END DO
+         
+         ! Westernmost column:
+         DO jj = 1, ny
+            CALL extra_1_west(plamt(4,jj), plamt(3,jj), plamt(2,jj), plamt(1,jj), gcost(4,jj), gcost(3,jj), gcost(2,jj),  gcost(1,jj))
+            CALL extra_1_west(plamt(4,jj), plamt(3,jj), plamt(2,jj), plamt(1,jj), gsint(4,jj), gsint(3,jj), gsint(2,jj),  gsint(1,jj))
+            CALL extra_1_west(plamu(4,jj), plamu(3,jj), plamu(2,jj), plamu(1,jj), gcosu(4,jj), gcosu(3,jj), gcosu(2,jj),  gcosu(1,jj))
+            CALL extra_1_west(plamu(4,jj), plamu(3,jj), plamu(2,jj), plamu(1,jj), gsinu(4,jj), gsinu(3,jj), gsinu(2,jj),  gsinu(1,jj))
+            CALL extra_1_west(plamv(4,jj), plamv(3,jj), plamv(2,jj), plamv(1,jj), gcosv(4,jj), gcosv(3,jj), gcosv(2,jj),  gcosv(1,jj))
+            CALL extra_1_west(plamv(4,jj), plamv(3,jj), plamv(2,jj), plamv(1,jj), gsinv(4,jj), gsinv(3,jj), gsinv(2,jj),  gsinv(1,jj))
+            CALL extra_1_west(plamf(4,jj), plamf(3,jj), plamf(2,jj), plamf(1,jj), gcosf(4,jj), gcosf(3,jj), gcosf(2,jj),  gcosf(1,jj))
+            CALL extra_1_west(plamf(4,jj), plamf(3,jj), plamf(2,jj), plamf(1,jj), gsinf(4,jj), gsinf(3,jj), gsinf(2,jj),  gsinf(1,jj))
+         END DO
+
+      END IF
+         
+      
    END SUBROUTINE angle2        !
 
 
+
+   SUBROUTINE extra_2_east_r8(x1, x2, x3, x4, x5, y1, y2, y3, y4, y5)
+      !!
+      !!============================================================================
+      !!
+      !! Extrapolates 2 extra east (or north) points of a curve with Akima's 1D method
+      !!
+      !! Input  : x1, x2, x3, x4, x5, y1, y2, y3
+      !! Output : y4, y5
+      !!
+      !!                       Author : Laurent BRODEAU, 2007
+      !!============================================================================
+      !!
+      !!
+      REAL(8), INTENT(in)  :: x1, x2, x3, x4, x5, y1, y2, y3
+      REAL(8), INTENT(out) :: y4, y5
+      !!
+      !! Local :
+      REAL(8) :: A, B, C, D, ALF, BET
+      !!
+      !!
+      A    = x2 - x1
+      B    = x3 - x2
+      C    = x4 - x3
+      D    = x5 - x4
+      !!
+      ALF  = y2 - y1
+      BET  = y3 - y2
+      !!
+      IF ( (A == 0.).OR.(B == 0.).OR.(C == 0.) ) THEN
+         y4 = y3
+         y5 = y3
+      ELSE
+         y4   = C*(2*BET/B - ALF/A) + y3
+         y5   = y4 + y4*D/C + BET*D/B - ALF*D/A - y3*D/C
+      END IF
+   END SUBROUTINE extra_2_east_r8
+
+
+   
+   
 
    !!======================================================================
 END MODULE mod_nemotools
