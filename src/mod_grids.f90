@@ -1,5 +1,9 @@
 MODULE  MOD_GRIDS
 
+#if defined _NVFORTRAN
+   USE ieee_arithmetic
+#endif
+
    USE mod_conf
    USE mod_scoord
    USE io_ezcdf
@@ -42,9 +46,9 @@ CONTAINS
       !! Allocate source arrays with source dimensions :
       ALLOCATE ( data_src(ni_src,nj_src), mask_src(ni_src,nj_src,nk_src), data_src_b(ni_src,nj_src),    &
          &       mask_src_b(ni_src,nj_src,nk_src), vt0(Ntr0), vt(Ntr) )
-      
+
       IF( l_save_drwn .OR. (ixtrpl_bot>0) ) ALLOCATE ( data_src_drowned(ni_src,nj_src,nk_src) )
-      
+
       vt(:) = 0.
 
       IF( l_reg_src ) THEN
@@ -1231,7 +1235,7 @@ CONTAINS
    SUBROUTINE CREATE_LSM_3D( cinfo, cmthd, cnumv, mask,  cf_fld, cv_fld, xfield )
       CHARACTER(len=6),  INTENT(in) :: cinfo  ! 'target' or 'source'
       CHARACTER(len=*),  INTENT(in) :: cmthd, cnumv  ! 'missing_value','value','val+','val-','nan','Nan'
-      INTEGER(1), DIMENSION(:,:,:), INTENT(inout) :: mask
+      INTEGER, DIMENSION(:,:,:), INTENT(inout) :: mask
       !!       !! if xfield is present then don't read cv out of cf_fld
       !!         => so it's either cf_fld=xxx, cv_fld=xxx OR xfield=XXXX, not both !!!
       CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
@@ -1277,7 +1281,7 @@ CONTAINS
          DO jk =  1, nk
             DO jj =  1, nj
                DO ji =  1, ni
-                  IF( ISNAN(z3d_tmp(ji,jj,jk)) ) z3d_tmp(ji,jj,jk) = rmissval
+                  IF( IEEE_IS_NAN(z3d_tmp(ji,jj,jk)) ) z3d_tmp(ji,jj,jk) = rmissval
                END DO
             END DO
          END DO
@@ -1289,7 +1293,7 @@ CONTAINS
       IF( TRIM(cmthd) == 'missing_value' ) THEN
          WRITE(6,*) 'Opening land-sea mask "'//TRIM(cinfo)//'" from missing_value of source field "'//TRIM(cv_fld)//'"!'
          CALL CHECK_4_MISS(cf_fld, cv_fld, lmval, rmv, ca_missval)
-         !PRINT *, 'LOLO: rmv =', rmv, ISNAN(rmv)
+         !PRINT *, 'LOLO: rmv =', rmv, IEEE_IS_NAN(rmv)
 
          IF( .NOT. lmval ) THEN
             PRINT *, 'ERROR (CREATE_LSM_3D of mod_grids.f90) : '//TRIM(cv_fld)//' has no missing value attribute!'
@@ -1297,7 +1301,7 @@ CONTAINS
             STOP
          END IF
 
-         IF( ISNAN(rmv) ) THEN
+         IF( IEEE_IS_NAN(rmv) ) THEN
             WHERE ( z3d_tmp < -9990. ) mask = 0  ! NaN have been replaced with rmissval earlier !
          ELSE
             WHERE ( z3d_tmp == rmv   ) mask = 0
@@ -1336,7 +1340,7 @@ CONTAINS
    SUBROUTINE CREATE_LSM_2D( cinfo, cmthd, cnumv, mask,  cf_fld, cv_fld, xfield )
       CHARACTER(len=6),  INTENT(in) :: cinfo  ! 'target' or 'source'
       CHARACTER(len=*),  INTENT(in) :: cmthd, cnumv  ! 'missing_value','value','val+','val-','nan','Nan'
-      INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask
+      INTEGER, DIMENSION(:,:), INTENT(inout) :: mask
       !!       !! if xfield is present then don't read cv out of cf_fld
       !!         => so it's either cf_fld=xxx, cv_fld=xxx OR xfield=XXXX, not both !!!
       CHARACTER(len=*), OPTIONAL,            INTENT(in) :: cf_fld, cv_fld
@@ -1382,7 +1386,7 @@ CONTAINS
          CALL GETVAR_2D(if0, iv0, cf_fld, cv_fld, Ntr, jz0, jt0, z2d_tmp)
          DO jj =  1, nj
             DO ji =  1, ni
-               IF( ISNAN(z2d_tmp(ji,jj)) ) z2d_tmp(ji,jj) = rmissval
+               IF( IEEE_IS_NAN(z2d_tmp(ji,jj)) ) z2d_tmp(ji,jj) = rmissval
             END DO
          END DO
       END IF
@@ -1399,7 +1403,7 @@ CONTAINS
             STOP
          END IF
 
-         IF( ISNAN(rmv) ) THEN
+         IF( IEEE_IS_NAN(rmv) ) THEN
             WHERE ( z2d_tmp < -9990. ) mask = 0  ! NaN have been replaced with rmissval earlier !
          ELSE
             WHERE ( z2d_tmp == rmv )   mask = 0
@@ -1431,7 +1435,6 @@ CONTAINS
       DEALLOCATE ( z2d_tmp )
 
    END SUBROUTINE CREATE_LSM_2D
-
 
 
 END MODULE MOD_GRIDS

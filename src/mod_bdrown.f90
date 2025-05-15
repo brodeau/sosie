@@ -11,7 +11,7 @@ MODULE MOD_BDROWN
 
    LOGICAL, PARAMETER :: ldebug = .FALSE.
 
-   REAL, PARAMETER :: ris2 = 1.0/SQRT(2.0)
+   REAL(4), PARAMETER :: ris2 = REAL( 1./SQRT(2.) , 4 )
 
 CONTAINS
 
@@ -47,7 +47,7 @@ CONTAINS
       !! Arguments :
       INTEGER,                       INTENT(in)    :: k_ew
       REAL(4),    DIMENSION(:,:),    INTENT(inout) :: X
-      INTEGER(1), DIMENSION(:,:),    INTENT(in)    :: mask
+      INTEGER,    DIMENSION(:,:),    INTENT(in)    :: mask
       INTEGER,    OPTIONAL,          INTENT(in)    :: nb_inc, nb_smooth
       REAL(4),    OPTIONAL,          INTENT(in)    :: pmin, pmax
       REAL(4),    OPTIONAL,          INTENT(in)    :: pval_land
@@ -55,7 +55,7 @@ CONTAINS
       !! Local :
       REAL(4)                                 :: zmin=-1.E24, zmax=1.E24, zval_land=0.
       REAL(4)                                 :: zmv
-      INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
+      INTEGER,    ALLOCATABLE, DIMENSION(:,:) :: maskv, mask_coast, mtmp
       INTEGER,    ALLOCATABLE, DIMENSION(:)   :: kmji
       REAL(4),    ALLOCATABLE, DIMENSION(:)   :: zvji
       REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: dold, xtmp
@@ -223,7 +223,7 @@ CONTAINS
          !! Center of the domain:
          DO jj = 2, nj-1
             DO ji = 2, ni-1
-               IF ( mask_coast(ji,jj) == 1 ) THEN
+               IF ( mask_coast(ji,jj) == INT(1,1) ) THEN
                   X(ji,jj) = 1./(maskv(ji+1,jj)+maskv(ji,jj+1)+maskv(ji-1,jj)+maskv(ji,jj-1) + &
                      & ris2*(maskv(ji+1,jj+1)+maskv(ji-1,jj+1)+maskv(ji-1,jj-1)+maskv(ji+1,jj-1)))*( &
                      & maskv(ji+1,jj)*dold(ji+1,jj) + maskv(ji,jj+1)*dold(ji,jj+1) + &
@@ -465,14 +465,14 @@ CONTAINS
       !!#############################################################################
 
       !! Arguments :
-      INTEGER,                    INTENT(in)           :: k_ew
-      REAL(4),    DIMENSION(:,:), INTENT(inout)        :: X
-      INTEGER,    OPTIONAL,                 INTENT(in) :: nb_smooth
-      INTEGER(1), OPTIONAL, DIMENSION(:,:), INTENT(in) :: msk
-      LOGICAL,    OPTIONAL                , INTENT(in) :: l_exclude_mask_points
+      INTEGER,                  INTENT(in)           :: k_ew
+      REAL(4), DIMENSION(:,:), INTENT(inout)        :: X
+      INTEGER, OPTIONAL,                 INTENT(in) :: nb_smooth
+      INTEGER, OPTIONAL, DIMENSION(:,:), INTENT(in) :: msk
+      LOGICAL, OPTIONAL                , INTENT(in) :: l_exclude_mask_points
 
-      REAL(4),    ALLOCATABLE, DIMENSION(:,:) :: xorig, xtmp, rdnm
-      INTEGER(1), ALLOCATABLE, DIMENSION(:,:) :: nbp
+      REAL(4), ALLOCATABLE, DIMENSION(:,:) :: xorig, xtmp, rdnm
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: nbp
 
       INTEGER, DIMENSION(2) :: ivi, vim_per, vip_per
 

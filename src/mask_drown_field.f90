@@ -46,7 +46,7 @@ PROGRAM mask_drown_field
    REAL(8), DIMENSION(:,:),   ALLOCATABLE :: xlon, xlat
    REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: data
    REAL(8), DIMENSION(:),     ALLOCATABLE :: vtime, vdpth, vlon, vlat
-   INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: mask
+   INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: mask
 
    INTEGER :: jt, iargc
    REAL(4) :: zsf, zao, rmissv

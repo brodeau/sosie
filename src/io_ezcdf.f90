@@ -1037,7 +1037,7 @@ CONTAINS
       !!------------------------------------------------------------------------
       INTEGER                                :: id_f, id_v
       CHARACTER(len=*),          INTENT(in)  :: cf_in, cv_in
-      INTEGER(1), DIMENSION(:,:,:), INTENT(out) :: IX
+      INTEGER, DIMENSION(:,:,:), INTENT(out) :: IX
       INTEGER,       OPTIONAL,    INTENT(in)    :: jz1, jz2
 
       INTEGER :: &
@@ -1560,7 +1560,7 @@ CONTAINS
 
 
    SUBROUTINE P2D_T(idx_f, idx_v, Nt, lct, xlon, xlat, vtime, x2d, cf_in, &
-      &             cv_lo, cv_la, cv_t, cv_in, vflag,      &
+      &             cv_lo, cv_la, cv_t, cv_in, rmissval,      &
       &             attr_lon, attr_lat, attr_t, attr_F, &
       &             cextrainfo, l_add_valid_min_max)
       !!
@@ -1579,7 +1579,7 @@ CONTAINS
       !!        cv_la = name of latitude                          [character]
       !!        cv_t = name of time                               [character]
       !!        cv_in  = name of the variable                     [character]
-      !!        vflag = flag value or "0."                        [real]
+      !!        rmissval = flag value or "0."                        [real]
       !!
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!        l_add_valid_min_max = for each variable write valid_min and valid_max (default=.true.)
@@ -1592,7 +1592,7 @@ CONTAINS
       REAL(4), DIMENSION(:,:),    INTENT(in)    :: x2d
       REAL(8), DIMENSION(Nt),     INTENT(in)    :: vtime
       CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_t, cv_in
-      REAL(4),                    INTENT(in)    :: vflag
+      REAL,                       INTENT(in)    :: rmissval
       !! Optional:
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_t, attr_F
       CHARACTER(len=*), OPTIONAL, INTENT(in)    :: cextrainfo
@@ -1621,12 +1621,12 @@ CONTAINS
 
       IF( lct == 1 ) THEN
 
-         IF( vflag /= 0.) THEN
+         IF( rmissval /= 0.) THEN
             rmin =  1.E6 ; rmax = -1.E6
             DO jj=1, Nj
                DO ji=1, Ni
-                  IF((x2d(ji,jj) <= rmin).and.(x2d(ji,jj) /= vflag)) rmin = x2d(ji,jj)
-                  IF((x2d(ji,jj) >= rmax).and.(x2d(ji,jj) /= vflag)) rmax = x2d(ji,jj)
+                  IF((x2d(ji,jj) <= rmin).and.(x2d(ji,jj) /= rmissval)) rmin = x2d(ji,jj)
+                  IF((x2d(ji,jj) >= rmax).and.(x2d(ji,jj) /= rmissval)) rmax = x2d(ji,jj)
                END DO
             END DO
          ELSE
@@ -1676,7 +1676,7 @@ CONTAINS
          !!  VARIABLE ATTRIBUTES
          IF( lcopy_att_F ) CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes (given in namelist):
-         IF(vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,trim(cmv0),           vflag),  crtn,cf_in,cv_in)
+         IF(rmissval/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,TRIM(cmv0),    REAL(rmissval,4) ),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
             &                                TRIM(cv_t)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
@@ -1712,7 +1712,7 @@ CONTAINS
 
 
    SUBROUTINE P3D_T(idx_f, idx_v, Nt, lct, xlon, xlat, vdpth, vtime, x3d, cf_in, &
-      &             cv_lo, cv_la, cv_dpth, cv_t, cv_in, vflag, &
+      &             cv_lo, cv_la, cv_dpth, cv_t, cv_in, rmissval, &
       &             attr_lon, attr_lat, attr_z, attr_t, attr_F, &
       &             cextrainfo, l_add_valid_min_max)
 
@@ -1733,7 +1733,7 @@ CONTAINS
       !!        cv_dpth = name of depth                           [character]
       !!        cv_t = name of time                               [character]
       !!        cv_in  = name of the variable                     [character]
-      !!        vflag = flag value or "0."                        [real]
+      !!        rmissval = flag value or "0."                        [real]
       !!
       !!        cextrainfo = extra information to go in "Info" of header of netcdf
       !!--------------------------------------------------------------------------
@@ -1746,7 +1746,7 @@ CONTAINS
       REAL(8), DIMENSION(:),      INTENT(in)    :: vdpth
       REAL(8), DIMENSION(Nt),     INTENT(in)    :: vtime
       CHARACTER(len=*),           INTENT(in)    :: cf_in, cv_lo, cv_la, cv_dpth, cv_t, cv_in
-      REAL(4),                    INTENT(in)    :: vflag
+      REAL,                       INTENT(in)    :: rmissval
       !! Optional:
       TYPE(var_attr), DIMENSION(nbatt_max), OPTIONAL, INTENT(in) :: attr_lon, attr_lat, attr_z, &
          &                                                          attr_t, attr_F
@@ -1782,14 +1782,14 @@ CONTAINS
          PRINT *, ''
          PRINT *, ' --- '//TRIM(crtn)//': creating file '//TRIM(cf_in)//' to write '//TRIM(cv_in)//'!'
 
-         IF( vflag /= 0.) THEN
+         IF( rmissval /= 0.) THEN
             rmin =  1.E6 ; rmax = -1.E6
             DO jk=1, Nk
                DO jj=1, Nj
 
                   DO ji=1, Ni
-                     IF((x3d(ji,jj,jk) <= rmin).and.(x3d(ji,jj,jk) /= vflag)) rmin = x3d(ji,jj,jk)
-                     IF((x3d(ji,jj,jk) >= rmax).and.(x3d(ji,jj,jk) /= vflag)) rmax = x3d(ji,jj,jk)
+                     IF((x3d(ji,jj,jk) <= rmin).and.(x3d(ji,jj,jk) /= rmissval)) rmin = x3d(ji,jj,jk)
+                     IF((x3d(ji,jj,jk) >= rmax).and.(x3d(ji,jj,jk) /= rmissval)) rmax = x3d(ji,jj,jk)
                   END DO
                END DO
             END DO
@@ -1839,7 +1839,7 @@ CONTAINS
          !!  VARIABLE ATTRIBUTES
          IF( lcopy_att_F )  CALL SET_ATTRIBUTES_TO_VAR(idx_f, idx_v, attr_F,  crtn,cf_in,cv_in)
          ! Forcing these attributes:
-         IF(vflag/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,trim(cmv0),           vflag),  crtn,cf_in,cv_in)
+         IF(rmissval/=0.) CALL sherr( NF90_PUT_ATT(idx_f, idx_v,trim(cmv0),           rmissval),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'actual_range', (/rmin,rmax/)),  crtn,cf_in,cv_in)
          CALL                sherr( NF90_PUT_ATT(idx_f, idx_v,'coordinates', &
             &                                TRIM(cv_t)//" "//TRIM(cv_dpth)//" "//TRIM(cv_la)//" "//TRIM(cv_lo)),  crtn,cf_in,cv_in)
@@ -2250,8 +2250,8 @@ CONTAINS
       END IF
 
       IF( vflag /= 0. ) THEN
-         CALL sherr( NF90_PUT_ATT(id_f, id_v1,trim(cmv0),INT8(vflag)), crtn,cf_out,'metrics (masking)')
-         CALL sherr( NF90_PUT_ATT(id_f, id_v2,trim(cmv0),vflag),       crtn,cf_out,'alphabeta (masking)')
+         CALL sherr( NF90_PUT_ATT(id_f, id_v1,TRIM(cmv0), INT(vflag,4)), crtn,cf_out,'metrics (masking)')
+         CALL sherr( NF90_PUT_ATT(id_f, id_v2,TRIM(cmv0),REAL(vflag,8)),       crtn,cf_out,'alphabeta (masking)')
       END IF
 
       CALL sherr( NF90_PUT_ATT(id_f, NF90_GLOBAL, 'Info', 'File containing mapping/weight information for bilinear interpolation with SOSIE.'), &

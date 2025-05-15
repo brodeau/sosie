@@ -13,7 +13,7 @@ MODULE MOD_MANIP
 
 
    INTERFACE flip_ud
-      MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_i1
+      MODULE PROCEDURE flip_ud_1d_r4, flip_ud_1d_r8, flip_ud_2d_r4, flip_ud_3d_int
    END INTERFACE flip_ud
 
    INTERFACE to_degE
@@ -33,7 +33,7 @@ MODULE MOD_MANIP
    END INTERFACE extra_2_west
 
    INTERFACE long_reorg_3d
-      MODULE PROCEDURE long_reorg_3d_i1
+      MODULE PROCEDURE long_reorg_3d_int
    END INTERFACE long_reorg_3d
 
 
@@ -683,12 +683,12 @@ CONTAINS
    END SUBROUTINE FLIP_UD_2D_R4
 
 
-   SUBROUTINE FLIP_UD_3D_I1(XF)
+   SUBROUTINE FLIP_UD_3D_INT(XF)
 
-      INTEGER(1), DIMENSION(:,:,:), INTENT(inout) :: XF
+      INTEGER, DIMENSION(:,:,:), INTENT(inout) :: XF
 
       INTEGER :: nx, ny, nz, jj
-      INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
+      INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: ztmp
 
       nx = SIZE(XF,1) ; ny = SIZE(XF,2) ; nz = SIZE(XF,3)
 
@@ -702,7 +702,7 @@ CONTAINS
 
       DEALLOCATE ( ztmp )
 
-   END SUBROUTINE FLIP_UD_3D_I1
+   END SUBROUTINE FLIP_UD_3D_INT
 
 
 
@@ -735,13 +735,13 @@ CONTAINS
 
 
 
-   SUBROUTINE LONG_REORG_3D_I1(i_chg_x, XF)
+   SUBROUTINE LONG_REORG_3D_INT(i_chg_x, XF)
 
       INTEGER, INTENT(in) :: i_chg_x
-      INTEGER(1), DIMENSION(:,:,:), INTENT(inout) :: XF
+      INTEGER, DIMENSION(:,:,:), INTENT(inout) :: XF
 
       INTEGER :: nx, ny, nz, ji
-      INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: ztmp
+      INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: ztmp
 
       nx = SIZE(XF,1) ; ny = SIZE(XF,2) ; nz = SIZE(XF,3)
 
@@ -758,7 +758,7 @@ CONTAINS
 
       DEALLOCATE ( ztmp )
 
-   END SUBROUTINE LONG_REORG_3D_I1
+   END SUBROUTINE LONG_REORG_3D_INT
 
 
 
@@ -783,11 +783,11 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIp, JJp  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: mask_domain_trg
+      INTEGER, OPTIONAL ,DIMENSION(:,:), INTENT(inout) :: mask_domain_trg
 
       INTEGER :: jj, nx_s, ny_s, nx_t, ny_t, j_strt_t, j_stop_t, jlat_icr
       REAL(8) :: y_max_s, y_min_s, rmin_dlat_dj, rtmp
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_t
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: mask_ignore_t
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: ztmp_t
       LOGICAL :: l_is_reg_s, l_is_reg_t
@@ -916,7 +916,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)  :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out) :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), DIMENSION(:,:), INTENT(in)  :: mask_t
+      INTEGER, DIMENSION(:,:), INTENT(in)  :: mask_t
       INTEGER,                    INTENT(in)  :: j_strt_t, j_stop_t, jlat_icr
 
       !! Important parameters:
@@ -1022,7 +1022,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xtrg, Ytrg    !: lon and lat arrays of target domain
       REAL(8),    DIMENSION(:,:), INTENT(in)    :: Xsrc , Ysrc     !: lon and lat arrays of source domain
       INTEGER(4), DIMENSION(:,:), INTENT(out)   :: JIpos, JJpos  !: nearest point location of point P in Xsrc,Ysrc wrt Xtrg,Ytrg
-      INTEGER(1), DIMENSION(:,:), INTENT(inout) :: mask_t
+      INTEGER, DIMENSION(:,:), INTENT(inout) :: mask_t
       INTEGER, INTENT(in)                       :: j_strt_t, j_stop_t, jlat_icr
       !!
       !! Important parameters:
@@ -1042,7 +1042,7 @@ CONTAINS
       REAL(8),    DIMENSION(:),   ALLOCATABLE :: VLAT_SPLIT_BOUNDS
       REAL(8),    DIMENSION(:,:), ALLOCATABLE :: Xdist, e1_s, e2_s    !: grid layout and metrics
       INTEGER,    DIMENSION(:,:), ALLOCATABLE :: J_VLAT_S
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: mspot_lon, mspot_lat
       INTEGER,    DIMENSION(:),   ALLOCATABLE :: i1dum
 
       INTEGER, DIMENSION(2) :: ij_min_loc
@@ -1610,8 +1610,8 @@ CONTAINS
       !!         vmask_ignore == 0) have the same size !
       !!
       !!----------------------------------------------------------
-      REAL(8),    DIMENSION(:), INTENT(in) :: vect
-      INTEGER(1), DIMENSION(:), INTENT(in) :: vmask_ignore
+      REAL(8), DIMENSION(:), INTENT(in) :: vect
+      INTEGER, DIMENSION(:), INTENT(in) :: vmask_ignore
       INTEGER,                  INTENT(in) :: new_size
       REAL(8), DIMENSION(new_size)         :: SHRINK_VECTOR
       !!

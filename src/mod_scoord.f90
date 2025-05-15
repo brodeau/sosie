@@ -1,5 +1,7 @@
 MODULE mod_scoord
 
+   USE mod_conf, ONLY : wpl
+   
    IMPLICIT NONE
 
 CONTAINS
@@ -12,8 +14,8 @@ CONTAINS
 
       TYPE( scoord_params ),INTENT(in)                 :: zs_par
       INTEGER,INTENT(in)                               :: zn_nx, zn_ny, zn_nz
-      REAL,DIMENSION(zn_nx,zn_ny),INTENT(in)           :: zz_bathy
-      REAL(4),DIMENSION(zn_nx,zn_ny,zn_nz),INTENT(out) :: zz_depth
+      REAL(wpl), DIMENSION(zn_nx,zn_ny),INTENT(in)        :: zz_bathy
+      REAL(4),   DIMENSION(zn_nx,zn_ny,zn_nz),INTENT(out) :: zz_depth
 
       !! local
       REAL(8),DIMENSION(zn_nz) :: Cs_r,sc_r
