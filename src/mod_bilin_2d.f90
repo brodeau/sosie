@@ -76,7 +76,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in)  :: X20, Y20
       REAL(4), DIMENSION(:,:), INTENT(out) :: Z2
       CHARACTER(len=*),        INTENT(in)  :: cnpat
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
+      INTEGER, OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
       !! Local variables
       INTEGER :: nx1, ny1, ny1w, nx2, ny2
@@ -85,9 +85,9 @@ CONTAINS
       LOGICAL :: l_add_extra_j, lefw
       INTEGER :: icpt, ji, jj
 
-      REAL(8),    DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
-      REAL(4),    DIMENSION(:,:), ALLOCATABLE :: Z1w
-      INTEGER(1), DIMENSION(:,:), ALLOCATABLE :: mask_ignore_trg !, msk_res
+      REAL(8), DIMENSION(:,:), ALLOCATABLE :: X1, Y1, X2, Y2, X1w, Y1w
+      REAL(4), DIMENSION(:,:), ALLOCATABLE :: Z1w
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: mask_ignore_trg !, msk_res
 
       CHARACTER(len=2)   :: ctype
       CHARACTER(len=400) :: cf_wght
@@ -384,7 +384,7 @@ CONTAINS
       REAL(8), DIMENSION(:,:), INTENT(in) :: X1, Y1
       REAL(8), DIMENSION(:,:), INTENT(in) :: lon_trg, lat_trg
       CHARACTER(len=*)       , INTENT(in) :: cf_w ! file containing mapping pattern
-      INTEGER(1), OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
+      INTEGER, OPTIONAL ,DIMENSION(:,:), INTENT(in) :: mask_domain_trg
 
       LOGICAL, PARAMETER :: l_save_distance_to_np=.TRUE. !: for each point of target grid, shows the distance to the nearest point found...
       INTEGER :: &
@@ -413,7 +413,7 @@ CONTAINS
       REAL(8),    DIMENSION(:,:,:), ALLOCATABLE :: ZAB       !: alpha, beta
       INTEGER(4), DIMENSION(:,:,:), ALLOCATABLE :: MTRCS  !: iP, jP, iqdrn at each point
       INTEGER(2), DIMENSION(:,:),   ALLOCATABLE :: ID_problem
-      INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_trg
+      INTEGER,    DIMENSION(:,:),   ALLOCATABLE :: mask_ignore_trg
       REAL(4),    DIMENSION(:,:),   ALLOCATABLE :: distance_to_np
 
       REAL(8) :: rmv, alpha, beta

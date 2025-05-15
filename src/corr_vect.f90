@@ -78,7 +78,7 @@ PROGRAM CORR_VECT
    INTEGER :: ipb, ipc, jiNP0, jjNP1, jjNP2
 
    INTEGER(1), DIMENSION(:,:),   ALLOCATABLE :: mask_np
-   INTEGER(1), DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
+   INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: mask_t, mask_u, mask_v
 
    REAL(4), DIMENSION(:,:), ALLOCATABLE :: ztmp4
 
@@ -92,7 +92,7 @@ PROGRAM CORR_VECT
 
    REAL(8), DIMENSION(:), ALLOCATABLE ::   vtime, vdepth
    REAL(8) :: rNp_lat=90.
-   REAL(4) :: rmv_eff
+   REAL    :: rmv_eff
 
    INTEGER :: jt, jk
 

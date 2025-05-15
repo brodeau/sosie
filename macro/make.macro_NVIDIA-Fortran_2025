@@ -1,0 +1,28 @@
+# Makefile for SOSIE with NVIDIA Fortran (ex PGI) on Linux
+# ========================================================
+
+# Fortran compiler:
+FC = nvfortran
+
+# Root directory for Netcdf:
+# netcf libraries are in: <NETCDF_DIR>/lib/
+# netcdf module 'netcdf.mod' in: <NETCDF_DIR>/include/
+NETCDF_DIR = /opt/hdf5_netcdf4_nvidia_par
+
+# Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
+L_NCDF = -lnetcdff
+
+# Compiler's libraries location:
+#LIB_COMP_DIR = /opt/intel/compilers_and_libraries_2019.1.144/linux/compiler/lib/intel64_lin
+
+
+# Fortran compilation flags:
+FF_BASE = -i4 -r8 -fast -O2 -Minit-local-zero -Mpreprocess -D_NVFORTRAN -module ./mod
+FF = $(FF_BASE)
+
+## For io_ezcdf.f90 (netCDF bug => "-fpe0" cannot be used here:
+FF_SAFE = $(FF_BASE)
+
+# Directory to install binaries:
+INSTALL_DIR = /usr/local
+

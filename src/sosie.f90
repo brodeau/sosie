@@ -37,6 +37,10 @@ PROGRAM SOSIE
    !!
    !!--------------------------------------------------------------------------
 
+!!#if defined _NVFORTRAN
+   USE ieee_arithmetic
+!!#endif
+
    USE io_ezcdf     !* routines for netcdf input/output
    USE mod_conf     !* important parameters, namelist, arrays, etc...
    USE mod_init     !* important parameters, namelist, arrays, etc...
@@ -54,7 +58,7 @@ PROGRAM SOSIE
       &   idf_o, idf_i, idv_o, idv_i, &  !: netcdf ID for source/target file
       &   idf_id, idv_id  !: drowned source field...
 
-   REAL(4) :: rfct_miss=1.
+   REAL :: rfct_miss, rmv
 
 
    !OPEN(UNIT=6, FORM='FORMATTED', RECL=512)  ! problem with Gfortan 4.8...
@@ -90,7 +94,8 @@ PROGRAM SOSIE
       PRINT *, 'PROBLEM: something is wrong => Ntr = 0 !!!'; STOP
    END IF
 
-   IF ( .NOT. lmout) rfct_miss = 0.
+   rfct_miss = 1._4
+   IF ( .NOT. lmout) rfct_miss = 0._4
 
    cextinf =                'Horizontal grid read in '//TRIM(cf_x_trg)
    IF (l_itrp_3d) cextinf = TRIM(cextinf)//' / Vertical grid read in '//TRIM(cf_z_trg)
@@ -109,8 +114,11 @@ PROGRAM SOSIE
    jj = SCAN(TRIM(cf_src), '.', BACK=.TRUE.) - 1
    ji = SCAN(TRIM(cf_src), '/', BACK=.TRUE.) + 1
    cf_drwn = TRIM(cf_src(ji:jj))//'_'//TRIM(cv_src)//'_DROWNED.nc'
-   
 
+
+
+   rmv = rfct_miss*rmiss_val ! missing value
+   
 
    !!                -------------------------------
    !!                  M A I N   T I M E   L O O P
@@ -143,7 +151,7 @@ PROGRAM SOSIE
          !! Replacing NaN with 0. to avoid some fuck-up later...
          DO jj =  1, nj_src
             DO ji =  1, ni_src
-               IF ( ISNAN(data_src(ji,jj)) ) data_src(ji,jj) = rmissval
+               IF ( IEEE_IS_NAN(data_src(ji,jj)) ) data_src(ji,jj) = rmissval
             END DO
          END DO
          !END IF
@@ -157,7 +165,7 @@ PROGRAM SOSIE
          CALL P2D_T(idf_o, idv_o, Ntr, jt,    &
             &      lon_trg_b, lat_trg, vt, data_trg,    &
             &      cf_out, cv_lon_trg, cv_lat_trg, cv_t_out,    &
-            &      cv_out, rfct_miss*REAL(rmiss_val,4), &
+            &      cv_out, rmv, &
             &      attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_t=vatt_info_t, attr_F=vatt_info_F, &
             &      cextrainfo=cextinf)
 
@@ -198,7 +206,7 @@ PROGRAM SOSIE
             CALL P3D_T(idf_o, idv_o, Ntr, jt, &
                &       lon_trg_b, lat_trg, REAL(depth_trg(1,1,:),8), vt, data3d_trg,                &
                &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
-               &       cv_out, rfct_miss*REAL(rmiss_val,4), &
+               &       cv_out, rmv, &
                &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
                &       attr_t=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)
@@ -219,7 +227,7 @@ PROGRAM SOSIE
             CALL P3D_T(idf_o, idv_o, Ntr, jt, &
                &       lon_trg_b, lat_trg, Sc_rho(:), vt, data3d_trg,                &
                &       cf_out, cv_lon_trg, cv_lat_trg, cv_z_out, cv_t_out, &
-               &       cv_out, rfct_miss*REAL(rmiss_val,4), &
+               &       cv_out, rmv, &
                &       attr_lon=vatt_info_lon_trg, attr_lat=vatt_info_lat_trg, attr_z=vatt_info_z_trg, &
                &       attr_t=vatt_info_t, attr_F=vatt_info_F, &
                &       cextrainfo=cextinf)

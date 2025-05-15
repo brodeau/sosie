@@ -27,6 +27,9 @@ PROGRAM CREATE_ANGLE_FILE
 
    IMPLICIT NONE
 
+   EXTERNAL iargc
+   INTEGER  iargc
+   
    LOGICAL, PARAMETER :: ldebug = .true.
 
    !! Grid :

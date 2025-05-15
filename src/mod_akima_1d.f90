@@ -40,7 +40,7 @@ CONTAINS
       LOGICAL  :: lfnd, l_do_interp
       LOGICAL  :: l_sp=.FALSE., l_bp=.FALSE.
       REAL(4), DIMENSION(:), ALLOCATABLE  :: vz1e, vf1e, vslp
-      INTEGER(1), DIMENSION(:), ALLOCATABLE  :: imiss1
+      INTEGER, DIMENSION(:), ALLOCATABLE  :: imiss1
       !!___________________________________________________
 
       IF( PRESENT(l_surf_persist) )  l_sp = l_surf_persist
@@ -82,8 +82,8 @@ CONTAINS
 
          IF ( nmissv > 0 ) THEN
             !! Index of the first valid point ?
-            k1_1 = FINDLOC(imiss1, 0, 1)
-            k1_n = FINDLOC(imiss1(k1_1:), 1, 1) + k1_1 - 2
+            k1_1 = FINDLOC(imiss1,        0, DIM=1)
+            k1_n = FINDLOC(imiss1(k1_1:), 1, DIM=1) + k1_1 - 2
             nz1 = nk1 - nmissv
          END IF
 

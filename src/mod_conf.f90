@@ -8,7 +8,7 @@ MODULE MOD_CONF
 
    INTEGER, PARAMETER :: wpl = 4        !: local working precision
 
-   REAL(4), PARAMETER :: rmissval = -9999.
+   REAL, PARAMETER :: rmissval = -9999.
 
    LOGICAL, SAVE :: l_first_call_interp_routine, &
       &             l_drown_src, & ! DROWN source field
@@ -223,8 +223,8 @@ MODULE MOD_CONF
       &      data3d_tmp, &  ! horizontal target resol. + vertical source resol.
       &    data_src_drowned
 
-   INTEGER(1),   DIMENSION(:,:),  ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0)
-   INTEGER(1),   DIMENSION(:,:,:),  ALLOCATABLE ::   &
+   INTEGER, DIMENSION(:,:),    ALLOCATABLE :: IGNORE !: point of target domain to disregard (IGNORE==0)
+   INTEGER, DIMENSION(:,:,:),  ALLOCATABLE ::   &
       &   mask_src, mask_src_b, &  !: land-sea mask on input grid
       &   mask_trg               !: land-sea mask on output grid
 

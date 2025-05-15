@@ -228,7 +228,7 @@ CONTAINS
             DO jj=1, nj_src
                DO ji=1, ni_src
                   IF(mask_src(ji,jj,1) == 1) THEN
-                     jk_bot = FINDLOC( mask_src(ji,jj,:), 0, 1 )   ! first bedrock point
+                     jk_bot = FINDLOC( mask_src(ji,jj,:), 0, DIM=1 )   ! first bedrock point
                      IF( jk_bot>1 ) THEN
                         zwet   = data3d_src(ji,jj,jk_bot-1)
                         !PRINT *, 'LOLO: bottom: jk_bot, nk_src, zwet =', jk_bot, nk_src, zwet
@@ -461,7 +461,7 @@ CONTAINS
             DO ji=1, ni_trg
                
                IF(mask_trg(ji,jj,1) == 1) THEN
-                  jk_bot = FINDLOC( mask_trg(ji,jj,:), 0, 1 )   ! first bedrock point
+                  jk_bot = FINDLOC( mask_trg(ji,jj,:), 0, DIM=1 )   ! first bedrock point
                   IF( jk_bot>1 ) THEN
                      zwet   = data3d_trg(ji,jj,jk_bot-1)
                      !PRINT *, 'LOLO: bottom: jk_bot, nk_trg, zwet =', jk_bot, nk_trg, zwet
