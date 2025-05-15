@@ -37,9 +37,9 @@ PROGRAM SOSIE
    !!
    !!--------------------------------------------------------------------------
 
-#if defined _NVFORTRAN
+!!#if defined _NVFORTRAN
    USE ieee_arithmetic
-#endif
+!!#endif
 
    USE io_ezcdf     !* routines for netcdf input/output
    USE mod_conf     !* important parameters, namelist, arrays, etc...

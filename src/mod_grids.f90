@@ -1,8 +1,8 @@
 MODULE  MOD_GRIDS
 
-#if defined _NVFORTRAN
+!!#if defined _NVFORTRAN
    USE ieee_arithmetic
-#endif
+!!#endif
 
    USE mod_conf
    USE mod_scoord
