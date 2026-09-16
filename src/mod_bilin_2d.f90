@@ -93,7 +93,7 @@ CONTAINS
       CHARACTER(len=400) :: cf_wght
 
       rmv = REAL(rmissval, 8)
-      
+
       ctype = TEST_XYZ(X10,Y10,Z1)
       nx1 = SIZE(Z1,1)
       ny1 = SIZE(Z1,2)
@@ -357,7 +357,7 @@ CONTAINS
       ELSE
          INTERP_BL = ( Z_in(i1,j1)*w1 + Z_in(i2,j2)*w2 + Z_in(i3,j3)*w3 + Z_in(i4,j4)*w4 )/wup
       ENDIF
-      
+
    END FUNCTION INTERP_BL
 
 
@@ -421,7 +421,7 @@ CONTAINS
       INTEGER :: icpt, idb, jdb
 
       rmv = REAL(rmissval, 8)
-      
+
       nxi = size(X1,1)
       nyi = size(X1,2)
 
@@ -603,6 +603,7 @@ CONTAINS
                      !! resolve a non linear system of equation for alpha and beta
                      !! ( the non dimensional coordinates of target point)
                      CALL LOCAL_COORD(loni, lati, alpha, beta, iproblem)
+
                      ID_problem(ji,jj) = iproblem
 
                      !LOLO: mark this in ID_problem => case when iqdrn = iqdrn0 ( IF ( icpt == 5 ) ) above!!!
@@ -626,10 +627,14 @@ CONTAINS
                         PRINT *, ''
                      END IF
 
+
+
+
                      !! Saving into arrays to be written at the end:
-                     !MTRCS(ji,jj,:) = (/ iP, jP, iqdrn /)
                      MTRCS(ji,jj,3) = iqdrn
                      ZAB(ji,jj,:)   = (/ alpha, beta /)
+
+
 
                   END IF ! IF ((iPm1 < 1).OR.(jPm1 < 1).OR.(iPp1 > nxi).OR.(jPp1 > nyi))
 
@@ -795,6 +800,16 @@ CONTAINS
          xb  = 0.5
          ipb = 12
       END IF
+
+      !! Cooking: handling the `-epsilon` xa or xb...
+      IF(xa < 0.) THEN
+         xa = MERGE( 0. , xa ,  xa > -1.E-4 )
+         !IF(xa < 0.) PRINT *, 'LOLO: WE have a `xa<0` => xa,xb=', xa,xb
+      ENDIF
+      IF(xb  < 0.) THEN
+         xb = MERGE( 0. , xb ,  xb > -1.E-4 )
+         !IF(xb < 0.) PRINT *, 'LOLO: WE have a `xb<0` => xb,xa=', xb,xa
+      ENDIF
 
    END SUBROUTINE LOCAL_COORD
 
