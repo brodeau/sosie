@@ -6,7 +6,7 @@ PROGRAM CORR_VECT
    USE mod_grids,  ONLY: IS_ORCA_NORTH_FOLD
    USE mod_nemotools
    USE mod_drown
-   
+
    !!========================================================================
    !! Purpose :  correct vector components 'uraw' and 'vraw' directly
    !!            interpolated on an irregular grid
@@ -31,8 +31,8 @@ PROGRAM CORR_VECT
       &    cv_gphiv     = 'gphiv',   &   ! input grid latitude name,  V-points
       &    cv_glamf     = 'glamf',   &   ! input grid longitude name, F-points
       &    cv_gphif     = 'gphif',   &   ! input grid latitude name,  F-points
-      &    cv_depth     = 'gdept_1d'     !  depth at T-points (U-points and V-points too)      
-!      &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
+      &    cv_depth     = 'gdept_1d'     !  depth at T-points (U-points and V-points too)
+   !      &    cv_depth     = 'deptht'       !  depth at T-points (U-points and V-points too)
 
 
    CHARACTER(LEN=400)  :: cn_xtr_x, cn_xtr_y, cextra_x, cextra_y
@@ -99,14 +99,15 @@ PROGRAM CORR_VECT
    LOGICAL :: &
       &    l_read_angles = .FALSE., &
       &    l_inv    = .FALSE., &
+      &    l_mask_out = .FALSE., &
       &    l_anlt   = .FALSE., & !: analytic input field (U=1, V=0) DEBUG...
       &    l_3d_inv = .FALSE., & !: will treat 3d files in inverse mode...
       &    lmout_x, lmout_y,   &
-      &    lexist,             & 
+      &    lexist,             &
       &    lNPfix = .FALSE.
 
-   CHARACTER(LEN=2), DIMENSION(12), PARAMETER :: &
-      &            clist_opt = (/ '-I','-h','-m','-A','-G','-p','-f','-i','-v','-t','-1','-P' /)
+   CHARACTER(LEN=2), DIMENSION(13), PARAMETER :: &
+      &            clist_opt = (/ '-I','-h','-m','-A','-M','-G','-p','-f','-i','-v','-t','-1','-P' /)
 
    WRITE(6,*)''
    WRITE(6,*)'=========================================================='
@@ -177,6 +178,9 @@ PROGRAM CORR_VECT
                l_read_angles = .TRUE.
             END IF
          END IF
+         !!
+      CASE('-M')
+         l_mask_out = .TRUE.
          !!
       CASE('-G')
          IF( jarg + 1 > iargc() ) THEN
@@ -405,7 +409,7 @@ PROGRAM CORR_VECT
       !   !
       !   ipc = INDEX(TRIM(cNP_fckp),',') !,BACK=.TRUE.)
       !   cr = cNP_fckp(1:ipc-1)
-         !   READ(cr,'(i)') jiNP0
+      !   READ(cr,'(i)') jiNP0
       !   ipb = ipc
       !   !
       !   ipc = INDEX(TRIM(cNP_fckp(ipb+1:)),',') + ipb
@@ -421,7 +425,7 @@ PROGRAM CORR_VECT
       !      STOP
       !   END IF
       !END IF
-      
+
       !! Geting array dimension and testing...
       !! -------------------------------------
 
@@ -524,7 +528,7 @@ PROGRAM CORR_VECT
       CALL GETVAR_2D(i0, j0, cf_mm, cv_gphiv, 1, 1, 1, xlat_v)
       CALL GETVAR_2D(i0, j0, cf_mm, cv_glamf, 1, 1, 1, xlon_f)
       CALL GETVAR_2D(i0, j0, cf_mm, cv_gphif, 1, 1, 1, xlat_f)
-      
+
       WRITE(6,*)''
 
       !! Is this a known ORCA grid (just for info now, not used!):
@@ -558,7 +562,7 @@ PROGRAM CORR_VECT
 
       XCOS_t(:,1) = 0.
       XSIN_t(:,1) = 0.
-      
+
       IF( ldebug ) THEN
          CALL DUMP_FIELD(REAL(XCOS_t,4), 'cost_angle.nc', 'cost')
          CALL DUMP_FIELD(REAL(XSIN_t,4), 'sint_angle.nc', 'sint')
@@ -576,7 +580,7 @@ PROGRAM CORR_VECT
          WHERE( xlat_t > rNP_lat ) mask_np = 0.
          IF(ldebug) CALL DUMP_FIELD( REAL(mask_np,4) , 'MASK_NP.nc', 'mask' )
       END IF
-      
+
       !!  Getting time from the u_raw file or the namelist :
       IF( lct ) THEN       ! time is being controlled
          DO jt = 1, Ntr
@@ -616,7 +620,7 @@ PROGRAM CORR_VECT
             END IF
 
 
-            
+
             !! Getting U and V on T-grid:
             !! Correcting U (East-North to i-component) :
             Xdum = XCOS_t*zU + XSIN_t*zV
@@ -647,7 +651,7 @@ PROGRAM CORR_VECT
                CALL DROWN( ewper_trg, U_c(:,:,jk), mask_np(:,:), nb_inc=100 )
                CALL DROWN( ewper_trg, V_c(:,:,jk), mask_np(:,:), nb_inc=100 )
             END IF
-            
+
          END DO ! jk
 
 
@@ -796,6 +800,9 @@ PROGRAM CORR_VECT
       WRITE(6,*)'File containing input grid :'
       PRINT *, trim(cf_mm) ; WRITE(6,*)''
 
+      lmout_x  = l_mask_out
+      lmout_y  = l_mask_out
+      !lili
 
       !! Creating name for unrotated output file:
       nbc = LEN_TRIM(cufilin)
@@ -976,8 +983,12 @@ PROGRAM CORR_VECT
          !#LB: need to fix the following if I'm wrong about U,V or T
          !#LB:  + also INCLUDE the possibility to chose 'T' or 'U,V' for the grid on which to save, just as for the rotation case (lines 522->539)
 
-         WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = rmissval
-         WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = rmissval
+         IF( l_mask_out ) THEN
+            PRINT *, ''
+            PRINT *, ' *** Masking output fields as you specified `-M` !'
+            WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = rmissval
+            WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = rmissval
+         ENDIF
 
          IF( l_3d_inv ) THEN
 
@@ -1066,6 +1077,8 @@ CONTAINS
       WRITE(6,*)'  *** MISC options :'
       WRITE(6,*)''
       WRITE(6,*)' -A  <angle_file>     => if file name provided, will read sin,cos of angle rather than compute them!'
+      WRITE(6,*)''
+      WRITE(6,*)' -M                   => mask output fields'
       WRITE(6,*)''
       WRITE(6,*)' -G  <T/U,V>          => Specify grid points where to save the (un)rotated vector'
       WRITE(6,*)'                       ==>    T    points "-G T" DEFAULT !'
