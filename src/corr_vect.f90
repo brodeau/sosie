@@ -87,7 +87,7 @@ PROGRAM CORR_VECT
 
    REAL(8), DIMENSION(:,:), ALLOCATABLE ::      &
       &    XCOS_t, XSIN_t, XCOS_u, XSIN_u, XCOS_v, XSIN_v, XCOS_f, XSIN_f, &
-      &    zU, zV,  ztmp, Xdum, Ydum, &
+      &    zUt, zVt, zUu, zVv,  ztmp, Xdum, Ydum, &
       &    xlon_t, xlat_t, xlon_u, xlat_u, xlon_v, xlat_v, xlon_f, xlat_f
 
    REAL(8), DIMENSION(:), ALLOCATABLE ::   vtime, vdepth
@@ -356,7 +356,7 @@ PROGRAM CORR_VECT
       cn_xtr_y = cextra
 
 
-      IF( trim(cgrid_trg) == 'T' ) THEN
+      IF( TRIM(cgrid_trg) == 'T' ) THEN
          WRITE(6,*)' *** Will save on T-grid points.'
          cextra_x = 'gridT_'//TRIM(cn_xtr_x)
          cextra_y = 'gridT_'//TRIM(cn_xtr_y)
@@ -498,7 +498,7 @@ PROGRAM CORR_VECT
       IF( lNPfix ) ALLOCATE ( mask_np(ni,nj)  )
 
       ALLOCATE (XCOS_t(ni,nj) , XSIN_t(ni,nj) , XCOS_u(ni,nj) , XSIN_u(ni,nj) , XCOS_v(ni,nj) , XSIN_v(ni,nj) , &
-         &      XCOS_f(ni,nj) , XSIN_f(ni,nj) , zU(ni,nj) , zV(ni,nj) )
+         &      XCOS_f(ni,nj) , XSIN_f(ni,nj) , zUt(ni,nj) , zVt(ni,nj) )
 
 
       IF( i3d == 1 ) THEN
@@ -607,25 +607,25 @@ PROGRAM CORR_VECT
 
             IF( l_anlt ) THEN
                ! Analytical field for debugging purposes...
-               zU = 1.
-               zV = 0.
+               zUt = 1.
+               zVt = 0.
             ELSE
                !! Getting uncorrected U on grid T:
                CALL  GETVAR_2D(idf_u, idv_u, cf_raw_U, cv_out_U, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
-               zU = ztmp4
+               zUt = ztmp4
 
                !! Getting uncorrected V on grid T:
                CALL  GETVAR_2D(idf_v, idv_v, cf_raw_V, cv_out_V, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
-               zV = ztmp4
+               zVt = ztmp4
             END IF
 
 
 
             !! Getting U and V on T-grid:
             !! Correcting U (East-North to i-component) :
-            Xdum = XCOS_t*zU + XSIN_t*zV
+            Xdum = XCOS_t*zUt + XSIN_t*zVt
             !! Correcting V (East-North to j-component) :
-            Ydum = XCOS_t*zV - XSIN_t*zU
+            Ydum = XCOS_t*zVt - XSIN_t*zUt
 
 
             IF( TRIM(cgrid_trg) == 'T' ) THEN
@@ -773,17 +773,30 @@ PROGRAM CORR_VECT
 
 
 
-
+      
    ELSE
+      !lulu
+      
       !! !!     I N V E R S E   C O R R E C T I O N
-
-      WRITE(6,*)'Will unrotate vector fields given on an irregular grid!'
+      WRITE(6,*)''
+      WRITE(6,*)'Will unrotate vector fields provided on an irregular grid!'
+      WRITE(6,*)' => as such we expect input x,y vector components to be'      
+      WRITE(6,*)'    on U- and V-points of source domain, respectively'
+      WRITE(6,*)' => they will be first interpolated on T-points'
+      WRITE(6,*)'    and output un-rotated velocities will be on T-points!'
+      WRITE(6,*)''
       !!
       !IF( l_reg_src ) THEN
       !   WRITE(6,*)'Reverse vector correction only makes sense if your source grid is distorded!'
       !   WRITE(6,*)'  => check "l_reg_src" into the namelist...' ; WRITE(6,*)''; STOP
       !END IF
       !!
+      IF( (cgrid_trg == 'U,V') ) THEN
+         WRITE(6,*)'Reverse vector correction only makes sense for T-points of target grid!'
+         WRITE(6,*)'  => use `-G T` switch!' ; WRITE(6,*)''
+         STOP
+      ENDIF
+      
       !!
       !!
       cf_raw_U = trim(cd_out)//'/'//trim(cv_out_U)//'_'//trim(csource)//'-' &
@@ -802,7 +815,6 @@ PROGRAM CORR_VECT
 
       lmout_x  = l_mask_out
       lmout_y  = l_mask_out
-      !lili
 
       !! Creating name for unrotated output file:
       nbc = LEN_TRIM(cufilin)
@@ -885,12 +897,13 @@ PROGRAM CORR_VECT
       ALLOCATE (ztmp4(ni,nj) , &
          &     U_c(ni,nj,nk) , V_c(ni,nj,nk),                              &
          &     xlon_t(ni,nj) , xlat_t(ni,nj) , xlon_u(ni,nj) , xlat_u(ni,nj), xlon_v(ni,nj) , xlat_v(ni,nj) , &
-         &     xlon_f(ni,nj) , xlat_f(ni,nj) , vtime(Ntr) , mask_u(ni,nj,nk) , mask_v(ni,nj,nk)  )
+         &     xlon_f(ni,nj) , xlat_f(ni,nj) , vtime(Ntr) , mask_t(ni,nj,nk) )
       !!
       ALLOCATE (XCOS_t(ni,nj) , XSIN_t(ni,nj) , XCOS_u(ni,nj) , XSIN_u(ni,nj) , XCOS_v(ni,nj) , XSIN_v(ni,nj) , &
-         &      XCOS_f(ni,nj) , XSIN_f(ni,nj) , zU(ni,nj) , zV(ni,nj) )
+         &      XCOS_f(ni,nj) , XSIN_f(ni,nj) )
 
-
+      ALLOCATE( zUu(ni,nj) , zVv(ni,nj) , zUt(ni,nj) , zVt(ni,nj) )     
+      
       !!  Getting longitude and latitude form grid file :
       !! ------------------------------------------------
       CALL GETVAR_2D(i0, j0, cf_mm, cv_glamt, 1, 1, 1, xlon_t)  ; i0=0 ; j0=0
@@ -905,11 +918,13 @@ PROGRAM CORR_VECT
       IF( l_3d_inv ) THEN
          ALLOCATE ( vdepth(nk) )
          CALL GETVAR_1D(cf_mm, cv_depth, vdepth)
-         CALL GETMASK_3D(cf_mm, 'umask', mask_u(:,:,:))
-         CALL GETMASK_3D(cf_mm, 'vmask', mask_v(:,:,:))
+         CALL GETMASK_3D(cf_mm, 'tmask', mask_t(:,:,:))
+         !CALL GETMASK_3D(cf_mm, 'umask', mask_u(:,:,:))
+         !CALL GETMASK_3D(cf_mm, 'vmask', mask_v(:,:,:))
       ELSE
-         CALL GETMASK_2D(cf_mm, 'umask', mask_u(:,:,1))
-         CALL GETMASK_2D(cf_mm, 'vmask', mask_v(:,:,1))
+         CALL GETMASK_2D(cf_mm, 'tmask', mask_t(:,:,1))
+         !CALL GETMASK_2D(cf_mm, 'umask', mask_u(:,:,1))
+         !CALL GETMASK_2D(cf_mm, 'vmask', mask_v(:,:,1))
       END IF
 
       !!  Getting cos and sin of the grid distorsion angle:
@@ -948,34 +963,28 @@ PROGRAM CORR_VECT
 
          DO jk = 1, nk
 
-
-
             WRITE(6,*)'  *** Un-rotating level =', jk
 
             !! Getting U :
             !! -----------
             CALL  GETVAR_2D(idf_u, idv_u, cufilin, cv_u_in, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
-            zU = ztmp4
-
-
+            zUu = ztmp4
+            zUt(1,:) = 0.
+            zUt(2:ni,:) = 0.5*( zUu(1:ni-1,:) + zUu(2:ni,:) )
+            
 
             !! Getting V :
             !! -----------
             CALL  GETVAR_2D(idf_v, idv_v, cvfilin, cv_v_in, Ntr, jk*i3d, jt, ztmp4, Nk=nk)
-            zV = ztmp4
-
+            zVv = ztmp4
+            zVt(:,1) = 0.
+            zVt(:,2:nj) = 0.5*( zVv(:,1:nj-1) + zVv(:,2:nj) )
+            
             !! Unrotating U :
-            !! --------------
-            !#LB: zU is on U-points!
-            U_c(:,:,jk) = REAL(XCOS_t*zU - XSIN_t*zV , 4) ! note the '-' sign --> reverse correction
-            !#LB: on what grid points is this supposed to be??? U or T? Presently the rest of the code assume it's U !!!
-
-
+            U_c(:,:,jk) = REAL(XCOS_t*zUt - XSIN_t*zVt , 4) ! note the '-' sign --> reverse correction
+            
             !! Unrotating V :
-            !! --------------
-            !#LB: zV is on V-points!
-            V_c(:,:,jk) = REAL(XCOS_t*zV + XSIN_t*zU , 4) ! note the + sign for reverse correction
-            !#LB: on what grid points is this supposed to be??? V or T? Presently the rest of the code assume it's V !!!
+            V_c(:,:,jk) = REAL(XCOS_t*zVt + XSIN_t*zUt , 4) ! note the + sign for reverse correction
 
 
          END DO  ! jk
@@ -985,29 +994,29 @@ PROGRAM CORR_VECT
 
          IF( l_mask_out ) THEN
             PRINT *, ''
-            PRINT *, ' *** Masking output fields as you specified `-M` !'
-            WHERE ( mask_u == 0 ) U_c(:,:,1:nk) = rmissval
-            WHERE ( mask_v == 0 ) V_c(:,:,1:nk) = rmissval
+            PRINT *, ' *** Masking output vector components @T as you specified `-M` !'
+            WHERE ( mask_t == 0 ) U_c(:,:,1:nk) = rmissval
+            WHERE ( mask_t == 0 ) V_c(:,:,1:nk) = rmissval
          ENDIF
 
          IF( l_3d_inv ) THEN
 
             CALL P3D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vdepth, vtime, U_c(:,:,:),  &
-               &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_depth, cv_time_0, cv_out_U,       &
+               &    cf_raw_U, 'nav_lon', 'nav_lat', cv_depth, cv_time_0, cv_out_U,       &
                &    rmissval, attr_t=vatt_info_t)
 
             CALL P3D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vdepth, vtime, V_c(:,:,:),  &
-               &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_depth, cv_time_0, cv_out_V,       &
+               &    cf_raw_V, 'nav_lon', 'nav_lat', cv_depth, cv_time_0, cv_out_V,       &
                &    rmissval, attr_t=vatt_info_t)
 
          ELSE
 
             CALL P2D_T(id_f1, id_v1, Ntr, jt, xlon_u, xlat_u, vtime, U_c(:,:,1),     &
-               &    cf_raw_U, 'nav_lon_u', 'nav_lat_u', cv_time_0, cv_out_U,       &
+               &    cf_raw_U, 'nav_lon', 'nav_lat', cv_time_0, cv_out_U,       &
                &    rmissval, attr_t=vatt_info_t)
-
+            
             CALL P2D_T(id_f2, id_v2, Ntr, jt, xlon_v, xlat_v, vtime, V_c(:,:,1), &
-               &    cf_raw_V, 'nav_lon_v', 'nav_lat_v', cv_time_0, cv_out_V,   &
+               &    cf_raw_V, 'nav_lon', 'nav_lat', cv_time_0, cv_out_V,   &
                &    rmissval, attr_t=vatt_info_t)
 
          END IF
