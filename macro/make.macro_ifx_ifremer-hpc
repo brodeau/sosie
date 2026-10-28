@@ -1,0 +1,28 @@
+# Makefile for SOSIE with Intel on DATARMOR @ IFREMER
+# ===================================================
+
+# Fortran compiler:
+FC = mpiifx
+
+# Root directory for Netcdf:
+NETCDFF_DIR=/app/netcdf-fortran/4.6.2-parallel
+NETCDFC_DIR=/app/netcdf-c/4.9.3-parallel
+HDF5_DIR=/app/hdf5/1.14.6-parallel
+
+# Linking argument: usually "-lnetcdff", "-lnetcdf" or "-lnetcdf -lnetcdff" :
+L_NCDFF = -lnetcdff -lz -lcurl
+L_NCDFC = -lnetcdf
+L_HDF5  = -lhdf5_hl -lhdf5
+
+# Fortran compilation flags:
+# -- Production
+FF = -O3 -i4 -xHOST -module mod/
+FF_SAFE = -O3 -i4 -xHOST -module mod/
+
+# -- Debugging
+###FF = -O2 -i4 -xHOST -traceback -fpe0 -CB -module mod/
+###FF = -O2 -i4 -xHOST -traceback -CB -module mod/
+
+# Directory to install binaries:
+INSTALL_DIR = ./
+
